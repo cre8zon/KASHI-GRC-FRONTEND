@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" id="favicon-link" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KashiGRC</title>
+    <!-- Geist + DM Mono from Google Fonts CDN equivalents -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+    <style>
+      /* Default CSS variables — overridden at runtime from tenant_branding */
+      :root {
+        --color-brand-50:   224 242 254;
+        --color-brand-100:  186 230 253;
+        --color-brand-200:  125 211 252;
+        --color-brand-300:  56  189 248;
+        --color-brand-400:  14  165 233;
+        --color-brand-500:  2   132 199;
+        --color-brand-600:  3   105 161;
+        --color-brand-700:  7   89  133;
+        --color-brand-800:  12  74  110;
+        --color-brand-900:  12  61  89;
+        /* dark theme surfaces */
+        --color-surface:         15  23  42;
+        --color-surface-raised:  22  33  56;
+        --color-surface-overlay: 30  41  59;
+        --color-border:          51  65  85;
+        --color-border-subtle:   30  41  59;
+        --color-text-primary:    241 245 249;
+        --color-text-secondary:  148 163 184;
+        --color-text-muted:      100 116 139;
+        --color-text-inverse:    15  23  42;
+        --color-sidebar:         10  15  30;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body, #root { height: 100%; }
+      body {
+        font-family: 'DM Sans', system-ui, sans-serif;
+        background-color: rgb(15 23 42);
+        color: rgb(241 245 249);
+        -webkit-font-smoothing: antialiased;
+      }
+      /* Custom scrollbar */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgb(51 65 85); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgb(71 85 105); }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
