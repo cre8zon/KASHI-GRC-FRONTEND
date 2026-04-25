@@ -56,7 +56,7 @@ export function useMyActionItems() {
         }
         const client = new Client({
           webSocketFactory: () => new SockJS(
-            `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081'}/ws`
+            `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/ws`
           ),
           connectHeaders: { Authorization: `Bearer ${token}` },
           reconnectDelay: 5000,

@@ -39,7 +39,7 @@ async function getStompClient(token) {
       ])
       const client = new Client({
         webSocketFactory: () => new SockJS(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081'}/ws`
+          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/ws`
         ),
         connectHeaders: { Authorization: `Bearer ${token}` },
         reconnectDelay: 10000,   // slower retry to reduce log noise

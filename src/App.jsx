@@ -1,7 +1,10 @@
+import { useEffect } from 'react'
+import { useDispatch } from 'react-redux'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { ScrollToTop } from './components/ScrollToTop'
 import { useSelector } from 'react-redux'
-import { selectIsAuthenticated, selectRoleSides } from './store/slices/authSlice'
+import { selectIsAuthenticated, selectRoleSides, validateSession } from './store/slices/authSlice'
+import { useTheme } from './hooks/useTheme'
 import { ROLE_SIDES } from './config/constants'
 
 // Layout
@@ -84,6 +87,11 @@ function usePlatformAdmin() {
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const isPlatformAdmin = usePlatformAdmin()
+  const dispatch = useDispatch()
+
+  useEffect(() => {
+    dispatch(validateSession())
+  }, [dispatch])
 
   return (
     <>

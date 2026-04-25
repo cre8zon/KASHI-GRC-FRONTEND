@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import {
   Plus, Search, RefreshCw, Send, Shield, UserCheck,
   UserX, Check, Loader2, ChevronDown, ChevronUp, AlertTriangle,
@@ -168,7 +169,7 @@ function RoleAssignPanel({ user, tenantId, side }) {
         </div>
       </div>
 
-      {/* Currently assigned roles as removable chips */}
+      {/* Currently assigned roles */}
       {user.roles && user.roles.length > 0 && (
         <div>
           <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
@@ -213,7 +214,6 @@ function RoleAssignPanel({ user, tenantId, side }) {
         </div>
       </div>
 
-      {/* Role list for selected side */}
       {isLoading && (
         <div className="flex items-center gap-2 py-2">
           <Loader2 size={13} className="text-brand-400 animate-spin" />
@@ -372,10 +372,32 @@ function InviteUserModal({ open, onClose, side, tenantId, vendorId }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function UserManagementPage({ side = 'ORGANIZATION' }) {
-  const { tenantId } = useSelector(selectAuth)
-  const vendorId     = useSelector(selectVendorId)
+/**
+ * UserManagementPage
+ *
+ * Props:
+ *   side        — 'ORGANIZATION' | 'VENDOR' | 'SYSTEM' | …
+ *   vendorId    — (optional) when passed as prop, scopes the list to a specific
+ *                 vendor (used when org-admin navigates to a vendor's team page).
+ *                 Can also be provided via ?vendorId= query param.
+ *
+ * Vendor-side users (loggedInVendorId != null) are always scoped to their own
+ * vendor on the backend — the frontend doesn't need to pass anything extra.
+ */
+export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: vendorIdProp }) {
+  const { tenantId }      = useSelector(selectAuth)
+  const loggedInVendorId  = useSelector(selectVendorId)
   const { hasPermission } = usePermission()
+
+  // Accept vendorId from either prop (org-admin drilling into a vendor) or
+  // from the URL query param (?vendorId=42) for direct links.
+  const [searchParams] = useSearchParams()
+  const vendorIdFromUrl = searchParams.get('vendorId')
+    ? Number(searchParams.get('vendorId'))
+    : null
+
+  // Effective vendorId: prop wins over query param; logged-in vendor always wins on backend.
+  const vendorId = vendorIdProp ?? vendorIdFromUrl ?? loggedInVendorId ?? undefined
 
   const canInvite      = hasPermission('USER_CREATE')
   const canEdit        = hasPermission('USER_EDIT')
@@ -391,11 +413,14 @@ export default function UserManagementPage({ side = 'ORGANIZATION' }) {
   const [resendTarget,   setResendTarget]   = useState(null)
 
   const { data, isLoading, refetch } = useUsers({
-    skip:   (page - 1) * 20,
-    take:   20,
-    search: search || undefined,
-    sortBy: `${sortBy}=${sortDir}`,
+    skip:     (page - 1) * 20,
+    take:     20,
+    search:   search || undefined,
+    sortBy:   `${sortBy}=${sortDir}`,
     side,
+    // Pass vendorId to backend so it scopes the query to the specific vendor.
+    // Undefined (not passed) when side != VENDOR or no specific vendor is requested.
+    vendorId: side === 'VENDOR' && vendorId ? vendorId : undefined,
   })
 
   const { mutate: suspend,  isPending: suspending  } = useSuspendUser()

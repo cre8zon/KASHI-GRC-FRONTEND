@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useDispatch } from 'react-redux'
 import { uiConfigApi } from '../api/uiConfig.api'
 import { setBootstrap } from '../store/slices/uiConfigSlice'
+import { updateContext } from '../store/slices/authSlice'
 import { QUERY_KEYS } from '../config/constants'
 
 export const useBootstrap = () => {
@@ -11,9 +12,48 @@ export const useBootstrap = () => {
     queryFn: async () => {
       const data = await uiConfigApi.bootstrap()
       dispatch(setBootstrap(data))
+      if (data.tenantName || data.vendorName) {
+        dispatch(updateContext({
+          tenantName: data.tenantName || null,
+          vendorName: data.vendorName || null,
+        }))
+      }
+
+      // Directly fetch user preferences from DB on every app load
+      // This is separate from bootstrap so it works even if UiConfigServiceImpl
+      // doesn't return userPreferences yet
+      try {
+        const { usersApi } = await import('../api/users.api')
+        const prefs = await usersApi.preferences.get()
+        //
+        if (prefs) {
+          const appTheme     = prefs['ui_app_theme']
+          const sidebarTheme = prefs['ui_sidebar_theme']
+          const sidebarColor = prefs['ui_sidebar_color']
+          if (appTheme) {
+            localStorage.setItem('kashi_theme', appTheme)
+            document.documentElement.setAttribute('data-theme', appTheme)
+          }
+          if (sidebarTheme) {
+            localStorage.setItem('kashi_sidebar_theme', sidebarTheme)
+          }
+          if (sidebarColor) {
+            localStorage.setItem('kashi_sidebar_color', sidebarColor)
+            // Apply user's personal brand color to entire app
+            const { applyBranding } = await import('../store/slices/uiConfigSlice')
+            applyBranding({ ...data.branding, primaryColor: sidebarColor })
+          }
+          if (sidebarTheme) {
+            window.dispatchEvent(new CustomEvent('kashi-sidebar-changed'))
+          }
+        }
+      } catch (e) {
+        //
+      }
+
       return data
     },
-    staleTime: 30 * 60 * 1000,  // 30 min — branding/nav rarely changes
+    staleTime: 60 * 1000,
     gcTime:    60 * 60 * 1000,
   })
 }

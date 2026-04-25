@@ -1,7 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
-  darkMode: 'class',
+  // Use data-theme="dark" attribute instead of class="dark"
+  // This lets useTheme.js control dark/light by setting the attribute,
+  // without needing to add/remove a class from <html>.
+  darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
       fontFamily: {
@@ -39,6 +42,7 @@ export default {
           inverse: 'rgb(var(--color-text-inverse) / <alpha-value>)',
         },
         sidebar: 'rgb(var(--color-sidebar) / <alpha-value>)',
+        accent:  'rgb(var(--color-accent)  / <alpha-value>)',
       },
       animation: {
         'fade-in': 'fadeIn 0.2s ease-out',

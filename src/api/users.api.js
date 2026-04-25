@@ -19,6 +19,10 @@ export const usersApi = {
     remove: (tenantId, userId, roleId) =>
       api.delete(`/v1/roles/users/${tenantId}/${userId}/remove/${roleId}`),
   },
+  preferences: {
+    save: (prefs) => api.patch('/v1/users/me/preferences', prefs),
+    get:  ()      => api.get('/v1/users/me/preferences'),
+  },
 }
 
 export const rolesApi = {
