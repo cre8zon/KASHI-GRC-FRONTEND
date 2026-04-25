@@ -342,9 +342,30 @@ export function Sidebar({ collapsed, onToggle }) {
       {/* Nav */}
       <nav className={cn('flex-1 overflow-y-auto py-3 space-y-4 min-h-0', collapsed ? 'px-1.5' : 'px-2.5')}>
         {isLoading && (
-          <div className="space-y-2 px-1">
-            {[1,2,3,4,5].map(i => (
-              <Skeleton key={i} className={cn('h-8 rounded-lg', collapsed ? 'w-9' : 'w-full')} />
+          <div className={cn('space-y-1 px-2', collapsed && 'px-1.5')}>
+            {!collapsed && (
+              <div className={cn('h-2 w-16 rounded mb-3 mx-1 animate-pulse',
+                effectiveTheme === 'brand' ? 'bg-white/10' : effectiveTheme === 'light' ? 'bg-gray-200' : 'bg-white/5'
+              )} />
+            )}
+            {[1,2,3,4,5,6,7,8].map(i => (
+              <div key={i} className={cn(
+                'flex items-center gap-2.5 rounded-lg',
+                collapsed ? 'justify-center w-9 h-9 mx-auto' : 'px-3 py-2 h-9'
+              )}>
+                <div className={cn(
+                  'rounded-md shrink-0 animate-pulse',
+                  collapsed ? 'w-5 h-5' : 'w-4 h-4',
+                  effectiveTheme === 'brand' ? 'bg-white/15' : effectiveTheme === 'light' ? 'bg-gray-200' : 'bg-white/8'
+                )} style={{ animationDelay: `${i * 80}ms` }} />
+                {!collapsed && (
+                  <div className={cn(
+                    'h-2.5 rounded-full animate-pulse flex-1',
+                    effectiveTheme === 'brand' ? 'bg-white/10' : effectiveTheme === 'light' ? 'bg-gray-100' : 'bg-white/5',
+                    i % 3 === 0 ? 'max-w-[60%]' : i % 3 === 1 ? 'max-w-[80%]' : 'max-w-[70%]'
+                  )} style={{ animationDelay: `${i * 80 + 40}ms` }} />
+                )}
+              </div>
             ))}
           </div>
         )}

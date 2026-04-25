@@ -57,7 +57,7 @@ function Tabs({ active, onChange }) {
 }
 
 // ── Profile tab ───────────────────────────────────────────────────────────────
-function ProfileTab({ auth, branding }) {
+function ProfileTab({ auth, branding, userColor }) {
   const { fullName, email, tenantId, tenantName, roles, vendorId } = auth
   const primaryRole = roles?.[0]
   const roleName    = primaryRole?.roleName?.replace(/_/g, ' ') || '—'
@@ -121,25 +121,38 @@ function ProfileTab({ auth, branding }) {
         <Card>
           <CardHeader title="Workspace Branding" />
           <CardBody className="flex flex-col gap-4">
-            <div className="flex gap-2">
-              {[
-                { color: branding?.primaryColor || '#0ea5e9', label: 'Primary' },
-                { color: branding?.accentColor  || '#7c3aed', label: 'Accent'  },
-              ].map(({ color, label }) => (
-                <div key={label} className="flex flex-col items-center gap-1">
-                  <div className="w-10 h-10 rounded-lg border border-border shadow-sm"
-                    style={{ background: color }} />
-                  <span className="text-[9px] text-text-muted">{label}</span>
+            <div className="flex gap-3">
+              {/* Currently applied color (user's saved or org default) */}
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-10 h-10 rounded-lg border-2 border-brand-500 shadow-sm"
+                  style={{ background: userColor || branding?.primaryColor || '#0ea5e9' }} />
+                <span className="text-[9px] text-brand-400 font-medium">Applied</span>
+              </div>
+              {/* Org workspace color */}
+              {userColor && userColor !== branding?.primaryColor && (
+                <div className="flex flex-col items-center gap-1">
+                  <div className="w-10 h-10 rounded-lg border border-border shadow-sm opacity-60"
+                    style={{ background: branding?.primaryColor || '#0ea5e9' }} />
+                  <span className="text-[9px] text-text-muted">Workspace</span>
                 </div>
-              ))}
+              )}
+              {/* Accent */}
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-10 h-10 rounded-lg border border-border shadow-sm"
+                  style={{ background: branding?.accentColor || '#7c3aed' }} />
+                <span className="text-[9px] text-text-muted">Accent</span>
+              </div>
             </div>
+            {/* Live color scale — reflects currently applied color */}
             <div className="flex gap-0.5 h-4 rounded-md overflow-hidden">
               {[50,100,200,300,400,500,600,700,800,900].map(s => (
                 <div key={s} className={`flex-1 bg-brand-${s}`} />
               ))}
             </div>
             <p className="text-[10px] text-text-muted leading-relaxed">
-              Colors set by your workspace administrator in the Branding section.
+              {userColor && userColor !== branding?.primaryColor
+                ? 'Showing your personal color. Workspace color shown faded.'
+                : 'Colors set by your workspace administrator.'}
             </p>
           </CardBody>
         </Card>
@@ -515,7 +528,7 @@ export default function SettingsPage() {
     <PageLayout title="Settings" subtitle="Account preferences and display settings">
       <Tabs active={tab} onChange={setTab} />
       <div className="p-6">
-        {tab === 'profile'  && <ProfileTab  auth={auth} branding={branding} />}
+        {tab === 'profile'  && <ProfileTab  auth={auth} branding={branding} userColor={(() => { try { return localStorage.getItem('kashi_sidebar_color') } catch { return null } })()} />}
         {tab === 'display'  && <DisplayTab  branding={branding} />}
         {tab === 'security' && <SecurityTab />}
       </div>
