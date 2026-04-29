@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSelector } from 'react-redux'
 import { selectRoles } from '../../store/slices/authSlice'
-import api from '../../config/axios.config'
 import { useNavigate } from 'react-router-dom'
 import {
   Search, RefreshCw, ChevronRight, ChevronDown,
@@ -90,101 +89,11 @@ export default function VendorAssessmentsPage() {
   const roles = useSelector(selectRoles)
   const hasRole = (name) => roles?.some(r => (r.name || r.roleName) === name)
 
-  const isVRM         = hasRole('VENDOR_VRM')
-  const isCISO        = hasRole('VENDOR_CISO')
-  const isResponder   = hasRole('VENDOR_RESPONDER')
   const isContributor = hasRole('VENDOR_CONTRIBUTOR')
   const isOrgSide     = roles?.some(r => r.side === 'ORGANIZATION')
 
-  /**
-   * handleViewAssessment — navigate to the correct page for the user's role.
-   *
-   * FIXED: The my-tasks API call was using res.data?.data?.items to unwrap the
-   *   response. Since the axios interceptor already unwraps ApiResponse<T> to T,
-   *   the result is already a plain array — res.data?.data?.items was undefined.
-   *
-   *   Before: const items = res.data?.data?.items || []  ← always []
-   *   After:  const items = Array.isArray(res) ? res : []  ← correct array
-   *
-   * FIXED (Responder/Contributor): These roles were being navigated to the
-   *   vendor assessment pages WITHOUT a taskId in the URL query params. The
-   *   page-level STEP-GATED guard immediately redirected them back to the inbox.
-   *   Now we look up their matching task by entityId and include the taskId.
-   */
-  const handleViewAssessment = async (row) => {
-    const id = row.assessmentId
-
-    if (isOrgSide) {
-      // Org reviewers — open review modal (no task required for modal view)
-      setDetail({ id, isReview: ['SUBMITTED', 'UNDER_REVIEW', 'COMPLETED'].includes(row.status) })
-      return
-    }
-
-    // All vendor-side roles: look up their task for this assessment's entity
-    try {
-      // GET /v1/workflows/my-tasks — axios interceptor returns TaskInstanceResponse[] directly
-      const taskList = await api.get('/v1/workflows/my-tasks', { params: { status: 'PENDING' } })
-
-      // FIXED: taskList is already the unwrapped array (not { data: { items: [] } })
-      const items = Array.isArray(taskList) ? taskList : []
-
-      // Find the task that matches this specific vendor entity
-      const myTask = items.find(t =>
-        String(t.entityId) === String(row.vendorId || id) &&
-        t.entityType === 'VENDOR'
-      )
-
-      if (isVRM || isCISO) {
-        if (myTask) {
-          const step = isVRM ? 3 : 4
-          const url  = `/vendor/assessments/${id}/assign` +
-            `?taskId=${myTask.id}&stepInstanceId=${myTask.stepInstanceId}&step=${step}`
-          navigate(url)
-        } else if (row.status === 'ASSIGNED' && isVRM) {
-          // ASSIGNED status: no task exists yet (step is AWAITING_ASSIGNMENT).
-          // VRM can still open the assign page to pick a CISO — the backend
-          // now bypasses the task guard for ASSIGNED assessments, and the
-          // assign page skips the task ownership check for ASSIGNED status.
-          navigate(`/vendor/assessments/${id}/assign?step=3`)
-        } else {
-          toast.error('No pending task found for this assessment — check your inbox')
-        }
-        return
-      }
-
-      if (isResponder) {
-        if (myTask) {
-          // FIXED: include taskId so the page guard accepts the navigation
-          navigate(
-            `/vendor/assessments/${id}/responder-review` +
-            `?taskId=${myTask.id}&stepInstanceId=${myTask.stepInstanceId}`
-          )
-        } else {
-          toast.error('No pending task found — you may not be assigned to this assessment yet')
-        }
-        return
-      }
-
-      if (isContributor) {
-        if (myTask) {
-          // FIXED: include taskId so the page guard accepts the navigation
-          navigate(
-            `/vendor/assessments/${id}/fill` +
-            `?taskId=${myTask.id}&stepInstanceId=${myTask.stepInstanceId}`
-          )
-        } else {
-          toast.error('No pending task found — you may not be assigned any questions yet')
-        }
-        return
-      }
-
-    } catch (e) {
-      console.error('[VendorAssessmentsPage] my-tasks error:', e)
-      toast.error('Could not load task info — try opening from your inbox')
-    }
-
-    // Fallback — read-only modal for any unmatched role
-    setDetail({ id, isReview: false })
+  const handleViewAssessment = (row) => {
+    navigate(`/assessments/${row.assessmentId}`)
   }
 
   const handleSort = (key) => {

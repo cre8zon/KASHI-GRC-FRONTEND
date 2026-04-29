@@ -131,6 +131,7 @@ export default function AssessmentListPage() {
   const isVRM     = hasRole('VENDOR_VRM')
   const isCISO    = hasRole('VENDOR_CISO')
   const isContributor = hasRole('VENDOR_CONTRIBUTOR')
+  const isResponder   = hasRole('VENDOR_RESPONDER')
 
   const { data, isLoading, refetch } = useAssessments({
     skip: (page - 1) * 30,
@@ -155,8 +156,10 @@ export default function AssessmentListPage() {
     return acc
   }, {}), [allItems])
 
-  const handleView = async (row) => {
-    // Navigate to detail page — let it resolve access contextually
+  const handleView = (row) => {
+    // Always navigate to the unified detail page.
+    // AssessmentDetailPage is role-aware and shows read-only view for all roles.
+    // Users with active tasks see a "Go to your task" action button on that page.
     navigate(`/assessments/${row.assessmentId}`)
   }
 

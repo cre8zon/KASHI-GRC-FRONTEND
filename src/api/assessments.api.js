@@ -211,4 +211,20 @@ export const assessmentsApi = {
     assignRiskRating:          (id, taskId, riskRating) =>
       api.post(`/v1/assessments/${id}/risk-rating`, null, { params: { taskId, riskRating } }),
   },
+
+  // ── VENDOR SIDE — RESPONDER → CONTRIBUTOR COMMAND ACTIONS ──────────────────
+  // Only accept and override here. Revision request goes through commentsApi.add()
+  // with commentType: 'REVISION_REQUEST' — CommentService handles the ActionItem.
+
+  /** Responder accepts contributor's submitted answer. */
+  acceptContributorAnswer: (assessmentId, questionInstanceId) =>
+    api.put(`/v1/assessments/${assessmentId}/questions/${questionInstanceId}/accept-contributor`),
+
+  /**
+   * Responder overrides contributor's answer with their own text/option.
+   * Original is preserved in Activity trail as a SYSTEM comment.
+   * body: { responseText?, selectedOptionInstanceId?, overrideReason? }
+   */
+  overrideContributorAnswer: (assessmentId, questionInstanceId, body) =>
+    api.post(`/v1/assessments/${assessmentId}/questions/${questionInstanceId}/override-answer`, body),
 }

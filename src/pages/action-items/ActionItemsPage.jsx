@@ -76,6 +76,8 @@ function ActionItemCard({ item, onUpdateStatus }) {
       const qParam = ctx.questionInstanceId ? `questionInstanceId=${ctx.questionInstanceId}` : ''
       const addParam = (url) => {
         if (!qParam) return url
+        // Don't add questionInstanceId if it's already baked into the navContext URL
+        if (url.includes('questionInstanceId=')) return url
         return url + (url.includes('?') ? '&' : '?') + qParam
       }
 
@@ -86,9 +88,16 @@ function ActionItemCard({ item, onUpdateStatus }) {
 
       const assigneeRoute = ctx.assigneeRoute || ctx.route
       if (assigneeRoute) {
+        // CONTRIBUTOR_ASSIGNMENT and REVIEWER_ASSIGNMENT: no openWork bypass.
+        // Section lock must still apply for assignment entries.
+        // openWork=1 is only added for REVISION_REQUEST and REMEDIATION_REQUEST.
+        const isAssignment = ['CONTRIBUTOR_ASSIGNMENT', 'REVIEWER_ASSIGNMENT']
+          .includes(item.remediationType)
         const hasOpenWork = assigneeRoute.includes('openWork')
         const sep = assigneeRoute.includes('?') ? '&' : '?'
-        const withWork = assigneeRoute + (hasOpenWork ? '' : `${sep}openWork=1`)
+        const withWork = (isAssignment || hasOpenWork)
+          ? assigneeRoute
+          : assigneeRoute + `${sep}openWork=1`
         navigate(addParam(withWork))
         return
       }

@@ -6,9 +6,6 @@ import { useScreenConfig } from '../../hooks/useUIConfig'
 import { DataTable } from '../../components/ui/DataTable'
 import { Button } from '../../components/ui/Button'
 import { PageLayout } from '../../components/layout/PageLayout'
-import { Modal } from '../../components/ui/Modal'
-import { DynamicForm } from '../../components/forms/DynamicForm'
-import { useOnboardVendor } from '../../hooks/useVendors'
 
 export default function VendorListPage() {
   const navigate          = useNavigate()
@@ -16,7 +13,6 @@ export default function VendorListPage() {
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortDir, setSortDir] = useState('desc')
-  const [showCreate, setShowCreate] = useState(false)
 
   const { data: screenConfig } = useScreenConfig('vendor_list')
   const { data, isLoading, refetch } = useVendorList({
@@ -24,7 +20,6 @@ export default function VendorListPage() {
     search: search ? `name=${search}` : undefined,
     sortBy: `${sortBy}=${sortDir}`,
   })
-  const { mutate: onboard, isPending } = useOnboardVendor()
 
   // Parse columns from DB layout — fallback to safe defaults
   const columns = parseColumns(screenConfig?.layout?.columnsJson) || DEFAULT_COLUMNS
@@ -50,7 +45,7 @@ export default function VendorListPage() {
             />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
-          <Button size="sm" icon={Plus} onClick={() => setShowCreate(true)}>Onboard Vendor</Button>
+          <Button size="sm" icon={Plus} onClick={() => navigate('/tprm/vendors/onboard')}>Onboard Vendor</Button>
         </div>
       }
     >
@@ -67,21 +62,6 @@ export default function VendorListPage() {
         onRowClick={row => navigate(`/tprm/vendors/${row.vendorId || row.id}`)}
         emptyMessage="No vendors found. Onboard your first vendor."
       />
-
-      <Modal
-        open={showCreate}
-        onClose={() => setShowCreate(false)}
-        title="Onboard Vendor"
-        subtitle="Complete the form to start the vendor onboarding workflow"
-        size="lg"
-      >
-        <DynamicForm
-          formKey="vendor_create"
-          loading={isPending}
-          submitLabel="Start Onboarding"
-          onSubmit={(data) => onboard(data, { onSuccess: () => setShowCreate(false) })}
-        />
-      </Modal>
     </PageLayout>
   )
 }

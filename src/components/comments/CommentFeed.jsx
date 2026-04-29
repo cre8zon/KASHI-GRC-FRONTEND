@@ -20,8 +20,9 @@ const TYPE_CONFIG = {
 }
 
 const VISIBILITY_CONFIG = {
-  INTERNAL:  { icon: Lock,   color: 'text-purple-400', label: 'Internal' },
-  CISO_ONLY: { icon: Shield, color: 'text-indigo-400', label: 'CISO only' },
+  INTERNAL:        { icon: Lock,   color: 'text-purple-400', label: 'Org internal'    },
+  VENDOR_INTERNAL: { icon: Lock,   color: 'text-teal-400',   label: 'Vendor internal' },
+  CISO_ONLY:       { icon: Shield, color: 'text-indigo-400', label: 'CISO only'       },
 }
 
 function CommentBubble({ comment, onResolve, canResolve }) {
@@ -110,7 +111,8 @@ function CommentInput({ onSubmit, adding, showVisibility, showType }) {
             <select value={visibility} onChange={e => setVisibility(e.target.value)}
               className="text-[10px] bg-surface-raised border border-border rounded px-2 py-1 text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="ALL">Visible to all</option>
-              {isOrg && <option value="INTERNAL">Internal (org only)</option>}
+              {isOrg && <option value="INTERNAL">Org internal (org only)</option>}
+              {!isOrg && <option value="VENDOR_INTERNAL">Vendor internal (vendor only)</option>}
               {(isOrg || isCiso) && <option value="CISO_ONLY">CISO only</option>}
             </select>
           )}

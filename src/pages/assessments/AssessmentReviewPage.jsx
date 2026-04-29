@@ -49,6 +49,9 @@ import { actionItemsApi } from '../../api/actionItems.api'
 import { Button }         from '../../components/ui/Button'
 import { Card, CardHeader, CardBody } from '../../components/ui/Card'
 import { Modal }          from '../../components/ui/Modal'
+import { QuestionDrawer } from '../../components/item-panel'
+import { useSelector }    from 'react-redux'
+import { selectRoles }    from '../../store/slices/authSlice'
 import { cn }             from '../../lib/cn'
 import { formatDate }     from '../../utils/format'
 import { useMyTasks, useCompoundTaskProgress } from '../../hooks/useWorkflow'
@@ -56,6 +59,7 @@ import { CompoundTaskProgress, CompoundTaskBadge } from '../../components/workfl
 import { useEntityActionItems, useUpdateActionItemStatus } from '../../hooks/useActionItems'
 import { useQuestionComments } from '../../hooks/useComments'
 import toast from 'react-hot-toast'
+import { useScrollToQuestion } from '../../hooks/useScrollToQuestion'
 
 // ─── Data hooks ───────────────────────────────────────────────────────────────
 
@@ -643,7 +647,7 @@ const EVAL_OPTIONS = [
   { value: 'FAIL',    label: 'Fail',    Icon: ThumbsDown, bg: 'bg-red-500/10   border-red-500/40   text-red-400'   },
 ]
 
-function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEvaluate, canAct, sectionSubmitted }) {
+function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEvaluate, canAct, sectionSubmitted, onOpenDrawer }) {
   const resp = question.currentResponse
   const [showClarify,   setShowClarify]   = useState(false)
   const [showRemediate, setShowRemediate] = useState(false)
@@ -777,7 +781,6 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
             <div className="flex items-center gap-3 mt-2 flex-wrap">
               {/* Assign to assistant */}
               <AssignToAssistantInline question={question} assessmentId={assessmentId}/>
-              {/* Flag finding removed — use "Vendor remediation" for tracked issues */}
               {/* Clarify with assistant — only if assistant assigned */}
               {question.reviewerAssignedUserId && (
                 <button onClick={() => setShowClarify(true)}
@@ -790,7 +793,20 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
                 className="flex items-center gap-1 text-[11px] text-text-muted hover:text-red-400 transition-colors">
                 <Flag size={10}/> Vendor remediation
               </button>
+              {/* Full context drawer — notes, evidence, activity */}
+              {onOpenDrawer && (
+                <button onClick={() => onOpenDrawer(question)}
+                  className="flex items-center gap-1 text-[11px] text-text-muted hover:text-brand-400 transition-colors ml-auto">
+                  <MessageSquare size={10}/> Notes &amp; context
+                </button>
+              )}
             </div>
+          )}
+          {!canAct && onOpenDrawer && (
+            <button onClick={() => onOpenDrawer(question)}
+              className="flex items-center gap-1 text-[11px] text-text-muted/60 hover:text-brand-400 transition-colors mt-1.5">
+              <MessageSquare size={10}/> Notes &amp; context
+            </button>
           )}
 
           <CommentBox questionInstanceId={question.questionInstanceId}/>
@@ -805,7 +821,7 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
 
 // ─── ReviewerSectionAccordion (updated: per-section submit button) ────────────
 
-function ReviewerSectionAccordion({ section, assessmentId, taskId, evaluations, onEvaluate, defaultOpen }) {
+function ReviewerSectionAccordion({ section, assessmentId, taskId, evaluations, onEvaluate, defaultOpen, onOpenDrawer }) {
   const [open, setOpen] = useState(defaultOpen)
   const questions       = section.questions || []
   const evaluated       = questions.filter(q => !!evaluations[q.questionInstanceId]).length
@@ -858,6 +874,7 @@ function ReviewerSectionAccordion({ section, assessmentId, taskId, evaluations, 
         <div className="border-t border-border">
           <div className="px-5">
             {questions.map(q => (
+              <div key={q.questionInstanceId} data-qi={q.questionInstanceId}>
               <ReviewerQuestionCard
                 key={q.questionInstanceId}
                 question={q}
@@ -867,7 +884,9 @@ function ReviewerSectionAccordion({ section, assessmentId, taskId, evaluations, 
                 onEvaluate={onEvaluate}
                 canAct={true}
                 sectionSubmitted={isSubmitted}
+                onOpenDrawer={onOpenDrawer}
               />
+              </div>
             ))}
           </div>
 
@@ -993,9 +1012,10 @@ function EvaluateQuestionsPanel({ assessment, taskId, activeTask, onDone, target
 
   // CHANGED: uses useMyReviewerSections (reviewerAssignedUserId) instead of useMySections (assignedUserId)
   const { data: mySections = [], isLoading: sectionsLoading } = useMyReviewerSections(id, taskId, !isCISOStep)
-
+  useScrollToQuestion([mySections.length])
   const [evaluations, setEvaluations] = useState({})
   const [seeded, setSeeded] = useState(false)
+  const [drawerQuestion, setDrawerQuestion] = useState(null)
   useEffect(() => {
     if (!seeded && mySections.length > 0) {
       const seed = {}
@@ -1124,6 +1144,7 @@ function EvaluateQuestionsPanel({ assessment, taskId, activeTask, onDone, target
   )
 
   return (
+    <>
     <div className="space-y-4">
       <div className="flex items-center justify-between text-xs text-text-muted px-0.5">
         <span>{mySections.length} section(s) assigned to you</span>
@@ -1148,10 +1169,20 @@ function EvaluateQuestionsPanel({ assessment, taskId, activeTask, onDone, target
             evaluations={evaluations}
             onEvaluate={handleEvaluate}
             defaultOpen={idx === 0 || containsTarget}
+            onOpenDrawer={setDrawerQuestion}
           />
         )
       })}
     </div>
+          <QuestionDrawer
+        question={drawerQuestion}
+        assessmentId={id}
+        userSide="ORGANIZATION"
+        userRole={activeTask?.actorRoleName || ''}
+        mode="reviewer"
+        onClose={() => setDrawerQuestion(null)}
+      />
+    </>
   )
 }
 

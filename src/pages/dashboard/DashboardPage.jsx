@@ -1,16 +1,14 @@
 import { useDashboardWidgets } from '../../hooks/useUIConfig'
 import { DashboardGrid } from '../../components/charts/DashboardWidget'
 import { TaskInbox } from '../../components/workflow/TaskInbox'
-import { Card, CardHeader } from '../../components/ui/Card'
-import { PageSkeleton } from '../../components/ui/EmptyState'
+import { Card, CardHeader, CardBody } from '../../components/ui/Card'
 import { useSelector } from 'react-redux'
 import { selectAuth } from '../../store/slices/authSlice'
 import { useMyTasks } from '../../hooks/useWorkflow'
-import { cn }                  from '../../lib/cn'
+import { cn } from '../../lib/cn'
 import { ListTodo, Flag, ChevronRight } from 'lucide-react'
-import { useNavigate }           from 'react-router-dom'
-import { useMyActionItems }       from '../../hooks/useActionItems'
-import { CardBody }               from '../../components/ui/Card'
+import { useNavigate } from 'react-router-dom'
+import { useMyActionItems } from '../../hooks/useActionItems'
 
 /**
  * DashboardPage — main landing page with widget grid and task inbox.
@@ -24,22 +22,19 @@ import { CardBody }               from '../../components/ui/Card'
  * All other logic (greeting, widget grid, TaskInbox) is unchanged.
  */
 export default function DashboardPage() {
-  const { data: widgets = [], isLoading } = useDashboardWidgets()
+  const { data: widgets = [], isLoading: widgetsLoading } = useDashboardWidgets()
   const { fullName } = useSelector(selectAuth)
   const { data: tasksData } = useMyTasks({ status: 'PENDING' })
 
-  // FIXED: useMyTasks returns a plain array — use Array.isArray guard.
   const pendingTasks = Array.isArray(tasksData) ? tasksData : (tasksData?.items ?? [])
   const pendingCount = pendingTasks.length
 
-  if (isLoading) return <PageSkeleton />
-
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      {/* Header */}
+      {/* Greeting */}
       <div>
-        <h1 className="text-xl font-bold text-text-primary">
-          Good {getGreeting()}, <span className="text-brand-300">{fullName?.split(' ')[0]}</span>
+        <h1 className="text-xl font-semibold text-text-primary">
+          Good {getGreeting()}, <span className="text-brand-400">{fullName?.split(' ')[0]}</span>
         </h1>
         <p className="text-sm text-text-muted mt-0.5">
           {pendingCount > 0
@@ -48,10 +43,18 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* DB-driven widget grid */}
-      {widgets.length > 0 && <DashboardGrid widgets={widgets} />}
+      {/* Widget grid — show skeleton while loading, empty state if no widgets */}
+      {widgetsLoading ? (
+        <div className="grid grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="h-28 rounded-xl border border-border bg-surface-raised animate-pulse" />
+          ))}
+        </div>
+      ) : widgets.length > 0 ? (
+        <DashboardGrid widgets={widgets} />
+      ) : null}
 
-      {/* Task inbox — always visible */}
+      {/* Task inbox */}
       <Card>
         <CardHeader
           title="Task Inbox"
@@ -66,7 +69,8 @@ export default function DashboardPage() {
         />
         <TaskInbox />
       </Card>
-      {/* Action Items widget */}
+
+      {/* Action Items */}
       <Card>
         <CardHeader
           title="My Action Items"

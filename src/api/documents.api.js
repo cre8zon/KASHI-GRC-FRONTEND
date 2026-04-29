@@ -26,15 +26,17 @@ export const documentsApi = {
   // ── 3-step presigned upload (PDFs, DOCX, XLSX, etc.) ─────────────────
 
   requestUpload: (opts) =>
-    api.post('/v1/documents/request-upload', opts)
-       .then(r => r.data?.data ?? r.data),
+    api.post('/v1/documents/request-upload', opts),
 
   uploadToS3: (presignedUrl, file, requiredHeaders, onProgress) =>
     new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()
       xhr.open('PUT', presignedUrl, true)
       if (requiredHeaders) {
-        Object.entries(requiredHeaders).forEach(([k, v]) => xhr.setRequestHeader(k, v))
+        Object.entries(requiredHeaders).forEach(([k, v]) => {
+          console.log(`Setting header: ${k} = ${v}`)  // ← ADD
+          xhr.setRequestHeader(k, v)
+        })
       }
       if (onProgress) {
         xhr.upload.onprogress = (e) => {

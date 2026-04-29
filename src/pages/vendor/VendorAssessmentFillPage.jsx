@@ -31,21 +31,24 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, CheckCircle2, ChevronDown, ChevronRight,
   Send, Loader2, AlertCircle, Save, FileText, Users, Search,
-  AlertTriangle, Clock} from 'lucide-react'
+  AlertTriangle, Clock, MessageSquare, Paperclip} from 'lucide-react'
 import { assessmentsApi } from '../../api/assessments.api'
 import { usersApi }       from '../../api/users.api'
 import { workflowsApi }   from '../../api/workflows.api'
 import { Button }         from '../../components/ui/Button'
 import { Badge }          from '../../components/ui/Badge'
+import EvidenceUploader from '../../components/ui/EvidenceUploader'
 import { cn }             from '../../lib/cn'
 import { formatDate }     from '../../utils/format'
 import { useSelector }    from 'react-redux'
-import { selectAuth }     from '../../store/slices/authSlice'
+import { selectAuth, selectRoles } from '../../store/slices/authSlice'
 import { Modal }          from '../../components/ui/Modal'
 import { useAccessContext, useMyTasks, useCompoundTaskProgress } from '../../hooks/useWorkflow'
 import { useEntityActionItems, useUpdateActionItemStatus } from '../../hooks/useActionItems'
 import { CompoundTaskProgress, CompoundTaskBadge } from '../../components/workflow/CompoundTaskProgress'
+import { QuestionDrawer, ResponderActions } from '../../components/item-panel'
 import toast              from 'react-hot-toast'
+import { useScrollToQuestion } from '../../hooks/useScrollToQuestion'
 
 const TYPE_CONFIG = {
   SINGLE_CHOICE: {
@@ -208,7 +211,7 @@ function useSubmitSection(assessmentId) {
       qc.invalidateQueries({ queryKey: ['my-sections-fill', assessmentId] })
       qc.invalidateQueries({ queryKey: ['compound-task-progress'] })
       qc.invalidateQueries({ queryKey: ['my-tasks'] })
-      toast.success('Section submitted')
+      // toast removed — section already shows "Submitted ✓" optimistically
     },
     onError: (e) => toast.error(e?.message || 'Failed to submit section'),
   })
@@ -524,23 +527,36 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
   ))
   const [dirty,          setDirty]      = useState(false)
   const [justSaved,      setJustSaved]  = useState(false)
+  // Per-option pending tracking for multi-choice.
+  // Prevents double-click duplicate saves without blocking ALL options (which kills UX).
+  // Rule: each optionId can only have one in-flight mutation at a time.
+  const [pendingOptionIds, setPendingOptionIds] = useState(new Set())
 
-  // Sync local state when server data refreshes (after cache invalidation)
+  // Sync local state when server data refreshes (after cache invalidation).
+  // Dep: JSON string of selectedOptionInstanceIds so ANY change to the stored
+  // set triggers a re-sync — the responseId alone doesn't change on UPDATE.
+  // Also normalize all ids to Number to avoid type-mismatch in Set.has().
+  const multiIdsKey = JSON.stringify(resp?.selectedOptionInstanceIds ?? [])
   useEffect(() => {
     if (!dirty) setLocalText(resp?.responseText || '')
-    setSelected(resp?.selectedOptionInstanceId || null)
+    setSelected(resp?.selectedOptionInstanceId != null ? Number(resp.selectedOptionInstanceId) : null)
     setMulti(new Set(
       resp?.selectedOptionInstanceIds?.length
-        ? resp.selectedOptionInstanceIds
-        : resp?.selectedOptionInstanceId ? [resp.selectedOptionInstanceId] : []
+        ? resp.selectedOptionInstanceIds.map(Number)
+        : resp?.selectedOptionInstanceId != null ? [Number(resp.selectedOptionInstanceId)] : []
     ))
-  }, [resp?.responseId]) // re-sync when the server response changes
+    // Clear any stale pending state when server confirms
+    setPendingOptionIds(new Set())
+  }, [resp?.responseId, multiIdsKey])
 
-  // ── Read-only (disabled) view ─────────────────────────────────────────────
   if (disabled) {
-    const hasText   = !!resp?.responseText
-    const hasOption = !!resp?.selectedOptionInstanceId
+    const hasText   = !!resp?.responseText && !resp.responseText.startsWith('[')
+    const hasOption = !!(resp?.selectedOptionInstanceIds?.length || resp?.selectedOptionInstanceId)
     const answered  = hasText || hasOption
+    const selectedIds = new Set(
+      resp?.selectedOptionInstanceIds?.map(Number) ||
+      (resp?.selectedOptionInstanceId != null ? [Number(resp.selectedOptionInstanceId)] : [])
+    )
     return (
       <div className="mt-2">
         {!answered && (
@@ -554,9 +570,7 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
         {hasOption && (
           <div className="flex flex-wrap gap-1.5">
             {question.options.map(o => {
-              const isSelected = resp.selectedOptionInstanceIds?.length
-                ? resp.selectedOptionInstanceIds.includes(o.optionInstanceId)
-                : o.optionInstanceId === resp.selectedOptionInstanceId
+              const isSelected = selectedIds.has(Number(o.optionInstanceId))
               return (
                 <span key={o.optionInstanceId}
                   className={cn('text-xs px-2.5 py-1 rounded border',
@@ -670,7 +684,10 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
   if (question.responseType === 'SINGLE_CHOICE') {
     const currentSelected = selectedOption ?? resp?.selectedOptionInstanceId ?? null
     const saveOption = (optionInstanceId) => {
-      if (currentSelected === optionInstanceId) return // already selected
+      if (currentSelected === optionInstanceId) return // already selected, no-op
+      // No isPending guard — optimistic update already shows selection instantly.
+      // If user clicks B while A is saving, B's optimistic state wins visually
+      // and the last POST to land wins on the backend (idempotent upsert).
       setSelected(optionInstanceId)
       submitAnswer({
         questionInstanceId:       question.questionInstanceId,
@@ -688,7 +705,6 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
             return (
               <button key={opt.optionInstanceId}
                 onClick={() => saveOption(opt.optionInstanceId)}
-                disabled={isPending}
                 className={cn('text-xs px-2.5 py-1.5 rounded border transition-all',
                   selected
                     ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
@@ -710,22 +726,77 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
     )
   }
 
+  // ── File upload ───────────────────────────────────────────────────────────
+  // FILE_UPLOAD type: the file IS the answer, not supporting evidence.
+  // EvidenceUploader handles the full presigned S3 flow.
+  // The question is "answered" once a DocumentLink exists for this qi.
+  if (question.responseType === 'FILE_UPLOAD') {
+    const hasFile = !!(resp?.documents?.length > 0)
+    return (
+      <div className="mt-2 space-y-2">
+        {!disabled && (
+          <EvidenceUploader
+            entityType="QUESTION_RESPONSE"
+            entityId={question.questionInstanceId}
+            canUpload={true}
+            canRemove={true}
+            emptyLabel="Upload the required document to answer this question."
+          />
+        )}
+        {disabled && (
+          hasFile ? (
+            <div className="space-y-1.5">
+              {resp.documents.map((doc, i) => (
+                <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-green-500/20 bg-green-500/5 text-xs text-green-400">
+                  <Paperclip size={11} className="shrink-0"/>
+                  <span className="truncate flex-1">{doc.fileName || doc.name || 'Document'}</span>
+                  <CheckCircle2 size={11} className="shrink-0"/>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-text-muted italic">No file uploaded yet.</p>
+          )
+        )}
+      </div>
+    )
+  }
+
   // ── Multi choice ──────────────────────────────────────────────────────────
-  // Each option is an independent toggle. Each toggle = one POST to the backend.
-  // The backend stores one response row per question (last selected wins for scoring),
-  // but the UI tracks all toggled options locally for a checkbox-style experience.
+  // ROOT CAUSE OF DUPLICATES: without per-option pending tracking, two rapid clicks
+  // on the same option fired two concurrent POST requests. Both found no existing
+  // response row (JPA read-committed isolation) and both INSERTed a new row →
+  // duplicate (assessmentId, questionInstanceId) rows → NonUniqueResultException crash.
+  //
+  // FIX: pendingOptionIds Set. Each option is individually disabled while its own
+  // mutation is in-flight. Other options stay clickable (intended UX per session notes).
+  // The guard `if (pendingOptionIds.has(id)) return` is the hard stop for double-click.
   const toggleMulti = (optionInstanceId) => {
+    const id = Number(optionInstanceId)
+    // Hard guard: if this exact option is already being saved, ignore the click entirely.
+    // This is what prevents the duplicate row: the second click never reaches the backend.
+    if (pendingOptionIds.has(id)) return
+
     const prev = new Set(selectedMulti)
     const next = new Set(selectedMulti)
-    if (next.has(optionInstanceId)) next.delete(optionInstanceId)
-    else next.add(optionInstanceId)
-    setMulti(next) // optimistic
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setMulti(next) // optimistic UI update
+    setPendingOptionIds(p => new Set([...p, id])) // mark this option as in-flight
+
     submitAnswer({
       questionInstanceId:        question.questionInstanceId,
-      selectedOptionInstanceIds: [optionInstanceId], // backend toggles in stored set
+      selectedOptionInstanceIds: [id],
     }, {
-      onSuccess: () => { setJustSaved(true); setTimeout(() => setJustSaved(false), 1500) },
-      onError:   () => setMulti(prev), // rollback
+      onSuccess: () => {
+        setPendingOptionIds(p => { const s = new Set(p); s.delete(id); return s })
+        setJustSaved(true)
+        setTimeout(() => setJustSaved(false), 1500)
+      },
+      onError: () => {
+        setMulti(prev) // rollback optimistic update
+        setPendingOptionIds(p => { const s = new Set(p); s.delete(id); return s })
+      },
     })
   }
 
@@ -733,17 +804,19 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
     <div className="mt-2 space-y-2">
       <div className="flex flex-wrap gap-1.5">
         {question.options.map(opt => {
-          const selected = selectedMulti.has(opt.optionInstanceId)
+          const id = Number(opt.optionInstanceId)
+          const selected = selectedMulti.has(id)
+          const thisOptionPending = pendingOptionIds.has(id)
           return (
             <button key={opt.optionInstanceId}
               onClick={() => toggleMulti(opt.optionInstanceId)}
-              disabled={isPending}
+              disabled={thisOptionPending} // only disable THIS option while it saves
               className={cn('text-xs px-2.5 py-1.5 rounded border transition-all flex items-center gap-1.5',
                 selected
                   ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
                   : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary'
               )}>
-              {/* Checkbox indicator */}
+              {/* Checkbox indicator — no spinner, optimistic update looks instant */}
               <span className={cn('w-3 h-3 rounded-sm border flex-shrink-0 flex items-center justify-center',
                 selected ? 'bg-brand-500 border-brand-500' : 'border-current opacity-50')}>
                 {selected && <CheckCircle2 size={9} className="text-white" />}
@@ -772,10 +845,24 @@ export default function VendorAssessmentFillPage() {
   const { id }         = useParams()
   const navigate       = useNavigate()
   const [urlParams]    = useSearchParams()
-  // MUST be declared before any hook that depends on it (canFetch, useAssessment, etc.)
-  // openWork=1 → arrived from action item → skip frontend canView gate
-  const isRevisionEntry = urlParams.get('openWork') === '1' || !!urlParams.get('actionItemId')
+  // isRevisionEntry  = openWork=1 → REVISION_REQUEST formal bypass, disables section lock
+  // isAssignmentEntry = actionItemId without openWork → contributor assignment,
+  //                     allows page access but section lock still applies
+  const isRevisionEntry   = urlParams.get('openWork') === '1'
+  const actionItemIdParam = urlParams.get('actionItemId')
+  const questionInstanceIdParam = urlParams.get('questionInstanceId')
+  const isAssignmentEntry = !!actionItemIdParam && !isRevisionEntry
+  const isBypassEntry     = isRevisionEntry || isAssignmentEntry
   const { userId }     = useSelector(selectAuth)
+  const roles          = useSelector(selectRoles)
+
+  // Drawer state — which question is open in the side panel
+  const [drawerQuestion, setDrawerQuestion] = useState(null)
+
+  // Derive user role for drawer
+  const userRole = roles?.find(r => r.name || r.roleName)?.name
+                ?? roles?.find(r => r.name || r.roleName)?.roleName
+                ?? ''
 
   // ── Resolve live task from inbox — never trust stale URL params ───────────
   const { data: myTasksData, isLoading: tasksLoading } = useMyTasks({})
@@ -810,7 +897,7 @@ export default function VendorAssessmentFillPage() {
   // Only fetch once access is resolved.
   // OPEN WORK BYPASS: if arrived via action item (openWork=1), skip the canView
   // gate — backend obligation check grants access, so fetch regardless of access context.
-  const canFetch = isRevisionEntry
+  const canFetch =  (isBypassEntry || !!questionInstanceIdParam)
     ? !!id  // openWork: always fetch, let backend decide
     : (!accessLoading && !!access?.canView)  // normal: wait for access context
 
@@ -830,6 +917,13 @@ export default function VendorAssessmentFillPage() {
   const { mutate: assignQuestion }                                = useAssignQuestion(id)
   // Questions selected for batch contributor assignment (per section)
   const [selectedForBatch, setSelectedForBatch] = useState({}) // sectionKey → Set<questionInstanceId>
+  // Optimistic section submit state — flips section UI to "Submitted" immediately on click,
+  // before the server responds. Avoids the gap where button looks stuck after clicking.
+  // Keyed by sectionInstanceId. Reverted on error.
+  const [optimisticSubmitted, setOptimisticSubmitted] = useState(new Set())
+  // Optimistic contributor assignment — key: questionInstanceId, value: user object | null
+  // Flips the "Assigned to X" banner instantly on click without waiting for server round-trip
+  const [optimisticAssignments, setOptimisticAssignments] = useState({})
 
   // Detect contributor mode: logged-in user is NOT the section assignee.
   // Normal flow: mySections is empty AND taskId exists → contributor.
@@ -839,13 +933,29 @@ export default function VendorAssessmentFillPage() {
   // have no active taskId but still need contributor view.
   const isContributorMode = !sectionsLoading &&
     Array.isArray(mySectionsData) && mySectionsData.length === 0 &&
-    !!(taskId || isRevisionEntry)
+    !!(taskId || isBypassEntry || questionInstanceIdParam)
   const { data: contributorQs = [] } = useMyContributorQuestions(id, isContributorMode)
-
+  useScrollToQuestion([contributorQs.length, mySectionsData.length])
   // Handler: responder assigns question(s) to a contributor
   // Accepts { questionInstanceId, userId } or { questionInstanceIds, userId }
   const handleAssignQuestion = (params) => {
-    assignQuestion(params)
+    const ids = params.questionInstanceIds || [params.questionInstanceId]
+    // Optimistic update: immediately show assignment/unassignment in UI
+    setOptimisticAssignments(prev => {
+      const next = { ...prev }
+      ids.forEach(id => { next[id] = params.userId ?? null })
+      return next
+    })
+    assignQuestion(params, {
+      onError: () => {
+        // Revert on failure
+        setOptimisticAssignments(prev => {
+          const next = { ...prev }
+          ids.forEach(id => { delete next[id] })
+          return next
+        })
+      }
+    })
   }
   const [open, setOpen] = useState({})
   const [showSubmit, setShowSubmit]   = useState(false)
@@ -864,7 +974,7 @@ export default function VendorAssessmentFillPage() {
   // If backend allows submitAnswer → editable. If 403 → shows error.
   // We allow the UI to render in editable=false (read-only) mode —
   // contributor can see their answers and the revision banner.
-  const editable = isRevisionEntry
+  const editable = (isRevisionEntry || isAssignmentEntry)
     ? !!(assessment?.status && !terminalStatuses.includes(assessment.status))
     : !!(access?.canEdit && assessment?.status && !terminalStatuses.includes(assessment.status))
 
@@ -882,6 +992,16 @@ export default function VendorAssessmentFillPage() {
       navigate('/workflow/inbox', { replace: true })
     }
   }, [accessLoading, access, navigate, isRevisionEntry])
+
+  // Auto-open the drawer for the target question when arriving via "Go to item".
+  // Fires once after contributorQs loads and questionInstanceIdParam is set.
+  // This covers both actionItemId entries and direct ?questionInstanceId links.
+  useEffect(() => {
+    if (!questionInstanceIdParam || !contributorQs.length) return
+    const targetId = Number(questionInstanceIdParam)
+    const q = contributorQs.find(q => q.questionInstanceId === targetId)
+    if (q) setDrawerQuestion(q)
+  }, [contributorQs.length, questionInstanceIdParam])
 
   // When arriving via action item, access context is irrelevant — skip its loading state
   if ((!isRevisionEntry && (accessLoading || tasksLoading)) || assessmentLoading || sectionsLoading) return (
@@ -906,6 +1026,7 @@ export default function VendorAssessmentFillPage() {
   const pct      = totalQ > 0 ? Math.round(answered * 100 / totalQ) : 0
 
   return (
+    <>
     <div className="min-h-screen bg-background-tertiary">
       {/* Header */}
       <div className="bg-surface border-b border-border px-6 py-4 flex items-center gap-4">
@@ -974,6 +1095,11 @@ export default function VendorAssessmentFillPage() {
             {sectionGroups.map(([sectionKey, group]) => {
               const sectionInstanceId = sectionKey === 'unsectioned' ? null : Number(sectionKey)
               const isSubmitted = sectionInstanceId && contribSubmitted.has(sectionInstanceId)
+              // sectionLocked: responder submitted/locked this section via submitSection.
+              // sectionSubmittedAt comes from getMyQuestions → sectionInst.getSubmittedAt().
+              // When locked: questions are read-only (handled by QuestionInput disabled prop),
+              // AND the Submit answers button must be hidden (contributor can't submit a locked section).
+              const sectionLocked = group.questions.some(q => !!q.sectionSubmittedAt)
               const answeredCount = group.questions.filter(q => q.currentResponse).length
 
               return (
@@ -984,7 +1110,13 @@ export default function VendorAssessmentFillPage() {
                       <p className="text-sm font-medium text-text-primary">{group.sectionName}</p>
                       <p className="text-xs text-text-muted mt-0.5">{answeredCount}/{group.questions.length} answered</p>
                     </div>
-                    {isSubmitted && (
+                    {sectionLocked ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                          Section locked
+                        </span>
+                      </div>
+                    ) : isSubmitted && (
                       <div className="flex items-center gap-1.5">
                         <CheckCircle2 size={12} className="text-green-400" />
                         <span className="text-xs text-green-400">Submitted</span>
@@ -995,7 +1127,7 @@ export default function VendorAssessmentFillPage() {
                   {/* Questions */}
                   <div className="divide-y divide-border">
                     {group.questions.map((q, qi) => (
-                      <div key={q.questionInstanceId} className="px-5 py-4">
+                      <div key={q.questionInstanceId} data-qi={q.questionInstanceId} className="px-5 py-4">
                         <div className="flex items-start gap-3">
                           <span className="text-xs font-mono text-text-muted pt-0.5 flex-shrink-0 w-5">{qi + 1}.</span>
                           <div className="flex-1 min-w-0">
@@ -1033,35 +1165,50 @@ export default function VendorAssessmentFillPage() {
                                 // Revision flow (openWork): section lock is bypassed on backend
                                 // if an open action item exists for this question — allow editing.
                                 isRevisionEntry
-                                  ? false  // backend enforces obligation check; let it decide
-                                  : (!editable || isSubmitted || !!q.sectionSubmittedAt)
+                                  ? false  // REVISION_REQUEST: responder explicitly asked for re-answer, bypass lock
+                                  : (!editable || isSubmitted || !!q.sectionSubmittedAt) // assignment: lock applies
                               }
                               isContributorView={true}
                             />
-                            {/* Show who answered if answered by someone else */}
-                            {q.currentResponse?.answeredByName && (
-                              <p className="text-[10px] text-text-muted mt-1">
-                                Answered by {q.currentResponse.answeredByName}
-                              </p>
-                            )}
+                            {/* Answered by + drawer trigger */}
+                            <div className="flex items-center justify-between mt-1">
+                              {q.currentResponse?.answeredByName && (
+                                <p className="text-[10px] text-text-muted">
+                                  Answered by {q.currentResponse.answeredByName}
+                                </p>
+                              )}
+                              <button
+                                onClick={() => setDrawerQuestion(q)}
+                                className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-400 transition-colors ml-auto">
+                                <MessageSquare size={10} />
+                                Notes &amp; discussion
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Section footer: submit button */}
-                  {editable && sectionInstanceId && (
+                  {/* Section footer: submit button — hidden when section is locked by responder */}
+                  {editable && sectionInstanceId && !sectionLocked && (
                     <div className="px-5 py-3 bg-surface-overlay/30 border-t border-border flex items-center justify-between">
                       <p className="text-xs text-text-muted">{answeredCount}/{group.questions.length} answered</p>
-                      {isSubmitted ? (
+                      {isSubmitted || optimisticSubmitted.has(sectionInstanceId) ? (
                         <span className="text-xs text-green-400 flex items-center gap-1">
                           <CheckCircle2 size={11} /> Submitted
                         </span>
                       ) : (
                         <Button size="xs" variant="primary" icon={CheckCircle2}
                           loading={contribSubmitting}
-                          onClick={() => contribSubmit({ sectionInstanceId, taskId })}>
+                          onClick={() => {
+                            setOptimisticSubmitted(prev => new Set([...prev, sectionInstanceId]))
+                            contribSubmit({ sectionInstanceId, taskId }, {
+                              onError: () => setOptimisticSubmitted(prev => {
+                                const s = new Set(prev); s.delete(sectionInstanceId); return s
+                              })
+                            })
+                          }}>
                           Submit answers
                         </Button>
                       )}
@@ -1134,7 +1281,7 @@ export default function VendorAssessmentFillPage() {
                     </div>
                   )}
                   {(section.questions || []).map((q, qi) => (
-                    <div key={qi} className="px-5 py-4">
+                    <div key={qi} data-qi={q.questionInstanceId} className="px-5 py-4">
                       <div className="flex items-start gap-3">
                         {/* Checkbox for batch selection — hide when section submitted */}
                         {editable && !section.submittedAt && !q.assignedUserId && (
@@ -1183,7 +1330,13 @@ export default function VendorAssessmentFillPage() {
                             )}
                           </div>
                           <QuestionInput
-                            question={q}
+                            question={{
+                              ...q,
+                              // Apply optimistic assignment instantly — no server wait
+                              assignedUserId: q.questionInstanceId in optimisticAssignments
+                                ? optimisticAssignments[q.questionInstanceId]
+                                : q.assignedUserId
+                            }}
                             assessmentId={id}
                             disabled={!editable || !!section.submittedAt}
                             onAssign={(editable && !section.submittedAt) ? handleAssignQuestion : null}
@@ -1197,23 +1350,44 @@ export default function VendorAssessmentFillPage() {
                           />
                           {/* Org remediation notice — vendor responder sees what must be fixed */}
                           <RemediationNoticeBanner questionInstanceId={q.questionInstanceId} />
-                          {/* Individual assign — hidden when section submitted */}
-                          {editable && !section.submittedAt && !q.assignedUserId && batchSet.size === 0 && (
-                            <ContributorPicker
-                              value={null}
-                              onChange={(user) => user && handleAssignQuestion({
-                                questionInstanceId: q.questionInstanceId,
-                                userId: user.id || user.userId,
-                              })}
+                          {/* Responder → contributor command actions:
+                              Accept / Request Revision / Override
+                              Shown when contributor has submitted an answer */}
+                          {q.assignedUserId && q.currentResponse && editable && !section.submittedAt && (
+                            <ResponderActions
+                              assessmentId={id}
+                              questionInstanceId={q.questionInstanceId}
+                              assignedUserId={q.assignedUserId}
+                              responderStatus={q.currentResponse?.reviewerStatus}
+                              responseType={q.responseType}
                             />
                           )}
+                          {/* Drawer trigger + Individual assign row */}
+                          <div className="flex items-center justify-between mt-2">
+                            {/* Individual assign — hidden when section submitted */}
+                            {editable && !section.submittedAt && !q.assignedUserId && batchSet.size === 0 ? (
+                              <ContributorPicker
+                                value={null}
+                                onChange={(user) => user && handleAssignQuestion({
+                                  questionInstanceId: q.questionInstanceId,
+                                  userId: user.id || user.userId,
+                                })}
+                              />
+                            ) : <span />}
+                            <button
+                              onClick={() => setDrawerQuestion(q)}
+                              className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-400 transition-colors shrink-0">
+                              <MessageSquare size={10} />
+                              Notes &amp; discussion
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
                   ))}
-                  {/* Section submit footer — server-driven state via section.submittedAt */}
+                  {/* Section submit footer — optimistic-first: flips to submitted on click */}
                   {taskId && (() => {
-                    const isSubmitted = !!section.submittedAt
+                    const isSubmitted = !!section.submittedAt || optimisticSubmitted.has(section.sectionInstanceId)
                     // sectionInstanceId must be a real DB id — si index fallback means data not loaded yet
                     const hasRealId   = !!section.sectionInstanceId
                     const isCisoView  = access?.taskRole === 'ASSIGNER' || access?.mode === 'OBSERVER'
@@ -1242,7 +1416,20 @@ export default function VendorAssessmentFillPage() {
                           {!isSubmitted && editable && section.sectionInstanceId && (
                             <Button size="xs" variant="primary" icon={CheckCircle2}
                               loading={submittingSection}
-                              onClick={() => submitSection({ sectionInstanceId: section.sectionInstanceId, taskId })}>
+                              onClick={() => {
+                                // Optimistically flip to submitted immediately — no waiting for server
+                                setOptimisticSubmitted(prev => new Set([...prev, section.sectionInstanceId]))
+                                submitSection({ sectionInstanceId: section.sectionInstanceId, taskId }, {
+                                  onError: () => {
+                                    // Revert optimistic state if server rejects
+                                    setOptimisticSubmitted(prev => {
+                                      const s = new Set(prev)
+                                      s.delete(section.sectionInstanceId)
+                                      return s
+                                    })
+                                  }
+                                })
+                              }}>
                               Submit section
                             </Button>
                           )}
@@ -1298,5 +1485,16 @@ export default function VendorAssessmentFillPage() {
         </div>
       </Modal>
     </div>
+
+    {/* Per-question collaboration drawer */}
+    <QuestionDrawer
+      question={drawerQuestion}
+      assessmentId={id}
+      userSide="VENDOR"
+      userRole={userRole}
+      mode={isContributorMode ? 'contributor' : (editable ? 'responder' : 'readonly')}
+      onClose={() => setDrawerQuestion(null)}
+    />
+  </>
   )
 }

@@ -33,9 +33,22 @@ export const useBootstrap = () => {
           if (appTheme) {
             localStorage.setItem('kashi_theme', appTheme)
             document.documentElement.setAttribute('data-theme', appTheme)
+          } else {
+            // New user — no saved preference. Apply the platform default (light).
+            // Only set if nothing already in localStorage (don't override a user
+            // who cleared their DB prefs but still has a localStorage value).
+            if (!localStorage.getItem('kashi_theme')) {
+              localStorage.setItem('kashi_theme', 'light')
+              document.documentElement.setAttribute('data-theme', 'light')
+            }
           }
           if (sidebarTheme) {
             localStorage.setItem('kashi_sidebar_theme', sidebarTheme)
+          } else {
+            // New user — default sidebar to brand.
+            if (!localStorage.getItem('kashi_sidebar_theme')) {
+              localStorage.setItem('kashi_sidebar_theme', 'brand')
+            }
           }
           if (sidebarColor) {
             localStorage.setItem('kashi_sidebar_color', sidebarColor)
@@ -43,7 +56,7 @@ export const useBootstrap = () => {
             const { applyBranding } = await import('../store/slices/uiConfigSlice')
             applyBranding({ ...data.branding, primaryColor: sidebarColor })
           }
-          if (sidebarTheme) {
+          if (sidebarTheme || !localStorage.getItem('kashi_sidebar_theme')) {
             window.dispatchEvent(new CustomEvent('kashi-sidebar-changed'))
           }
         }

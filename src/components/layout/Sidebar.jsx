@@ -109,16 +109,27 @@ function NavItem({ item, depth = 0, collapsed = false, t }) {
     if (collapsed) return null
     return (
       <div>
-        <button onClick={() => setOpen(o => !o)}
-          className={cn(
-            'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all group',
-            isActive ? t.textActive : cn(t.textBase, t.bgHover),
-            depth > 0 && 'pl-8'
-          )}>
+        <div className={cn(
+          'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all group',
+          isActive ? t.textActive : cn(t.textBase, t.bgHover),
+          depth > 0 && 'pl-8'
+        )}>
           {item.icon && <NavIcon name={item.icon} className={isActive ? t.iconActive : t.iconBase} />}
-          <span className="flex-1 text-left font-medium">{item.label}</span>
-          {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-        </button>
+          {/* Label — navigates to route if one exists, otherwise toggles */}
+          {item.route ? (
+            <NavLink to={item.route} end className="flex-1 text-left font-medium truncate">
+              {item.label}
+            </NavLink>
+          ) : (
+            <button onClick={() => setOpen(o => !o)} className="flex-1 text-left font-medium truncate">
+              {item.label}
+            </button>
+          )}
+          {/* Chevron — always toggles submenu */}
+          <button onClick={() => setOpen(o => !o)} className="shrink-0 p-0.5 rounded hover:bg-white/10">
+            {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+          </button>
+        </div>
         {open && (
           <div className={cn('ml-2 pl-2 my-1 space-y-0.5 border-l', t.divider)}>
             {item.children.map(child => (
@@ -133,7 +144,7 @@ function NavItem({ item, depth = 0, collapsed = false, t }) {
   const badgeCount = useBadgeCount(item.badgeCountEndpoint || null)
 
   return (
-    <NavLink to={item.route} title={collapsed ? item.label : undefined}
+    <NavLink to={item.route} end title={collapsed ? item.label : undefined}
       className={({ isActive }) => cn(
         'flex items-center rounded-lg text-sm transition-all group relative',
         collapsed ? 'justify-center w-9 h-9 mx-auto p-0' : 'gap-2.5 px-3 py-2',
@@ -268,7 +279,7 @@ export function Sidebar({ collapsed, onToggle }) {
   // Sidebar re-renders automatically when branding Redux state loads
   const effectiveTheme = (!branding && sidebarPref === 'brand')
     ? 'dark'
-    : (sidebarPref || branding?.sidebarTheme || 'dark')
+    : (sidebarPref || branding?.sidebarTheme || 'brand')
   const t              = getSidebarTokens(effectiveTheme)
   const grouped        = groupByModule(navItems)
   const displayName    = branding?.companyName || 'KashiGRC'

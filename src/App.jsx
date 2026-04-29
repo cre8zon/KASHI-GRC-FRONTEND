@@ -117,7 +117,7 @@ export default function App() {
         <Route path="/workflow/tasks/:taskId" element={<TaskDetailPage />} />
         <Route path="/action-items"           element={<ActionItemsPage />} />
         <Route path="/notifications"          element={<NotificationsPage />} />
-        <Route path="/assessments"           element={<AssessmentListPage />} />
+        <Route path="/assessments"           element={<VendorAssessmentsPage />} />
         <Route path="/assessments/:id"       element={<AssessmentDetailPage />} />
 
         {/* ── Org side — Vendors / TPRM ────────────────────────────── */}
@@ -165,6 +165,8 @@ export default function App() {
           element={<WorkflowPage isPlatformAdmin={false} defaultTab="instances" />} />
 
         {/* ── Vendor side ──────────────────────────────────────────── */}
+        {/* /vendor/assessments uses the unified AssessmentListPage.
+            Backend scopes results by callerVendorId for vendor users. */}
         <Route path="/vendor/assessments"
           element={<VendorAssessmentsPage />} />
         <Route path="/vendor/assessments/:id/fill"

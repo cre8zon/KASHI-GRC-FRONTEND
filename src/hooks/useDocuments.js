@@ -159,7 +159,10 @@ export function useDocumentUpload() {
             title,
           })
         documentId = id
-
+        // TEMP DEBUG
+        console.log('presignedUrl:', presignedUrl)
+        console.log('requiredHeaders:', requiredHeaders)
+        console.log('documentId:', documentId)
         // Step 2 — PUT directly to S3 (this is where bandwidth goes)
         setProgress(10)
         await documentsApi.uploadToS3(
@@ -328,7 +331,11 @@ export function useDocumentVersionUpload() {
           mimeType:      file.type || 'application/octet-stream',
           fileSizeBytes: file.size,
         })
-
+      // TEMPORARY DEBUG — remove after fix
+      console.log('presignedUrl:', presignedUrl)
+      console.log('requiredHeaders:', JSON.stringify(requiredHeaders))
+      console.log('file.type:', file.type)
+      console.log('file.size:', file.size)
       // Upload to S3
       setProgress(10)
       await documentsApi.uploadToS3(

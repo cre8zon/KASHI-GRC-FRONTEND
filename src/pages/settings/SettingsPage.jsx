@@ -415,7 +415,9 @@ function DisplayTab({ branding }) {
                         selApp === 'light' ? 'bg-white border-gray-200' : 'bg-surface border-border'
                       )}>
                         <div className={cn('h-1.5 rounded-full mb-1.5',
-                          i === 1 ? 'w-2/3' : (selApp === 'light' ? 'bg-gray-200 w-full' : 'bg-border w-full')
+                          i === 1
+                            ? (selApp === 'light' ? 'bg-gray-400 w-2/3' : 'bg-brand-500 w-2/3')
+                            : (selApp === 'light' ? 'bg-gray-200 w-full' : 'bg-border w-full')
                         )} />
                         <div className={cn('h-1 rounded-full', selApp === 'light' ? 'bg-gray-100' : 'bg-border/50')} />
                       </div>

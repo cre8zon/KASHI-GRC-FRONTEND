@@ -22,14 +22,16 @@ import { Button }         from '../../components/ui/Button'
 import { Badge }          from '../../components/ui/Badge'
 import { cn }             from '../../lib/cn'
 import { useSelector }    from 'react-redux'
-import { selectAuth }     from '../../store/slices/authSlice'
+import { selectAuth, selectRoles } from '../../store/slices/authSlice'
 import { Modal }          from '../../components/ui/Modal'
 import { useAccessContext, useMyTasks, useCompoundTaskProgress } from '../../hooks/useWorkflow'
 import { useQuestionComments }   from '../../hooks/useComments'
 import { useAssessmentPageSetup } from '../../hooks/useAssessmentPageSetup'
+import { QuestionDrawer }        from '../../components/item-panel'
 import { CommentFeed }            from '../../components/comments/CommentFeed'
 import { CompoundTaskProgress } from '../../components/workflow/CompoundTaskProgress'
 import toast              from 'react-hot-toast'
+import { useScrollToQuestion } from '../../hooks/useScrollToQuestion'
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
@@ -88,7 +90,7 @@ const TYPE_CONFIG = {
 
 // ─── Answer card ─────────────────────────────────────────────────────────────
 
-function AnswerCard({ question, assessmentId, canAct }) {
+function AnswerCard({ question, assessmentId, canAct, onOpenDrawer }) {
   const resp = question.currentResponse
   const { comments, addComment, adding: commenting } = useQuestionComments(
     question.questionInstanceId, { enabled: !!question.questionInstanceId }
@@ -212,10 +214,18 @@ function AnswerCard({ question, assessmentId, canAct }) {
               <div className="mt-3 space-y-2">
                 {/* Quick revision request */}
                 {canAct && !showRevision && (
-                  <button onClick={() => setShowRevision(true)}
-                    className="text-[10px] text-amber-400/70 hover:text-amber-400 flex items-center gap-1 transition-colors">
-                    <AlertTriangle size={10} /> Request revision
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setShowRevision(true)}
+                      className="text-[10px] text-amber-400/70 hover:text-amber-400 flex items-center gap-1 transition-colors">
+                      <AlertTriangle size={10} /> Request revision
+                    </button>
+                    {onOpenDrawer && (
+                      <button onClick={() => onOpenDrawer(question)}
+                        className="text-[10px] text-text-muted/60 hover:text-brand-400 flex items-center gap-1 transition-colors">
+                        <MessageSquare size={10} /> Notes &amp; discussion
+                      </button>
+                    )}
+                  </div>
                 )}
                 {showRevision && (
                   <div className="space-y-1 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20">
@@ -264,6 +274,10 @@ export default function VendorAssessmentResponderReviewPage() {
   const navigate       = useNavigate()
   const qc             = useQueryClient()
   const [urlParams]    = useSearchParams()
+  const roles          = useSelector(selectRoles)
+  const [drawerQuestion, setDrawerQuestion] = useState(null)
+  const userRole = roles?.find(r => r.name || r.roleName)?.name
+                ?? roles?.find(r => r.name || r.roleName)?.roleName ?? ''
 
   // Scroll to top immediately on mount — before paint, before data loads.
   // useLayoutEffect fires synchronously after DOM mutations but before the browser
@@ -294,21 +308,21 @@ export default function VendorAssessmentResponderReviewPage() {
   const taskId         = activeTask ? String(activeTask.id)             : urlParams.get('taskId')
   const stepInstanceId = activeTask ? String(activeTask.stepInstanceId) : urlParams.get('stepInstanceId')
 
-  // Scroll to specific question when questionInstanceId is in URL (from action item "Go to item")
-  useEffect(() => {
-    if (!targetQId) return
-    const tryScroll = (attempts = 0) => {
-      const el = document.querySelector(`[data-qid="${targetQId}"]`)
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        el.classList.add('ring-2', 'ring-brand-500/60', 'ring-offset-1')
-        setTimeout(() => el.classList.remove('ring-2', 'ring-brand-500/60', 'ring-offset-1'), 3000)
-      } else if (attempts < 20) {
-        setTimeout(() => tryScroll(attempts + 1), 300)
-      }
-    }
-    tryScroll()
-  }, [targetQId])
+  // // Scroll to specific question when questionInstanceId is in URL (from action item "Go to item")
+  // useEffect(() => {
+  //   if (!targetQId) return
+  //   const tryScroll = (attempts = 0) => {
+  //     const el = document.querySelector(`[data-qid="${targetQId}"]`)
+  //     if (el) {
+  //       el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  //       el.classList.add('ring-2', 'ring-brand-500/60', 'ring-offset-1')
+  //       setTimeout(() => el.classList.remove('ring-2', 'ring-brand-500/60', 'ring-offset-1'), 3000)
+  //     } else if (attempts < 20) {
+  //       setTimeout(() => tryScroll(attempts + 1), 300)
+  //     }
+  //   }
+  //   tryScroll()
+  // }, [targetQId])
 
   // ── Access context replaces useEffect task-gate ───────────────────────────
   const { data: taskSections = [] } = useCompoundTaskProgress(taskId ? Number(taskId) : null)
@@ -319,6 +333,7 @@ export default function VendorAssessmentResponderReviewPage() {
   // canFetch: bypass access gate when arriving via action item
   const canFetch = isOpenWork ? !!id : (!accessLoading && !!access?.canView)
   const { data: mySections = [], isLoading: sectionsLoading } = useMySections(id, canFetch)
+  useScrollToQuestion([mySections.length])
   // axios interceptor already unwraps ApiResponse<T> → T directly.
   // assessmentData IS the assessment object — not assessmentData.data.
   const assessment = assessmentData
@@ -422,6 +437,7 @@ export default function VendorAssessmentResponderReviewPage() {
   const sections = mySections.length > 0 ? mySections : (assessment.sections || [])
 
   return (
+  <>
     <div className="min-h-screen bg-background-tertiary">
       {/* Header */}
       <div className="bg-surface border-b border-border px-6 py-4 flex items-center gap-4">
@@ -501,8 +517,8 @@ export default function VendorAssessmentResponderReviewPage() {
               {isOpen && (
                 <div className="border-t border-border px-5">
                   {(section.questions || []).map(q => (
-                    <div key={q.questionInstanceId} data-qid={q.questionInstanceId} className="rounded transition-all duration-500">
-                      <AnswerCard question={q} assessmentId={id} canAct={!!activeTask} />
+                    <div key={q.questionInstanceId} data-qi={q.questionInstanceId} className="rounded transition-all duration-500">
+                      <AnswerCard question={q} assessmentId={id} canAct={!!activeTask} onOpenDrawer={setDrawerQuestion} />
                     </div>
                   ))}
                 </div>
@@ -534,5 +550,15 @@ export default function VendorAssessmentResponderReviewPage() {
         </div>
       </Modal>
     </div>
+
+    <QuestionDrawer
+      question={drawerQuestion}
+      assessmentId={id}
+      userSide="VENDOR"
+      userRole={userRole}
+      mode="responder"
+      onClose={() => setDrawerQuestion(null)}
+    />
+  </>
   )
 }

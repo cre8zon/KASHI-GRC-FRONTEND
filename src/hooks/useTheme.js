@@ -6,7 +6,7 @@ const VALID_APP     = ['dark', 'light', 'system']
 const VALID_SIDEBAR = ['dark', 'light', 'brand']
 
 export function getSavedApp() {
-  try { const v = localStorage.getItem(APP_KEY); return VALID_APP.includes(v) ? v : 'dark' } catch { return 'dark' }
+  try { const v = localStorage.getItem(APP_KEY); return VALID_APP.includes(v) ? v : 'light' } catch { return 'light' }
 }
 export function getSavedSidebar() {
   try { const v = localStorage.getItem(SIDEBAR_KEY); return VALID_SIDEBAR.includes(v) ? v : null } catch { return null }

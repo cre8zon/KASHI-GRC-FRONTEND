@@ -42,12 +42,14 @@ export const uiAdminApi = {
   },
 
   forms: {
+    list:   (params)     => api.get('/v1/admin/ui/forms', { params }),
     create: (data)       => api.post('/v1/admin/ui/forms', data),
     update: (id, data)   => api.put(`/v1/admin/ui/forms/${id}`, data),
     delete: (id)         => api.delete(`/v1/admin/ui/forms/${id}`),
   },
 
   formFields: {
+    list:   (formId)     => api.get(`/v1/admin/ui/form-fields/${formId}`),
     create: (data)       => api.post('/v1/admin/ui/form-fields', data),
     update: (id, data)   => api.put(`/v1/admin/ui/form-fields/${id}`, data),
     delete: (id)         => api.delete(`/v1/admin/ui/form-fields/${id}`),
