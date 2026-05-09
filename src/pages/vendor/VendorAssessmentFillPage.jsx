@@ -25,13 +25,14 @@
  * All other logic is unchanged from the original implementation.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useSingleChoiceAnswer, useMultiChoiceAnswer } from '../../hooks/useChoiceAnswer'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, CheckCircle2, ChevronDown, ChevronRight,
   Send, Loader2, AlertCircle, Save, FileText, Users, Search,
-  AlertTriangle, Clock, MessageSquare, Paperclip} from 'lucide-react'
+  AlertTriangle, Clock, MessageSquare, Paperclip, Shield} from 'lucide-react'
 import { assessmentsApi } from '../../api/assessments.api'
 import { usersApi }       from '../../api/users.api'
 import { workflowsApi }   from '../../api/workflows.api'
@@ -113,13 +114,14 @@ function useSubmitAnswer(assessmentId) {
   return useMutation({
     mutationFn: (data) => assessmentsApi.vendor.respond(assessmentId, data),
     onSuccess: () => {
-      // Invalidate all question/section caches — covers both:
-      //   my-sections-fill: responder view (section assignee)
-      //   my-contributor-questions: contributor view (question assignee)
-      //   assessment-fill: progress metadata
-      qc.invalidateQueries({ queryKey: ['assessment-fill', assessmentId] })
-      qc.invalidateQueries({ queryKey: ['my-sections-fill', assessmentId] })
-      qc.invalidateQueries({ queryKey: ['my-contributor-questions', assessmentId] })
+      // Only invalidate the PROGRESS cache (answered count, completion %).
+      // Do NOT invalidate the question/answer cache — that triggers a refetch
+      // which can return stale server data and overwrite the user's just-saved
+      // selection before the DB write is visible (same pattern as Notion/Linear).
+      //
+      // The answer display is owned by the hook's local ref — no server resync
+      // needed during an active editing session. Data is fresh on page load.
+      qc.invalidateQueries({ queryKey: ['compound-progress', assessmentId] })
     },
     onError: (e) => toast.error(e?.message || e?.error?.message || 'Failed to save answer'),
   })
@@ -209,7 +211,8 @@ function useSubmitSection(assessmentId) {
       assessmentsApi.vendor.submitSection(assessmentId, sectionInstanceId, taskId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['my-sections-fill', assessmentId] })
-      qc.invalidateQueries({ queryKey: ['compound-task-progress'] })
+      qc.invalidateQueries({ queryKey: ['compound-progress', assessmentId] })
+      qc.invalidateQueries({ queryKey: ['compound-progress'] }) // broad invalidate
       qc.invalidateQueries({ queryKey: ['my-tasks'] })
       // toast removed — section already shows "Submitted ✓" optimistically
     },
@@ -411,7 +414,7 @@ function RemediationNoticeBanner({ questionInstanceId }) {
  * Contributor view: amber "Revision requested" — re-enables input
  * Responder view:   shows "Re-answered, pending your review" once contributor re-answers
  */
-function RevisionBanner({ questionInstanceId, isContributorView, hasCurrentResponse }) {
+function RevisionBanner({ questionInstanceId, isContributorView, hasCurrentResponse, responseSubmittedAt }) {
   const { data: items = [] } = useEntityActionItems(
     'QUESTION_RESPONSE', questionInstanceId,
     { enabled: !!questionInstanceId }
@@ -469,11 +472,15 @@ function RevisionBanner({ questionInstanceId, isContributorView, hasCurrentRespo
   }
 
   // ── Responder view — status indicator ────────────────────────────────────
-  // Responder sees: waiting / re-answered (pending review) / resolve button
+  // "Re-answered" only when contributor submitted AFTER the revision was requested.
+  // hasCurrentResponse alone is wrong — the original answer always exists.
+  // Compare response submittedAt vs action item createdAt.
   return (
     <div className="space-y-1.5 mt-2">
       {openRevisions.map(item => {
-        const reAnswered = !!hasCurrentResponse
+        const revisionAt  = item.createdAt ? new Date(item.createdAt) : null
+        const responseAt  = responseSubmittedAt ? new Date(responseSubmittedAt) : null
+        const reAnswered  = !!(revisionAt && responseAt && responseAt > revisionAt)
         return (
           <div key={item.id}
             className={cn(
@@ -488,10 +495,9 @@ function RevisionBanner({ questionInstanceId, isContributorView, hasCurrentRespo
             <span className="flex-1">
               {reAnswered
                 ? 'Re-answered — review and resolve'
-                : 'Awaiting contributor response'}
+                : 'Revision requested — awaiting contributor'}
             </span>
-            {/* Only the original requester (canResolve=true) sees resolve button */}
-            {item.canResolve && (
+            {reAnswered && item.canResolve && (
               <button
                 disabled={resolving}
                 onClick={() => updateStatus({ id: item.id, status: 'RESOLVED',
@@ -509,7 +515,8 @@ function RevisionBanner({ questionInstanceId, isContributorView, hasCurrentRespo
 }
 
 function QuestionInput({ question, assessmentId, disabled, onAssign, isContributorView }) {
-  const { mutate: submitAnswer, isPending } = useSubmitAnswer(assessmentId)
+  const { mutateAsync: submitAnswer, isPending } = useSubmitAnswer(assessmentId)
+  const qc = useQueryClient()
   const resp = question.currentResponse
   const isMulti = question.responseType === 'MULTI_CHOICE'
   // Contributor assignment state
@@ -518,48 +525,83 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
 
   // Local state — syncs with server via useEffect when resp changes after invalidation
   const [localText,      setLocalText]  = useState(resp?.responseText || '')
-  const [selectedOption, setSelected]   = useState(resp?.selectedOptionInstanceId || null)
-  // Multi-choice: initialize from server's selectedOptionInstanceIds array
-  const [selectedMulti,  setMulti]      = useState(() => new Set(
-    resp?.selectedOptionInstanceIds?.length
-      ? resp.selectedOptionInstanceIds
-      : resp?.selectedOptionInstanceId ? [resp.selectedOptionInstanceId] : []
-  ))
-  const [dirty,          setDirty]      = useState(false)
-  const [justSaved,      setJustSaved]  = useState(false)
-  // Per-option pending tracking for multi-choice.
-  // Prevents double-click duplicate saves without blocking ALL options (which kills UX).
-  // Rule: each optionId can only have one in-flight mutation at a time.
-  const [pendingOptionIds, setPendingOptionIds] = useState(new Set())
+  const [dirty, setDirty] = useState(false)
 
-  // Sync local state when server data refreshes (after cache invalidation).
-  // Dep: JSON string of selectedOptionInstanceIds so ANY change to the stored
-  // set triggers a re-sync — the responseId alone doesn't change on UPDATE.
-  // Also normalize all ids to Number to avoid type-mismatch in Set.has().
+  // ── Race-safe choice answer hooks ─────────────────────────────────────
+  // Ref-based source of truth so rapid clicks accumulate correctly without
+  // stale React state. See hooks/useChoiceAnswer.js for full explanation.
+  const singleKey = String(resp?.selectedOptionInstanceId ?? '')
+  const multiKey  = JSON.stringify(resp?.selectedOptionInstanceIds ?? [])
+
+  const {
+    selectedSingle,
+    saveSingle,
+    justSaved: singleSaved,
+    isSaving:  singleSaving,
+  } = useSingleChoiceAnswer({
+    initialId:  resp?.selectedOptionInstanceId ?? null,
+    serverKey:  singleKey,
+    onSave:     (id) => submitAnswer({
+      questionInstanceId:       question.questionInstanceId,
+      selectedOptionInstanceId: id,
+    }),
+    debounceMs: 200,
+  })
+
+  const {
+    selectedMulti,
+    toggleMulti,
+    justSaved: multiSaved,
+    isSaving:  multiSaving,
+  } = useMultiChoiceAnswer({
+    initialIds: resp?.selectedOptionInstanceIds?.map(Number) ?? [],
+    serverKey:  multiKey,
+    onSave:     (ids) => submitAnswer({
+      questionInstanceId:        question.questionInstanceId,
+      selectedOptionInstanceIds: ids,
+    }),
+    debounceMs: 300,
+  })
+
+  const justSaved = singleSaved || multiSaved
+  const isSaving  = singleSaving || multiSaving
+
+  // Sync text state when server data refreshes.
+  // Choice state is handled by useMultiChoiceAnswer / useSingleChoiceAnswer
+  // via serverKey — no manual sync needed here.
   const multiIdsKey = JSON.stringify(resp?.selectedOptionInstanceIds ?? [])
   useEffect(() => {
     if (!dirty) setLocalText(resp?.responseText || '')
-    setSelected(resp?.selectedOptionInstanceId != null ? Number(resp.selectedOptionInstanceId) : null)
-    setMulti(new Set(
-      resp?.selectedOptionInstanceIds?.length
-        ? resp.selectedOptionInstanceIds.map(Number)
-        : resp?.selectedOptionInstanceId != null ? [Number(resp.selectedOptionInstanceId)] : []
-    ))
-    // Clear any stale pending state when server confirms
-    setPendingOptionIds(new Set())
-  }, [resp?.responseId, multiIdsKey])
+  }, [resp?.responseId, multiIdsKey, dirty])
 
   if (disabled) {
     const hasText   = !!resp?.responseText && !resp.responseText.startsWith('[')
-    const hasOption = !!(resp?.selectedOptionInstanceIds?.length || resp?.selectedOptionInstanceId)
-    const answered  = hasText || hasOption
     const selectedIds = new Set(
       resp?.selectedOptionInstanceIds?.map(Number) ||
       (resp?.selectedOptionInstanceId != null ? [Number(resp.selectedOptionInstanceId)] : [])
     )
+    const isChoice   = question.responseType === 'SINGLE_CHOICE' || question.responseType === 'MULTI_CHOICE'
+    const isFileUp   = question.responseType === 'FILE_UPLOAD'
+    const answered   = hasText || selectedIds.size > 0
+
+    // FILE_UPLOAD disabled — show read-only EvidenceUploader (files list only, no upload/remove)
+    if (isFileUp) {
+      return (
+        <div className="mt-2">
+          <EvidenceUploader
+            entityType="QUESTION_RESPONSE"
+            entityId={question.questionInstanceId}
+            canUpload={false}
+            canRemove={false}
+            emptyLabel="No file uploaded."
+          />
+        </div>
+      )
+    }
+
     return (
       <div className="mt-2">
-        {!answered && (
+        {!answered && !isChoice && (
           <p className="text-xs text-text-muted italic">Not answered</p>
         )}
         {hasText && (
@@ -567,7 +609,8 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
             <p className="text-xs text-text-secondary leading-relaxed">{resp.responseText}</p>
           </div>
         )}
-        {hasOption && (
+        {/* Always render options for choice types — dimmed if unselected, highlighted if selected */}
+        {isChoice && question.options?.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {question.options.map(o => {
               const isSelected = selectedIds.has(Number(o.optionInstanceId))
@@ -585,32 +628,38 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
             })}
           </div>
         )}
+        {/* Fallback when options not yet loaded */}
+        {isChoice && !question.options?.length && (
+          <p className="text-xs text-text-muted italic">Not answered</p>
+        )}
       </div>
     )
   }
 
   // ── Contributor assignment banner ────────────────────────────────────────
-  // If this question is assigned to a contributor AND we're not in contributor view:
-  // show who it's assigned to, disable answer input, show their answer read-only.
+  // Spec: responder viewing a contributor-assigned question sees options read-only
+  // (all options visible, selected highlighted, nothing clickable) + assignment label.
   if (isAssigned) {
+    const isChoice  = question.responseType === 'SINGLE_CHOICE' || question.responseType === 'MULTI_CHOICE'
+    const isFileUp  = question.responseType === 'FILE_UPLOAD'
+    const selectedIds = new Set(
+      resp?.selectedOptionInstanceIds?.map(Number) ||
+      (resp?.selectedOptionInstanceId != null ? [Number(resp.selectedOptionInstanceId)] : [])
+    )
     return (
       <div className="mt-2 space-y-2">
+        {/* Assignment label */}
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-500/5 border border-purple-500/20">
           <Users size={12} className="text-purple-400 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-[11px] text-purple-300 font-medium">
               Assigned to {question.assignedUserName || `User #${question.assignedUserId}`}
             </p>
-            {resp?.responseText && (
-              <p className="text-xs text-text-secondary mt-0.5 italic">"{resp.responseText}"</p>
-            )}
-            {resp?.selectedOptionInstanceId && (
-              <p className="text-xs text-text-secondary mt-0.5">
-                {question.options?.find(o => o.optionInstanceId === resp.selectedOptionInstanceId)?.optionValue}
-              </p>
-            )}
-            {!resp && (
+            {!resp && !isFileUp && (
               <p className="text-[10px] text-text-muted italic">Awaiting contributor response…</p>
+            )}
+            {resp && !isChoice && !isFileUp && resp.responseText && (
+              <p className="text-xs text-text-secondary mt-0.5 italic">"{resp.responseText}"</p>
             )}
           </div>
           {!disabled && onAssign && (
@@ -620,6 +669,38 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
             </button>
           )}
         </div>
+
+        {/* FILE_UPLOAD: always show EvidenceUploader read-only — file list comes from doc API, not currentResponse */}
+        {isFileUp && (
+          <EvidenceUploader
+            entityType="QUESTION_RESPONSE"
+            entityId={question.questionInstanceId}
+            canUpload={false}
+            canRemove={false}
+            emptyLabel="Awaiting contributor file upload…"
+          />
+        )}
+
+        {/* Options always visible for choice types — read-only, selected highlighted */}
+        {isChoice && question.options?.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {question.options.map(opt => {
+              const sel = selectedIds.has(Number(opt.optionInstanceId))
+              return (
+                <span key={opt.optionInstanceId}
+                  className={cn(
+                    'text-xs px-2.5 py-1.5 rounded border select-none',
+                    sel
+                      ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
+                      : 'bg-surface-overlay border-border text-text-muted opacity-40'
+                  )}>
+                  {opt.optionValue}
+                  {sel && <CheckCircle2 size={10} className="inline ml-1 text-brand-400" />}
+                </span>
+              )
+            })}
+          </div>
+        )}
       </div>
     )
   }
@@ -672,7 +753,8 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
                   Cancel
                 </button>
               )}
-              {justSaved && <span className="text-xs text-green-400 flex items-center gap-1"><CheckCircle2 size={11} />Saved</span>}
+              {isSaving  && <span className="text-xs text-text-muted flex items-center gap-1 animate-pulse">Saving…</span>}
+              {!isSaving && justSaved && <span className="text-xs text-green-400 flex items-center gap-1"><CheckCircle2 size={11} />Saved</span>}
             </div>
           </div>
         )}
@@ -682,159 +764,95 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
 
   // ── Single choice ────────────────────────────────────────────────────────
   if (question.responseType === 'SINGLE_CHOICE') {
-    const currentSelected = selectedOption ?? resp?.selectedOptionInstanceId ?? null
-    const saveOption = (optionInstanceId) => {
-      if (currentSelected === optionInstanceId) return // already selected, no-op
-      // No isPending guard — optimistic update already shows selection instantly.
-      // If user clicks B while A is saving, B's optimistic state wins visually
-      // and the last POST to land wins on the backend (idempotent upsert).
-      setSelected(optionInstanceId)
-      submitAnswer({
-        questionInstanceId:       question.questionInstanceId,
-        selectedOptionInstanceId: optionInstanceId,
-      }, {
-        onSuccess: () => { setJustSaved(true); setTimeout(() => setJustSaved(false), 1500) },
-        onError:   () => setSelected(resp?.selectedOptionInstanceId || null),
-      })
-    }
     return (
       <div className="mt-2 space-y-2">
-        <div className="flex flex-wrap gap-1.5">
-          {question.options.map(opt => {
-            const selected = currentSelected === opt.optionInstanceId
-            return (
-              <button key={opt.optionInstanceId}
-                onClick={() => saveOption(opt.optionInstanceId)}
-                className={cn('text-xs px-2.5 py-1.5 rounded border transition-all',
-                  selected
-                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
-                    : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary'
-                )}>
-                {opt.optionValue}
-                {opt.score != null && (
-                  <span className={cn('ml-1.5 text-[10px]', selected ? 'text-brand-400/70' : 'opacity-40')}>
-                    {opt.score}pts
-                  </span>
-                )}
-                {selected && <CheckCircle2 size={10} className="inline ml-1.5 text-brand-400" />}
-              </button>
-            )
-          })}
-        </div>
-        {justSaved && <p className="text-[10px] text-green-400 flex items-center gap-1"><CheckCircle2 size={10} />Saved</p>}
+        {question.options?.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {question.options.map(opt => {
+              const selected = selectedSingle === Number(opt.optionInstanceId)
+                || selectedSingle === opt.optionInstanceId
+              return (
+                <button key={opt.optionInstanceId}
+                  onClick={() => saveSingle(opt.optionInstanceId)}
+                  className={cn('text-xs px-2.5 py-1.5 rounded border transition-all',
+                    selected
+                      ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
+                      : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary'
+                  )}>
+                  {opt.optionValue}
+                  {selected && <CheckCircle2 size={10} className="inline ml-1.5 text-brand-400" />}
+                </button>
+              )
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-text-muted italic">No options available</p>
+        )}
+        {isSaving  && <p className="text-[10px] text-text-muted flex items-center gap-1 animate-pulse">Saving…</p>}
+      {!isSaving && justSaved && <p className="text-[10px] text-green-400 flex items-center gap-1"><CheckCircle2 size={10} />Saved</p>}
       </div>
     )
   }
 
   // ── File upload ───────────────────────────────────────────────────────────
-  // FILE_UPLOAD type: the file IS the answer, not supporting evidence.
-  // EvidenceUploader handles the full presigned S3 flow.
-  // The question is "answered" once a DocumentLink exists for this qi.
+  // FILE_UPLOAD type: the file IS the answer. Use EvidenceUploader for both
+  // editable and read-only states. The question is "answered" once a DocumentLink
+  // exists for this question instance.
+  // onUploadSuccess: invalidate assessment queries so progress/checkmark updates.
   if (question.responseType === 'FILE_UPLOAD') {
-    const hasFile = !!(resp?.documents?.length > 0)
     return (
       <div className="mt-2 space-y-2">
-        {!disabled && (
-          <EvidenceUploader
-            entityType="QUESTION_RESPONSE"
-            entityId={question.questionInstanceId}
-            canUpload={true}
-            canRemove={true}
-            emptyLabel="Upload the required document to answer this question."
-          />
-        )}
-        {disabled && (
-          hasFile ? (
-            <div className="space-y-1.5">
-              {resp.documents.map((doc, i) => (
-                <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-green-500/20 bg-green-500/5 text-xs text-green-400">
-                  <Paperclip size={11} className="shrink-0"/>
-                  <span className="truncate flex-1">{doc.fileName || doc.name || 'Document'}</span>
-                  <CheckCircle2 size={11} className="shrink-0"/>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-text-muted italic">No file uploaded yet.</p>
-          )
-        )}
+        <EvidenceUploader
+          entityType="QUESTION_RESPONSE"
+          entityId={question.questionInstanceId}
+          canUpload={!disabled}
+          canRemove={!disabled}
+          emptyLabel={disabled ? "No file uploaded yet." : "Upload the required document to answer this question."}
+          onUploadSuccess={() => {
+            // Refresh section/question data so answered-checkmark and progress % update
+            // (The document query is already invalidated inside EvidenceUploader's upload hook)
+            qc.invalidateQueries({ queryKey: ['my-sections-fill', assessmentId] })
+            qc.invalidateQueries({ queryKey: ['my-contributor-questions', assessmentId] })
+            qc.invalidateQueries({ queryKey: ['assessment-fill', assessmentId] })
+          }}
+        />
       </div>
     )
   }
 
-  // ── Multi choice ──────────────────────────────────────────────────────────
-  // ROOT CAUSE OF DUPLICATES: without per-option pending tracking, two rapid clicks
-  // on the same option fired two concurrent POST requests. Both found no existing
-  // response row (JPA read-committed isolation) and both INSERTed a new row →
-  // duplicate (assessmentId, questionInstanceId) rows → NonUniqueResultException crash.
-  //
-  // FIX: pendingOptionIds Set. Each option is individually disabled while its own
-  // mutation is in-flight. Other options stay clickable (intended UX per session notes).
-  // The guard `if (pendingOptionIds.has(id)) return` is the hard stop for double-click.
-  const toggleMulti = (optionInstanceId) => {
-    const id = Number(optionInstanceId)
-    // Hard guard: if this exact option is already being saved, ignore the click entirely.
-    // This is what prevents the duplicate row: the second click never reaches the backend.
-    if (pendingOptionIds.has(id)) return
-
-    const prev = new Set(selectedMulti)
-    const next = new Set(selectedMulti)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    setMulti(next) // optimistic UI update
-    setPendingOptionIds(p => new Set([...p, id])) // mark this option as in-flight
-
-    submitAnswer({
-      questionInstanceId:        question.questionInstanceId,
-      selectedOptionInstanceIds: [id],
-    }, {
-      onSuccess: () => {
-        setPendingOptionIds(p => { const s = new Set(p); s.delete(id); return s })
-        setJustSaved(true)
-        setTimeout(() => setJustSaved(false), 1500)
-      },
-      onError: () => {
-        setMulti(prev) // rollback optimistic update
-        setPendingOptionIds(p => { const s = new Set(p); s.delete(id); return s })
-      },
-    })
-  }
-
+  // ── Multi choice ─────────────────────────────────────────────────────────
   return (
     <div className="mt-2 space-y-2">
-      <div className="flex flex-wrap gap-1.5">
-        {question.options.map(opt => {
-          const id = Number(opt.optionInstanceId)
-          const selected = selectedMulti.has(id)
-          const thisOptionPending = pendingOptionIds.has(id)
-          return (
-            <button key={opt.optionInstanceId}
-              onClick={() => toggleMulti(opt.optionInstanceId)}
-              disabled={thisOptionPending} // only disable THIS option while it saves
-              className={cn('text-xs px-2.5 py-1.5 rounded border transition-all flex items-center gap-1.5',
-                selected
-                  ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
-                  : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary'
-              )}>
-              {/* Checkbox indicator — no spinner, optimistic update looks instant */}
-              <span className={cn('w-3 h-3 rounded-sm border flex-shrink-0 flex items-center justify-center',
-                selected ? 'bg-brand-500 border-brand-500' : 'border-current opacity-50')}>
-                {selected && <CheckCircle2 size={9} className="text-white" />}
-              </span>
-              {opt.optionValue}
-              {opt.score != null && (
-                <span className={cn('text-[10px]', selected ? 'text-brand-400/70' : 'opacity-40')}>
-                  {opt.score}pts
+      {question.options?.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {question.options.map(opt => {
+            const id = Number(opt.optionInstanceId)
+            const selected = selectedMulti.has(id)
+            return (
+              <button key={opt.optionInstanceId}
+                onClick={() => toggleMulti(opt.optionInstanceId)}
+                className={cn('text-xs px-2.5 py-1.5 rounded border transition-all flex items-center gap-1.5',
+                  selected
+                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
+                    : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary'
+                )}>
+                <span className={cn('w-3 h-3 rounded-sm border flex-shrink-0 flex items-center justify-center',
+                  selected ? 'bg-brand-500 border-brand-500' : 'border-current opacity-50')}>
+                  {selected && <CheckCircle2 size={9} className="text-white" />}
                 </span>
-              )}
-            </button>
-          )
-        })}
-      </div>
+                {opt.optionValue}
+              </button>
+            )
+          })}
+        </div>
+      ) : (
+        <p className="text-xs text-text-muted italic">No options available</p>
+      )}
       {selectedMulti.size > 0 && (
         <p className="text-[10px] text-text-muted">{selectedMulti.size} option{selectedMulti.size > 1 ? 's' : ''} selected</p>
       )}
-      {justSaved && <p className="text-[10px] text-green-400 flex items-center gap-1"><CheckCircle2 size={10} />Saved</p>}
+      {isSaving  && <p className="text-[10px] text-text-muted flex items-center gap-1 animate-pulse">Saving…</p>}
+      {!isSaving && justSaved && <p className="text-[10px] text-green-400 flex items-center gap-1"><CheckCircle2 size={10} />Saved</p>}
     </div>
   )
 }
@@ -934,6 +952,20 @@ export default function VendorAssessmentFillPage() {
   const isContributorMode = !sectionsLoading &&
     Array.isArray(mySectionsData) && mySectionsData.length === 0 &&
     !!(taskId || isBypassEntry || questionInstanceIdParam)
+
+  // Auto-redirect to inbox when all sections are submitted.
+  // isContributorMode (= no sections assigned to this user) must be declared
+  // above this effect — contributors/unassigned users don't submit sections.
+  useEffect(() => {
+    if (isContributorMode) return   // not a section owner, don't redirect
+    if (!mySectionsData.length || !taskId) return
+    const allSubmitted = mySectionsData.every(s => !!s.submittedAt)
+    if (allSubmitted) {
+      const t = setTimeout(() => navigate('/workflow/inbox', { replace: true }), 1500)
+      return () => clearTimeout(t)
+    }
+  }, [mySectionsData, isContributorMode, taskId, navigate])
+
   const { data: contributorQs = [] } = useMyContributorQuestions(id, isContributorMode)
   useScrollToQuestion([contributorQs.length, mySectionsData.length])
   // Handler: responder assigns question(s) to a contributor
@@ -974,7 +1006,10 @@ export default function VendorAssessmentFillPage() {
   // If backend allows submitAnswer → editable. If 403 → shows error.
   // We allow the UI to render in editable=false (read-only) mode —
   // contributor can see their answers and the revision banner.
-  const editable = (isRevisionEntry || isAssignmentEntry)
+  const editable = (isContributorMode || isRevisionEntry || isAssignmentEntry)
+    // Contributors, revision entries, and assignment entries: gate on assessment status only.
+    // access.canEdit is the RESPONDER's fill-step permission — it does not apply to contributors
+    // whose task type is a sub-task on the same step. getMyQuestions is already auth-gated.
     ? !!(assessment?.status && !terminalStatuses.includes(assessment.status))
     : !!(access?.canEdit && assessment?.status && !terminalStatuses.includes(assessment.status))
 
@@ -1002,6 +1037,16 @@ export default function VendorAssessmentFillPage() {
     const q = contributorQs.find(q => q.questionInstanceId === targetId)
     if (q) setDrawerQuestion(q)
   }, [contributorQs.length, questionInstanceIdParam])
+
+  // Auto-open drawer for responder mode — search inside sections
+  useEffect(() => {
+    if (!questionInstanceIdParam || !mySectionsData.length || isContributorMode) return
+    const targetId = Number(questionInstanceIdParam)
+    for (const section of mySectionsData) {
+      const q = section.questions?.find(q => q.questionInstanceId === targetId)
+      if (q) { setDrawerQuestion(q); break }
+    }
+  }, [mySectionsData.length, questionInstanceIdParam, isContributorMode])
 
   // When arriving via action item, access context is irrelevant — skip its loading state
   if ((!isRevisionEntry && (accessLoading || tasksLoading)) || assessmentLoading || sectionsLoading) return (
@@ -1143,9 +1188,6 @@ export default function VendorAssessmentFillPage() {
                               return (
                                 <div className="flex items-center gap-2 flex-wrap mt-1">
                                   <Badge value={q.responseType} label={tc.label} colorTag={tc.color} />
-                                  {q.weight != null && (
-                                    <span className="text-[10px] text-text-muted font-mono">{q.weight} pts</span>
-                                  )}
                                 </div>
                               )
                             })()}
@@ -1154,6 +1196,7 @@ export default function VendorAssessmentFillPage() {
                               questionInstanceId={q.questionInstanceId}
                               isContributorView={true}
                               hasCurrentResponse={!!q.currentResponse}
+                              responseSubmittedAt={q.currentResponse?.submittedAt}
                             />
                             {/* Org remediation notice — vendor contributor sees what must be fixed */}
                             <RemediationNoticeBanner questionInstanceId={q.questionInstanceId} />
@@ -1161,15 +1204,32 @@ export default function VendorAssessmentFillPage() {
                               question={q}
                               assessmentId={id}
                               disabled={
-                                // Normal flow: lock if section submitted OR not editable
-                                // Revision flow (openWork): section lock is bypassed on backend
-                                // if an open action item exists for this question — allow editing.
+                                // Contributor view: when the RESPONDER submits the section (sectionSubmittedAt),
+                                // all unanswered questions generate new action items — so contributor is also locked.
+                                // Spec clarification: section lock applies to contributor too.
+                                // Revision flow bypasses lock when an active revision action item exists.
                                 isRevisionEntry
-                                  ? false  // REVISION_REQUEST: responder explicitly asked for re-answer, bypass lock
-                                  : (!editable || isSubmitted || !!q.sectionSubmittedAt) // assignment: lock applies
+                                  ? false
+                                  : (!editable || isSubmitted || !!q.sectionSubmittedAt)
                               }
                               isContributorView={true}
                             />
+                            {/* Responder's verdict on this contributor answer — never shown for PENDING (default DB value) */}
+                            {q.currentResponse?.reviewerStatus && q.currentResponse.reviewerStatus !== 'PENDING' && (() => {
+                              const VERDICT = {
+                                ACCEPTED:           { cls: 'bg-green-500/10 border-green-500/30 text-green-400',   label: 'Accepted by responder',   Icon: CheckCircle2  },
+                                OVERRIDDEN:         { cls: 'bg-blue-500/10 border-blue-500/30 text-blue-400',     label: 'Overridden by responder', Icon: Shield        },
+                                REVISION_REQUESTED: { cls: 'bg-amber-500/10 border-amber-500/30 text-amber-400', label: 'Revision requested',       Icon: AlertTriangle },
+                              }
+                              const cfg = VERDICT[q.currentResponse.reviewerStatus]
+                              if (!cfg) return null
+                              return (
+                                <div className={cn('flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px] mt-2', cfg.cls)}>
+                                  <cfg.Icon size={11} className="shrink-0" />
+                                  <span>{cfg.label}</span>
+                                </div>
+                              )
+                            })()}
                             {/* Answered by + drawer trigger */}
                             <div className="flex items-center justify-between mt-1">
                               {q.currentResponse?.answeredByName && (
@@ -1178,10 +1238,14 @@ export default function VendorAssessmentFillPage() {
                                 </p>
                               )}
                               <button
-                                onClick={() => setDrawerQuestion(q)}
+                                onClick={() => drawerQuestion?.questionInstanceId === q.questionInstanceId
+                                  ? setDrawerQuestion(null)
+                                  : setDrawerQuestion(q)}
                                 className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-400 transition-colors ml-auto">
                                 <MessageSquare size={10} />
-                                Notes &amp; discussion
+                                {drawerQuestion?.questionInstanceId === q.questionInstanceId
+                                  ? 'Close panel'
+                                  : 'Notes & discussion'}
                               </button>
                             </div>
                           </div>
@@ -1190,8 +1254,8 @@ export default function VendorAssessmentFillPage() {
                     ))}
                   </div>
 
-                  {/* Section footer: submit button — hidden when section is locked by responder */}
-                  {editable && sectionInstanceId && !sectionLocked && (
+                  {/* Section footer: contributor can submit their answers regardless of responder's section lock */}
+                  {editable && sectionInstanceId && (
                     <div className="px-5 py-3 bg-surface-overlay/30 border-t border-border flex items-center justify-between">
                       <p className="text-xs text-text-muted">{answeredCount}/{group.questions.length} answered</p>
                       {isSubmitted || optimisticSubmitted.has(sectionInstanceId) ? (
@@ -1229,6 +1293,7 @@ export default function VendorAssessmentFillPage() {
           const isOpen = open[key] !== false  // default open
           const sAnswered = section.questions?.filter(q => q.currentResponse).length ?? 0
           const sTotal    = section.questions?.length ?? 0
+          const globalOffset = sections.slice(0, si).reduce((sum, s) => sum + (s.questions?.length || 0), 0)
 
           return (
             <div key={si} className="bg-surface rounded-xl border border-border overflow-hidden">
@@ -1305,6 +1370,7 @@ export default function VendorAssessmentFillPage() {
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-mono text-text-muted shrink-0">{globalOffset + qi + 1}.</span>
                             <p className="text-sm text-text-primary">{q.questionText}</p>
                             {q.mandatory && (
                               <span className="text-red-400 text-xs flex-shrink-0">*</span>
@@ -1322,9 +1388,6 @@ export default function VendorAssessmentFillPage() {
                                 </>
                               )
                             })()}
-                            {q.weight != null && (
-                              <span className="text-[10px] text-text-muted font-mono ml-auto">{q.weight}pts</span>
-                            )}
                             {q.currentResponse && (
                               <CheckCircle2 size={12} className="text-green-400" />
                             )}
@@ -1347,6 +1410,7 @@ export default function VendorAssessmentFillPage() {
                             questionInstanceId={q.questionInstanceId}
                             isContributorView={false}
                             hasCurrentResponse={!!q.currentResponse}
+                            responseSubmittedAt={q.currentResponse?.submittedAt}
                           />
                           {/* Org remediation notice — vendor responder sees what must be fixed */}
                           <RemediationNoticeBanner questionInstanceId={q.questionInstanceId} />
@@ -1375,10 +1439,14 @@ export default function VendorAssessmentFillPage() {
                               />
                             ) : <span />}
                             <button
-                              onClick={() => setDrawerQuestion(q)}
+                              onClick={() => drawerQuestion?.questionInstanceId === q.questionInstanceId
+                                ? setDrawerQuestion(null)
+                                : setDrawerQuestion(q)}
                               className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-400 transition-colors shrink-0">
                               <MessageSquare size={10} />
-                              Notes &amp; discussion
+                              {drawerQuestion?.questionInstanceId === q.questionInstanceId
+                                ? 'Close panel'
+                                : 'Notes & discussion'}
                             </button>
                           </div>
                         </div>

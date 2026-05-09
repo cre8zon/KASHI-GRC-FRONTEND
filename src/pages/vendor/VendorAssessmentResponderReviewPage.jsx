@@ -14,7 +14,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, CheckCircle2, XCircle, ChevronDown, ChevronRight,
-  Send, Loader2, MessageSquare, FileText, AlertTriangle, RotateCcw,
+  Send, Loader2, MessageSquare, FileText, RotateCcw,
 } from 'lucide-react'
 import { assessmentsApi } from '../../api/assessments.api'
 import { workflowsApi }   from '../../api/workflows.api'
@@ -25,10 +25,9 @@ import { useSelector }    from 'react-redux'
 import { selectAuth, selectRoles } from '../../store/slices/authSlice'
 import { Modal }          from '../../components/ui/Modal'
 import { useAccessContext, useMyTasks, useCompoundTaskProgress } from '../../hooks/useWorkflow'
-import { useQuestionComments }   from '../../hooks/useComments'
 import { useAssessmentPageSetup } from '../../hooks/useAssessmentPageSetup'
 import { QuestionDrawer }        from '../../components/item-panel'
-import { CommentFeed }            from '../../components/comments/CommentFeed'
+import EvidenceUploader          from '../../components/ui/EvidenceUploader'
 import { CompoundTaskProgress } from '../../components/workflow/CompoundTaskProgress'
 import toast              from 'react-hot-toast'
 import { useScrollToQuestion } from '../../hooks/useScrollToQuestion'
@@ -90,13 +89,8 @@ const TYPE_CONFIG = {
 
 // ─── Answer card ─────────────────────────────────────────────────────────────
 
-function AnswerCard({ question, assessmentId, canAct, onOpenDrawer }) {
+function AnswerCard({ question, assessmentId, canAct, onOpenDrawer, drawerOpenId, globalIndex }) {
   const resp = question.currentResponse
-  const { comments, addComment, adding: commenting } = useQuestionComments(
-    question.questionInstanceId, { enabled: !!question.questionInstanceId }
-  )
-  const [showRevision,  setShowRevision]  = useState(false)
-  const [revisionNote,  setRevisionNote]  = useState('')
 
   const tc = TYPE_CONFIG[question.responseType] || { label: question.responseType, color: 'gray' }
 
@@ -111,42 +105,21 @@ function AnswerCard({ question, assessmentId, canAct, onOpenDrawer }) {
       })()
   const isMulti  = question.responseType === 'MULTI_CHOICE'
   const isSingle = question.responseType === 'SINGLE_CHOICE'
-
-  const handleRequestRevision = () => {
-    if (!revisionNote.trim()) return
-    addComment({
-      commentText: revisionNote.trim(),
-      commentType: 'REVISION_REQUEST',
-      visibility: 'ALL',
-      questionInstanceId: question.questionInstanceId,
-      responseId: resp?.responseId,
-    })
-    setShowRevision(false)
-    setRevisionNote('')
-  }
-
-  // Use real-time comments from WS hook; fall back to response comments for initial render
-  const allComments = comments.length > 0 ? comments : (resp?.comments || [])
-  const hasRevisionFlag = allComments.some(c =>
-    c.commentType === 'REVISION_REQUEST' || c.commentText?.startsWith('[REVISION NEEDED]'))
+  const isDrawerOpen = drawerOpenId === question.questionInstanceId
 
   return (
-    <div className={cn(
-      "py-3 border-b border-border last:border-0",
-      hasRevisionFlag && "bg-amber-500/5"
-    )}>
+    <div data-qi={question.questionInstanceId}
+      className={cn(
+        'py-3 border-b border-border last:border-0 transition-all duration-300',
+        isDrawerOpen && 'bg-brand-500/5 border-l-2 border-brand-500/50'
+      )}>
       <div className="flex items-start gap-2 mb-1.5">
-        <span className="text-xs font-mono text-text-muted pt-0.5 flex-shrink-0 w-5">{question.orderNo}.</span>
+        <span className="text-xs font-mono text-text-muted pt-0.5 flex-shrink-0 w-5">{globalIndex ?? question.orderNo}.</span>
         <div className="flex-1 min-w-0">
           {/* Question text + type badge */}
           <div className="flex items-start gap-2 mb-1.5 flex-wrap">
             <p className="text-sm text-text-primary flex-1">{question.questionText}</p>
             {question.mandatory && <span className="text-red-400 text-xs flex-shrink-0">*</span>}
-            {hasRevisionFlag && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 flex-shrink-0">
-                Revision requested
-              </span>
-            )}
           </div>
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <Badge value={question.responseType} label={tc.label} colorTag={tc.color} />
@@ -162,105 +135,68 @@ function AnswerCard({ question, assessmentId, canAct, onOpenDrawer }) {
             )}
           </div>
 
-          {resp ? (
-            <>
-              {/* Text answer */}
-              {resp.responseText && !isMulti && (
-                <div className="p-2.5 rounded-md bg-surface-overlay border border-border mb-2">
-                  <p className="text-xs text-text-secondary leading-relaxed">{resp.responseText}</p>
-                </div>
-              )}
-              {/* Single choice */}
-              {isSingle && resp.selectedOptionInstanceId && (
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {question.options?.map(o => {
-                    const sel = o.optionInstanceId === resp.selectedOptionInstanceId
-                    return (
-                      <span key={o.optionInstanceId}
-                        className={cn('text-xs px-2 py-0.5 rounded border',
-                          sel ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
-                              : 'border-border text-text-muted opacity-40')}>
-                        {o.optionValue}
-                        {o.score != null && <span className="ml-1 opacity-60">({o.score})</span>}
-                      </span>
-                    )
-                  })}
-                </div>
-              )}
-              {/* Multi choice */}
-              {isMulti && (
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {question.options?.map(o => {
-                    const sel = multiIds.includes(o.optionInstanceId)
-                    return (
-                      <span key={o.optionInstanceId}
-                        className={cn('text-xs px-2 py-0.5 rounded border',
-                          sel ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
-                              : 'border-border text-text-muted opacity-40')}>
-                        {o.optionValue}
-                        {o.score != null && <span className="ml-1 opacity-60">({o.score})</span>}
-                      </span>
-                    )
-                  })}
-                  {multiIds.length > 0 && (
-                    <span className="text-[10px] text-text-muted self-center">
-                      {multiIds.length} selected
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Real-time comments + revision request */}
-              <div className="mt-3 space-y-2">
-                {/* Quick revision request */}
-                {canAct && !showRevision && (
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => setShowRevision(true)}
-                      className="text-[10px] text-amber-400/70 hover:text-amber-400 flex items-center gap-1 transition-colors">
-                      <AlertTriangle size={10} /> Request revision
-                    </button>
-                    {onOpenDrawer && (
-                      <button onClick={() => onOpenDrawer(question)}
-                        className="text-[10px] text-text-muted/60 hover:text-brand-400 flex items-center gap-1 transition-colors">
-                        <MessageSquare size={10} /> Notes &amp; discussion
-                      </button>
-                    )}
-                  </div>
-                )}
-                {showRevision && (
-                  <div className="space-y-1 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                    <p className="text-[10px] text-amber-400 font-medium">Request revision from contributor</p>
-                    <textarea value={revisionNote} onChange={e => setRevisionNote(e.target.value)}
-                      rows={2} autoFocus
-                      className="w-full rounded-md border border-amber-500/30 bg-surface-raised px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-amber-500 resize-none"
-                      placeholder="What needs to be corrected or added?" />
-                    <div className="flex gap-1">
-                      <Button size="xs" variant="secondary" onClick={handleRequestRevision} loading={commenting}>
-                        Send
-                      </Button>
-                      <Button size="xs" variant="ghost" onClick={() => setShowRevision(false)}>Cancel</Button>
-                    </div>
-                  </div>
-                )}
-                {/* Real-time comment feed */}
-                <CommentFeed
-                  comments={allComments}
-                  isLoading={false}
-                  addComment={(data) => addComment({ ...data,
-                    questionInstanceId: question.questionInstanceId,
-                    responseId: resp?.responseId,
-                  })}
-                  adding={commenting}
-                  canEdit={canAct}
-                  showVisibility={false}
-                  showType={false}
-                  emptyMessage=""
-                />
+          {/* Answer area — always show structure even when unanswered */}
+          {question.responseType === 'TEXT' || question.responseType === 'NUMERIC' || question.responseType === 'DATE' ? (
+            resp?.responseText ? (
+              <div className="p-2.5 rounded-md bg-surface-overlay border border-border mb-2">
+                <p className="text-xs text-text-secondary leading-relaxed">{resp.responseText}</p>
               </div>
-            </>
-          ) : (
-            <p className="text-xs text-text-muted italic">Not answered</p>
-          )}
+            ) : (
+              <p className="text-xs text-text-muted italic mb-2">Not answered</p>
+            )
+          ) : question.responseType === 'FILE_UPLOAD' ? (
+            /* FILE_UPLOAD: always show EvidenceUploader — file list comes from doc API directly,
+               not from currentResponse, so it works regardless of whether resp is null */
+            <div className="mb-2">
+              <EvidenceUploader
+                entityType="QUESTION_RESPONSE"
+                entityId={question.questionInstanceId}
+                canUpload={false}
+                canRemove={false}
+                emptyLabel="No file uploaded yet"
+              />
+            </div>
+          ) : (isSingle || isMulti) ? (
+            /* Always show all options — dimmed if not selected, highlighted if selected */
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {question.options?.length > 0 ? question.options.map(o => {
+                const sel = isSingle
+                  ? o.optionInstanceId === resp?.selectedOptionInstanceId
+                  : multiIds.includes(o.optionInstanceId)
+                return (
+                  <span key={o.optionInstanceId}
+                    className={cn('text-xs px-2 py-0.5 rounded border',
+                      sel ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
+                          : 'border-border text-text-muted opacity-40')}>
+                    {o.optionValue}
+                    {o.score != null && <span className="ml-1 opacity-60">({o.score})</span>}
+                  </span>
+                )
+              }) : (
+                <p className="text-xs text-text-muted italic">No options available</p>
+              )}
+            </div>
+          ) : null}
+
+          {/* Bottom row: reviewer status + drawer trigger */}
+          <div className="flex items-center justify-between mt-2">
+            {resp?.reviewerStatus && resp.reviewerStatus !== 'PENDING' && (() => {
+              const VERDICT = {
+                ACCEPTED:           { cls: 'text-green-400',   label: '✓ Accepted' },
+                OVERRIDDEN:         { cls: 'text-blue-400',    label: '✎ Overridden' },
+                REVISION_REQUESTED: { cls: 'text-amber-400',   label: '↩ Revision requested' },
+              }
+              const v = VERDICT[resp.reviewerStatus]
+              return v ? <span className={cn('text-[10px] font-medium', v.cls)}>{v.label}</span> : <span />
+            })()}
+            {!resp?.reviewerStatus || resp.reviewerStatus === 'PENDING' ? <span /> : null}
+            <button
+              onClick={() => onOpenDrawer(isDrawerOpen ? null : question)}
+              className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-400 transition-colors ml-auto">
+              <MessageSquare size={10} />
+              {isDrawerOpen ? 'Close panel' : 'Notes & discussion'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -334,6 +270,22 @@ export default function VendorAssessmentResponderReviewPage() {
   const canFetch = isOpenWork ? !!id : (!accessLoading && !!access?.canView)
   const { data: mySections = [], isLoading: sectionsLoading } = useMySections(id, canFetch)
   useScrollToQuestion([mySections.length])
+
+  // Auto-open the QuestionDrawer when arriving via "Go to item" (action item navigation).
+  // Searches through all loaded sections to find the question object, then sets it as the drawer target.
+  // Retries every 150ms for up to 3s to handle late-loading section data.
+  useEffect(() => {
+    if (!targetQId || !mySections.length) return
+    const targetId = Number(targetQId)
+    const tryOpen = (attempts = 0) => {
+      for (const section of mySections) {
+        const q = section.questions?.find(q => q.questionInstanceId === targetId)
+        if (q) { setDrawerQuestion(q); return }
+      }
+      if (attempts < 20) setTimeout(() => tryOpen(attempts + 1), 150)
+    }
+    tryOpen()
+  }, [mySections.length, targetQId]) // eslint-disable-line
   // axios interceptor already unwraps ApiResponse<T> → T directly.
   // assessmentData IS the assessment object — not assessmentData.data.
   const assessment = assessmentData
@@ -399,16 +351,6 @@ export default function VendorAssessmentResponderReviewPage() {
     })
   }
 
-  const handleSendBack = () => {
-    if (!taskId) { toast.error('Open from your task inbox'); return }
-    performAction({
-      taskInstanceId: parseInt(taskId),
-      actionType: 'SEND_BACK',
-      remarks: remarks || 'Sent back for revision',
-    }, {
-      onSuccess: () => navigate('/workflow/inbox'),
-    })
-  }
 
   // ALL hooks before any early returns — Rules of Hooks
   useEffect(() => {
@@ -472,10 +414,6 @@ export default function VendorAssessmentResponderReviewPage() {
              activeTask.stepName.toLowerCase().includes('final'))
           return (
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="ghost" icon={XCircle}
-                className="text-red-400" onClick={handleSendBack}>
-                Send back
-              </Button>
               {isCisoStep ? (
                 <Button size="sm" variant="secondary" onClick={cisoSubmit} loading={submitting}>
                   Submit assessment
@@ -501,6 +439,11 @@ export default function VendorAssessmentResponderReviewPage() {
           const key = `s-${si}`
           const isOpen = open[key] !== false
 
+          // Compute the global question offset before this section
+          const globalOffset = sections
+            .slice(0, si)
+            .reduce((sum, s) => sum + (s.questions?.length || 0), 0)
+
           return (
             <div key={si} className="bg-surface rounded-xl border border-border overflow-hidden">
               <button onClick={() => toggle(key)}
@@ -516,9 +459,16 @@ export default function VendorAssessmentResponderReviewPage() {
 
               {isOpen && (
                 <div className="border-t border-border px-5">
-                  {(section.questions || []).map(q => (
+                  {(section.questions || []).map((q, qi) => (
                     <div key={q.questionInstanceId} data-qi={q.questionInstanceId} className="rounded transition-all duration-500">
-                      <AnswerCard question={q} assessmentId={id} canAct={!!activeTask} onOpenDrawer={setDrawerQuestion} />
+                      <AnswerCard
+                        question={q}
+                        globalIndex={globalOffset + qi + 1}
+                        assessmentId={id}
+                        canAct={!!activeTask}
+                        drawerOpenId={drawerQuestion?.questionInstanceId}
+                        onOpenDrawer={(q) => setDrawerQuestion(q)}
+                      />
                     </div>
                   ))}
                 </div>

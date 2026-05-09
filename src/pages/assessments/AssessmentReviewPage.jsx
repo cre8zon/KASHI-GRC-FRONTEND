@@ -59,6 +59,7 @@ import { CompoundTaskProgress, CompoundTaskBadge } from '../../components/workfl
 import { useEntityActionItems, useUpdateActionItemStatus } from '../../hooks/useActionItems'
 import { useQuestionComments } from '../../hooks/useComments'
 import toast from 'react-hot-toast'
+import EvidenceUploader         from '../../components/ui/EvidenceUploader'
 import { useScrollToQuestion } from '../../hooks/useScrollToQuestion'
 
 // ─── Data hooks ───────────────────────────────────────────────────────────────
@@ -105,7 +106,7 @@ const useReportVersions = (assessmentId) => useQuery({
 function resolveOrgPanel(actorRoleName, stepAction) {
   const action = (stepAction || '').toUpperCase()
   if (action === 'ASSIGN') {
-    if (actorRoleName === 'ORG_CISO') return { panel: 'ASSIGN_CISO', title: 'Assign Org CISO to lead review' }
+    if (actorRoleName === 'ORG_ADMIN' || actorRoleName === 'ORG_OWNER') return { panel: 'ASSIGN_CISO', title: 'Assign Org CISO to lead review' }
     return { panel: 'ASSIGN_SECTIONS', title: 'Assign questionnaire sections to reviewers' }
   }
   if (action === 'EVALUATE') {
@@ -581,10 +582,11 @@ function AssignToAssistantInline({ question, assessmentId, onAssigned }) {
   const qc = useQueryClient()
 
   const { mutate: assign, isPending } = useMutation({
-    mutationFn: (userId) => reviewApi.reviewerAssignQuestionWithTask(assessmentId, question.questionInstanceId, userId),
+    // Use action-item pattern (not sub-task). Mirrors contributor assignment.
+    mutationFn: (userId) => assessmentsApi.vendor.reviewerAssignQuestion(assessmentId, question.questionInstanceId, userId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['reviewer-my-sections-v2', assessmentId] })
-      toast.success('Assigned — assistant inbox task created')
+      toast.success("Assigned — action item created in assistant's inbox")
       setShow(false)
       onAssigned?.()
     },
@@ -647,7 +649,7 @@ const EVAL_OPTIONS = [
   { value: 'FAIL',    label: 'Fail',    Icon: ThumbsDown, bg: 'bg-red-500/10   border-red-500/40   text-red-400'   },
 ]
 
-function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEvaluate, canAct, sectionSubmitted, onOpenDrawer }) {
+function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEvaluate, canAct, sectionSubmitted, onOpenDrawer, number }) {
   const resp = question.currentResponse
   const [showClarify,   setShowClarify]   = useState(false)
   const [showRemediate, setShowRemediate] = useState(false)
@@ -663,13 +665,13 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
   const handleEval = (value) => { onEvaluate(question.questionInstanceId, value); persistEval(value) }
 
   return (
-    <div data-qid={question.questionInstanceId}
+    <div data-qi={question.questionInstanceId}
       className={cn('py-3.5 border-b border-border last:border-0 rounded transition-all duration-500',
       evaluation === 'FAIL'    && 'bg-red-500/3',
       evaluation === 'PARTIAL' && 'bg-amber-500/3',
     )}>
       <div className="flex items-start gap-2 mb-2">
-        <span className="text-xs font-mono text-text-muted pt-0.5 shrink-0 w-5">{question.orderNo}.</span>
+        <span className="text-xs font-mono text-text-muted pt-0.5 shrink-0 w-5">{number ?? question.orderNo}.</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-2 flex-wrap mb-1.5">
             <p className="text-sm text-text-primary flex-1">{question.questionText}</p>
@@ -724,13 +726,15 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
                   ? <p className="text-xs text-text-secondary leading-relaxed">{resp.responseText}</p>
                   : <p className="text-xs text-text-muted italic">No text entered</p>
               )}
-              {/* FILE_UPLOAD — indicate file was submitted */}
+              {/* FILE_UPLOAD — show actual uploaded files via EvidenceUploader */}
               {question.responseType === 'FILE_UPLOAD' && (
-                resp.responseText
-                  ? <p className="text-xs text-brand-400 flex items-center gap-1">
-                      <FileText size={11}/> {resp.responseText}
-                    </p>
-                  : <p className="text-xs text-text-muted italic">File uploaded</p>
+                <EvidenceUploader
+                  entityType="QUESTION_RESPONSE"
+                  entityId={question.questionInstanceId}
+                  canUpload={false}
+                  canRemove={false}
+                  emptyLabel="No file uploaded yet."
+                />
               )}
               {/* Submitted by */}
               {resp.submittedAt && (
@@ -821,11 +825,17 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
 
 // ─── ReviewerSectionAccordion (updated: per-section submit button) ────────────
 
-function ReviewerSectionAccordion({ section, assessmentId, taskId, evaluations, onEvaluate, defaultOpen, onOpenDrawer }) {
+function ReviewerSectionAccordion({ section, assessmentId, taskId, evaluations, onEvaluate, defaultOpen, onOpenDrawer, questionOffset = 0 }) {
   const [open, setOpen] = useState(defaultOpen)
   const questions       = section.questions || []
+  const isGenuine       = (resp) => !!(resp && (
+    resp.responseText?.startsWith('[FILE_UPLOADED') ||
+    resp.selectedOptionInstanceId != null ||
+    (resp.selectedOptionInstanceIds?.length ?? 0) > 0 ||
+    (resp.responseText && !resp.responseText.startsWith('['))
+  ))
   const evaluated       = questions.filter(q => !!evaluations[q.questionInstanceId]).length
-  const answered        = questions.filter(q => !!q.currentResponse).length
+  const answered        = questions.filter(q => isGenuine(q.currentResponse)).length
   const unanswered      = questions.length - answered
   const isSubmitted     = !!section.reviewerSubmittedAt
   const qc              = useQueryClient()
@@ -873,11 +883,12 @@ function ReviewerSectionAccordion({ section, assessmentId, taskId, evaluations, 
       {open && (
         <div className="border-t border-border">
           <div className="px-5">
-            {questions.map(q => (
+            {questions.map((q, qi) => (
               <div key={q.questionInstanceId} data-qi={q.questionInstanceId}>
               <ReviewerQuestionCard
                 key={q.questionInstanceId}
                 question={q}
+                number={questionOffset + qi + 1}
                 assessmentId={assessmentId}
                 taskId={taskId}
                 evaluation={evaluations[q.questionInstanceId]}
@@ -1028,22 +1039,50 @@ function EvaluateQuestionsPanel({ assessment, taskId, activeTask, onDone, target
       })
       setEvaluations(seed)
       setSeeded(true)
-      // Persist auto-FAILs
+      // Persist auto-FAILs — fire sequentially so the last call triggers
+      // the SCORE_ANSWERS gate check on the backend (allEvaluated check needs
+      // all verdicts already saved before the check runs).
       const autoFails = Object.entries(seed).filter(([,v]) => v === 'FAIL')
       if (autoFails.length > 0 && id) {
         const allQs = mySections.flatMap(s => s.questions || [])
-        autoFails.forEach(([qiId]) => {
+        const unansweredFails = autoFails.filter(([qiId]) => {
           const q = allQs.find(q => String(q.questionInstanceId) === String(qiId))
-          if (q && !q.currentResponse) assessmentsApi.vendor.saveReviewerEval(id, Number(qiId), 'FAIL').catch(() => {})
-        })
+          return q && !q.currentResponse
+        });
+        // Fire sequentially — auto-FAILs never pass taskId.
+        // SCORE_ANSWERS gate fires naturally when the reviewer manually
+        // evaluates the last answered question via handleEval → persistEval.
+        // Passing taskId here would fire the gate before answered questions
+        // have been evaluated, causing allEvaluated=false on the backend
+        // and permanently blocking SCORE_ANSWERS from firing.
+        (async () => {
+          for (let i = 0; i < unansweredFails.length; i++) {
+            const [qiId] = unansweredFails[i]
+            await assessmentsApi.vendor.saveReviewerEval(
+              id, Number(qiId), 'FAIL',
+              null  // never pass taskId on auto-FAILs — manual evals trigger the check
+            ).catch(() => {})
+          }
+        })()
       }
     }
   }, [mySections, seeded, id])
 
   const handleEvaluate = (qiId, value) => setEvaluations(prev => ({ ...prev, [qiId]: value }))
 
+  // Shell rows created by saveReviewerEval for unanswered questions have reviewerStatus
+  // but no responseText/selectedOption/scoreEarned — treat them as unanswered for display.
+  const isGenuineResponse = (resp) => {
+    if (!resp) return false
+    if (resp.responseText?.startsWith('[FILE_UPLOADED')) return true
+    if (resp.selectedOptionInstanceId != null) return true
+    if (resp.selectedOptionInstanceIds?.length > 0) return true
+    if (resp.responseText && resp.responseText !== '' && !resp.responseText.startsWith('[')) return true
+    return false
+  }
+
   const allQs      = mySections.flatMap(s => s.questions || [])
-  const unanswered = allQs.filter(q => !q.currentResponse).length
+  const unanswered = allQs.filter(q => !isGenuineResponse(q.currentResponse)).length
 
   // ── CISO view (unchanged) ─────────────────────────────────────────────────
   if (isCISOStep) {
@@ -1156,10 +1195,10 @@ function EvaluateQuestionsPanel({ assessment, taskId, activeTask, onDone, target
         </div>
       </div>
       {mySections.map((section, idx) => {
-        // Auto-open section containing the target question from URL param
         const containsTarget = targetQId
           ? (section.questions || []).some(q => String(q.questionInstanceId) === String(targetQId))
           : false
+        const questionOffset = mySections.slice(0, idx).reduce((s, sec) => s + (sec.questions?.length || 0), 0)
         return (
           <ReviewerSectionAccordion
             key={section.sectionInstanceId}
@@ -1170,6 +1209,7 @@ function EvaluateQuestionsPanel({ assessment, taskId, activeTask, onDone, target
             onEvaluate={handleEvaluate}
             defaultOpen={idx === 0 || containsTarget}
             onOpenDrawer={setDrawerQuestion}
+            questionOffset={questionOffset}
           />
         )
       })}
@@ -1192,11 +1232,38 @@ function ConsolidateFindingsPanel({ assessment, taskId, onDone }) {
   const id = assessment?.assessmentId
   const [findings, setFindings] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const qc = useQueryClient()
+  // overrideCompliancePct: set immediately from recalculate response while sections re-fetch
+  const [overrideCompliancePct, setOverrideCompliancePct] = useState(null)
 
   const secs = assessment?.sections || []
   const totalQs = secs.flatMap(s => s.questions || []).length
-  const answeredQs = secs.flatMap(s => s.questions || []).filter(q => q.currentResponse).length
-  const score = assessment?.progress?.totalEarnedScore || 0
+
+  // Count genuine vendor answers only — exclude shell rows created by saveReviewerEval
+  // for unanswered questions (those have reviewerStatus set but no responseText/selectedOption/scoreEarned).
+  const isGenuineAnswer = (resp) => {
+    if (!resp) return false
+    if (resp.responseText?.startsWith('[FILE_UPLOADED')) return true
+    if (resp.selectedOptionInstanceId != null) return true
+    if (resp.selectedOptionInstanceIds?.length > 0) return true
+    if (resp.responseText && resp.responseText !== '' && !resp.responseText.startsWith('[')) return true
+    return false
+  }
+  const answeredQs = secs.flatMap(s => s.questions || []).filter(q => isGenuineAnswer(q.currentResponse)).length
+
+  // Compute compliance % from sections data (reviewer-adjusted: PASS=full, PARTIAL=50%, FAIL=0)
+  const allQsFlat = secs.flatMap(s => s.questions || [])
+  const totalPoss = allQsFlat.reduce((s, q) => s + (q.weight || 1), 0)
+  const totalEarned = allQsFlat.reduce((sum, q) => {
+    const rs = q.currentResponse?.reviewerStatus
+    const raw = q.currentResponse?.scoreEarned ?? 0
+    if (!isGenuineAnswer(q.currentResponse)) return sum  // unanswered → 0
+    if (rs === 'FAIL')    return sum
+    if (rs === 'PARTIAL') return sum + raw * 0.5
+    return sum + raw
+  }, 0)
+  const compliancePct = totalPoss > 0 ? Math.round(totalEarned / totalPoss * 100) : 0
+  const displayPct = overrideCompliancePct ?? compliancePct
 
   // Submit in sequence: consolidate scores → document findings → task auto-approves
   const handleSubmit = async () => {
@@ -1220,7 +1287,7 @@ function ConsolidateFindingsPanel({ assessment, taskId, onDone }) {
         {[
           { label: 'Questions answered', value: `${answeredQs}/${totalQs}` },
           { label: 'Sections',           value: secs.length },
-          { label: 'Total score',        value: score.toFixed(1) },
+          { label: 'Compliance score',   value: `${displayPct}%` },
         ].map(s => (
           <div key={s.label} className="rounded-md border border-border p-3 text-center">
             <p className="text-lg font-semibold text-text-primary">{s.value}</p>
@@ -1258,13 +1325,18 @@ function ConsolidateFindingsPanel({ assessment, taskId, onDone }) {
           icon={RefreshCw}
           onClick={async () => {
             try {
-              await assessmentsApi.vendor.consolidateScores(id, parseInt(taskId))
-              toast.success('Scores recalculated')
+              const result = await assessmentsApi.vendor.recalculateScores(id, parseInt(taskId))
+              const r = result?.data ?? result
+              toast.success(`Scores recalculated — ${r?.compliancePct ?? 0}% compliance (${r?.responsesUpdated ?? 0} responses updated)`)
+              setOverrideCompliancePct(r?.compliancePct ?? 0)
+              await qc.invalidateQueries({ queryKey: ['assessment-review', id] })
+              await qc.invalidateQueries({ queryKey: ['reviewer-my-sections-v2', id] })
+              await qc.invalidateQueries({ queryKey: ['assessment-report', id] })
             } catch (e) {
               toast.error('Failed to recalculate')
             }
           }}
-          title="Recalculate scores">
+          title="Re-derive normalised scores for all responses, then consolidate">
           Recalculate
         </Button>
       </div>
@@ -1273,7 +1345,7 @@ function ConsolidateFindingsPanel({ assessment, taskId, onDone }) {
 }
 
 // ─── PANEL 4: FinalSignOffPanel ──────────────────────────────────────────────
-function FinalSignOffPanel({ assessment, taskId, onApprove, onSendBack, acting }) {
+function FinalSignOffPanel({ assessment, taskId, onApprove, onSendBack, acting, canSendBack }) {
   const [remarks, setRemarks] = useState('')
   const riskRating   = assessment?.riskRating
   const openRemed    = assessment?.openRemediationCount ?? 0
@@ -1325,7 +1397,9 @@ function FinalSignOffPanel({ assessment, taskId, onApprove, onSendBack, acting }
           className="w-full rounded-md border border-border bg-surface-raised px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
       </div>
       <div className="flex gap-2">
-        <Button variant="ghost" icon={CornerDownLeft} onClick={() => onSendBack(remarks)} loading={acting} className="flex-1">Send back</Button>
+        {canSendBack && (
+          <Button variant="ghost" icon={CornerDownLeft} onClick={() => onSendBack(remarks)} loading={acting} className="flex-1">Send back</Button>
+        )}
         <Button variant="primary" icon={CheckCircle2} onClick={() => onApprove(remarks)} loading={acting} className="flex-1">Final sign-off</Button>
       </div>
     </div>
@@ -1500,6 +1574,10 @@ export default function AssessmentReviewPage() {
   const isReadonly     = urlParams.get('readonly') === '1'
   const qc             = useQueryClient()
 
+  const roles      = useSelector(selectRoles)
+  // Send Back is a nuclear step rollback — only ORG_ADMIN / ORG_OWNER
+  const canSendBack = roles?.some(r => ['ORG_ADMIN','ORG_OWNER'].includes(r.name || r.roleName || ''))
+
   const { data: myTasks = [], isLoading: tasksLoading } = useMyTasks({})
 
   // FIX: match by artifactId (= assessmentId, the value in the URL) NOT entityId (= vendorId).
@@ -1532,7 +1610,7 @@ export default function AssessmentReviewPage() {
   useEffect(() => {
     if (!targetQId) return
     const tryScroll = (attempts = 0) => {
-      const el = document.querySelector(`[data-qid="${targetQId}"]`)
+      const el = document.querySelector(`[data-qi="${targetQId}"]`)
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' })
         el.classList.add('ring-2', 'ring-brand-500/60', 'ring-offset-1')
@@ -1598,7 +1676,9 @@ export default function AssessmentReviewPage() {
           </Button>
           {canAct && panelConfig.panel === 'APPROVE' && (
             <>
-              <Button size="sm" variant="ghost" icon={CornerDownLeft} onClick={() => { setModalRemarks(''); setActionModal('send_back') }}>Send back</Button>
+              {canSendBack && (
+                <Button size="sm" variant="ghost" icon={CornerDownLeft} onClick={() => { setModalRemarks(''); setActionModal('send_back') }}>Send back</Button>
+              )}
               <Button size="sm" variant="danger" icon={XCircle} onClick={() => { setModalRemarks(''); setActionModal('reject') }}>Reject</Button>
               <Button size="sm" variant="primary" icon={CheckCircle2} onClick={() => { setModalRemarks(''); setActionModal('approve') }}>Approve</Button>
             </>
@@ -1627,7 +1707,7 @@ export default function AssessmentReviewPage() {
               )}
               {panelConfig.panel === 'REVIEW'      && <ConsolidateFindingsPanel assessment={assessment} taskId={taskId} onDone={onPanelDone}/>}
               {panelConfig.panel === 'ACKNOWLEDGE' && (
-                <FinalSignOffPanel assessment={assessment} taskId={taskId} acting={acting}
+                <FinalSignOffPanel assessment={assessment} taskId={taskId} acting={acting} canSendBack={canSendBack}
                   onApprove={(r) => doAction('APPROVE', r)} onSendBack={(r) => doAction('SEND_BACK', r)}/>
               )}
             </CardBody>
@@ -1664,7 +1744,7 @@ export default function AssessmentReviewPage() {
                     const multiIds = (resp?.selectedOptionInstanceIds?.length
                       ? resp.selectedOptionInstanceIds : []).map(Number)
                     return (
-                      <div key={q.questionInstanceId} data-qid={q.questionInstanceId}
+                      <div key={q.questionInstanceId} data-qi={q.questionInstanceId}
                         className="py-3.5 rounded transition-all duration-500">
                         <div className="flex items-start gap-2">
                           <span className="text-xs font-mono text-text-muted pt-0.5 flex-shrink-0 w-5">{q.orderNo}.</span>

@@ -75,6 +75,23 @@ export const workflowsApi = {
      * Per-step tracking: assigned users (by name), tasks, SLA, duration per step.
      */
     progress: (id)               => api.get(`/v1/workflow-instances/${id}/progress`),
+
+    /**
+     * POST /v1/workflow-instances/{id}/steps/{stepInstanceId}/re-evaluate
+     * Admin: re-check the step approval gate and advance the workflow if satisfied.
+     * Safe to call on any IN_PROGRESS step — returns { advanced, reason, nextStep }
+     * without side effects if the gate is not yet satisfied.
+     */
+    reEvaluateStep: (instanceId, stepInstanceId) =>
+      api.post(`/v1/workflow-instances/${instanceId}/steps/${stepInstanceId}/re-evaluate`),
+
+    /**
+     * POST /v1/workflow-instances/{id}/tasks/{taskId}/reset
+     * Admin: reset a task to IN_PROGRESS and re-arm its section gates.
+     * Pair with assessments.resetReviewerSections() to also clear section submissions.
+     */
+    resetTask: (instanceId, taskId, rollbackDownstream = false) =>
+      api.post(`/v1/workflow-instances/${instanceId}/tasks/${taskId}/reset`, { rollbackDownstream }),
   },
 
   // ─── Task actions ─────────────────────────────────────────────────────────

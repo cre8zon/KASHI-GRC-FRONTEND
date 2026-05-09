@@ -56,7 +56,7 @@
 
 import { useState, useMemo }   from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery }             from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ChevronDown, ChevronRight, ExternalLink, Loader2,
   Paperclip, MessageSquare, AlertTriangle, User, Star,
@@ -81,7 +81,9 @@ import { useEntityActionItems, useUpdateActionItemStatus } from '../../hooks/use
 import { CommentFeed }          from '../../components/comments/CommentFeed'
 import { WorkflowTimeline }     from '../../components/workflow/WorkflowTimeline'
 import { QuestionDrawer }       from '../../components/item-panel'
+import EvidenceUploader         from '../../components/ui/EvidenceUploader'
 import { useScrollToQuestion } from '../../hooks/useScrollToQuestion'
+import toast                   from 'react-hot-toast'
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
@@ -168,8 +170,13 @@ function useMyActiveTask(assessmentId, vendorId) {
   return useQuery({
     queryKey: ['my-active-task', assessmentId, navItems.length],
     queryFn:  async () => {
-      const tasks = await api.get('/v1/workflows/my-tasks', { params: { status: 'PENDING' } })
-      const items = Array.isArray(tasks) ? tasks : []
+      // Fetch all tasks (no status filter) then keep only actionable ones.
+      // PENDING = normal assignment, IN_PROGRESS = reset by admin or started.
+      // The button should show until the task reaches a terminal state (APPROVED/EXPIRED).
+      const tasks = await api.get('/v1/workflows/my-tasks')
+      const ACTIVE_STATUSES = ['PENDING', 'IN_PROGRESS']
+      const items = (Array.isArray(tasks) ? tasks : [])
+        .filter(t => ACTIVE_STATUSES.includes(t.status))
       const task  = items.find(t =>
         (String(t.artifactId) === String(assessmentId) ||
          String(t.entityId)   === String(vendorId)) &&
@@ -227,7 +234,7 @@ function resolveViewMode(roles) {
   }
   if (side === 'VENDOR') {
     if (has('VENDOR_CISO'))        return 'vendor_ciso'
-    if (has('VENDOR_VRM'))         return 'vendor_vrm'
+    if (has('VENDOR_VRM'))         return 'vendor_ciso' // same as CISO: full structure + answers read-only
     if (has('VENDOR_CONTRIBUTOR')) return 'contributor'
     if (has('VENDOR_RESPONDER'))   return 'responder'
     return 'responder'
@@ -417,7 +424,7 @@ function QuestionActionItems({ questionInstanceId }) {
 
 function QuestionComments({ questionInstanceId }) {
   const { comments, isLoading, addComment, adding } = useComments(
-    'QUESTION_INSTANCE', questionInstanceId, { enabled: !!questionInstanceId }
+    'QUESTION_RESPONSE', questionInstanceId, { enabled: !!questionInstanceId }
   )
   const [text, setText] = useState('')
   if (isLoading) return <div className="h-4 w-20 bg-surface-overlay rounded animate-pulse" />
@@ -460,7 +467,7 @@ function QuestionComments({ questionInstanceId }) {
 // showEvidence    — show evidence file links (all except structure)
 // isReadOnly      — no inline send; shows answers but no discussion input
 
-function QuestionRow({ q, showScores, showReviewer, showActionItems, showComments, showEvidence, isReadOnly, onOpenDrawer }) {
+function QuestionRow({ q, showScores, showReviewer, showActionItems, showComments, showEvidence, isReadOnly, onOpenDrawer, number }) {
   const [open, setOpen] = useState(false)
   const resp        = q.currentResponse
   const hasResp     = !!resp
@@ -493,7 +500,10 @@ function QuestionRow({ q, showScores, showReviewer, showActionItems, showComment
           {hasResp ? <CheckCircle2 size={13} className="text-green-400"/> : <Circle size={13} className="text-border"/>}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-text-primary leading-snug">{q.questionText}</p>
+          <div className="flex items-start gap-2">
+            {number && <span className="text-xs font-mono text-text-muted shrink-0 mt-0.5">{number}.</span>}
+            <p className="text-sm text-text-primary leading-snug flex-1">{q.questionText}</p>
+          </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             {typeLabel && (
               <span className="text-[9px] bg-surface-overlay border border-border px-1.5 py-0.5 rounded text-text-muted uppercase tracking-wide">
@@ -632,20 +642,32 @@ function QuestionRow({ q, showScores, showReviewer, showActionItems, showComment
             </div>
           )}
 
-          {/* Evidence / documents */}
-          {showEvidence && resp?.documents?.length>0 && (
+          {/* FILE_UPLOAD — always show EvidenceUploader so files are visible even when resp is null */}
+          {q.responseType === 'FILE_UPLOAD' && (
             <div>
-              <SectionLabel>Evidence ({resp.documents.length})</SectionLabel>
-              <div className="space-y-1.5">
-                {resp.documents.map((doc,di)=>(
-                  <a key={di} href={doc.url||doc.fileUrl||'#'} target="_blank" rel="noreferrer"
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-surface hover:border-brand-500/40 hover:bg-brand-500/5 transition-colors text-xs text-brand-400">
-                    <Paperclip size={11} className="shrink-0"/>
-                    <span className="flex-1 truncate">{doc.fileName||doc.name||'Document'}</span>
-                    <ExternalLink size={10} className="shrink-0 text-text-muted"/>
-                  </a>
-                ))}
-              </div>
+              <SectionLabel>Uploaded File</SectionLabel>
+              <EvidenceUploader
+                entityType="QUESTION_RESPONSE"
+                entityId={q.questionInstanceId}
+                canUpload={false}
+                canRemove={false}
+                emptyLabel="No file uploaded yet."
+              />
+            </div>
+          )}
+
+          {/* Evidence / supporting documents for non-FILE_UPLOAD questions */}
+          {showEvidence && q.responseType !== 'FILE_UPLOAD' && (
+            <div>
+              <SectionLabel>Evidence</SectionLabel>
+              <EvidenceUploader
+                entityType="QUESTION_RESPONSE"
+                entityId={q.questionInstanceId}
+                canUpload={false}
+                canRemove={false}
+                emptyLabel="No evidence attached."
+                compact
+              />
             </div>
           )}
 
@@ -663,7 +685,7 @@ function QuestionRow({ q, showScores, showReviewer, showActionItems, showComment
 
 // ─── Section card ─────────────────────────────────────────────────────────────
 
-function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawer }) {
+function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawer, canReopen, onReopen, questionOffset = 0 }) {
   const [open, setOpen] = useState(false)
   const answered = section.questions?.filter(q=>!!q.currentResponse).length ?? 0
   const total    = section.questions?.length ?? 0
@@ -682,7 +704,15 @@ function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawe
   const showOnlyAnswered = viewMode === 'vendor_ciso' || viewMode === 'vendor_vrm'
   const visibleQuestions = showOnlyAnswered
     ? (section.questions||[]).filter(q => !!q.currentResponse)
-    : (section.questions||[])
+    : (section.questions||[]).filter(q => {
+        // Org side (reviewer / assessment detail): only show answers from submitted sections.
+        // Before section submission, the responder is still composing — answers are draft.
+        if ((viewMode === 'org_full' || viewMode === 'org_ciso' || viewMode === 'reviewer') &&
+            !section.submittedAt) {
+          return false
+        }
+        return true
+      })
 
   // Reviewer assignment indicator
   const reviewerAssigned = section.reviewerAssignedUserName
@@ -710,6 +740,17 @@ function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawe
             )}
             {section.submittedAt && (
               <span className="text-[10px] text-green-400">· Submitted {formatDate(section.submittedAt)}</span>
+            )}
+            {/* Reopen button — CISO/Admin/VRM only, only when section is submitted */}
+            {section.submittedAt && canReopen && (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={e => { e.stopPropagation(); onReopen(section.sectionInstanceId) }}
+                onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); onReopen(section.sectionInstanceId) }}}
+                className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition-colors flex-shrink-0 cursor-pointer select-none">
+                Reopen
+              </span>
             )}
             {section.reviewerSubmittedAt && (
               <span className="text-[10px] text-purple-400">· Reviewed {formatDate(section.reviewerSubmittedAt)}</span>
@@ -750,6 +791,12 @@ function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawe
                 </div>
               ))}
             </div>
+          ) : visibleQuestions.length === 0 && !section.submittedAt &&
+              (viewMode === 'org_full' || viewMode === 'org_ciso' || viewMode === 'reviewer') ? (
+            <div className="px-5 py-6 flex items-center gap-2 text-text-muted">
+              <Clock size={13} className="shrink-0 text-amber-400/60" />
+              <p className="text-xs italic">Awaiting vendor submission — answers visible once section is submitted.</p>
+            </div>
           ) : visibleQuestions.length === 0 ? (
             <p className="px-5 py-6 text-xs text-text-muted italic text-center">No answered questions to display.</p>
           ) : (
@@ -758,6 +805,7 @@ function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawe
                 <QuestionRow
                   key={q.questionInstanceId??qi}
                   q={q}
+                  number={questionOffset + qi + 1}
                   showScores={showScores}
                   showReviewer={showReviewer}
                   showActionItems={showActions}
@@ -918,6 +966,153 @@ function ActivityTab({ assessmentId }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
+// ─── Status styles ────────────────────────────────────────────────────────────
+const TASK_STATUS_STYLE = {
+  PENDING:    { label: 'Pending',     cls: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+  IN_PROGRESS:{ label: 'In Progress', cls: 'bg-brand-500/10 text-brand-400 border-brand-500/20' },
+  APPROVED:   { label: 'Approved',    cls: 'bg-green-500/10 text-green-400 border-green-500/20' },
+  REJECTED:   { label: 'Rejected',    cls: 'bg-red-500/10 text-red-400 border-red-500/20' },
+  DELEGATED:  { label: 'Delegated',   cls: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
+  EXPIRED:    { label: 'Expired',     cls: 'bg-surface-overlay text-text-muted border-border' },
+}
+
+// ─── Sections panel ───────────────────────────────────────────────────────────
+function SectionsPanel({ assessmentId }) {
+  const qc = useQueryClient()
+  const { data: sectionsData, isLoading } = useQuery({
+    queryKey: ['sections-status', assessmentId],
+    queryFn:  () => assessmentsApi.vendor.sectionsStatus(assessmentId),
+    enabled:  !!assessmentId,
+  })
+  const { mutate: reopen, isPending: reopening } = useMutation({
+    mutationFn: (sid) => assessmentsApi.vendor.reopenSection(assessmentId, sid),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sections-status', assessmentId] }); toast.success('Section reopened') },
+    onError: (e) => toast.error(e?.message || 'Failed to reopen section'),
+  })
+  const sections = Array.isArray(sectionsData) ? sectionsData : (sectionsData?.data || [])
+  if (isLoading) return <div className="h-32 animate-pulse bg-surface-overlay rounded" />
+  if (!sections.length) return <p className="text-xs text-text-muted text-center py-4">No sections assigned yet.</p>
+  return (
+    <div className="space-y-2">
+      {sections.map(s => (
+        <div key={s.sectionInstanceId} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-surface-raised">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-text-primary truncate">{s.sectionName}</p>
+            <p className="text-[10px] text-text-muted mt-0.5">{s.assignedUserName ? `→ ${s.assignedUserName}` : 'Unassigned'}</p>
+          </div>
+          {s.submittedAt ? (
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">Submitted</span>
+              <span role="button" tabIndex={0}
+                onClick={() => reopen(s.sectionInstanceId)}
+                onKeyDown={e => e.key === 'Enter' && reopen(s.sectionInstanceId)}
+                className={cn('text-[10px] px-1.5 py-0.5 rounded border border-border hover:border-amber-500/30 text-text-muted hover:text-amber-400 transition-colors cursor-pointer select-none', reopening && 'opacity-50 pointer-events-none')}>
+                Reopen
+              </span>
+            </div>
+          ) : (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
+              {s.assignedUserId ? 'In progress' : 'Unassigned'}
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── Workflow Panel ───────────────────────────────────────────────────────────
+function WorkflowPanel({ progressRaw, progressSummary, workflowInstanceId, assessmentId, stepsCompleted, totalSteps, isAdmin }) {
+  const [subTab, setSubTab] = useState('timeline')
+  const summary = progressSummary
+  const allTasks = (summary?.steps ?? [])
+    .filter(s => s.visited)
+    .flatMap(s => {
+      const iter = s.iterations?.[s.iterations.length - 1]
+      return (iter?.tasks ?? []).map(t => ({ ...t, stepName: s.stepName, stepOrder: s.stepOrder, side: s.side }))
+    })
+    .sort((a, b) => {
+      if (a.status === 'PENDING' && b.status !== 'PENDING') return -1
+      if (b.status === 'PENDING' && a.status !== 'PENDING') return  1
+      return (b.stepOrder ?? 0) - (a.stepOrder ?? 0)
+    })
+  const SUB_TABS = [
+    { id: 'timeline', label: 'Timeline' },
+    { id: 'tasks',    label: `Tasks${allTasks.length ? ` (${allTasks.length})` : ''}` },
+    { id: 'sections', label: 'Sections' },
+    { id: 'activity', label: 'Activity' },
+  ]
+  return (
+    <Card className="overflow-hidden">
+      <div className="px-5 pt-5 pb-0">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-sm font-semibold text-text-primary">{summary?.workflowName || 'Workflow'}</p>
+            <p className="text-[10px] text-text-muted mt-0.5 font-mono">
+              Instance #{workflowInstanceId} · {stepsCompleted}/{totalSteps} steps · {summary?.instanceStatus ?? ''}
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-1 border-b border-border">
+          {SUB_TABS.map(t => (
+            <button key={t.id} onClick={() => setSubTab(t.id)}
+              className={cn('text-xs px-3 py-2 border-b-2 -mb-px transition-colors',
+                subTab === t.id ? 'border-brand-500 text-brand-400 font-medium' : 'border-transparent text-text-muted hover:text-text-secondary')}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="p-5">
+        {subTab === 'timeline' && (
+          (summary?.steps ?? []).length === 0 ? (
+            <div className="text-center py-10">
+              <CalendarClock size={24} className="text-text-muted mx-auto mb-2"/>
+              <p className="text-xs text-text-muted">{workflowInstanceId ? 'No steps found.' : 'No workflow linked.'}</p>
+            </div>
+          ) : <WorkflowTimeline progress={progressRaw} workflowInstanceId={workflowInstanceId} isAdmin={isAdmin} assessmentId={assessmentId}/>
+        )}
+        {subTab === 'tasks' && (
+          allTasks.length === 0
+            ? <div className="text-center py-10"><p className="text-xs text-text-muted">No tasks generated yet.</p></div>
+            : (
+              <div className="space-y-2">
+                {allTasks.map(task => {
+                  const style = TASK_STATUS_STYLE[task.status] || TASK_STATUS_STYLE.PENDING
+                  const isCoord = task.taskRole === 'ASSIGNER'
+                  return (
+                    <div key={task.taskId} className={cn('flex items-start gap-3 px-4 py-3 rounded-lg border', style.cls, isCoord && 'opacity-60')}>
+                      <div className={cn('w-7 h-7 rounded-full border flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5',
+                        isCoord ? 'bg-purple-500/10 border-purple-500/30 text-purple-400' : 'bg-surface-overlay border-border text-text-secondary')}>
+                        {(task.assignedUserName || '?').slice(0,2).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-semibold text-text-primary">{task.assignedUserName}</span>
+                          {isCoord && <span className="text-[9px] px-1 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">coordinator</span>}
+                          {task.side && <span className={cn('text-[9px] font-medium', task.side === 'VENDOR' ? 'text-purple-400' : 'text-blue-400')}>{task.side === 'ORGANIZATION' ? 'Org' : 'Vendor'}</span>}
+                        </div>
+                        <p className="text-[10px] text-text-muted mt-0.5">
+                          <span className="font-mono">{task.stepOrder}.</span>{' '}{task.stepName}
+                          {task.taskId && <span className="ml-1.5 font-mono opacity-50">Task #{task.taskId}</span>}
+                        </p>
+                        {task.actedAt && <p className="text-[10px] text-text-muted mt-0.5">{style.label} {formatDate(task.actedAt)}</p>}
+                        {task.remarks && <p className="text-[10px] text-text-muted mt-0.5 italic truncate">"{task.remarks}"</p>}
+                      </div>
+                      <span className={cn('text-[9px] font-semibold px-1.5 py-0.5 rounded border shrink-0', style.cls)}>{style.label}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+        )}
+        {subTab === 'sections' && <SectionsPanel assessmentId={assessmentId} />}
+        {subTab === 'activity' && <ActivityTab assessmentId={assessmentId} />}
+      </div>
+    </Card>
+  )
+}
+
 export default function AssessmentDetailPage() {
   const { id }   = useParams()
   const navigate = useNavigate()
@@ -930,6 +1125,9 @@ export default function AssessmentDetailPage() {
 
   const viewMode   = resolveViewMode(roles)
   const isOrgSide  = ['org_full','org_ciso','reviewer','review_assistant'].includes(viewMode)
+  // isAdmin: ORG_ADMIN, ORG_OWNER, PLATFORM_ADMIN can see the re-evaluate button
+  // on stuck IN_PROGRESS steps in the workflow timeline.
+  const isAdmin    = viewMode === 'org_full'
 
   // Derive user side and role for drawer
   const userSide = isOrgSide ? 'ORGANIZATION' : 'VENDOR'
@@ -943,6 +1141,20 @@ export default function AssessmentDetailPage() {
     if (viewMode === 'contributor')      return 'contributor'
     return 'readonly'
   })()
+
+  const qc = useQueryClient()
+
+  // Reopen section — only VENDOR_CISO and VENDOR_VRM can unlock a submitted section
+  const canReopenSection = roles?.some(r => {
+    const n = r.name || r.roleName || ''
+    return ['VENDOR_CISO', 'VENDOR_VRM'].includes(n)
+  })
+  const { mutate: reopenSection, isPending: reopening } = useMutation({
+    mutationFn: (sectionInstanceId) =>
+      assessmentsApi.vendor.reopenSection(id, sectionInstanceId),
+    onSuccess: () => { toast.success('Section reopened — responder can now edit and resubmit'); qc.invalidateQueries({ queryKey: ['assessment-detail-full', id] }) },
+    onError: (e) => toast.error(e?.message || 'Failed to reopen section'),
+  })
 
   // Data
   const { data: assessment, isLoading: assessmentLoading } = useAssessment(id)
@@ -1157,7 +1369,7 @@ export default function AssessmentDetailPage() {
                         <Loader2 size={14} className="animate-spin text-text-muted"/>
                         <span className="text-xs text-text-muted">Loading workflow…</span>
                       </div>
-                    : <WorkflowTimeline progress={progressRaw}/>
+                    : <WorkflowTimeline progress={progressRaw} workflowInstanceId={workflowInstanceId} isAdmin={isAdmin} assessmentId={id}/>
                   }
                 </Card>
               </div>
@@ -1188,7 +1400,11 @@ export default function AssessmentDetailPage() {
               <SectionCard key={section.sectionInstanceId??i}
                 section={section} idx={i}
                 viewMode={viewMode} assessmentId={id} userId={userId}
-                onOpenDrawer={setDrawerQuestion}/>
+                onOpenDrawer={setDrawerQuestion}
+                canReopen={canReopenSection}
+                onReopen={reopenSection}
+                questionOffset={sections.slice(0,i).reduce((s,sec)=>s+(sec.questions?.length||0),0)}
+              />
             ))}
           </div>
         )}
@@ -1200,29 +1416,15 @@ export default function AssessmentDetailPage() {
               <Loader2 size={20} className="animate-spin text-text-muted"/>
             </div>
           ) : (
-            <Card className="p-5">
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <p className="text-sm font-semibold text-text-primary">
-                    {progressSummary?.workflowName || 'Workflow Timeline'}
-                  </p>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    {stepsCompleted} of {totalSteps} steps completed
-                  </p>
-                </div>
-              </div>
-              {steps.length===0 ? (
-                <div className="text-center py-10">
-                  <CalendarClock size={24} className="text-text-muted mx-auto mb-2"/>
-                  <p className="text-xs text-text-muted">
-                    {workflowInstanceId ? 'No steps found.' : 'No workflow linked to this assessment.'}
-                  </p>
-                </div>
-              ) : (
-                /* Uses the existing WorkflowTimeline component — same as VendorDetailPage */
-                <WorkflowTimeline progress={progressRaw}/>
-              )}
-            </Card>
+            <WorkflowPanel
+              progressRaw={progressRaw}
+              progressSummary={progressSummary}
+              workflowInstanceId={workflowInstanceId}
+              assessmentId={id}
+              stepsCompleted={stepsCompleted}
+              totalSteps={totalSteps}
+              isAdmin={isAdmin}
+            />
           )
         )}
 

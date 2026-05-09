@@ -28,6 +28,7 @@ import AssessmentDetailPage from './pages/assessments/AssessmentDetailPage'
 import UserManagementPage    from './pages/users/UserManagementPage'
 import RolesPermissionsPage from './pages/roles/RolesPermissionsPage'
 import ReportsPage from './pages/reports/ReportsPage'
+import AssessmentReportPage from './pages/reports/AssessmentReportPage'
 
 // ── ORGANISATION side ─────────────────────────────────────────────────────────
 import VendorListPage        from './pages/tprm/VendorListPage'
@@ -129,6 +130,7 @@ export default function App() {
         <Route path="/assessments/vendor"     element={<VendorAssessmentsPage />} />
         <Route path="/assessments/templates"  element={<OrgTemplatesPage />} />
         <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/reports/assessments/:id" element={<AssessmentReportPage />} />
 
         {/*
           Review pages — two distinct routes for two distinct roles:

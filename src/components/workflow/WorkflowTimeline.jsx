@@ -1,7 +1,11 @@
 import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Check, Clock, Circle, X, Zap, ChevronDown, ChevronRight,
-         Users, AlertTriangle, RotateCcw } from 'lucide-react'
+         Users, AlertTriangle, RotateCcw, RefreshCw, RotateCw, AlertCircle } from 'lucide-react'
 import { cn } from '../../lib/cn'
+import { workflowsApi } from '../../api/workflows.api'
+import { assessmentsApi } from '../../api/assessments.api'
+import toast from 'react-hot-toast'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -43,9 +47,63 @@ const TASK_STATUS_COLOR = {
 
 // ── TaskRow ───────────────────────────────────────────────────────────────────
 
-function TaskRow({ task, isAssigner }) {
+function TaskRow({ task, isAssigner, stepInstanceId, workflowInstanceId, isAdmin, assessmentId }) {
   const statusColor = TASK_STATUS_COLOR[task.status] || 'text-text-muted'
   const name = task.assignedUserName || `User #${task.assignedUserId}`
+  const [confirmReset,    setConfirmReset]    = useState(false)
+  const [confirmRollback, setConfirmRollback] = useState(false)
+  const [confirmTaskOnly, setConfirmTaskOnly] = useState(false)
+  const qc = useQueryClient()
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['wf-progress', workflowInstanceId] })
+    qc.invalidateQueries({ queryKey: ['my-tasks'] })
+    qc.invalidateQueries({ queryKey: ['reviewer-my-sections-v2', assessmentId] })
+  }
+
+  // Re-evaluate: just re-check the gate without touching task state
+  const { mutate: reEvaluate, isPending: reEvaluating } = useMutation({
+    mutationFn: () => workflowsApi.instances.reEvaluateStep(workflowInstanceId, stepInstanceId),
+    onSuccess: (data) => {
+      const r = data?.data ?? data
+      if (r?.advanced) {
+        toast.success(`Step advanced → ${r.nextStep || 'next step'}`)
+        invalidate()
+      } else {
+        toast(`Gate not satisfied — ${r?.reason || 'some tasks still pending'}`, { icon: '⚠️' })
+      }
+    },
+    onError: (e) => toast.error(e?.response?.data?.error?.message || 'Re-evaluate failed'),
+  })
+
+  // Reset task: full reopen — task status + section gates + reviewer section submissions
+  const { mutate: resetTask, isPending: resetting } = useMutation({
+    mutationFn: async ({ rollbackDownstream }) => {
+      await workflowsApi.instances.resetTask(workflowInstanceId, task.taskId, rollbackDownstream)
+      if (assessmentId) {
+        await assessmentsApi.resetReviewerSections(assessmentId, task.assignedUserId)
+      }
+    },
+    onSuccess: (_, { rollbackDownstream }) => {
+      toast.success(rollbackDownstream
+        ? `Task reopened — downstream steps rolled back`
+        : `Task reopened — ${name} can re-work`)
+      setConfirmReset(false)
+      setConfirmRollback(false)
+      setConfirmTaskOnly(false)
+      invalidate()
+    },
+    onError: (e) => {
+      toast.error(e?.response?.data?.error?.message || 'Reset failed')
+      setConfirmReset(false)
+      setConfirmRollback(false)
+      setConfirmTaskOnly(false)
+    },
+  })
+
+  const showActions = isAdmin && !isAssigner && !!stepInstanceId && !!workflowInstanceId
+  const showReEvaluate = showActions && task.status === 'IN_PROGRESS'
+  const showReset = showActions  // available for any status
 
   return (
     <div className={cn(
@@ -88,6 +146,133 @@ function TaskRow({ task, isAssigner }) {
         {task.remarks && task.remarks !== '' && (
           <p className="text-[10px] text-text-muted mt-0.5 italic truncate">"{task.remarks}"</p>
         )}
+
+        {/* Admin action buttons */}
+        {(showReset || showReEvaluate) && (
+          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+            {/* Re-evaluate — gate check only, no state change */}
+            {showReEvaluate && (
+              <button
+                onClick={() => reEvaluate()}
+                disabled={reEvaluating || resetting}
+                className="flex items-center gap-1 text-[10px] font-medium text-brand-400 hover:text-brand-300 border border-brand-500/30 hover:bg-brand-500/10 px-2 py-0.5 rounded transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={9} className={reEvaluating ? 'animate-spin' : ''}/>
+                {reEvaluating ? 'Checking…' : 'Re-evaluate'}
+              </button>
+            )}
+
+            {/* Reset task — full reopen with confirmation */}
+            {showReset && !confirmReset && (
+              <button
+                onClick={() => setConfirmReset(true)}
+                disabled={resetting || reEvaluating}
+                className="flex items-center gap-1 text-[10px] font-medium text-amber-400 hover:text-amber-300 border border-amber-500/30 hover:bg-amber-500/10 px-2 py-0.5 rounded transition-colors disabled:opacity-50"
+              >
+                <RotateCw size={9}/>
+                Reopen task
+              </button>
+            )}
+
+            {/* Two-option reopen modal */}
+            {confirmReset && (
+              <div className="mt-1 w-full rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <AlertCircle size={11} className="text-amber-400 shrink-0" />
+                  <span className="text-[10px] font-semibold text-amber-400">How do you want to reopen?</span>
+                </div>
+                {/* Option 1 — task only, with confirmation */}
+                {!confirmTaskOnly ? (
+                  <button
+                    onClick={() => setConfirmTaskOnly(true)}
+                    disabled={resetting}
+                    className="w-full text-left rounded-md border border-border hover:border-brand-500/40 bg-surface-raised hover:bg-brand-500/5 px-2.5 py-2 transition-colors disabled:opacity-50"
+                  >
+                    <p className="text-[10px] font-semibold text-text-primary">Reopen this task only</p>
+                    <p className="text-[10px] text-text-muted mt-0.5">
+                      {name} re-does their work. Other tasks and downstream steps are unaffected.
+                    </p>
+                  </button>
+                ) : (
+                  <div className="rounded-md border border-brand-500/30 bg-brand-500/5 p-2.5 space-y-2">
+                    <div className="flex items-start gap-1.5">
+                      <AlertCircle size={11} className="text-brand-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[10px] font-bold text-brand-400">Confirm: reopen this task only</p>
+                        <p className="text-[10px] text-text-muted mt-0.5">
+                          {name}'s task will return to In Progress. All other tasks and downstream steps remain untouched.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => resetTask({ rollbackDownstream: false })}
+                        disabled={resetting}
+                        className="flex-1 text-[10px] font-bold text-white bg-brand-600 hover:bg-brand-700 rounded px-2 py-1 transition-colors disabled:opacity-50"
+                      >
+                        {resetting ? 'Reopening…' : 'Yes, reopen task'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmTaskOnly(false)}
+                        className="text-[10px] text-text-muted hover:text-text-secondary px-2 py-1"
+                      >
+                        Go back
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {/* Option 2 — opens final disclaimer before firing */}
+                {!confirmRollback ? (
+                  <button
+                    onClick={() => setConfirmRollback(true)}
+                    disabled={resetting}
+                    className="w-full text-left rounded-md border border-amber-500/30 hover:border-amber-500/50 bg-amber-500/5 hover:bg-amber-500/10 px-2.5 py-2 transition-colors disabled:opacity-50"
+                  >
+                    <p className="text-[10px] font-semibold text-amber-400">Reopen + roll back downstream</p>
+                    <p className="text-[10px] text-text-muted mt-0.5">
+                      Reverts this step and expires all tasks on subsequent steps. Use when the work here was fundamentally wrong.
+                    </p>
+                  </button>
+                ) : (
+                  <div className="rounded-md border border-red-500/40 bg-red-500/10 p-2.5 space-y-2">
+                    <div className="flex items-start gap-1.5">
+                      <AlertCircle size={11} className="text-red-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[10px] font-bold text-red-400">This cannot be undone</p>
+                        <p className="text-[10px] text-text-muted mt-0.5">
+                          All tasks on every step after this one will be permanently expired. Responders will lose access to their in-progress work. The CISO will need to reassign sections from scratch.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => { resetTask({ rollbackDownstream: true }); setConfirmRollback(false) }}
+                        disabled={resetting}
+                        className="flex-1 text-[10px] font-bold text-white bg-red-600 hover:bg-red-700 rounded px-2 py-1 transition-colors disabled:opacity-50"
+                      >
+                        {resetting ? 'Rolling back…' : 'Yes, roll back downstream'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmRollback(false)}
+                        className="text-[10px] text-text-muted hover:text-text-secondary px-2 py-1"
+                      >
+                        Go back
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {!confirmRollback && !confirmTaskOnly && (
+                  <button
+                    onClick={() => setConfirmReset(false)}
+                    className="text-[10px] text-text-muted hover:text-text-secondary"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -95,7 +280,7 @@ function TaskRow({ task, isAssigner }) {
 
 // ── StepRow ───────────────────────────────────────────────────────────────────
 
-function StepRow({ step, isLast }) {
+function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
   const latestIter = step.iterations?.[step.iterations.length - 1]
   const status = step.visited ? (latestIter?.status || 'PENDING') : 'PENDING'
   const cfg = STEP_STATUS[status] || STEP_STATUS.PENDING
@@ -104,11 +289,11 @@ function StepRow({ step, isLast }) {
   const slaBreached = latestIter?.slaBreached
 
   const [expanded, setExpanded] = useState(step.isCurrentStep)
-  const allTasks    = latestIter?.tasks || []
-  const actorTasks  = allTasks.filter(t => t.taskRole !== 'ASSIGNER')
+  const allTasks      = latestIter?.tasks || []
+  const actorTasks    = allTasks.filter(t => t.taskRole !== 'ASSIGNER')
   const assignerTasks = allTasks.filter(t => t.taskRole === 'ASSIGNER')
-  // Show actor count in header — coordinators are noise, not progress indicators
-  const taskCount   = actorTasks.length
+  const taskCount     = actorTasks.length
+  const stepInstanceId = latestIter?.stepInstanceId
 
   return (
     <div className="flex gap-3">
@@ -202,7 +387,8 @@ function StepRow({ step, isLast }) {
             )}
             {/* Actor tasks — the people doing real work */}
             {actorTasks.length > 0
-              ? actorTasks.map((t, i) => <TaskRow key={i} task={t} isAssigner={false} />)
+              ? actorTasks.map((t, i) => <TaskRow key={i} task={t} isAssigner={false}
+                  stepInstanceId={stepInstanceId} workflowInstanceId={workflowInstanceId} isAdmin={isAdmin} assessmentId={assessmentId}/>)
               : !isSystem && (
                   <p className="px-3 py-2 text-[10px] text-text-muted italic">No tasks yet.</p>
                 )
@@ -210,7 +396,8 @@ function StepRow({ step, isLast }) {
             {/* Assigner/coordinator tasks — shown dimmed at bottom */}
             {assignerTasks.length > 0 && (
               <div className="border-t border-border/30">
-                {assignerTasks.map((t, i) => <TaskRow key={i} task={t} isAssigner={true} />)}
+                {assignerTasks.map((t, i) => <TaskRow key={i} task={t} isAssigner={true}
+                  stepInstanceId={stepInstanceId} workflowInstanceId={workflowInstanceId} isAdmin={isAdmin} assessmentId={assessmentId}/>)}
               </div>
             )}
             {/* Show previous iterations if step was revisited */}
@@ -238,10 +425,15 @@ function StepRow({ step, isLast }) {
 //   VendorDetailPage → WorkflowInstancePanel (org side view)
 //   WorkflowPage     → InstanceDetail progress tab (admin view)
 
-export function WorkflowTimeline({ progress }) {
+// Props:
+//   progress           — array from GET /v1/workflow-instances/{id}/progress
+//   workflowInstanceId — needed for the re-evaluate API call
+//   isAdmin            — if true, shows "Re-evaluate step" button on IN_PROGRESS steps
+//                        pass true for ORG_ADMIN / ORG_OWNER / PLATFORM_ADMIN users
+
+export function WorkflowTimeline({ progress, workflowInstanceId, isAdmin = false, assessmentId }) {
   if (!progress) return null
 
-  // progress is an array; first element is the summary with steps
   const summary = Array.isArray(progress) ? progress[0] : progress
   if (!summary) return null
 
@@ -271,7 +463,14 @@ export function WorkflowTimeline({ progress }) {
       {/* Step timeline */}
       <div>
         {steps.map((step, i) => (
-          <StepRow key={step.stepId} step={step} isLast={i === steps.length - 1} />
+          <StepRow
+            key={step.stepId}
+            step={step}
+            isLast={i === steps.length - 1}
+            workflowInstanceId={workflowInstanceId}
+            isAdmin={isAdmin}
+            assessmentId={assessmentId}
+          />
         ))}
       </div>
 
