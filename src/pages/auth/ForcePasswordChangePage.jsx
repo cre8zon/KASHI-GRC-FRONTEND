@@ -5,6 +5,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
 import { authApi } from '../../api/auth.api'
+import { useDispatch } from 'react-redux'
+import { loginSuccess } from '../../store/slices/authSlice'
+import axios from 'axios'
 import { ShieldCheck, Eye, EyeOff, Key, Lock, RefreshCw, CheckCircle2, XCircle } from 'lucide-react'
 import { cn } from '../../lib/cn'
 
@@ -49,6 +52,8 @@ export default function ForcePasswordChangePage() {
   const [showNew, setShowNew]         = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
+  const dispatch  = useDispatch()
+
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
@@ -59,7 +64,24 @@ export default function ForcePasswordChangePage() {
 
   const { mutate: changePassword, isPending, error } = useMutation({
     mutationFn: (data) => authApi.resetPassword(tempToken, data.newPassword),
-    onSuccess: () => navigate('/auth/password-changed', { replace: true }),
+    onSuccess: async (_, formData) => {
+      // resetPassword returns no token — silently log in with the new credentials
+      // so the Redux store has a valid session before navigating to the dashboard.
+      try {
+        const baseURL = import.meta.env.VITE_API_BASE_URL || ''
+        const loginRes = await axios.post(`${baseURL}/v1/auth/login`, {
+          email:    location.state?.email,
+          password: formData.newPassword,
+        })
+        if (loginRes.data?.status === 'SUCCESS') {
+          dispatch(loginSuccess(loginRes.data.data))
+        }
+      } catch {
+        // Login after reset failed — user will need to log in manually.
+        // Still navigate to password-changed so they see the success screen.
+      }
+      navigate('/auth/password-changed', { replace: true })
+    },
   })
 
   return (

@@ -202,27 +202,29 @@ function VRMAssignView({ taskId, stepInstanceId, onDone }) {
 }
 
 function CISOAssignView({ assessment, taskId, stepInstanceId, onDone }) {
-  const [assignments, setAssignments]   = useState({})
-  const [committed,   setCommitted]     = useState({})  // sections that have been successfully assigned
+  const [assignments, setAssignments]     = useState({})
+  const [committed,   setCommitted]       = useState({})   // sections persisted on backend
+  const [loadingSection, setLoadingSection] = useState(null) // tracks WHICH section is loading
   const [editingSection, setEditingSection] = useState(null)
-  const { mutate: assignSection, isPending } = useMutation({
-    mutationFn: ({ sectionInstanceId, userId }) =>
-      assessmentsApi.vendor.assignSection(assessment.assessmentId, sectionInstanceId, userId),
-    onSuccess: () => toast.success('Section assigned'),
-  })
+  const [confirmed, setConfirmed]         = useState(false)  // optimistic disable after confirm
+
   const { mutate: performAction, isPending: acting } = usePerformAction()
 
   const sections = assessment?.sections || []
 
+  // Per-section loading tracking — fixes "all buttons spin when one is clicked"
   const handleAssign = (sectionInstanceId) => {
     const user = assignments[sectionInstanceId]
     if (!user) { toast.error('Select a user for this section first'); return }
-    assignSection({ sectionInstanceId, userId: user.id || user.userId }, {
-      onSuccess: () => {
+    setLoadingSection(sectionInstanceId)
+    assessmentsApi.vendor.assignSection(assessment.assessmentId, sectionInstanceId, user.id || user.userId)
+      .then(() => {
         setCommitted(c => ({ ...c, [sectionInstanceId]: user }))
         setEditingSection(null)
-      }
-    })
+        toast.success('Section assigned')
+      })
+      .catch(e => toast.error(e?.message || 'Assignment failed'))
+      .finally(() => setLoadingSection(null))
   }
 
   const { mutate: confirmSectionAssignment, isPending: confirming } = useMutation({
@@ -235,18 +237,23 @@ function CISOAssignView({ assessment, taskId, stepInstanceId, onDone }) {
       onDone?.()
     },
     onError: (e) => {
+      setConfirmed(false)  // re-enable on error so user can retry
       toast.error(e?.message || 'Failed to confirm assignments')
     },
   })
 
   const handleDelegate = () => {
-    const unassigned = sections.filter(s => !assignments[s.sectionInstanceId])
+    const unassigned = sections.filter(s => !committed[s.sectionInstanceId])
     if (unassigned.length > 0) {
       toast.error(`${unassigned.length} section(s) still unassigned`)
       return
     }
+    // Optimistically mark confirmed so button disables immediately
+    setConfirmed(true)
     confirmSectionAssignment()
   }
+
+  const allCommitted = sections.length > 0 && sections.every(s => committed[s.sectionInstanceId])
 
   return (
     <div className="space-y-4">
@@ -257,6 +264,7 @@ function CISOAssignView({ assessment, taskId, stepInstanceId, onDone }) {
         const sid = section.sectionInstanceId
         const assigned = committed[sid]
         const editing  = editingSection === sid
+        const isThisLoading = loadingSection === sid  // only THIS section spins
         return (
           <div key={sid} className="p-3 rounded-lg border border-border bg-surface-overlay/30">
             <p className="text-sm font-medium text-text-primary mb-2">{section.sectionName}</p>
@@ -282,8 +290,8 @@ function CISOAssignView({ assessment, taskId, stepInstanceId, onDone }) {
                 </div>
                 <Button size="sm" variant="secondary"
                   onClick={() => handleAssign(sid)}
-                  loading={isPending}
-                  disabled={!assignments[sid]}>
+                  loading={isThisLoading}
+                  disabled={!assignments[sid] || isThisLoading}>
                   Assign
                 </Button>
                 {editing && (
@@ -296,16 +304,16 @@ function CISOAssignView({ assessment, taskId, stepInstanceId, onDone }) {
           </div>
         )
       })}
-      {(() => {
-        const allCommitted = sections.length > 0 && sections.every(s => committed[s.sectionInstanceId])
-        return (
-          <Button variant="primary" onClick={handleDelegate} loading={acting}
-            disabled={!allCommitted}
-            title={!allCommitted ? 'Assign all sections before confirming' : ''}>
-            {allCommitted ? 'Confirm all assignments' : `${Object.keys(committed).length}/${sections.length} sections assigned`}
-          </Button>
-        )
-      })()}
+      <Button variant="primary" onClick={handleDelegate}
+        loading={confirming}
+        disabled={!allCommitted || confirmed}
+        title={!allCommitted ? 'Assign all sections before confirming' : ''}>
+        {confirmed || confirming
+          ? 'Confirming…'
+          : allCommitted
+            ? 'Confirm all assignments'
+            : `${Object.keys(committed).length}/${sections.length} sections assigned`}
+      </Button>
     </div>
   )
 }

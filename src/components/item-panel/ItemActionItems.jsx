@@ -17,16 +17,18 @@
  *   readonly    — No actions
  */
 
-import { useState }       from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useRef, useEffect } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   CheckCircle2, Clock, CornerDownLeft, CheckCheck,
-  AlertTriangle, Shield,
+  AlertTriangle, Shield, MessageSquare, ChevronDown,
 } from 'lucide-react'
 import { cn }             from '../../lib/cn'
 import { formatDate }     from '../../utils/format'
 import { useEntityActionItems } from '../../hooks/useActionItems'
 import { reviewApi }      from '../../api/review.api'
+import { commentsApi }    from '../../api/comments.api'
+import { MentionInput }   from '../ui/MentionInput'
 import toast              from 'react-hot-toast'
 
 const SEVERITY_CLS = {
@@ -44,7 +46,116 @@ const STATUS_LABEL = {
   RESOLVED:           'Resolved',
 }
 
-export function ItemActionItems({ entityType, entityId, assessmentId, mode }) {
+/**
+ * ActionItemThread — collapsible inline discussion thread for ANY action item.
+ *
+ * Posts VENDOR_INTERNAL comments for revision threads, ALL for org-facing items.
+ * Uses MentionInput so participants can @tag each other for notifications.
+ * Thread is anchored to the question entity (entityType=QUESTION_RESPONSE,
+ * entityId=questionInstanceId) and filtered by a creation-time window so each
+ * item's thread shows only comments posted after that action item was created.
+ */
+function ActionItemThread({ entityId, item, visibility = 'ALL' }) {
+  const qc = useQueryClient()
+  const [open,  setOpen]  = useState(false)
+  const [draft, setDraft] = useState('')
+  const [mentionedIds, setMentionedIds] = useState([])
+  const endRef = useRef(null)
+
+  const queryKey = ['ai-thread', entityId, item.id]
+  const { data: allComments = [] } = useQuery({
+    queryKey,
+    queryFn: () => commentsApi.list('QUESTION_RESPONSE', entityId),
+    enabled: open && !!entityId,
+    select: (d) => Array.isArray(d) ? d : (d?.data || []),
+    staleTime: 0,
+  })
+
+  // Only show COMMENT-type messages created after this action item, matching visibility
+  const itemCreatedAt = item.createdAt ? new Date(item.createdAt) : null
+  const thread = allComments.filter(c =>
+    (c.commentType === 'COMMENT' || c.commentType === null) &&
+    c.visibility !== 'SYSTEM' &&
+    c.commentType !== 'REVISION_REQUEST' &&
+    c.commentType !== 'SYSTEM' &&
+    (!itemCreatedAt || new Date(c.createdAt) >= itemCreatedAt)
+  )
+
+  useEffect(() => {
+    if (open) endRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [thread.length, open])
+
+  const { mutate: post, isPending } = useMutation({
+    mutationFn: () => commentsApi.add({
+      entityType: 'QUESTION_RESPONSE',
+      entityId,
+      commentText: draft.trim(),
+      commentType: 'COMMENT',
+      visibility,
+      mentionedUserIds: mentionedIds,
+    }),
+    onSuccess: () => {
+      setDraft('')
+      setMentionedIds([])
+      qc.invalidateQueries({ queryKey })
+      qc.invalidateQueries({ queryKey: ['q-comments', entityId] })
+    },
+    onError: (e) => toast.error(e?.message || 'Failed to send'),
+  })
+
+  return (
+    <div className="border-t border-white/8 mt-1">
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[10px] text-text-muted hover:text-text-secondary transition-colors">
+        <MessageSquare size={10} />
+        <span>{thread.length > 0 ? `${thread.length} reply${thread.length > 1 ? 's' : ''}` : 'Discuss'}</span>
+        <ChevronDown size={9} className={cn('ml-auto transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="px-3 pb-3 space-y-2.5">
+          {thread.length === 0 && (
+            <p className="text-[10px] text-text-muted/50 italic">No replies yet.</p>
+          )}
+          {thread.map(c => (
+            <div key={c.id || c.commentId} className="flex gap-2">
+              <div className="w-5 h-5 rounded-full bg-surface-overlay border border-border flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-text-muted">
+                {(c.createdByName || '?')[0]?.toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[10px] font-medium text-text-secondary">{c.createdByName}</span>
+                  <span className="text-[9px] text-text-muted/40">{c.createdAt ? formatDate(c.createdAt) : ''}</span>
+                </div>
+                <p className="text-[11px] text-text-secondary leading-relaxed">{c.commentText}</p>
+              </div>
+            </div>
+          ))}
+          <div ref={endRef} />
+          {/* Reply box with @mention support */}
+          <MentionInput
+            value={draft}
+            onChange={(text, ids) => { setDraft(text); setMentionedIds(ids) }}
+            onSubmit={() => { if (draft.trim()) post() }}
+            placeholder="Reply… (@ to mention, Ctrl+Enter to send)"
+            rows={2}
+            className="mt-1"
+          />
+          <div className="flex justify-end">
+            <button type="button"
+              disabled={!draft.trim() || isPending}
+              onClick={() => post()}
+              className="text-[11px] font-medium px-2.5 py-1 rounded bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 transition-colors disabled:opacity-40">
+              {isPending ? 'Sending…' : 'Send'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function ItemActionItems({ entityType, entityId, assessmentId, mode, userSide = 'VENDOR' }) {
   const qc = useQueryClient()
   const { data: items = [], isLoading } = useEntityActionItems(entityType, entityId, {
     enabled: !!entityId,
@@ -72,8 +183,10 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode }) {
 
   const remediations   = items.filter(i => i.remediationType === 'REMEDIATION_REQUEST')
   const clarifications = items.filter(i => i.remediationType === 'CLARIFICATION')
+  // Vendor-internal revision requests (responder → contributor): sourceType=COMMENT, remediationType=null
+  const revisions      = items.filter(i => i.sourceType === 'COMMENT' && !i.remediationType)
 
-  if (!remediations.length && !clarifications.length)
+  if (!remediations.length && !clarifications.length && !revisions.length)
     return <p className="text-[11px] text-text-muted italic py-2">No action items.</p>
 
   const isOpen = (s) => ['OPEN','IN_PROGRESS','PENDING_REVIEW','PENDING_VALIDATION'].includes(s)
@@ -81,6 +194,42 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode }) {
 
   return (
     <div className="space-y-2">
+      {/* Vendor-internal revision requests (responder → contributor) */}
+      {revisions.map(item => (
+        <div key={item.id}
+          className={cn(
+            'rounded-lg border text-[11px]',
+            item.status === 'RESOLVED'
+              ? 'bg-green-500/5 border-green-500/20 text-green-400'
+              : 'bg-amber-500/5 border-amber-500/20 text-amber-400'
+          )}>
+          <div className="flex items-start gap-2 px-3 py-2">
+            {item.status === 'RESOLVED'
+              ? <CheckCircle2 size={12} className="shrink-0 mt-0.5" />
+              : <Clock size={12} className="shrink-0 mt-0.5" />}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-semibold">Revision requested</span>
+                <span className="opacity-60">— {STATUS_LABEL[item.status] || item.status}</span>
+              </div>
+              {item.description && (
+                <p className="text-[10px] opacity-80 mt-0.5">"{item.description}"</p>
+              )}
+              {item.createdByName && (
+                <p className="text-[10px] opacity-50 mt-0.5">By {item.createdByName} · {item.createdAt ? formatDate(item.createdAt) : ''}</p>
+              )}
+            </div>
+          </div>
+          {item.status === 'RESOLVED' && item.resolutionNote && (
+            <p className="text-[10px] text-green-300 px-3 pb-2 pl-7">✓ {item.resolutionNote}</p>
+          )}
+          {item.status !== 'RESOLVED' && entityType === 'QUESTION_RESPONSE' && (
+            <ActionItemThread entityId={entityId} item={item}
+              visibility={userSide === 'VENDOR' ? 'VENDOR_INTERNAL' : 'ALL'} />
+          )}
+        </div>
+      ))}
+
       {/* Remediation requests */}
       {remediations.map(item => (
         <div key={item.id}
@@ -167,10 +316,12 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode }) {
               )}
             </div>
           )}
+          {/* Thread discussion for this remediation */}
+          {entityType === 'QUESTION_RESPONSE' && (
+            <ActionItemThread entityId={entityId} item={item} visibility="ALL" />
+          )}
         </div>
       ))}
-
-      {/* Clarifications */}
       {clarifications.map(item => (
         <div key={item.id}
           className={cn(
@@ -191,6 +342,10 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode }) {
           </div>
           {item.status === 'RESOLVED' && item.resolutionNote && (
             <p className="text-[10px] text-green-300 mt-1 pl-5">✓ {item.resolutionNote}</p>
+          )}
+          {/* Thread discussion for this clarification */}
+          {entityType === 'QUESTION_RESPONSE' && (
+            <ActionItemThread entityId={entityId} item={item} visibility="ALL" />
           )}
         </div>
       ))}

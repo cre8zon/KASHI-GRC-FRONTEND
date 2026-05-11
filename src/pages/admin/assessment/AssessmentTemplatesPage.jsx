@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, RefreshCw, Search, ChevronRight, ChevronDown,
@@ -12,6 +12,7 @@ import { DataTable } from '../../../components/ui/DataTable'
 import { Button } from '../../../components/ui/Button'
 import { Modal, ConfirmDialog } from '../../../components/ui/Modal'
 import { Input } from '../../../components/ui/Input'
+import { Select } from '../../../components/ui/Select'
 import { Badge } from '../../../components/ui/Badge'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { cn } from '../../../lib/cn'
@@ -160,6 +161,53 @@ function useUnmapQuestion(templateId) {
     mutationFn: ({ sectionId, questionId }) => assessmentsApi.sections.unmapQuestion(sectionId, questionId),
     onSuccess:  () => { qc.invalidateQueries({ queryKey: ['assessment-template-full', templateId] }); toast.success('Question removed') },
     onError:    () => toast.error('Failed to remove question'),
+  })
+}
+
+// ─── Library-edit hooks (used by the inline edit modals in the builder) ───────
+// Editing a library entity from within the template updates the shared record —
+// the change is reflected everywhere the section/question is used.
+function useUpdateSection(templateId) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => assessmentsApi.library.sections.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['assessment-template-full', templateId] })
+      qc.invalidateQueries({ queryKey: ['library-sections-all'] })
+      toast.success('Section renamed')
+    },
+    onError: () => toast.error('Failed to rename section'),
+  })
+}
+function useUpdateQuestion(templateId) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => assessmentsApi.library.questions.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['assessment-template-full', templateId] })
+      qc.invalidateQueries({ queryKey: ['library-questions-all'] })
+      toast.success('Question updated')
+    },
+    onError: () => toast.error('Failed to update question'),
+  })
+}
+const useAllOptions = () => useQuery({
+  queryKey: ['library-options-all'],
+  queryFn:  () => assessmentsApi.library.options.list({ skip: 0, take: 500 }),
+})
+const useQuestionLinkedOptions = (questionId) => useQuery({
+  queryKey: ['question-linked-options', questionId],
+  queryFn:  () => assessmentsApi.library.questions.getOptions(questionId),
+  enabled:  !!questionId,
+})
+function useCreateOption() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => assessmentsApi.library.options.create(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['library-options-all'] })
+    },
+    onError: () => toast.error('Failed to create option'),
   })
 }
 
@@ -552,6 +600,7 @@ function TemplateBuilder({ templateId, onBack }) {
   const [expandedSections, setExpandedSections]     = useState({})
   const [addingQuestionTo, setAddingQuestionTo]     = useState(null)
   const [removingSection, setRemovingSection]       = useState(null)
+  const [editingSection, setEditingSection]         = useState(null)
 
   const { data: template, isLoading } = useFullTemplate(templateId)
   const { mutate: publish, isPending: publishing }   = usePublishTemplate()
@@ -633,6 +682,7 @@ function TemplateBuilder({ templateId, onBack }) {
                 expanded={!!expandedSections[section.sectionId]}
                 onToggle={() => setExpandedSections(p => ({ ...p, [section.sectionId]: !p[section.sectionId] }))}
                 onAddQuestion={() => setAddingQuestionTo(section.sectionId)}
+                onEdit={() => setEditingSection(section)}
                 onRemove={() => setRemovingSection(section)}
               />
             ))}
@@ -663,6 +713,13 @@ function TemplateBuilder({ templateId, onBack }) {
         message={`Remove section "${removingSection?.name}" from this template? The section and its questions remain in the library.`}
       />
 
+      {/* Inline section rename — edits the shared library entity */}
+      <EditSectionModal
+        section={editingSection}
+        templateId={templateId}
+        onClose={() => setEditingSection(null)}
+      />
+
       <ConfirmDialog open={showPublishConfirm} onClose={() => setShowPublishConfirm(false)}
         onConfirm={() => publish(templateId, { onSuccess: () => setShowPublishConfirm(false) })}
         loading={publishing} title="Publish Template" confirmLabel="Publish" variant="primary"
@@ -673,7 +730,7 @@ function TemplateBuilder({ templateId, onBack }) {
 }
 
 // ─── Section Block ────────────────────────────────────────────────────────────
-function SectionBlock({ section, index, templateId, isPublished, expanded, onToggle, onAddQuestion, onRemove }) {
+function SectionBlock({ section, index, templateId, isPublished, expanded, onToggle, onAddQuestion, onEdit, onRemove }) {
   const questionCount = section.questions?.length || 0
   const totalWeight   = section.questions?.reduce((s, q) => s + (q.weight || 0), 0) || 0
 
@@ -697,10 +754,16 @@ function SectionBlock({ section, index, templateId, isPublished, expanded, onTog
             : <ChevronRight size={14} className="text-text-muted shrink-0" />}
         </button>
         {!isPublished && (
-          <button onClick={onRemove} title="Remove from template"
-            className="mr-3 h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
-            <Trash2 size={13} />
-          </button>
+          <div className="flex items-center gap-1 mr-2">
+            <button onClick={onEdit} title="Rename section"
+              className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
+              <Pencil size={13} />
+            </button>
+            <button onClick={onRemove} title="Remove from template"
+              className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+              <Trash2 size={13} />
+            </button>
+          </div>
         )}
       </div>
 
@@ -742,22 +805,114 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
   const [showOptions, setShowOptions] = useState(false)
   const [showEdit, setShowEdit]       = useState(false)
   const [showRemove, setShowRemove]   = useState(false)
-  const [editWeight, setEditWeight]   = useState(String(question.weight ?? ''))
+
+  // ── Mapping-level fields (section-specific, don't affect other templates) ──
+  const [editWeight, setEditWeight]       = useState(String(question.weight ?? ''))
   const [editMandatory, setEditMandatory] = useState(question.isMandatory)
+
+  // ── Library-level fields (shared — edits affect all templates using this question) ──
+  const [libText, setLibText]     = useState('')
+  const [libType, setLibType]     = useState('')
+  const [libTag, setLibTag]       = useState('')
+  const [libOpts, setLibOpts]     = useState([])    // selected optionIds
+  const [optsReady, setOptsReady] = useState(false) // true once linkedOpts query resolved
+  const [libErrors, setLibErrors] = useState({})
+
+  // ── Inline new option form ─────────────────────────────────────────────────
+  const [showNewOpt, setShowNewOpt]   = useState(false)
+  const [newOptVal, setNewOptVal]     = useState('')
+  const [newOptScore, setNewOptScore] = useState('')
+
   const optionCount = question.options?.length || 0
 
-  const { mutate: updateMapping, isPending: updating } = useUpdateQuestionMapping(templateId)
-  const { mutate: unmapQuestion, isPending: removing }  = useUnmapQuestion(templateId)
+  const { mutate: updateMapping, isPending: updatingMapping } = useUpdateQuestionMapping(templateId)
+  const { mutate: updateQuestion, isPending: updatingQuestion } = useUpdateQuestion(templateId)
+  const { mutate: unmapQuestion,  isPending: removing }         = useUnmapQuestion(templateId)
+  const { mutate: createOption,   isPending: creatingOpt }      = useCreateOption()
+  const { data: oData }      = useAllOptions()
+  const { data: linkedOpts, isSuccess: linkedOptsLoaded } =
+    useQuestionLinkedOptions(showEdit ? question.questionId : null)
 
-  const saveEdit = () => {
+  const allOptions   = oData?.items || []
+  const needsOptions = ['SINGLE_CHOICE', 'MULTI_CHOICE'].includes(libType)
+
+  // Seed all fields when the edit modal opens.
+  // optsReady guards against sending optionIds before linkedOpts resolves —
+  // sending [] to the backend would delete all option mappings (backend clears
+  // and re-links when optionIds is non-null, even if empty).
+  useEffect(() => {
+    if (!showEdit) return
+    setEditWeight(String(question.weight ?? ''))
+    setEditMandatory(question.isMandatory)
+    setLibText(question.questionText || '')
+    setLibType(question.responseType || '')
+    setLibTag(question.questionTag  || '')
+    setLibOpts([])
+    setOptsReady(false)
+    setLibErrors({})
+    setShowNewOpt(false)
+    setNewOptVal('')
+    setNewOptScore('')
+  }, [showEdit])
+
+  // Populate option checkboxes once the async linked-options query resolves.
+  useEffect(() => {
+    if (!linkedOptsLoaded) return
+    setLibOpts((linkedOpts || []).map(o => o.optionId))
+    setOptsReady(true)
+  }, [linkedOptsLoaded, linkedOpts])
+
+  const toggleOpt = (id) =>
+    setLibOpts(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+
+  // Create a brand-new library option and immediately select it
+  const handleCreateOption = () => {
+    if (!newOptVal.trim()) return
+    createOption(
+      { optionValue: newOptVal.trim(), score: newOptScore !== '' ? parseFloat(newOptScore) : null },
+      {
+        onSuccess: (res) => {
+          const newId = res?.optionId ?? res?.data?.optionId ?? res?.id
+          if (newId) setLibOpts(prev => [...prev, newId])
+          setNewOptVal('')
+          setNewOptScore('')
+          setShowNewOpt(false)
+          toast.success('Option created and selected')
+        },
+      }
+    )
+  }
+
+  const handleSave = () => {
+    const e = {}
+    if (!libText.trim()) e.libText = 'Required'
+    if (!libType)        e.libType = 'Required'
+    if (needsOptions && optsReady && libOpts.length === 0) e.libOpts = 'Select at least one option'
+    setLibErrors(e)
+    if (Object.keys(e).length) return
+
+    // Save mapping-level changes (weight, mandatory) — section-specific
     updateMapping({
       sectionId, questionId: question.questionId,
+      data: { weight: editWeight !== '' ? parseFloat(editWeight) : null, isMandatory: editMandatory }
+    })
+
+    // Save library-level changes (text, type, tag, options).
+    // Only send optionIds when optsReady — prevents accidentally sending [] before
+    // the existing options have loaded, which would clear all option mappings on the backend.
+    updateQuestion({
+      id: question.questionId,
       data: {
-        weight:      editWeight !== '' ? parseFloat(editWeight) : null,
-        isMandatory: editMandatory,
+        questionText: libText,
+        responseType: libType,
+        questionTag:  libTag.trim().toUpperCase() || null,
+        ...(optsReady ? { optionIds: libOpts } : {}),
       }
     }, { onSuccess: () => setShowEdit(false) })
   }
+
+  // Summary of currently-selected options for display below the checkbox list
+  const selectedOptDetails = allOptions.filter(o => libOpts.includes(o.optionId))
 
   return (
     <div className="px-4 py-3 hover:bg-surface-overlay/50 group">
@@ -798,7 +953,7 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
         </div>
         {!isPublished && (
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={() => { setEditWeight(String(question.weight ?? '')); setEditMandatory(question.isMandatory); setShowEdit(true) }}
+            <button onClick={() => setShowEdit(true)}
               className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay">
               <Pencil size={12} />
             </button>
@@ -810,27 +965,184 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
         )}
       </div>
 
-      <Modal open={showEdit} onClose={() => setShowEdit(false)} title="Edit Question Mapping" size="sm"
+      {/* ── Edit modal: library question + mapping config ── */}
+      <Modal open={showEdit} onClose={() => setShowEdit(false)} title="Edit Question" size="lg"
         footer={<div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={() => setShowEdit(false)}>Cancel</Button>
-          <Button size="sm" loading={updating} onClick={saveEdit}>Save</Button>
+          <Button size="sm" loading={updatingMapping || updatingQuestion} onClick={handleSave}>Save Changes</Button>
         </div>}>
-        <div className="flex flex-col gap-4">
-          <div className="p-3 bg-surface-overlay rounded-lg border border-border">
-            <p className="text-xs text-text-muted mb-1">Question (from library — read only)</p>
-            <p className="text-sm text-text-primary">{question.questionText}</p>
+        <div className="flex flex-col gap-5">
+
+          {/* Shared-library warning */}
+          <div className="flex items-start gap-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+            <AlertCircle size={13} className="text-amber-400 mt-0.5 shrink-0" />
+            <p className="text-xs text-amber-400/80 leading-relaxed">
+              Changes to the question text, type, tag, or options update the{' '}
+              <span className="font-semibold text-amber-400">shared library entry</span> — they will
+              be reflected in every template and section that uses this question.
+              Weight and mandatory status are specific to this section.
+            </p>
           </div>
-          <Input label="Weight" type="number" value={editWeight}
-            onChange={e => setEditWeight(e.target.value)} placeholder="e.g. 10" />
-          <label className="flex items-center gap-3 cursor-pointer">
-            <button type="button" onClick={() => setEditMandatory(m => !m)}
-              className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0',
-                editMandatory ? 'bg-brand-500' : 'bg-surface-raised border border-border')}>
-              <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform',
-                editMandatory ? 'translate-x-4' : 'translate-x-0.5')} />
-            </button>
-            <span className="text-sm text-text-primary">Mandatory</span>
-          </label>
+
+          {/* ── Library fields ── */}
+          <div className="flex flex-col gap-3">
+            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">Library Question</p>
+
+            <div>
+              <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Question Text</label>
+              <textarea rows={2} value={libText}
+                onChange={e => setLibText(e.target.value)}
+                className={cn(
+                  'w-full rounded-md border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-brand-500',
+                  libErrors.libText ? 'border-red-500/50' : 'border-border'
+                )} />
+              {libErrors.libText && <p className="text-xs text-red-400 mt-1">{libErrors.libText}</p>}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Response Type</label>
+                <select value={libType} onChange={e => setLibType(e.target.value)}
+                  className={cn(
+                    'h-9 w-full appearance-none pl-3 pr-8 rounded-md border text-sm text-text-primary bg-surface-raised focus:outline-none focus:ring-1 focus:ring-brand-500',
+                    libErrors.libType ? 'border-red-500/50' : 'border-border'
+                  )}>
+                  <option value="">Select type…</option>
+                  {Object.entries(TYPE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+                {libErrors.libType && <p className="text-xs text-red-400 mt-1">{libErrors.libType}</p>}
+              </div>
+              <div>
+                <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Guard Tag</label>
+                <input
+                  list="q-tag-suggestions-builder"
+                  value={libTag}
+                  onChange={e => setLibTag(e.target.value.toUpperCase())}
+                  placeholder="e.g. MFA, IRP…"
+                  className="h-9 w-full rounded-md border border-border bg-surface-raised px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+                <datalist id="q-tag-suggestions-builder">
+                  {['MFA','ENCRYPTION','PEN_TEST','DATA_RETENTION','DPA','IRP','BCP','DRP',
+                    'CERTIFICATION','VULN_MGMT','SEC_TRAINING','CISO','BREACH_NOTIFY',
+                    'SUBPROCESSOR','INFOSEC_POLICY'].map(t => <option key={t} value={t} />)}
+                </datalist>
+              </div>
+            </div>
+
+            {needsOptions && (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">
+                    Options <span className="text-text-muted font-normal normal-case">(select from library)</span>
+                  </label>
+                  <button onClick={() => setShowNewOpt(o => !o)}
+                    className="text-xs text-brand-400 hover:text-brand-300 flex items-center gap-1">
+                    <Plus size={11} /> New option
+                  </button>
+                </div>
+
+                {libErrors.libOpts && <p className="text-xs text-red-400">{libErrors.libOpts}</p>}
+
+                {/* Inline create-option form */}
+                {showNewOpt && (
+                  <div className="flex items-center gap-2 p-2 rounded-lg border border-brand-500/30 bg-brand-500/5">
+                    <input
+                      value={newOptVal}
+                      onChange={e => setNewOptVal(e.target.value)}
+                      placeholder="Option text…"
+                      className="flex-1 h-7 rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    />
+                    <input
+                      type="number"
+                      value={newOptScore}
+                      onChange={e => setNewOptScore(e.target.value)}
+                      placeholder="Score"
+                      className="w-20 h-7 rounded-md border border-border bg-surface-raised px-2 text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    />
+                    <Button size="xs" loading={creatingOpt} disabled={!newOptVal.trim()} onClick={handleCreateOption}>
+                      Add
+                    </Button>
+                    <button onClick={() => setShowNewOpt(false)}
+                      className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400">
+                      <XCircle size={13} />
+                    </button>
+                  </div>
+                )}
+
+                {/* All options checkbox list */}
+                {allOptions.length === 0
+                  ? <p className="text-xs text-text-muted p-3 bg-surface-overlay rounded-md">No options in library yet. Use "New option" above to create one.</p>
+                  : (
+                    <div className="max-h-36 overflow-y-auto rounded-md border border-border divide-y divide-border">
+                      {!optsReady && (
+                        <div className="flex items-center justify-center py-4 gap-2 text-xs text-text-muted">
+                          <Loader2 size={13} className="animate-spin" /> Loading current options…
+                        </div>
+                      )}
+                      {optsReady && allOptions.map(opt => (
+                        <label key={opt.optionId} className="flex items-center gap-3 px-3 py-1.5 hover:bg-surface-overlay cursor-pointer">
+                          <input type="checkbox" checked={libOpts.includes(opt.optionId)}
+                            onChange={() => toggleOpt(opt.optionId)}
+                            className="rounded border-border accent-brand-500" />
+                          <span className="flex-1 text-xs text-text-primary">{opt.optionValue}</span>
+                          {opt.score != null
+                            ? <span className="text-[10px] font-mono text-text-muted">{opt.score} pts</span>
+                            : <span className="text-[10px] font-mono text-red-400/70">no score</span>}
+                        </label>
+                      ))}
+                    </div>
+                  )
+                }
+
+                {/* Selected options summary */}
+                {optsReady && selectedOptDetails.length > 0 && (
+                  <div className="flex flex-col gap-1 pt-1">
+                    <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">
+                      Selected ({selectedOptDetails.length})
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedOptDetails.map(opt => (
+                        <span key={opt.optionId}
+                          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                          {opt.optionValue}
+                          {opt.score != null && (
+                            <span className="font-mono text-brand-300">{opt.score}pt</span>
+                          )}
+                          <button onClick={() => toggleOpt(opt.optionId)}
+                            className="ml-0.5 text-brand-400/60 hover:text-red-400 transition-colors">
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-border" />
+
+          {/* ── Mapping fields (section-specific) ── */}
+          <div className="flex flex-col gap-3">
+            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
+              Mapping in this section
+              <span className="text-text-muted font-normal normal-case ml-1">— affects this template only</span>
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="Weight" type="number" value={editWeight}
+                onChange={e => setEditWeight(e.target.value)} placeholder="e.g. 10" />
+              <label className="flex items-center gap-3 cursor-pointer pt-5">
+                <button type="button" onClick={() => setEditMandatory(m => !m)}
+                  className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0',
+                    editMandatory ? 'bg-brand-500' : 'bg-surface-raised border border-border')}>
+                  <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform',
+                    editMandatory ? 'translate-x-4' : 'translate-x-0.5')} />
+                </button>
+                <span className="text-sm text-text-primary">Mandatory</span>
+              </label>
+            </div>
+          </div>
         </div>
       </Modal>
 
@@ -1013,6 +1325,57 @@ function QuestionPickerModal({ open, sectionId, templateId, existingQuestionIds,
             )}
           </div>
         </div>
+      </div>
+    </Modal>
+  )
+}
+
+// ─── Edit Section Modal ───────────────────────────────────────────────────────
+/**
+ * Renames a library section from within the template builder.
+ * Because sections are shared library entities, the rename is reflected
+ * in every template that maps this section.
+ */
+function EditSectionModal({ section, templateId, onClose }) {
+  const { mutate: update, isPending } = useUpdateSection(templateId)
+  const [name, setName]   = useState('')
+  const [error, setError] = useState('')
+
+  // Seed name field whenever a different section is being edited
+  useEffect(() => {
+    if (!section) return
+    setName(section.name || '')
+    setError('')
+  }, [section?.sectionId])
+
+  const handleSubmit = () => {
+    if (!name.trim()) { setError('Required'); return }
+    update(
+      { id: section.sectionId, data: { name } },
+      { onSuccess: onClose }
+    )
+  }
+
+  if (!section) return null
+  return (
+    <Modal open={!!section} onClose={onClose} title="Rename Section" size="sm"
+      footer={<div className="flex justify-end gap-2">
+        <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+        <Button size="sm" loading={isPending} onClick={handleSubmit}>Save</Button>
+      </div>}>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start gap-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+          <AlertCircle size={13} className="text-amber-400 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-400/80 leading-relaxed">
+            This renames the{' '}
+            <span className="font-semibold text-amber-400">shared library section</span> — the
+            new name will appear in every template that uses it.
+          </p>
+        </div>
+        <Input label="Section Name" value={name}
+          onChange={e => { setName(e.target.value); setError('') }}
+          placeholder="e.g. Information Security Governance"
+          error={error} />
       </div>
     </Modal>
   )

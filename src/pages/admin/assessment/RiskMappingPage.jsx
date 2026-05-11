@@ -1,29 +1,28 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  GitMerge, Plus, Trash2, Save, AlertCircle,
-  CheckCircle2, XCircle, RefreshCw, ChevronRight, Info
+  Save, AlertCircle, CheckCircle2,
+  XCircle, RefreshCw, Info, Plus, Trash2, Layers,
 } from 'lucide-react'
 import { assessmentsApi } from '../../../api/assessments.api'
-import { vendorsApi } from '../../../api/vendors.api'
-import { PageLayout, PageSection } from '../../../components/layout/PageLayout'
+import { PageLayout } from '../../../components/layout/PageLayout'
 import { Button } from '../../../components/ui/Button'
-import { Badge } from '../../../components/ui/Badge'
-import { Card, CardHeader, CardBody } from '../../../components/ui/Card'
 import { cn } from '../../../lib/cn'
 import toast from 'react-hot-toast'
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const TIER_PRESETS = [
-  { label: 'LOW',      color: 'green',  minScore: '0',     maxScore: '25',  icon: '●' },
-  { label: 'MEDIUM',   color: 'yellow', minScore: '25.01', maxScore: '60',  icon: '●' },
-  { label: 'HIGH',     color: 'amber',  minScore: '60.01', maxScore: '85',  icon: '●' },
-  { label: 'CRITICAL', color: 'red',    minScore: '85.01', maxScore: '100', icon: '●' },
-]
+// ─── Tier style map (purely visual — no score ranges) ────────────────────────
 
-const TIER_COLOR = { LOW: 'green', MEDIUM: 'yellow', HIGH: 'amber', CRITICAL: 'red' }
+const TIER_STYLE = {
+  LOW:      { accent: 'text-green-400',  bg: 'bg-green-500/5',  border: 'border-green-500/20',  dot: 'bg-green-400',  badge: 'bg-green-500/15 text-green-400 border border-green-500/25',  bar: 'bg-green-500',  ring: 'focus:ring-green-500/40'  },
+  MEDIUM:   { accent: 'text-yellow-400', bg: 'bg-yellow-500/5', border: 'border-yellow-500/20', dot: 'bg-yellow-400', badge: 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/25', bar: 'bg-yellow-500', ring: 'focus:ring-yellow-500/40' },
+  HIGH:     { accent: 'text-amber-400',  bg: 'bg-amber-500/5',  border: 'border-amber-500/20',  dot: 'bg-amber-400',  badge: 'bg-amber-500/15 text-amber-400 border border-amber-500/25',  bar: 'bg-amber-500',  ring: 'focus:ring-amber-500/40'  },
+  CRITICAL: { accent: 'text-red-400',    bg: 'bg-red-500/5',    border: 'border-red-500/20',    dot: 'bg-red-400',    badge: 'bg-red-500/15 text-red-400 border border-red-500/25',         bar: 'bg-red-500',    ring: 'focus:ring-red-500/40'    },
+}
+const DEFAULT_STYLE = { accent: 'text-brand-400', bg: 'bg-brand-500/5', border: 'border-brand-500/20', dot: 'bg-brand-400', badge: 'bg-brand-500/15 text-brand-400 border border-brand-500/25', bar: 'bg-brand-500', ring: 'focus:ring-brand-500/40' }
+const tierStyle = (label) => TIER_STYLE[label] || DEFAULT_STYLE
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
+
 const useMappings = () => useQuery({
   queryKey: ['risk-mappings'],
   queryFn:  () => assessmentsApi.riskMappings.list(),
@@ -41,13 +40,13 @@ const useSaveMappings = () => {
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['risk-mappings'] })
       const v = res?.validation || res?.data?.validation
-      if (v?.coversFullRange && v?.noGaps && v?.noOverlaps) {
-        toast.success('Risk mappings saved — full 0–100 coverage confirmed')
+      if (!v || (v.coversFullRange && v.noGaps && v.noOverlaps)) {
+        toast.success('Mappings saved')
       } else {
         const issues = []
-        if (!v?.noGaps)          issues.push('gaps in score range')
-        if (!v?.noOverlaps)      issues.push('overlapping ranges')
-        if (!v?.coversFullRange) issues.push('does not cover full 0–100 range')
+        if (!v.noGaps)          issues.push('gaps in score range')
+        if (!v.noOverlaps)      issues.push('overlapping ranges')
+        if (!v.coversFullRange) issues.push('does not cover full 0–100 range')
         toast(`Saved with warnings: ${issues.join(', ')}`, { icon: '⚠️' })
       }
     },
@@ -55,314 +54,386 @@ const useSaveMappings = () => {
   })
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function deriveTiers(rows) {
+  const map = {}
+  rows.forEach(m => {
+    const label = m.tierLabel
+    if (!label) return
+    if (!map[label]) {
+      map[label] = { label, minScore: parseFloat(m.minScore), maxScore: parseFloat(m.maxScore), templateIds: [] }
+    }
+    map[label].minScore = Math.min(map[label].minScore, parseFloat(m.minScore))
+    map[label].maxScore = Math.max(map[label].maxScore, parseFloat(m.maxScore))
+    if (m.templateId && !map[label].templateIds.includes(String(m.templateId)))
+      map[label].templateIds.push(String(m.templateId))
+  })
+  return Object.values(map).sort((a, b) => a.minScore - b.minScore)
+}
+
+// Validate tiers cover 0–100 with no gaps or overlaps.
+function validateRanges(tiers) {
+  const sorted   = [...tiers].sort((a, b) => a.minScore - b.minScore)
+  const errors   = {}
+  let noGaps     = true
+  let noOverlaps = true
+
+  for (let i = 0; i < sorted.length; i++) {
+    const t = sorted[i]
+    if (isNaN(t.minScore) || isNaN(t.maxScore)) {
+      errors[t.label] = 'Invalid number'; noGaps = false; continue
+    }
+    if (t.minScore >= t.maxScore) {
+      errors[t.label] = 'Min must be less than max'; noGaps = false; continue
+    }
+    if (i > 0) {
+      const prev = sorted[i - 1]
+      const gap  = +(t.minScore - prev.maxScore).toFixed(2)
+      if (gap !== 0.01) { noGaps = false; errors[t.label] = `Gap or overlap with ${prev.label}` }
+      if (t.minScore <= prev.maxScore) noOverlaps = false
+    }
+  }
+  const coversFullRange = sorted.length > 0
+    && sorted[0].minScore === 0
+    && sorted[sorted.length - 1].maxScore === 100
+
+  return { noGaps, noOverlaps, coversFullRange, rangeErrors: errors }
+}
+
+// ─── TierCard ─────────────────────────────────────────────────────────────────
+
+function TierCard({ tier, rangeError, publishedTemplates, onChange, isFirst, isLast }) {
+  const style     = tierStyle(tier.label)
+  const filledIds = tier.templateIds.filter(Boolean)
+
+  const set        = (field, val) => onChange({ ...tier, [field]: val })
+  const addSlot    = () => set('templateIds', [...tier.templateIds, ''])
+  const removeSlot = (idx) => set('templateIds', tier.templateIds.filter((_, i) => i !== idx))
+  const updateSlot = (idx, val) => set('templateIds', tier.templateIds.map((v, i) => i === idx ? val : v))
+  const usedElsewhere = (idx) => tier.templateIds.filter((v, i) => i !== idx && v !== '')
+
+  return (
+    <div className={cn('rounded-xl border overflow-hidden', rangeError ? 'border-red-500/40' : style.border, style.bg)}>
+      {/* Header — label + editable range */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 gap-3 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap gap-y-1 min-w-0">
+          <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', style.dot)} />
+          <span className={cn('text-sm font-bold', style.accent)}>{tier.label}</span>
+
+          {/* Editable score range */}
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className="text-text-muted">score</span>
+            {/* Min — first tier locked to 0 */}
+            {isFirst ? (
+              <span className="font-mono text-text-muted px-1.5 py-0.5 rounded bg-surface-overlay border border-border">
+                {tier.minScore}
+              </span>
+            ) : (
+              <input
+                type="number" step="0.01" min="0" max="99.99"
+                value={tier.minScore}
+                onChange={e => set('minScore', parseFloat(e.target.value))}
+                className={cn(
+                  'w-16 h-6 text-center font-mono text-xs rounded border bg-surface-raised text-text-primary',
+                  'focus:outline-none focus:ring-1 focus:ring-brand-500/50',
+                  rangeError ? 'border-red-500/40' : 'border-border'
+                )}
+              />
+            )}
+            <span className="text-text-muted">–</span>
+            {/* Max — last tier locked to 100 */}
+            {isLast ? (
+              <span className="font-mono text-text-muted px-1.5 py-0.5 rounded bg-surface-overlay border border-border">
+                {tier.maxScore}
+              </span>
+            ) : (
+              <input
+                type="number" step="0.01" min="0.01" max="100"
+                value={tier.maxScore}
+                onChange={e => set('maxScore', parseFloat(e.target.value))}
+                className={cn(
+                  'w-16 h-6 text-center font-mono text-xs rounded border bg-surface-raised text-text-primary',
+                  'focus:outline-none focus:ring-1 focus:ring-brand-500/50',
+                  rangeError ? 'border-red-500/40' : 'border-border'
+                )}
+              />
+            )}
+          </div>
+
+          {rangeError && (
+            <span className="text-[10px] text-red-400 flex items-center gap-1">
+              <AlertCircle size={10} /> {rangeError}
+            </span>
+          )}
+          {!rangeError && filledIds.length > 1 && (
+            <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full', style.badge)}>
+              {filledIds.length} options · admin chooses at runtime
+            </span>
+          )}
+        </div>
+        <Button variant="ghost" size="xs" icon={Plus} onClick={addSlot}
+          title="Add another template option for this tier">
+          Add option
+        </Button>
+      </div>
+
+      {/* Template slots */}
+      <div className="px-4 py-3 flex flex-col gap-2">
+        {tier.templateIds.length === 0 && (
+          <button onClick={addSlot}
+            className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-border rounded-lg text-xs text-text-muted hover:text-text-secondary hover:border-border-subtle transition-colors">
+            <Plus size={12} /> Assign a template to this tier
+          </button>
+        )}
+        {tier.templateIds.map((tplId, idx) => {
+          const taken = usedElsewhere(idx)
+          return (
+            <div key={idx} className="flex items-center gap-2">
+              <span className="text-[10px] font-mono text-text-muted w-16 shrink-0 text-right pr-1">
+                Option {idx + 1}
+              </span>
+              <select value={tplId} onChange={e => updateSlot(idx, e.target.value)}
+                className={cn(
+                  'flex-1 h-8 appearance-none pl-3 pr-2 rounded-md border text-xs text-text-primary',
+                  'bg-surface-raised focus:outline-none focus:ring-1 transition-colors',
+                  !tplId ? 'border-red-500/40' : 'border-border', style.ring,
+                )}>
+                <option value="">Select template…</option>
+                {publishedTemplates.map(t => (
+                  <option key={t.templateId} value={String(t.templateId)}
+                    disabled={taken.includes(String(t.templateId))}>
+                    {t.name}{taken.includes(String(t.templateId)) ? ' (already added)' : ''}
+                  </option>
+                ))}
+              </select>
+              <button onClick={() => removeSlot(idx)}
+                className="h-8 w-8 flex items-center justify-center rounded-md text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+                title="Remove this option">
+                <Trash2 size={12} />
+              </button>
+            </div>
+          )
+        })}
+        {tier.templateIds.length > 0 && (
+          <p className="text-[10px] mt-0.5 pl-[4.75rem] flex items-center gap-1 text-text-muted">
+            <Info size={10} className={cn('shrink-0', style.accent)} />
+            {filledIds.length > 1
+              ? 'Org owner / admin will pick one of these when this tier is triggered.'
+              : 'Single template — auto-assigned when this tier is triggered.'}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function RiskMappingPage() {
   const { data: existing, isLoading: loadingMappings } = useMappings()
   const { data: tplData,  isLoading: loadingTemplates } = usePublishedTemplates()
   const { mutate: save, isPending: saving }             = useSaveMappings()
 
-  // Local editable rows: { tierLabel, minScore, maxScore, templateId }
-  const [rows, setRows]         = useState([])
-  const [dirty, setDirty]       = useState(false)
-  const [validation, setValidation] = useState(null)
+  const [tiers, setTiers] = useState([])
+  const [dirty, setDirty] = useState(false)
 
   const publishedTemplates = tplData?.items || []
 
-  // Seed rows from existing mappings on load
   useEffect(() => {
-    if (existing && existing.length > 0) {
-      setRows(existing.map(m => ({
-        id:         m.mappingId,
-        tierLabel:  m.tierLabel || '',
-        minScore:   String(m.minScore),
-        maxScore:   String(m.maxScore),
-        templateId: String(m.templateId),
-      })))
-    }
+    if (!existing || existing.length === 0) return
+    setTiers(deriveTiers(existing))
+    setDirty(true)
   }, [existing])
 
-  // Live validation
-  useEffect(() => {
-    if (!rows.length) { setValidation(null); return }
-    const sorted = [...rows].sort((a, b) => parseFloat(a.minScore) - parseFloat(b.minScore))
-    let noGaps = true, noOverlaps = true
-    for (let i = 1; i < sorted.length; i++) {
-      const prevMax = parseFloat(sorted[i - 1].maxScore)
-      const currMin = parseFloat(sorted[i].minScore)
-      const gap = +(currMin - prevMax).toFixed(2)
-      if (gap !== 0.01) noGaps = false
-      if (currMin <= prevMax) noOverlaps = false
-    }
-    const coversFullRange = sorted.length > 0
-      && parseFloat(sorted[0].minScore) === 0
-      && parseFloat(sorted[sorted.length - 1].maxScore) === 100
-    const allTemplatesSet = rows.every(r => r.templateId)
-    setValidation({ noGaps, noOverlaps, coversFullRange, allTemplatesSet })
-  }, [rows])
-
-  const addRow = () => {
+  const handleTierChange = (updatedTier) => {
     setDirty(true)
-    setRows(r => [...r, { id: Date.now(), tierLabel: '', minScore: '', maxScore: '', templateId: '' }])
+    setTiers(prev => prev.map(t => t.label === updatedTier.label ? updatedTier : t))
   }
 
-  const removeRow = (id) => { setDirty(true); setRows(r => r.filter(x => x.id !== id)) }
+  const { noGaps, noOverlaps, coversFullRange, rangeErrors } = validateRanges(tiers)
+  const allTiersHaveAtLeastOne = tiers.every(t => t.templateIds.filter(Boolean).length > 0)
+  const noEmptySlots           = tiers.every(t => t.templateIds.every(v => v !== ''))
+  const rangesValid            = noGaps && noOverlaps && coversFullRange && Object.keys(rangeErrors).length === 0
+  const isValid                = allTiersHaveAtLeastOne && noEmptySlots && rangesValid
 
-  const updateRow = (id, field, value) => {
-    setDirty(true)
-    setRows(r => r.map(x => x.id === id ? { ...x, [field]: value } : x))
-  }
-
-  const applyPresets = () => {
-    setDirty(true)
-    setRows(TIER_PRESETS.map((p, i) => ({
-      id: i + 1, tierLabel: p.label,
-      minScore: p.minScore, maxScore: p.maxScore, templateId: '',
-    })))
+  const handleReset = () => {
+    if (existing?.length) { setTiers(deriveTiers(existing)); setDirty(false) }
   }
 
   const handleSave = () => {
-    save({
-      mappings: rows.map(r => ({
-        minScore:   parseFloat(r.minScore),
-        maxScore:   parseFloat(r.maxScore),
-        templateId: parseInt(r.templateId),
-        tierLabel:  r.tierLabel || undefined,
-        tierId:     undefined,
-      })),
-    }, { onSuccess: () => setDirty(false) })
+    const mappings = []
+    tiers.forEach(tier => {
+      tier.templateIds.filter(Boolean).forEach(templateId => {
+        mappings.push({ tierLabel: tier.label, minScore: tier.minScore, maxScore: tier.maxScore, templateId: parseInt(templateId) })
+      })
+    })
+    save({ mappings }, { onSuccess: () => setDirty(false) })
   }
 
-  const isValid = validation?.noGaps && validation?.noOverlaps
-    && validation?.coversFullRange && validation?.allTemplatesSet
+  const loading    = loadingMappings || loadingTemplates
+  const totalRange = tiers.length ? tiers[tiers.length - 1].maxScore - tiers[0].minScore : 100
 
   return (
     <PageLayout
       title="Risk → Template Mapping"
-      subtitle="Define which assessment template is assigned based on a vendor's risk score"
+      subtitle="Configure score boundaries and templates for each risk tier. Changes take effect on the next vendor assessment."
       actions={
         <div className="flex items-center gap-2">
           {dirty && <span className="text-xs text-amber-400">Unsaved changes</span>}
-          <Button variant="ghost" size="sm" icon={RefreshCw} onClick={() => { setDirty(false) }} />
-          <Button
-            size="sm" icon={Save}
-            loading={saving}
-            disabled={!dirty || !rows.length}
-            onClick={handleSave}
-          >
+          <Button variant="ghost" size="sm" icon={RefreshCw} onClick={handleReset} title="Discard unsaved changes" />
+          <Button size="sm" icon={Save} loading={saving}
+            disabled={(!dirty && !isValid) || !publishedTemplates.length}
+            onClick={handleSave}>
             Save Mappings
           </Button>
         </div>
       }
     >
-      <div className="px-6 py-4 flex flex-col gap-6 max-w-4xl">
+      <div className="px-6 py-4 flex flex-col gap-6 max-w-3xl">
 
-        {/* How it works */}
+        {/* Explainer */}
         <div className="flex items-start gap-3 p-4 bg-surface-overlay rounded-lg border border-border">
-          <Info size={15} className="text-brand-400 mt-0.5 shrink-0" />
-          <div className="text-xs text-text-muted leading-relaxed">
-            <span className="text-text-secondary font-medium">How this works: </span>
-            When a vendor assessment is triggered, the system checks the vendor's current risk score and looks up this table to determine which assessment template to assign. Each range must map to exactly one published template. The ranges must cover the full 0–100 scale with no gaps or overlaps.
+          <Layers size={15} className="text-brand-400 mt-0.5 shrink-0" />
+          <div className="text-xs text-text-muted leading-relaxed space-y-1.5">
+            <p>
+              <span className="text-text-secondary font-medium">Score-based assignment — </span>
+              the system computes a 0–100 risk score per vendor and matches it to the tier whose range contains that score.
+              Edit the boundary numbers directly on each tier card — ranges must cover 0–100 with no gaps or overlaps.
+              The first tier always starts at 0 and the last always ends at 100.
+            </p>
+            <p>
+              <span className="text-text-secondary font-medium">1 template → </span>auto-assigned.
+              &nbsp;<span className="text-text-secondary font-medium">2+ templates → </span>
+              the <span className="text-brand-400 font-medium">Org Owner / Org Admin</span> picks one before the assessment starts.
+            </p>
           </div>
         </div>
 
-        {/* Quick presets */}
-        {rows.length === 0 && !loadingMappings && (
-          <div className="flex items-center justify-between p-4 bg-surface-overlay rounded-lg border border-dashed border-border">
-            <div>
-              <p className="text-sm font-medium text-text-primary">Start with standard risk tiers</p>
-              <p className="text-xs text-text-muted mt-0.5">Low (0–25) · Medium (25.01–60) · High (60.01–85) · Critical (85.01–100)</p>
-            </div>
-            <Button variant="secondary" size="sm" onClick={applyPresets}>Use Presets</Button>
-          </div>
-        )}
-
-        {/* Mapping rows */}
-        {rows.length > 0 && (
-          <div className="flex flex-col gap-2">
-            {/* Column headers */}
-            <div className="grid grid-cols-[120px_1fr_1fr_1fr_36px] gap-3 px-2">
-              {['Tier Label', 'Min Score', 'Max Score', 'Template', ''].map(h => (
-                <span key={h} className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">{h}</span>
-              ))}
-            </div>
-
-            {rows.map((row, idx) => {
-              const templateName = publishedTemplates.find(t => String(t.templateId) === String(row.templateId))?.name
-              return (
-                <div key={row.id} className={cn(
-                  'grid grid-cols-[120px_1fr_1fr_1fr_36px] gap-3 items-center p-3 rounded-lg border transition-colors',
-                  'bg-surface-raised border-border hover:border-border-subtle'
-                )}>
-                  {/* Tier label */}
-                  <div className="relative">
-                    <select
-                      value={row.tierLabel}
-                      onChange={e => updateRow(row.id, 'tierLabel', e.target.value)}
-                      className="h-8 w-full appearance-none pl-3 pr-6 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
-                    >
-                      <option value="">Custom…</option>
-                      {TIER_PRESETS.map(p => <option key={p.label} value={p.label}>{p.label}</option>)}
-                    </select>
-                    {row.tierLabel && TIER_COLOR[row.tierLabel] && (
-                      <span className={cn(
-                        'absolute left-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full pointer-events-none',
-                        { 'bg-green-400': TIER_COLOR[row.tierLabel] === 'green',
-                          'bg-yellow-400': TIER_COLOR[row.tierLabel] === 'yellow',
-                          'bg-amber-400': TIER_COLOR[row.tierLabel] === 'amber',
-                          'bg-red-400': TIER_COLOR[row.tierLabel] === 'red' }
-                      )} />
-                    )}
+        {/* Live score bar */}
+        {tiers.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-2">Range preview</p>
+            <div className="h-6 w-full rounded-lg overflow-hidden flex text-[10px] font-bold text-white">
+              {tiers.map(tier => {
+                const style = tierStyle(tier.label)
+                const width = Math.max(0, ((tier.maxScore - tier.minScore) / totalRange) * 100)
+                return (
+                  <div key={tier.label} style={{ width: `${width}%` }}
+                    className={cn('flex items-center justify-center transition-all', style.bar)}
+                    title={`${tier.label}: ${tier.minScore}–${tier.maxScore}`}>
+                    {width > 8 ? tier.label : ''}
                   </div>
-
-                  {/* Min score */}
-                  <input
-                    type="number"
-                    step="0.01" min="0" max="100"
-                    value={row.minScore}
-                    onChange={e => updateRow(row.id, 'minScore', e.target.value)}
-                    placeholder="0.00"
-                    className="h-8 w-full rounded-md border border-border bg-surface-raised px-3 text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  />
-
-                  {/* Max score */}
-                  <input
-                    type="number"
-                    step="0.01" min="0" max="100"
-                    value={row.maxScore}
-                    onChange={e => updateRow(row.id, 'maxScore', e.target.value)}
-                    placeholder="100.00"
-                    className="h-8 w-full rounded-md border border-border bg-surface-raised px-3 text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  />
-
-                  {/* Template */}
-                  <select
-                    value={row.templateId}
-                    onChange={e => updateRow(row.id, 'templateId', e.target.value)}
-                    className={cn(
-                      'h-8 w-full appearance-none pl-3 pr-6 rounded-md border text-xs text-text-primary',
-                      'bg-surface-raised focus:outline-none focus:ring-1 focus:ring-brand-500',
-                      !row.templateId ? 'border-red-500/40' : 'border-border'
-                    )}
-                  >
-                    <option value="">Select template…</option>
-                    {publishedTemplates.map(t => (
-                      <option key={t.templateId} value={t.templateId}>{t.name}</option>
-                    ))}
-                  </select>
-
-                  {/* Delete */}
-                  <button
-                    onClick={() => removeRow(row.id)}
-                    className="h-8 w-8 flex items-center justify-center rounded-md text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              )
-            })}
-
-            <button
-              onClick={addRow}
-              className="flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-border rounded-lg text-xs text-text-muted hover:text-text-secondary hover:border-border-subtle transition-colors"
-            >
-              <Plus size={13} /> Add Row
-            </button>
+                )
+              })}
+            </div>
+            <div className="flex justify-between text-[10px] text-text-muted mt-1 px-0.5">
+              {tiers.map(t => <span key={t.label}>{t.minScore}</span>)}
+              <span>{tiers[tiers.length - 1]?.maxScore}</span>
+            </div>
           </div>
         )}
 
-        {rows.length === 0 && !loadingMappings && (
-          <button
-            onClick={addRow}
-            className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-border rounded-lg text-sm text-text-muted hover:text-text-secondary transition-colors"
-          >
-            <Plus size={14} /> Add Mapping Row
-          </button>
+        {/* Tier cards */}
+        {loading ? (
+          <div className="flex flex-col gap-4">
+            {[1,2,3,4].map(i => <div key={i} className="h-28 rounded-xl bg-surface-overlay animate-pulse" />)}
+          </div>
+        ) : tiers.length === 0 ? (
+          <div className="flex items-start gap-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+            <AlertCircle size={14} className="text-amber-400 mt-0.5 shrink-0" />
+            <p className="text-xs text-amber-400">No mappings saved yet.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {tiers.map((tier, idx) => (
+              <TierCard
+                key={tier.label}
+                tier={tier}
+                rangeError={rangeErrors[tier.label]}
+                publishedTemplates={publishedTemplates}
+                onChange={handleTierChange}
+                isFirst={idx === 0}
+                isLast={idx === tiers.length - 1}
+              />
+            ))}
+          </div>
         )}
 
         {/* Validation panel */}
-        {validation && rows.length > 0 && (
+        {!loading && tiers.length > 0 && (
           <div className="p-4 rounded-lg border border-border bg-surface-overlay">
             <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">Validation</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-2">
               {[
-                { key: 'noGaps',          label: 'No gaps between ranges' },
-                { key: 'noOverlaps',      label: 'No overlapping ranges' },
-                { key: 'coversFullRange', label: 'Covers full 0–100 range' },
-                { key: 'allTemplatesSet', label: 'All rows have a template' },
-              ].map(({ key, label }) => (
-                <div key={key} className="flex items-center gap-2">
-                  {validation[key]
+                { pass: coversFullRange,        label: 'Ranges cover the full 0–100 scale' },
+                { pass: noGaps,                 label: 'No gaps between tier boundaries' },
+                { pass: noOverlaps,             label: 'No overlapping ranges' },
+                { pass: allTiersHaveAtLeastOne, label: 'Every tier has at least one template' },
+                { pass: noEmptySlots,           label: 'No empty template slots' },
+              ].map(({ pass, label }, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  {pass
                     ? <CheckCircle2 size={13} className="text-green-400 shrink-0" />
-                    : <XCircle size={13} className="text-red-400 shrink-0" />
-                  }
-                  <span className={cn('text-xs', validation[key] ? 'text-text-secondary' : 'text-red-400')}>
-                    {label}
-                  </span>
+                    : <XCircle     size={13} className="text-red-400 shrink-0" />}
+                  <span className={cn('text-xs', pass ? 'text-text-secondary' : 'text-red-400')}>{label}</span>
                 </div>
               ))}
             </div>
-            {isValid && (
-              <p className="text-xs text-green-400 mt-3 flex items-center gap-1.5">
-                <CheckCircle2 size={12} /> All checks passed — ready to save
-              </p>
-            )}
-            {!isValid && (
-              <p className="text-xs text-amber-400 mt-3 flex items-center gap-1.5">
-                <AlertCircle size={12} /> Fix the issues above before saving
-              </p>
-            )}
+            <p className={cn('text-xs mt-3 flex items-center gap-1.5', isValid ? 'text-green-400' : 'text-amber-400')}>
+              {isValid
+                ? <><CheckCircle2 size={12} /> All checks passed — ready to save</>
+                : <><AlertCircle  size={12} /> Fix the issues above before saving</>}
+            </p>
           </div>
         )}
 
-        {/* Visual range bar */}
-        {rows.length > 0 && (
+        {/* Summary table */}
+        {!loading && tiers.some(t => t.templateIds.filter(Boolean).length > 0) && (
           <div>
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Score Range Preview</p>
-            <div className="h-8 w-full rounded-lg overflow-hidden flex">
-              {[...rows]
-                .filter(r => r.minScore !== '' && r.maxScore !== '')
-                .sort((a, b) => parseFloat(a.minScore) - parseFloat(b.minScore))
-                .map((row, i) => {
-                  const min  = parseFloat(row.minScore)
-                  const max  = parseFloat(row.maxScore)
-                  const pct  = ((max - min) / 100) * 100
-                  const color = {
-                    LOW: 'bg-green-500', MEDIUM: 'bg-yellow-500',
-                    HIGH: 'bg-amber-500', CRITICAL: 'bg-red-500',
-                  }[row.tierLabel] || 'bg-brand-500'
-                  return (
-                    <div
-                      key={row.id}
-                      style={{ width: `${pct}%` }}
-                      className={cn('flex items-center justify-center text-[10px] font-bold text-white transition-all', color)}
-                      title={`${row.tierLabel || 'Custom'}: ${min}–${max}`}
-                    >
-                      {pct > 10 ? (row.tierLabel || `${min}–${max}`) : ''}
-                    </div>
-                  )
-                })}
-              {/* Gray fill for uncovered ranges */}
-              {rows.filter(r => r.minScore !== '' && r.maxScore !== '').length === 0 && (
-                <div className="flex-1 bg-surface-overlay" />
-              )}
-            </div>
-            <div className="flex justify-between text-[10px] text-text-muted mt-1">
-              <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+            <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-2">Summary</p>
+            <div className="rounded-lg border border-border overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-surface-overlay">
+                    {['Tier', 'Score range', 'Templates', 'Selection mode'].map(h => (
+                      <th key={h} className="text-left px-3 py-2 font-semibold text-text-muted uppercase tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tiers.map((tier, i) => {
+                    const style = tierStyle(tier.label)
+                    const names = tier.templateIds.filter(Boolean).map(id =>
+                      publishedTemplates.find(t => String(t.templateId) === id)?.name || `#${id}`
+                    )
+                    return (
+                      <tr key={tier.label} className={cn('border-b last:border-0 border-border', i % 2 === 0 ? 'bg-surface-raised' : 'bg-surface-overlay')}>
+                        <td className="px-3 py-2"><span className={cn('font-bold', style.accent)}>{tier.label}</span></td>
+                        <td className="px-3 py-2 font-mono text-text-muted">{tier.minScore}–{tier.maxScore}</td>
+                        <td className="px-3 py-2 text-text-secondary">
+                          {names.length === 0
+                            ? <span className="text-red-400/70 italic">Not configured</span>
+                            : names.map((n, ni) => <span key={ni}>{ni > 0 && <span className="text-text-muted mx-1">·</span>}{n}</span>)}
+                        </td>
+                        <td className="px-3 py-2">
+                          {names.length === 0 ? <span className="text-text-muted">—</span>
+                            : names.length === 1 ? <span className="text-text-muted">Auto-assigned</span>
+                            : <span className="text-brand-400 font-medium">Admin selects</span>}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
-        {/* No published templates warning */}
         {publishedTemplates.length === 0 && !loadingTemplates && (
           <div className="flex items-start gap-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
             <AlertCircle size={14} className="text-amber-400 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs font-medium text-amber-400">No published templates</p>
-              <p className="text-xs text-amber-400/70 mt-0.5">
-                You need to publish at least one assessment template before configuring mappings.
-                Go to Assessment Templates and publish a template first.
-              </p>
-            </div>
+            <p className="text-xs text-amber-400">Publish at least one assessment template before configuring mappings.</p>
           </div>
         )}
       </div>

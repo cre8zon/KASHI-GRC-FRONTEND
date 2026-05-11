@@ -30,6 +30,11 @@ const TYPE_CONFIG = {
   SUBMISSION:                 { icon: CheckCheck,color: 'text-green-400', label: 'Submitted' },
   REVIEW:                     { icon: Shield,   color: 'text-purple-400', label: 'Review' },
   ESCALATION:                 { icon: Flag,     color: 'text-red-400',    label: 'Escalation' },
+  SECTION_REOPENED:           { icon: Flag,     color: 'text-amber-400',  label: 'Section unlocked' },
+  MENTIONED_IN_COMMENT:       { icon: Bell,     color: 'text-brand-400',  label: 'Mentioned' },
+  NEW_COMMENT:                { icon: Bell,     color: 'text-blue-400',   label: 'New comment' },
+  REMEDIATION_REQUESTED:      { icon: Flag,     color: 'text-red-400',    label: 'Remediation requested' },
+  ANSWER_OVERRIDDEN:          { icon: Shield,   color: 'text-blue-400',   label: 'Answer overridden' },
 }
 
 const DEFAULT_TYPE = { icon: Bell, color: 'text-text-muted', label: 'Notification' }
@@ -44,6 +49,14 @@ function buildNavUrl(notification) {
   }
   if (type === 'ASSIGNMENT' || type === 'SUBMISSION' || type === 'REVIEW') {
     return '/workflow/inbox'
+  }
+  if (type === 'SECTION_REOPENED') {
+    // entityType=SECTION_INSTANCE, entityId=sectionInstanceId
+    // Route responder to their task inbox where they'll see the active fill task
+    return '/workflow/inbox'
+  }
+  if (type === 'MENTIONED_IN_COMMENT' || type === 'NEW_COMMENT') {
+    return '/action-items'
   }
 
   // Entity-based routing fallback

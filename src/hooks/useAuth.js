@@ -43,12 +43,17 @@ export const useLoginWithRedirect = () => {
       const response = await axios.post(`${baseURL}/v1/auth/login`, { email, password })
       return response.data  // returns full { status, data }
     },
-    onSuccess: (response) => {
+    onSuccess: (response, variables) => {
       console.log('LOGIN RESPONSE:', JSON.stringify(response, null, 2))
       if (response.status === 'PASSWORD_RESET_REQUIRED') {
-        // First login — force password change
+        // First login — force password change.
+        // Pass email in state so ForcePasswordChangePage can auto-login after reset.
         navigate('/auth/reset-password', {
-          state: { userId: response.data?.userId, tempToken: response.data?.tempToken, },
+          state: {
+            userId:    response.data?.userId,
+            tempToken: response.data?.tempToken,
+            email:     variables?.email,
+          },
           replace: true,
         })
         return

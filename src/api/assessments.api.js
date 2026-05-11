@@ -18,7 +18,21 @@ export const assessmentsApi = {
   // ─── Templates ────────────────────────────────────────────────────────────
   templates: {
     list:      (params)       => api.get('/v1/assessment-templates', { params }),
-    full:      (id)           => api.get(`/v1/assessment-templates/${id}/full`),
+
+    /**
+     * Fetch the full template structure (sections → questions → options).
+     * Accepts an AbortSignal so React Query can cancel the in-flight request
+     * when the component unmounts or the query key changes — preventing the
+     * "canceled then immediately re-requested" double-fetch seen in DevTools.
+     * The backend /full endpoint now uses 4 bulk IN queries instead of N+N+N
+     * individual findById calls, so this should return in ~150–200ms.
+     *
+     * @param {number|string} id       — template ID
+     * @param {AbortSignal}   [signal] — optional cancellation signal from React Query
+     */
+    full:      (id, signal)   => api.get(`/v1/assessment-templates/${id}/full`,
+                                          signal ? { signal } : undefined),
+
     create:    (data)         => api.post('/v1/assessment-templates', data),
     update:    (id, data)     => api.put(`/v1/assessment-templates/${id}`, data),
     delete:    (id)           => api.delete(`/v1/assessment-templates/${id}`),
@@ -36,6 +50,11 @@ export const assessmentsApi = {
       form.append('file', file)
       return api.post('/v1/assessment-templates/import', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        // Import can take 2–4 minutes for large templates (300+ questions).
+        // Override the default 60s timeout so the browser doesn't cut the
+        // connection before the backend finishes. The backend processes each
+        // question synchronously — this is the simplest fix without async jobs.
+        timeout: 300000,
       })
     },
 
@@ -90,6 +109,7 @@ export const assessmentsApi = {
         form.append('file', file)
         return api.post('/v1/assessment-library/questions/import', form, {
           headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 300000,
         })
       },
     },
@@ -105,9 +125,35 @@ export const assessmentsApi = {
   },
 
   // ─── Risk mappings ────────────────────────────────────────────────────────
+  // Each tier (LOW/MEDIUM/HIGH/CRITICAL) can have up to 3 templates mapped.
+  // The backend saves one row per (tierLabel, templateId) pair so candidates[]
+  // returned by QUEUE_ASSESSMENT_CANDIDATES can surface all options to the admin.
   riskMappings: {
     list: ()     => api.get('/v1/config/risk-template-mappings'),
     save: (data) => api.post('/v1/config/risk-template-mappings', data),
+  },
+
+  // ─── Template selection (workflow step: QUEUE_ASSESSMENT_CANDIDATES) ──────
+  // When the workflow step finds >1 candidate templates for the vendor's risk
+  // tier it pauses and writes a vendor_template_selection row with
+  // selectedTemplateId=null. These endpoints let org admin/owner query that
+  // pending state and confirm a choice so the workflow can proceed.
+  templateSelection: {
+    /** GET /v1/workflows/instances/:instanceId/template-selection
+     *  Returns { riskTierLabel, candidates: [{templateId, name, version}],
+     *            alreadySelected: bool, selectedTemplateId? }
+     *  Throws 404 when there is no pending selection for this instance.
+     */
+    get:    (workflowInstanceId) =>
+              api.get(`/v1/workflows/instances/${workflowInstanceId}/template-selection`),
+
+    /** POST /v1/workflows/instances/:instanceId/template-selection
+     *  Body: { templateId }
+     *  Confirms the admin's chosen template, resumes the paused step.
+     */
+    select: (workflowInstanceId, templateId) =>
+              api.post(`/v1/workflows/instances/${workflowInstanceId}/template-selection`,
+                       { templateId }),
   },
 
   // ─── Vendor assessments ───────────────────────────────────────────────────
@@ -204,6 +250,15 @@ export const assessmentsApi = {
       api.post(`/v1/assessments/${id}/complete-reviewer-evaluation`, null, { params: { taskId } }),
     consolidateScores:         (id, taskId) =>
       api.post(`/v1/assessments/${id}/consolidate-scores`, null, { params: { taskId } }),
+
+    /**
+     * Re-derives normalised scoreEarned for all responses using the
+     * (optionScore/maxOptionScore)×weight formula, then consolidates.
+     * Use for assessments answered before the normalised scoring was deployed.
+     * Also fires SCORES_CONSOLIDATED to advance the workflow gate if taskId provided.
+     */
+    recalculateScores:         (id, taskId) =>
+      api.post(`/v1/assessments/${id}/recalculate-scores`, null, { params: taskId ? { taskId } : {} }),
     documentFindings:          (id, taskId, findings) =>
       api.post(`/v1/assessments/${id}/document-findings`, { findings }, { params: { taskId } }),
     cisoApprove:               (id, taskId) =>
@@ -227,4 +282,18 @@ export const assessmentsApi = {
    */
   overrideContributorAnswer: (assessmentId, questionInstanceId, body) =>
     api.post(`/v1/assessments/${assessmentId}/questions/${questionInstanceId}/override-answer`, body),
+
+  /**
+   * Admin: clear reviewer_submitted_at on all sections for a given reviewer
+   * so they can re-submit after a task reset.
+   * Pair with workflowsApi.instances.resetTask() for full task reopen.
+   * assignedUserId optional — omit to clear ALL reviewer submissions.
+   */
+  resetReviewerSections: (assessmentId, assignedUserId) =>
+    api.post(`/v1/assessments/${assessmentId}/reset-reviewer-sections`,
+      null, { params: assignedUserId ? { assignedUserId } : {} }),
+
+    /** Admin: directly overwrite consolidated findings (for data recovery / editing) */
+  updateFindings: (assessmentId, findings) =>
+    api.put(`/v1/assessments/${assessmentId}/findings`, { findings }),
 }

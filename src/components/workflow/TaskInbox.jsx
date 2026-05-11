@@ -4,7 +4,7 @@ import { CheckCircle, XCircle, CornerDownLeft, ArrowRight, Loader2, Users, UserC
 import { useMyTasks, useTaskAction } from '../../hooks/useWorkflow'
 import { useNavigation } from '../../hooks/useUIConfig'
 import { useSelector } from 'react-redux'
-import { selectAuth } from '../../store/slices/authSlice'
+import { selectAuth, selectRoles } from '../../store/slices/authSlice'
 import { formatDateTime } from '../../utils/format'
 import { Button } from '../ui/Button'
 import { Badge } from '../ui/Badge'
@@ -87,6 +87,9 @@ export function TaskInbox({ filterFn } = {}) {
   const { data, isLoading }  = useMyTasks({})
   const { mutate: actOnTask, isPending } = useTaskAction()
   const { userId } = useSelector(selectAuth)
+  const roles      = useSelector(selectRoles)
+  // Only ORG_ADMIN / ORG_OWNER can use Send Back — it's a nuclear workflow rollback
+  const canSendBack = roles?.some(r => ['ORG_ADMIN','ORG_OWNER'].includes(r.name || r.roleName || ''))
   const { data: navItems = [] } = useNavigation()
   const navigate = useNavigate()
   const [activeTask, setActiveTask] = useState(null)
@@ -213,8 +216,10 @@ export function TaskInbox({ filterFn } = {}) {
                   ) : (
                     // ASSIGNER acknowledgement or pure APPROVE step — inline is fine
                     <>
-                      <Button variant="ghost" size="xs" icon={CornerDownLeft}
-                        onClick={() => handleAct(task, 'SEND_BACK')}>Back</Button>
+                      {canSendBack && (
+                        <Button variant="ghost" size="xs" icon={CornerDownLeft}
+                          onClick={() => handleAct(task, 'SEND_BACK')}>Back</Button>
+                      )}
                       <Button variant="danger" size="xs" icon={XCircle}
                         onClick={() => handleAct(task, 'REJECT')}>Reject</Button>
                       <Button variant="primary" size="xs" icon={CheckCircle}

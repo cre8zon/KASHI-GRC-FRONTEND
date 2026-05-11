@@ -3,13 +3,18 @@
  */
 
 import { useState, useRef, useEffect } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSelector }                  from 'react-redux'
-import { selectRoles }                  from '../../store/slices/authSlice'
+import { selectRoles, selectAuth }      from '../../store/slices/authSlice'
 import { cn }                           from '../../lib/cn'
 import { formatDateTime }               from '../../utils/format'
 import {
   Lock, Shield, AlertTriangle, CheckCircle2, Send, Loader2,
+  MessageSquare, ChevronDown,
 } from 'lucide-react'
+import { MentionInput }                 from '../ui/MentionInput'
+import { commentsApi }                  from '../../api/comments.api'
+import toast                            from 'react-hot-toast'
 
 const TYPE_CONFIG = {
   COMMENT:          { label: null,                 bg: 'bg-surface-raised border border-border', icon: null,          iconColor: '' },
@@ -25,10 +30,117 @@ const VISIBILITY_CONFIG = {
   CISO_ONLY:       { icon: Shield, color: 'text-indigo-400', label: 'CISO only'       },
 }
 
-function CommentBubble({ comment, onResolve, canResolve }) {
+/**
+ * RevisionReplyThread — collapsible inline clarification thread on a
+ * REVISION_REQUEST comment. Uses the same VENDOR_INTERNAL channel so
+ * the org reviewer never sees these internal back-and-forths.
+ */
+function RevisionReplyThread({ comment, questionInstanceId }) {
+  const qc = useQueryClient()
+  const [open,  setOpen]  = useState(false)
+  const [draft, setDraft] = useState('')
+  const [mentionedIds, setMentionedIds] = useState([])
+  const endRef = useRef(null)
+
+  const queryKey = ['revision-replies', comment.id]
+  const { data: allComments = [] } = useQuery({
+    queryKey,
+    queryFn: () => commentsApi.list('QUESTION_RESPONSE', questionInstanceId),
+    enabled: open && !!questionInstanceId,
+    select: (d) => {
+      const arr = Array.isArray(d) ? d : (d?.data || [])
+      const revisionTime = comment.createdAt ? new Date(comment.createdAt) : null
+      // Only COMMENT-type replies created AFTER this revision request, in same channel
+      return arr.filter(c =>
+        c.commentType === 'COMMENT' &&
+        c.visibility === (comment.visibility || 'VENDOR_INTERNAL') &&
+        (!revisionTime || new Date(c.createdAt) > revisionTime)
+      )
+    },
+    staleTime: 0,
+  })
+
+  useEffect(() => {
+    if (open) endRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [allComments.length, open])
+
+  const { mutate: post, isPending } = useMutation({
+    mutationFn: () => commentsApi.add({
+      entityType: 'QUESTION_RESPONSE',
+      entityId: questionInstanceId,
+      questionInstanceId,
+      commentText: draft.trim(),
+      commentType: 'COMMENT',
+      visibility: comment.visibility || 'VENDOR_INTERNAL',
+      mentionedUserIds: mentionedIds,
+    }),
+    onSuccess: () => {
+      setDraft(''); setMentionedIds([])
+      qc.invalidateQueries({ queryKey })
+      qc.invalidateQueries({ queryKey: ['q-comments', questionInstanceId] })
+    },
+    onError: (e) => toast.error(e?.message || 'Failed to send'),
+  })
+
+  return (
+    <div className="mt-1 border-t border-white/5 pl-7">
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 text-[10px] text-text-muted/60 hover:text-text-secondary transition-colors py-1">
+        <MessageSquare size={9} />
+        <span>{allComments.length > 0 ? `${allComments.length} repl${allComments.length > 1 ? 'ies' : 'y'}` : 'Reply for clarification'}</span>
+        <ChevronDown size={8} className={cn('transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="space-y-2 pb-2">
+          {allComments.length === 0 && (
+            <p className="text-[10px] text-text-muted/40 italic">No replies yet.</p>
+          )}
+          {allComments.map(c => (
+            <div key={c.id} className="flex gap-1.5">
+              <div className="w-4 h-4 rounded-full bg-surface-overlay border border-border shrink-0 flex items-center justify-center text-[8px] font-bold text-text-muted mt-0.5">
+                {(c.createdByName || '?')[0]?.toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[10px] font-medium text-text-secondary">{c.createdByName}</span>
+                  <span className="text-[9px] text-text-muted/40">{c.createdAt ? formatDateTime(c.createdAt) : ''}</span>
+                </div>
+                <p className="text-[11px] text-text-secondary leading-relaxed">{c.commentText}</p>
+              </div>
+            </div>
+          ))}
+          <div ref={endRef} />
+          <MentionInput
+            value={draft}
+            onChange={(t, ids) => { setDraft(t); setMentionedIds(ids) }}
+            onSubmit={() => { if (draft.trim()) post() }}
+            placeholder="Reply… (@ to mention, Ctrl+Enter to send)"
+            rows={2}
+          />
+          <div className="flex justify-end">
+            <button type="button" disabled={!draft.trim() || isPending}
+              onClick={() => post()}
+              className="text-[10px] font-medium px-2 py-1 rounded bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 transition-colors disabled:opacity-40">
+              {isPending ? 'Sending…' : 'Send'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CommentBubble({ comment, onResolve, currentUserId, questionInstanceId }) {
   const tc   = TYPE_CONFIG[comment.commentType] || TYPE_CONFIG.COMMENT
   const vc   = VISIBILITY_CONFIG[comment.visibility]
   const Icon = tc.icon
+
+  // Only the person who requested the revision can mark it resolved
+  const isRequester = !!currentUserId && (
+    comment.createdBy === currentUserId ||
+    comment.createdBy === Number(currentUserId)
+  )
 
   if (comment.commentType === 'SYSTEM') {
     return (
@@ -66,30 +178,39 @@ function CommentBubble({ comment, onResolve, canResolve }) {
         </span>
       </div>
       <p className="text-xs text-text-secondary leading-relaxed pl-7">{comment.commentText}</p>
-      {comment.commentType === 'REVISION_REQUEST' && canResolve && (
+
+      {/* Mark resolved — only the requester who created this revision request can resolve it */}
+      {comment.commentType === 'REVISION_REQUEST' && isRequester && (
         <div className="pl-7">
-          <button onClick={() => onResolve(comment.id)}
+          <button type="button" onClick={() => onResolve(comment.id)}
             className="text-[10px] text-green-400/70 hover:text-green-400 flex items-center gap-1 transition-colors">
             <CheckCircle2 size={10} />Mark resolved
           </button>
         </div>
+      )}
+
+      {/* Inline reply thread for further clarification on revision requests */}
+      {comment.commentType === 'REVISION_REQUEST' && questionInstanceId && (
+        <RevisionReplyThread comment={comment} questionInstanceId={questionInstanceId} />
       )}
     </div>
   )
 }
 
 function CommentInput({ onSubmit, adding, showVisibility, showType }) {
-  const [text,       setText]       = useState('')
-  const [visibility, setVisibility] = useState('ALL')
-  const [type,       setType]       = useState('COMMENT')
+  const [text,         setText]         = useState('')
+  const [mentionedIds, setMentionedIds] = useState([])
+  const [visibility,   setVisibility]   = useState('ALL')
+  const [type,         setType]         = useState('COMMENT')
   const roles  = useSelector(selectRoles)
   const isOrg  = roles?.some(r => r.side === 'ORGANIZATION')
   const isCiso = roles?.some(r => ['VENDOR_CISO','VENDOR_VRM'].includes(r.name || r.roleName))
 
   const submit = () => {
     if (!text.trim()) return
-    onSubmit({ commentText: text.trim(), visibility, commentType: type })
+    onSubmit({ commentText: text.trim(), visibility, commentType: type, mentionedUserIds: mentionedIds })
     setText('')
+    setMentionedIds([])
     setVisibility('ALL')
     setType('COMMENT')
   }
@@ -119,16 +240,16 @@ function CommentInput({ onSubmit, adding, showVisibility, showType }) {
         </div>
       )}
       <div className="flex items-end gap-2">
-        <textarea
+        <MentionInput
           value={text}
-          onChange={e => setText(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submit() }}
+          onChange={(t, ids) => { setText(t); setMentionedIds(ids) }}
+          onSubmit={submit}
+          placeholder="Add a comment… (@ to mention, Ctrl+Enter to send)"
           rows={2}
-          placeholder="Add a comment… (Ctrl+Enter to send)"
-          className="flex-1 rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+          className="flex-1"
         />
         <button onClick={submit} disabled={!text.trim() || adding}
-          className="w-8 h-8 flex items-center justify-center rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-40 transition-colors flex-shrink-0">
+          className="w-8 h-8 flex items-center justify-center rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-40 transition-colors flex-shrink-0 mb-px">
           {adding
             ? <Loader2 size={14} className="animate-spin text-white" />
             : <Send size={14} className="text-white" />}
@@ -142,8 +263,11 @@ export function CommentFeed({
   comments = [], isLoading, addComment, adding,
   canEdit = true, showVisibility = false, showType = false,
   emptyMessage = 'No comments yet. Be the first.',
+  questionInstanceId,
 }) {
   const bottomRef = useRef(null)
+  const { userId } = useSelector(selectAuth)
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [comments.length])
@@ -165,7 +289,9 @@ export function CommentFeed({
           ? <p className="text-xs text-text-muted text-center py-6">{emptyMessage}</p>
           : comments.map(c => (
               <CommentBubble key={c.id} comment={c}
-                canResolve={canEdit} onResolve={handleResolve} />
+                currentUserId={userId}
+                questionInstanceId={questionInstanceId}
+                onResolve={handleResolve} />
             ))}
         <div ref={bottomRef} />
       </div>

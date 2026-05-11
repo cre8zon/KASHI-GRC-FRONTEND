@@ -92,11 +92,15 @@ export const useTaskAction = () => {
 
 /**
  * useWorkflowList — lists global workflow blueprints.
- * Logic unchanged.
+ * staleTime: 2 minutes — blueprint definitions change rarely (only Platform Admin edits them).
+ * Without staleTime, React Query refetches on every window focus and component mount,
+ * meaning the Workflows page fired a fresh request (60+ DB queries) on every tab switch.
  */
 export const useWorkflowList = (params) => useQuery({
   queryKey: [...QUERY_KEYS.WORKFLOWS, params],
   queryFn: () => workflowsApi.blueprints.list(params),
+  staleTime: 2 * 60 * 1000,  // 2 minutes — blueprints are admin-only, rarely change
+  gcTime:    5 * 60 * 1000,
 })
 
 /**

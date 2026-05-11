@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Search, RefreshCw, Upload, Download, BookOpen,
@@ -211,6 +211,11 @@ export default function QuestionLibraryPage() {
   const [showBulkDeleteQ, setShowBulkDeleteQ] = useState(false)
   const [showBulkDeleteO, setShowBulkDeleteO] = useState(false)
   const [showBulkDeleteS, setShowBulkDeleteS] = useState(false)
+  // "Select all across pages" — true means the bulk delete will include
+  // every ID matching the current filter, not just the visible page.
+  const [selectAllQ, setSelectAllQ] = useState(false)
+  const [selectAllO, setSelectAllO] = useState(false)
+  const [selectAllS, setSelectAllS] = useState(false)
 
   const { mutate: deleteQ, isPending: deletingQ }         = useDeleteQuestion()
   const { mutate: deleteO, isPending: deletingO }         = useDeleteOption()
@@ -220,16 +225,16 @@ export default function QuestionLibraryPage() {
   const { mutate: bulkDeleteS, isPending: bulkDeletingS } = useBulkDeleteSections()
 
   const qParams = {
-    skip: (page - 1) * 20, take: 20,
+    skip: (page - 1) * 50, take: 50,
     ...(search     ? { search: `questiontext=${search}` } : {}),
     ...(typeFilter ? { filterby: `responsetype=${typeFilter}` } : {}),
   }
   const oParams = {
-    skip: (optPage - 1) * 20, take: 20,
+    skip: (optPage - 1) * 50, take: 50,
     ...(search ? { search: `optionvalue=${search}` } : {}),
   }
   const sParams = {
-    skip: (secPage - 1) * 20, take: 20,
+    skip: (secPage - 1) * 50, take: 50,
     ...(search ? { search: `name=${search}` } : {}),
   }
 
@@ -240,6 +245,7 @@ export default function QuestionLibraryPage() {
   const handleTabChange = (t) => {
     setTab(t); setSearch(''); setTypeFilter('')
     setSelectedQIds([]); setSelectedOIds([]); setSelectedSIds([])
+    setSelectAllQ(false); setSelectAllO(false); setSelectAllS(false)
     setPage(1); setOptPage(1); setSecPage(1)
   }
 
@@ -340,20 +346,41 @@ export default function QuestionLibraryPage() {
   ]
 
   // ── Bulk action bar ────────────────────────────────────────────────────────
-  const BulkBar = ({ count, label, loading, onDelete, onClear }) => count === 0 ? null : (
-    <div className="flex items-center gap-3 px-6 py-2.5 bg-brand-500/5 border-b border-brand-500/20">
-      <span className="text-xs font-medium text-brand-400">{count} {label} selected</span>
-      <Button variant="ghost" size="xs" icon={Trash2}
-        className="text-red-400 hover:bg-red-500/10"
-        loading={loading} onClick={onDelete}>
-        Delete selected
-      </Button>
-      <button onClick={onClear}
-        className="text-xs text-text-muted hover:text-text-secondary ml-auto">
-        Clear selection
-      </button>
-    </div>
-  )
+  // Shows a "select all N items" banner (Gmail-style) when the entire visible
+  // page is selected and the total count exceeds the page size — so the user
+  // can choose to delete ALL matching items, not just the 50 visible ones.
+  const BulkBar = ({ count, totalCount, label, loading, selectAll, onSelectAll, onClearAll, onDelete }) =>
+    count === 0 ? null : (
+      <div className="flex flex-col border-b border-brand-500/20">
+        <div className="flex items-center gap-3 px-6 py-2.5 bg-brand-500/5">
+          <span className="text-xs font-medium text-brand-400">
+            {selectAll ? `All ${totalCount} ${label} selected` : `${count} ${label} selected`}
+          </span>
+          <Button variant="ghost" size="xs" icon={Trash2}
+            className="text-red-400 hover:bg-red-500/10"
+            loading={loading} onClick={onDelete}>
+            Delete selected
+          </Button>
+          <button onClick={onClearAll}
+            className="text-xs text-text-muted hover:text-text-secondary ml-auto">
+            Clear selection
+          </button>
+        </div>
+        {/* Show "select all across pages" offer only when a full page is selected
+            and there are more items than what's visible */}
+        {!selectAll && count > 0 && totalCount > count && (
+          <div className="px-6 py-2 bg-brand-500/5 border-t border-brand-500/10">
+            <button onClick={onSelectAll}
+              className="text-xs text-brand-400 hover:text-brand-300 underline underline-offset-2">
+              Select all {totalCount} {label} matching current filter
+            </button>
+            <span className="text-xs text-text-muted ml-2">
+              (currently showing {count} on this page)
+            </span>
+          </div>
+        )}
+      </div>
+    )
 
   return (
     <PageLayout
@@ -424,22 +451,40 @@ export default function QuestionLibraryPage() {
 
       {/* Bulk action bars — appear when rows are selected */}
       {tab === 'questions' && (
-        <BulkBar count={selectedQIds.length} label="question(s)"
+        <BulkBar
+          count={selectedQIds.length}
+          totalCount={qData?.pagination?.totalItems || 0}
+          label="question(s)"
           loading={bulkDeletingQ}
+          selectAll={selectAllQ}
+          onSelectAll={() => setSelectAllQ(true)}
+          onClearAll={() => { setSelectedQIds([]); setSelectAllQ(false) }}
           onDelete={() => setShowBulkDeleteQ(true)}
-          onClear={() => setSelectedQIds([])} />
+        />
       )}
       {tab === 'options' && (
-        <BulkBar count={selectedOIds.length} label="option(s)"
+        <BulkBar
+          count={selectedOIds.length}
+          totalCount={oData?.pagination?.totalItems || 0}
+          label="option(s)"
           loading={bulkDeletingO}
+          selectAll={selectAllO}
+          onSelectAll={() => setSelectAllO(true)}
+          onClearAll={() => { setSelectedOIds([]); setSelectAllO(false) }}
           onDelete={() => setShowBulkDeleteO(true)}
-          onClear={() => setSelectedOIds([])} />
+        />
       )}
       {tab === 'sections' && (
-        <BulkBar count={selectedSIds.length} label="section(s)"
+        <BulkBar
+          count={selectedSIds.length}
+          totalCount={sData?.pagination?.totalItems || 0}
+          label="section(s)"
           loading={bulkDeletingS}
+          selectAll={selectAllS}
+          onSelectAll={() => setSelectAllS(true)}
+          onClearAll={() => { setSelectedSIds([]); setSelectAllS(false) }}
           onDelete={() => setShowBulkDeleteS(true)}
-          onClear={() => setSelectedSIds([])} />
+        />
       )}
 
       {/* Tables — selectable=true activates DataTable's built-in header + row checkboxes */}
@@ -512,27 +557,65 @@ export default function QuestionLibraryPage() {
         message={`Delete section "${deleteSection?.name}"? All template and question mappings will be removed.`}
       />
 
-      {/* Bulk delete */}
+      {/* Bulk delete — when selectAll is active, fetch ALL matching IDs first */}
       <ConfirmDialog open={showBulkDeleteQ} onClose={() => setShowBulkDeleteQ(false)}
-        onConfirm={() => bulkDeleteQ(selectedQIds, { onSuccess: () => { setShowBulkDeleteQ(false); setSelectedQIds([]) } })}
+        onConfirm={async () => {
+          let ids = selectedQIds
+          if (selectAllQ) {
+            // Fetch all IDs matching the current filter in one large call
+            const all = await assessmentsApi.library.questions.list({
+              skip: 0, take: 9999,
+              ...(search     ? { search: `questiontext=${search}` } : {}),
+              ...(typeFilter ? { filterby: `responsetype=${typeFilter}` } : {}),
+            })
+            ids = (all?.items || []).map(q => q.questionId)
+          }
+          bulkDeleteQ(ids, { onSuccess: () => { setShowBulkDeleteQ(false); setSelectedQIds([]); setSelectAllQ(false) } })
+        }}
         loading={bulkDeletingQ}
-        title={`Delete ${selectedQIds.length} Questions`}
+        title={selectAllQ ? `Delete All ${qData?.pagination?.totalItems || ''} Questions` : `Delete ${selectedQIds.length} Questions`}
         variant="danger" confirmLabel="Delete All"
-        message={`Permanently delete ${selectedQIds.length} selected question(s)? All option and section mappings will be removed. This cannot be undone.`}
+        message={selectAllQ
+          ? `Permanently delete ALL ${qData?.pagination?.totalItems} question(s) matching the current filter? All option and section mappings will be removed. This cannot be undone.`
+          : `Permanently delete ${selectedQIds.length} selected question(s)? All option and section mappings will be removed. This cannot be undone.`}
       />
       <ConfirmDialog open={showBulkDeleteO} onClose={() => setShowBulkDeleteO(false)}
-        onConfirm={() => bulkDeleteO(selectedOIds, { onSuccess: () => { setShowBulkDeleteO(false); setSelectedOIds([]) } })}
+        onConfirm={async () => {
+          let ids = selectedOIds
+          if (selectAllO) {
+            const all = await assessmentsApi.library.options.list({
+              skip: 0, take: 9999,
+              ...(search ? { search: `optionvalue=${search}` } : {}),
+            })
+            ids = (all?.items || []).map(o => o.optionId)
+          }
+          bulkDeleteO(ids, { onSuccess: () => { setShowBulkDeleteO(false); setSelectedOIds([]); setSelectAllO(false) } })
+        }}
         loading={bulkDeletingO}
-        title={`Delete ${selectedOIds.length} Options`}
+        title={selectAllO ? `Delete All ${oData?.pagination?.totalItems || ''} Options` : `Delete ${selectedOIds.length} Options`}
         variant="danger" confirmLabel="Delete All"
-        message={`Permanently delete ${selectedOIds.length} selected option(s)? All question mappings will be removed. This cannot be undone.`}
+        message={selectAllO
+          ? `Permanently delete ALL ${oData?.pagination?.totalItems} option(s) matching the current filter? All question mappings will be removed. This cannot be undone.`
+          : `Permanently delete ${selectedOIds.length} selected option(s)? All question mappings will be removed. This cannot be undone.`}
       />
       <ConfirmDialog open={showBulkDeleteS} onClose={() => setShowBulkDeleteS(false)}
-        onConfirm={() => bulkDeleteS(selectedSIds, { onSuccess: () => { setShowBulkDeleteS(false); setSelectedSIds([]) } })}
+        onConfirm={async () => {
+          let ids = selectedSIds
+          if (selectAllS) {
+            const all = await assessmentsApi.library.sections.list({
+              skip: 0, take: 9999,
+              ...(search ? { search: `name=${search}` } : {}),
+            })
+            ids = (all?.items || []).map(s => s.sectionId)
+          }
+          bulkDeleteS(ids, { onSuccess: () => { setShowBulkDeleteS(false); setSelectedSIds([]); setSelectAllS(false) } })
+        }}
         loading={bulkDeletingS}
-        title={`Delete ${selectedSIds.length} Sections`}
+        title={selectAllS ? `Delete All ${sData?.pagination?.totalItems || ''} Sections` : `Delete ${selectedSIds.length} Sections`}
         variant="danger" confirmLabel="Delete All"
-        message={`Permanently delete ${selectedSIds.length} selected section(s)? All template and question mappings will be removed. This cannot be undone.`}
+        message={selectAllS
+          ? `Permanently delete ALL ${sData?.pagination?.totalItems} section(s) matching the current filter? All template and question mappings will be removed. This cannot be undone.`
+          : `Permanently delete ${selectedSIds.length} selected section(s)? All template and question mappings will be removed. This cannot be undone.`}
       />
     </PageLayout>
   )
@@ -583,22 +666,32 @@ function EditQuestionModal({ question, onClose }) {
   const [form, setForm]               = useState({ questionText: '', responseType: '', questionTag: '' })
   const [selectedOpts, setSelectedOpts] = useState([])
   const [errors, setErrors]           = useState({})
-  const prevId = useRef(null)
 
   const allOptions   = oData?.items || []
   const needsOptions = ['SINGLE_CHOICE', 'MULTI_CHOICE'].includes(form.responseType)
 
-  if (question && question.questionId !== prevId.current) {
-    prevId.current = question.questionId
-    setForm({ questionText: question.questionText, responseType: question.responseType, questionTag: question.questionTag || '' })
+  // Seed form fields whenever the question being edited changes.
+  // Using useEffect avoids the setState-during-render anti-pattern that caused
+  // the modal to open empty (React batches updates, so inline setState during
+  // render fires one tick too late).
+  useEffect(() => {
+    if (!question) return
+    setForm({
+      questionText: question.questionText || '',
+      responseType: question.responseType || '',
+      questionTag:  question.questionTag  || '',
+    })
     setSelectedOpts([])
     setErrors({})
-  }
-  // Populate selected options once the linked-options query returns
-  if (linkedOpts && question && prevId.current === question.questionId
-      && selectedOpts.length === 0 && linkedOpts.length > 0) {
-    setSelectedOpts(linkedOpts.map(o => o.optionId))
-  }
+  }, [question?.questionId])
+
+  // Populate linked options once the async query resolves.
+  // Separate effect so it doesn't fight the form-seed effect above.
+  useEffect(() => {
+    if (linkedOpts && linkedOpts.length > 0) {
+      setSelectedOpts(linkedOpts.map(o => o.optionId))
+    }
+  }, [linkedOpts])
 
   const validate = () => {
     const e = {}
@@ -732,13 +825,13 @@ function EditOptionModal({ option, onClose }) {
   const { mutate: update, isPending } = useUpdateOption()
   const [form, setForm]   = useState({ optionValue: '', score: '' })
   const [errors, setErrors] = useState({})
-  const prevId = useRef(null)
 
-  if (option && option.optionId !== prevId.current) {
-    prevId.current = option.optionId
-    setForm({ optionValue: option.optionValue, score: String(option.score ?? '') })
+  // Seed form with current option values when the option being edited changes.
+  useEffect(() => {
+    if (!option) return
+    setForm({ optionValue: option.optionValue || '', score: String(option.score ?? '') })
     setErrors({})
-  }
+  }, [option?.optionId])
   const handleSubmit = () => {
     const e = {}
     if (!form.optionValue.trim()) e.optionValue = 'Required'
@@ -809,13 +902,13 @@ function EditSectionModal({ section, onClose }) {
   const { mutate: update, isPending } = useUpdateSection()
   const [name, setName]   = useState('')
   const [error, setError] = useState('')
-  const prevId = useRef(null)
 
-  if (section && section.sectionId !== prevId.current) {
-    prevId.current = section.sectionId
+  // Seed the name field when the section being edited changes.
+  useEffect(() => {
+    if (!section) return
     setName(section.name || '')
     setError('')
-  }
+  }, [section?.sectionId])
   const handleSubmit = () => {
     if (!name.trim()) { setError('Required'); return }
     update({ id: section.sectionId, data: { name } }, { onSuccess: onClose })

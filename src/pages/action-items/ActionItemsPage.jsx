@@ -126,10 +126,12 @@ function ActionItemCard({ item, onUpdateStatus }) {
           item.status === 'OPEN' ? 'bg-amber-500/10' :
           item.status === 'IN_PROGRESS' ? 'bg-blue-500/10' : item.status === 'PENDING_REVIEW' ? 'bg-purple-500/10' : 'bg-surface-overlay'
         )}>
-          <sc.icon size={14} className={cn(
-            item.status === 'OPEN' ? 'text-amber-400' :
-            item.status === 'IN_PROGRESS' ? 'text-blue-400' : item.status === 'PENDING_REVIEW' ? 'text-purple-400' : 'text-text-muted'
-          )} />
+          {sc.icon && (
+            <sc.icon size={14} className={cn(
+              item.status === 'OPEN' ? 'text-amber-400' :
+              item.status === 'IN_PROGRESS' ? 'text-blue-400' : item.status === 'PENDING_REVIEW' ? 'text-purple-400' : 'text-text-muted'
+            )} />
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -200,14 +202,14 @@ function ActionItemCard({ item, onUpdateStatus }) {
           </Button>
         )}
 
-        {/* Status transitions */}
-        {isOpen && item.status === 'OPEN' && (
+      {/* Status transitions — based on role */}
+        {isOpen && item.status === 'OPEN' && !item.canResolve && (
           <Button size="xs" variant="ghost"
             onClick={() => onUpdateStatus(item.id, 'IN_PROGRESS')}>
             Start working
           </Button>
         )}
-        {isOpen && item.status === 'IN_PROGRESS' && (
+        {isOpen && item.status === 'IN_PROGRESS' && !item.canResolve && (
           <Button size="xs" variant="ghost"
             className="text-purple-400 hover:text-purple-300"
             onClick={() => onUpdateStatus(item.id, 'PENDING_REVIEW')}>
@@ -215,14 +217,18 @@ function ActionItemCard({ item, onUpdateStatus }) {
           </Button>
         )}
         {isOpen && item.status === 'PENDING_REVIEW' && item.canResolve && (
-          <span className="text-[11px] text-purple-400 italic">Awaiting your review</span>
+          <span className="text-[11px] text-amber-400/80 italic flex items-center gap-1">
+            <Clock size={11} /> Awaiting your review
+          </span>
         )}
         {isOpen && item.status === 'PENDING_REVIEW' && !item.canResolve && (
-          <span className="text-[11px] text-purple-400 italic">Submitted — pending review</span>
+          <span className="text-[11px] text-purple-400/80 italic flex items-center gap-1">
+            <Clock size={11} /> Submitted — pending review
+          </span>
         )}
 
-        {/* Resolve — only if canResolve */}
-        {isOpen && item.canResolve && (
+        {/* Resolve — only validator (canResolve) AND item is PENDING_REVIEW or higher */}
+        {isOpen && item.canResolve && item.status === 'PENDING_REVIEW' && (
           <Button size="xs" variant="ghost"
             className="text-green-400 hover:text-green-300"
             onClick={() => onUpdateStatus(item.id, 'RESOLVED')}>

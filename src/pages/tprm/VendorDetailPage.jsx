@@ -30,7 +30,7 @@ import { usersApi }                          from '../../api/users.api'
 import { workflowsApi }                      from '../../api/workflows.api'
 import api                                   from '../../config/axios.config'
 import { useSelector }                       from 'react-redux'
-import { selectAuth }                        from '../../store/slices/authSlice'
+import { selectAuth, selectRoles }           from '../../store/slices/authSlice'
 import toast                                 from 'react-hot-toast'
 import { useComments }                       from '../../hooks/useComments'
 import { CommentFeed }                       from '../../components/comments/CommentFeed'
@@ -102,6 +102,27 @@ const useVendorActionItems = (vendorId) => useQuery({
   enabled:  !!vendorId,
   staleTime: 2 * 60 * 1000,
 })
+
+// ── Shared hook: pending template selection ──────────────────────────────────
+// Called from both the page (to extend setupIncomplete) and VendorSetupBanner
+// (to render the picker). React Query deduplicates the network request because
+// both calls share the same query key.
+function usePendingTemplateSelection(workflowInstanceId) {
+  const roles      = useSelector(selectRoles)
+  const isOrgAdmin = (roles || []).some(r => {
+    const name = r.name || r.roleName || ''
+    return name === 'ORG_ADMIN' || name === 'ORG_OWNER'
+  })
+  const { data: raw, refetch } = useQuery({
+    queryKey: ['template-selection', workflowInstanceId],
+    queryFn:  () => assessmentsApi.templateSelection.get(workflowInstanceId),
+    enabled:  !!workflowInstanceId && isOrgAdmin,
+    retry:    false,   // 404 (no pending selection) is normal — don't spam retries
+  })
+  const data               = raw?.data ?? raw
+  const hasPendingSelection = !!(data && !data.alreadySelected && data.candidates?.length > 1)
+  return { pendingSelection: data, hasPendingSelection, refetch }
+}
 
 function useCancelAssessment(vendorId) {
   const qc = useQueryClient()
@@ -239,12 +260,37 @@ function VendorSetupBanner({ vendor, onRefresh }) {
   const [resending,  setResending]      = useState(false)
   const [restarting, setRestarting]     = useState(false)
 
+  const roles      = useSelector(selectRoles)
+  const isOrgAdmin = (roles || []).some(r => {
+    const name = r.name || r.roleName || ''
+    return name === 'ORG_ADMIN' || name === 'ORG_OWNER'
+  })
+
   const activeWorkflows = (workflowData?.items || [])
     .filter(w => (w.isActive ?? w.active) && w.entityType === 'VENDOR')
 
   const hasVrm      = !!vendor.vrmUserId
   const hasWorkflow = !!vendor.activeWorkflowInstanceId &&
-    ['IN_PROGRESS', 'ON_HOLD', 'PENDING'].includes(vendor.workflowInstanceStatus)
+    ['IN_PROGRESS', 'ON_HOLD', 'PENDING', 'AWAITING_ASSIGNMENT'].includes(vendor.workflowInstanceStatus)
+
+  // ── Template selection — shared hook (same query key → deduplicated request) ──
+  const {
+    pendingSelection,
+    hasPendingSelection,
+    refetch: refetchSelection,
+  } = usePendingTemplateSelection(vendor.activeWorkflowInstanceId)
+
+  // ── Local state for template picker ──────────────────────────────────────
+  const [chosenTemplateId,  setChosenTemplateId]  = useState(null)
+  const [selectConfirming,  setSelectConfirming]  = useState(false)
+  const [selecting,         setSelecting]         = useState(false)
+
+  const TIER_COLOR = {
+    LOW:      'text-green-400',
+    MEDIUM:   'text-yellow-400',
+    HIGH:     'text-amber-400',
+    CRITICAL: 'text-red-400',
+  }
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['vendors', String(vendor.vendorId)] })
@@ -287,7 +333,119 @@ function VendorSetupBanner({ vendor, onRefresh }) {
     }
   }
 
-  if (hasVrm && hasWorkflow) return null
+  const handleSelectTemplate = async () => {
+    if (!chosenTemplateId) return
+    setSelecting(true)
+    try {
+      await assessmentsApi.templateSelection.select(
+        vendor.activeWorkflowInstanceId,
+        chosenTemplateId
+      )
+      toast.success('Template selected — assessment is being prepared')
+      setSelectConfirming(false)
+      setChosenTemplateId(null)
+      invalidate()
+      refetchSelection()
+    } catch (e) {
+      toast.error(e?.response?.data?.error?.message || 'Failed to select template')
+    } finally {
+      setSelecting(false)
+    }
+  }
+
+  // Hide banner only when fully set up AND no pending template selection
+  if (hasVrm && hasWorkflow && !hasPendingSelection) return null
+
+  // If workflow running but there IS a pending template selection — show only the picker
+  if (hasVrm && hasWorkflow && hasPendingSelection) {
+    return (
+      <div className="rounded-lg border border-brand-500/30 bg-brand-500/5 overflow-hidden">
+        <div className="px-4 py-3 flex items-center gap-2 border-b border-brand-500/20">
+          <FileText size={14} className="text-brand-400 shrink-0" />
+          <span className="text-xs font-semibold text-brand-400 uppercase tracking-wide">
+            Assessment Template Selection Required
+          </span>
+          <span className={cn('ml-1 text-[10px] font-semibold uppercase', TIER_COLOR[pendingSelection.riskTierLabel] || 'text-text-muted')}>
+            · {pendingSelection.riskTierLabel}
+          </span>
+        </div>
+        <div className="px-4 py-3 flex flex-col gap-3">
+          <p className="text-xs text-text-muted">
+            {pendingSelection.candidates.length} templates are mapped for the{' '}
+            <span className={cn('font-semibold', TIER_COLOR[pendingSelection.riskTierLabel] || 'text-text-primary')}>
+              {pendingSelection.riskTierLabel}
+            </span>{' '}
+            risk tier. Select one to instantiate the assessment — the chosen template will be
+            snapshotted and fully isolated from any future template edits.
+          </p>
+
+          {/* Template cards */}
+          <div className="grid gap-2">
+            {pendingSelection.candidates.map(tpl => {
+              const isChosen = chosenTemplateId === tpl.templateId
+              return (
+                <button
+                  key={tpl.templateId}
+                  onClick={() => { setChosenTemplateId(tpl.templateId); setSelectConfirming(false) }}
+                  className={cn(
+                    'w-full text-left px-3 py-2.5 rounded-lg border text-xs transition-all',
+                    isChosen
+                      ? 'border-brand-500 bg-brand-500/10'
+                      : 'border-border bg-surface-raised hover:border-brand-500/40'
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={cn(
+                        'w-3.5 h-3.5 rounded-full border-2 shrink-0 flex items-center justify-center',
+                        isChosen ? 'border-brand-500 bg-brand-500' : 'border-border'
+                      )}>
+                        {isChosen && <div className="w-1 h-1 rounded-full bg-white" />}
+                      </div>
+                      <span className="font-medium text-text-primary truncate">{tpl.name}</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-text-muted shrink-0">
+                      v{tpl.version}
+                    </span>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Confirm / submit */}
+          {!selectConfirming ? (
+            <Button
+              size="sm" variant="primary"
+              disabled={!chosenTemplateId}
+              onClick={() => setSelectConfirming(true)}
+            >
+              Confirm selection
+            </Button>
+          ) : (
+            <div className="flex flex-col gap-2 p-3 rounded-lg bg-surface-overlay border border-border">
+              <p className="text-xs text-text-secondary">
+                Confirm: instantiate{' '}
+                <span className="font-semibold text-text-primary">
+                  {pendingSelection.candidates.find(c => c.templateId === chosenTemplateId)?.name}
+                </span>{' '}
+                for <span className="font-semibold text-text-primary">{vendor.name}</span>?
+                This snapshot cannot be undone.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="primary" loading={selecting} onClick={handleSelectTemplate}>
+                  Yes, proceed
+                </Button>
+                <Button size="sm" variant="secondary" disabled={selecting} onClick={() => setSelectConfirming(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -1297,6 +1455,8 @@ export default function VendorDetailPage() {
   const { data: actionItemsData }       = useVendorActionItems(id)
   // Fetched here so both WorkflowTab and AssessmentsTab (phase tracker) share one request
   const { data: workflowProgressData }  = useWorkflowProgress(vendor?.activeWorkflowInstanceId)
+  // Lifted here so setupIncomplete stays true until the admin picks a template
+  const { hasPendingSelection } = usePendingTemplateSelection(vendor?.activeWorkflowInstanceId)
 
   const activeAssessment   = assessments.find(a => a.status !== 'CANCELLED' && a.status !== 'COMPLETED')
   const activeAssessmentId = activeAssessment?.assessmentId ?? null
@@ -1333,8 +1493,10 @@ export default function VendorDetailPage() {
   if (!vendor)   return <div className="p-6 text-text-muted">Vendor not found</div>
 
   const workflowActive  = vendor.activeWorkflowInstanceId &&
-    ['IN_PROGRESS', 'ON_HOLD', 'PENDING'].includes(vendor.workflowInstanceStatus)
-  const setupIncomplete = !vendor.vrmUserId || !workflowActive
+    ['IN_PROGRESS', 'ON_HOLD', 'PENDING', 'AWAITING_ASSIGNMENT'].includes(vendor.workflowInstanceStatus)
+  // Keep the banner mounted until VRM is set up, workflow is running, AND any
+  // pending template selection has been resolved by the admin.
+  const setupIncomplete = !vendor.vrmUserId || !workflowActive || hasPendingSelection
 
   const openActionItems = (Array.isArray(actionItemsData)
     ? actionItemsData

@@ -8,7 +8,7 @@
  *   ┌───────────────────────────────────┐
  *   │ Header: question + type + verdict │
  *   ├───────────────────────────────────┤
- *   │ Answer section (read-only)        │
+ *   │ Answer section (interactive or RO)│
  *   ├───────────────────────────────────┤
  *   │ Tabs: Shared | Internal | Actions │
  *   │        Evidence | Activity        │
@@ -37,25 +37,22 @@
  *   />
  */
 
-import { useState, useEffect, useRef } from 'react'
-import { useMutation, useQueryClient }  from '@tanstack/react-query'
+import { useState, useEffect }      from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   X, MessageSquare, Flag, Activity, Paperclip,
-  CheckCircle2, Clock, AlertTriangle, Lock,
-  Shield, ChevronRight,
+  CheckCircle2, Lock, Shield, Save, Loader2,
 } from 'lucide-react'
-import { cn }                  from '../../lib/cn'
-import { formatDate }          from '../../utils/format'
-import { useSelector }         from 'react-redux'
-import { selectRoles, selectAuth } from '../../store/slices/authSlice'
-import { useQuestionComments } from '../../hooks/useComments'
-import { useEntityActionItems } from '../../hooks/useActionItems'
-import { CommentFeed }         from '../comments/CommentFeed'
-import EvidenceUploader        from '../ui/EvidenceUploader'
-import { ItemActionItems }     from './ItemActionItems'
-import { ResponderActions }    from './ResponderActions'
-import { commentsApi }         from '../../api/comments.api'
-import toast                   from 'react-hot-toast'
+import { cn }                    from '../../lib/cn'
+import { formatDate }            from '../../utils/format'
+import { useQuestionComments }   from '../../hooks/useComments'
+import { useEntityActionItems }  from '../../hooks/useActionItems'
+import { CommentFeed }           from '../comments/CommentFeed'
+import EvidenceUploader          from '../ui/EvidenceUploader'
+import { ItemActionItems }       from './ItemActionItems'
+import { ResponderActions }      from './ResponderActions'
+import { assessmentsApi }        from '../../api/assessments.api'
+import toast                     from 'react-hot-toast'
 
 // ── Verdict badge ──────────────────────────────────────────────────────────────
 
@@ -63,15 +60,255 @@ const VERDICT_CFG = {
   PASS:    { cls: 'bg-green-500/10 text-green-400 border-green-500/30',  label: 'Pass'    },
   PARTIAL: { cls: 'bg-amber-500/10 text-amber-400 border-amber-500/30', label: 'Partial' },
   FAIL:    { cls: 'bg-red-500/10 text-red-400 border-red-500/30',       label: 'Fail'    },
-  ACCEPTED:           { cls: 'bg-green-500/10 text-green-400 border-green-500/30',  label: 'Accepted'           },
-  OVERRIDDEN:         { cls: 'bg-blue-500/10 text-blue-400 border-blue-500/30',     label: 'Overridden'         },
-  REVISION_REQUESTED: { cls: 'bg-amber-500/10 text-amber-400 border-amber-500/30', label: 'Revision requested' },
+  ACCEPTED:           { cls: 'bg-green-500/10 text-green-400 border-green-500/30',  label: 'Accepted by responder' },
+  OVERRIDDEN:         { cls: 'bg-blue-500/10 text-blue-400 border-blue-500/30',     label: 'Overridden'            },
+  REVISION_REQUESTED: { cls: 'bg-amber-500/10 text-amber-400 border-amber-500/30', label: 'Revision requested'    },
+  // PENDING is the default server value before any verdict action — never show it as a badge
 }
 
-const VISIBILITY_ICON = {
-  INTERNAL:        { Icon: Lock,   color: 'text-purple-400', label: 'Org internal' },
-  VENDOR_INTERNAL: { Icon: Lock,   color: 'text-teal-400',   label: 'Vendor internal' },
-  CISO_ONLY:       { Icon: Shield, color: 'text-indigo-400', label: 'CISO only' },
+// ── DrawerAnswerInput — interactive answer for contributor/responder ────────────
+// Shows answerable inputs (text, single choice, multi choice) inside the drawer.
+// FILE_UPLOAD is excluded — user uploads evidence via the Evidence tab instead.
+
+function DrawerAnswerInput({ question, assessmentId }) {
+  const qc = useQueryClient()
+  const { mutate: submitAnswer, isPending } = useMutation({
+    mutationFn: (data) => assessmentsApi.vendor.respond(assessmentId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-sections-fill', assessmentId] })
+      qc.invalidateQueries({ queryKey: ['my-contributor-questions', assessmentId] })
+      qc.invalidateQueries({ queryKey: ['assessment-fill', assessmentId] })
+    },
+    onError: (e) => toast.error(e?.message || 'Failed to save'),
+  })
+
+  const resp = question.currentResponse
+
+  // ── TEXT state ──────────────────────────────────────────────────────────
+  const [localText, setLocalText] = useState(resp?.responseText || '')
+  const [dirty, setDirty]         = useState(false)
+  const [justSaved, setJustSaved] = useState(false)
+
+  // ── SINGLE_CHOICE: optimistic selection — mirrors VendorAssessmentFillPage ─
+  const [selectedOption, setSelectedOption] = useState(
+    resp?.selectedOptionInstanceId != null ? Number(resp.selectedOptionInstanceId) : null
+  )
+
+  // ── MULTI_CHOICE: optimistic set + per-option pending dedup guard ──────
+  const multiIdsKey = JSON.stringify(resp?.selectedOptionInstanceIds ?? [])
+  const [selectedMulti, setMulti] = useState(() => new Set(
+    resp?.selectedOptionInstanceIds?.map(Number) ??
+    (resp?.selectedOptionInstanceId != null ? [Number(resp.selectedOptionInstanceId)] : [])
+  ))
+  const [pendingOptionIds, setPendingOptionIds] = useState(new Set())
+
+  // Sync all local state when server data refreshes after cache invalidation
+  useEffect(() => {
+    if (!dirty) setLocalText(resp?.responseText || '')
+    setSelectedOption(resp?.selectedOptionInstanceId != null ? Number(resp.selectedOptionInstanceId) : null)
+    setMulti(new Set(
+      resp?.selectedOptionInstanceIds?.map(Number) ??
+      (resp?.selectedOptionInstanceId != null ? [Number(resp.selectedOptionInstanceId)] : [])
+    ))
+    setPendingOptionIds(new Set())
+  }, [resp?.responseId, multiIdsKey])
+
+  // ── TEXT ──────────────────────────────────────────────────────────────────
+  if (question.responseType === 'TEXT') {
+    const hasSaved = !!resp?.responseText
+    const saveText = () => {
+      if (!localText.trim()) return
+      submitAnswer(
+        { questionInstanceId: question.questionInstanceId, responseText: localText },
+        { onSuccess: () => { setDirty(false); setJustSaved(true); setTimeout(() => setJustSaved(false), 2000) } }
+      )
+    }
+    return (
+      <div className="space-y-2">
+        {hasSaved && !dirty ? (
+          <div className="group relative px-3 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20">
+            <p className="text-xs text-text-secondary leading-relaxed pr-12 whitespace-pre-wrap">{resp.responseText}</p>
+            <button
+              onClick={() => { setLocalText(resp.responseText); setDirty(true) }}
+              className="absolute right-2 top-2 text-[10px] text-text-muted hover:text-brand-400 border border-border rounded px-1.5 py-0.5 transition-colors">
+              Edit
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <textarea
+              value={localText}
+              onChange={e => { setLocalText(e.target.value); setDirty(true) }}
+              rows={3}
+              autoFocus={dirty}
+              placeholder="Type your answer…"
+              className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+            />
+            <div className="flex items-center gap-2">
+              <button
+                disabled={!localText.trim() || isPending}
+                onClick={saveText}
+                className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded bg-brand-500/20 text-brand-300 border border-brand-500/30 hover:bg-brand-500/30 disabled:opacity-40 transition-colors">
+                {isPending ? <Loader2 size={10} className="animate-spin"/> : <Save size={10}/>}
+                {hasSaved ? 'Update' : 'Save'}
+              </button>
+              {hasSaved && dirty && (
+                <button onClick={() => { setDirty(false); setLocalText(resp.responseText) }}
+                  className="text-xs text-text-muted hover:text-text-secondary transition-colors">
+                  Cancel
+                </button>
+              )}
+              {justSaved && (
+                <span className="text-xs text-green-400 flex items-center gap-1">
+                  <CheckCircle2 size={10}/> Saved
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ── SINGLE CHOICE ─────────────────────────────────────────────────────────
+  if (question.responseType === 'SINGLE_CHOICE') {
+    const saveOption = (optionInstanceId) => {
+      const id = Number(optionInstanceId)
+      if (selectedOption === id) return // already selected — no-op
+      setSelectedOption(id) // optimistic
+      submitAnswer(
+        { questionInstanceId: question.questionInstanceId, selectedOptionInstanceId: id },
+        {
+          onSuccess: () => { setJustSaved(true); setTimeout(() => setJustSaved(false), 1500) },
+          onError:   () => setSelectedOption(resp?.selectedOptionInstanceId != null ? Number(resp.selectedOptionInstanceId) : null),
+        }
+      )
+    }
+    return (
+      <div className="space-y-1.5">
+        <div className="flex flex-wrap gap-1.5">
+          {question.options?.map(opt => {
+            const id       = Number(opt.optionInstanceId)
+            const selected = selectedOption === id
+            return (
+              <button key={opt.optionInstanceId}
+                onClick={() => saveOption(opt.optionInstanceId)}
+                className={cn(
+                  'text-xs px-2.5 py-1.5 rounded border transition-all flex items-center gap-1',
+                  selected
+                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
+                    : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary'
+                )}>
+                {opt.optionValue}
+                {opt.score != null && (
+                  <span className={cn('text-[10px]', selected ? 'text-brand-400/70' : 'opacity-40')}>
+                    {opt.score}pts
+                  </span>
+                )}
+                {selected && <CheckCircle2 size={10} className="text-brand-400"/>}
+              </button>
+            )
+          })}
+        </div>
+        {justSaved && (
+          <span className="text-xs text-green-400 flex items-center gap-1">
+            <CheckCircle2 size={10}/> Saved
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  // ── MULTI CHOICE ──────────────────────────────────────────────────────────
+  if (question.responseType === 'MULTI_CHOICE') {
+    const toggleMulti = (optionInstanceId) => {
+      const id = Number(optionInstanceId)
+      // Dedup guard: ignore double-click while this option's mutation is in-flight
+      if (pendingOptionIds.has(id)) return
+
+      const next = new Set(selectedMulti)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      setMulti(next) // optimistic
+      setPendingOptionIds(p => new Set([...p, id]))
+
+      submitAnswer(
+        { questionInstanceId: question.questionInstanceId, selectedOptionInstanceIds: [id] },
+        {
+          onSuccess: () => {
+            setPendingOptionIds(p => { const s = new Set(p); s.delete(id); return s })
+            setJustSaved(true); setTimeout(() => setJustSaved(false), 1500)
+          },
+          onError: () => {
+            setMulti(selectedMulti) // rollback
+            setPendingOptionIds(p => { const s = new Set(p); s.delete(id); return s })
+          },
+        }
+      )
+    }
+    return (
+      <div className="space-y-1.5">
+        <div className="flex flex-wrap gap-1.5">
+          {question.options?.map(opt => {
+            const id               = Number(opt.optionInstanceId)
+            const selected         = selectedMulti.has(id)
+            const thisOptPending   = pendingOptionIds.has(id)
+            return (
+              <button key={opt.optionInstanceId}
+                onClick={() => toggleMulti(opt.optionInstanceId)}
+                disabled={thisOptPending}
+                className={cn(
+                  'text-xs px-2.5 py-1.5 rounded border transition-all flex items-center gap-1.5',
+                  selected
+                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
+                    : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary',
+                  thisOptPending && 'opacity-60'
+                )}>
+                <span className={cn(
+                  'w-3 h-3 rounded-sm border flex-shrink-0 flex items-center justify-center',
+                  selected ? 'bg-brand-500 border-brand-500' : 'border-current opacity-50'
+                )}>
+                  {selected && <CheckCircle2 size={9} className="text-white"/>}
+                </span>
+                {opt.optionValue}
+                {opt.score != null && (
+                  <span className={cn('text-[10px]', selected ? 'text-brand-400/70' : 'opacity-40')}>
+                    {opt.score}pts
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+        {selectedMulti.size > 0 && (
+          <p className="text-[10px] text-text-muted">
+            {selectedMulti.size} option{selectedMulti.size > 1 ? 's' : ''} selected
+          </p>
+        )}
+        {justSaved && (
+          <span className="text-xs text-green-400 flex items-center gap-1">
+            <CheckCircle2 size={10}/> Saved
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  // ── FILE_UPLOAD — redirect to Evidence tab ────────────────────────────────
+  if (question.responseType === 'FILE_UPLOAD') {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20">
+        <Paperclip size={12} className="text-amber-400 shrink-0" />
+        <p className="text-xs text-amber-300">
+          Upload evidence in the <span className="font-medium">Evidence tab</span> below.
+        </p>
+      </div>
+    )
+  }
+
+  // Fallback for other types — show read-only if answered
+  if (resp) return <AnswerPreview question={question} resp={resp} />
+  return <p className="text-xs text-text-muted italic">Use the question card below to answer.</p>
 }
 
 // ── Main drawer ────────────────────────────────────────────────────────────────
@@ -87,7 +324,6 @@ export function QuestionDrawer({
   const open = !!question
   const qiId = question?.questionInstanceId
   const resp = question?.currentResponse
-  const qc = useQueryClient()
 
   // Close on Escape
   useEffect(() => {
@@ -103,46 +339,30 @@ export function QuestionDrawer({
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  // ADD this useEffect inside QuestionDrawer, right after the existing state declarations:
-
+  // Highlight the question card in the background
   useEffect(() => {
-    const qId = question?.questionInstanceId
-    if (!qId) return
-
-    // Find the card and highlight it
-    const el = document.querySelector(`[data-qi="${qId}"]`)
+    if (!qiId) return
+    const el = document.querySelector(`[data-qi="${qiId}"]`)
     if (el) {
-      el.classList.add(
-        'bg-brand-500/5',
-        'border-l-2',
-        'border-brand-500/50',
-        '!pl-[calc(1.25rem-2px)]'  // compensate for the 2px border so text doesn't shift
-      )
+      el.classList.add('bg-brand-500/5', 'border-l-2', 'border-brand-500/50')
     }
-
-    // Clean up when drawer closes or question changes
     return () => {
-      if (el) {
-        el.classList.remove(
-          'bg-brand-500/5',
-          'border-l-2',
-          'border-brand-500/50',
-          '!pl-[calc(1.25rem-2px)]'
-        )
-      }
+      if (el) el.classList.remove('bg-brand-500/5', 'border-l-2', 'border-brand-500/50')
     }
-  }, [question?.questionInstanceId])
-  
+  }, [qiId])
+
   // ── Tab definitions — vary by side ──────────────────────────────────────────
   const isVendorSide = userSide === 'VENDOR'
   const isOrgSide    = userSide === 'ORGANIZATION'
-  const isCiso       = ['VENDOR_CISO','VENDOR_VRM'].includes(userRole)
 
   const { data: actionItems = [] } = useEntityActionItems('QUESTION_RESPONSE', qiId, {
     enabled: !!qiId,
   })
+  // Exclude assignment-tracking items from badge — they are not user-facing work items
+  const ASSIGNMENT_TYPES = ['CONTRIBUTOR_ASSIGNMENT', 'REVIEWER_ASSIGNMENT']
   const openActionCount = actionItems.filter(
     i => ['OPEN','IN_PROGRESS','PENDING_REVIEW','PENDING_VALIDATION'].includes(i.status)
+      && !ASSIGNMENT_TYPES.includes(i.remediationType)
   ).length
 
   const tabs = [
@@ -156,6 +376,25 @@ export function QuestionDrawer({
   ]
 
   const [activeTab, setActiveTab] = useState('shared')
+
+  // Auto-switch to Evidence tab for FILE_UPLOAD questions opened by vendor-side users
+  // so they land directly on the upload interface instead of having to discover it
+  useEffect(() => {
+    if (!open || !question) return
+    if (question.responseType === 'FILE_UPLOAD' && (mode === 'contributor' || mode === 'responder')) {
+      setActiveTab('evidence')
+    } else {
+      setActiveTab('shared')
+    }
+  }, [qiId]) // only when the question changes, not on mode changes
+
+  // Determine if user can answer from drawer
+  // Contributor: always can answer their assigned questions
+  // Responder: can answer only questions NOT assigned to a contributor
+  const canAnswerInDrawer = (
+    mode === 'contributor' ||
+    (mode === 'responder' && !question?.assignedUserId)
+  ) && question?.responseType !== 'FILE_UPLOAD'
 
   return (
     <>
@@ -191,8 +430,7 @@ export function QuestionDrawer({
                   {question.weight > 0 && (
                     <span className="text-[10px] text-text-muted font-mono">{question.weight} pts</span>
                   )}
-                  {/* Verdict / responder status badges */}
-                  {resp?.reviewerStatus && VERDICT_CFG[resp.reviewerStatus] && (
+                  {resp?.reviewerStatus && resp.reviewerStatus !== 'PENDING' && VERDICT_CFG[resp.reviewerStatus] && (
                     <span className={cn(
                       'text-[10px] font-semibold px-1.5 py-0.5 rounded border',
                       VERDICT_CFG[resp.reviewerStatus].cls
@@ -219,11 +457,46 @@ export function QuestionDrawer({
             </div>
 
             {/* ── Answer section ──────────────────────────────────────── */}
-            {resp && (
-              <div className="px-5 py-3 border-b border-border bg-surface-overlay/30 flex-shrink-0">
+            <div className="px-5 py-3 border-b border-border bg-surface-overlay/30 flex-shrink-0">
+              {/* FILE_UPLOAD: always redirect to Evidence tab for vendor-side modes */}
+              {question.responseType === 'FILE_UPLOAD' && (mode === 'contributor' || mode === 'responder') && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                  <Paperclip size={12} className="text-amber-400 shrink-0" />
+                  <span className="text-xs text-amber-300">
+                    Use the{' '}
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('evidence')}
+                      className="font-semibold underline underline-offset-2 hover:text-amber-200 transition-colors"
+                    >Evidence tab</button>
+                    {' '}below to upload your file.
+                  </span>
+                </div>
+              )}
+
+              {/* FILE_UPLOAD read-only (reviewer or readonly mode) */}
+              {question.responseType === 'FILE_UPLOAD' && (mode === 'reviewer' || mode === 'readonly') && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-overlay/50 border border-border">
+                  <Paperclip size={12} className="text-text-muted shrink-0" />
+                  <p className="text-xs text-text-muted">See the <span className="font-medium">Evidence tab</span> for uploaded files.</p>
+                </div>
+              )}
+
+              {/* Interactive answer input for contributor or responder (non-FILE_UPLOAD unassigned questions) */}
+              {canAnswerInDrawer && (
+                <DrawerAnswerInput question={question} assessmentId={assessmentId} />
+              )}
+
+              {/* Read-only answer preview for reviewer/readonly or responder when assigned to contributor */}
+              {!canAnswerInDrawer && question.responseType !== 'FILE_UPLOAD' && resp && (
                 <AnswerPreview question={question} resp={resp} />
-              </div>
-            )}
+              )}
+
+              {/* Nothing answered yet — read-only viewers, non-FILE_UPLOAD */}
+              {!canAnswerInDrawer && question.responseType !== 'FILE_UPLOAD' && !resp && (
+                <p className="text-xs text-text-muted italic">Not answered yet.</p>
+              )}
+            </div>
 
             {/* ── Responder command actions (vendor side only) ─────────── */}
             {mode === 'responder' && question.assignedUserId && resp && (
@@ -296,8 +569,9 @@ export function QuestionDrawer({
                   <EvidenceUploader
                     entityType="QUESTION_RESPONSE"
                     entityId={qiId}
-                    canUpload={mode !== 'readonly'}
-                    canRemove={mode === 'responder' || mode === 'reviewer'}
+                    // Only vendor side can upload — org reviewers see evidence read-only
+                    canUpload={isVendorSide && mode !== 'readonly'}
+                    canRemove={isVendorSide && (mode === 'responder' || mode === 'contributor')}
                     emptyLabel="No evidence attached yet."
                   />
                 )}
@@ -313,12 +587,13 @@ export function QuestionDrawer({
   )
 }
 
-// ── Answer preview ─────────────────────────────────────────────────────────────
+// ── Answer preview (read-only) ─────────────────────────────────────────────────
 
 function AnswerPreview({ question, resp }) {
   const isMulti  = question.responseType === 'MULTI_CHOICE'
   const isSingle = question.responseType === 'SINGLE_CHOICE'
-  const isText   = !isMulti && !isSingle && question.responseType !== 'FILE_UPLOAD'
+  const isFile   = question.responseType === 'FILE_UPLOAD'
+  const isText   = !isMulti && !isSingle && !isFile
 
   const multiIds = (() => {
     if (resp?.selectedOptionInstanceIds?.length) return resp.selectedOptionInstanceIds.map(Number)
@@ -342,6 +617,13 @@ function AnswerPreview({ question, resp }) {
           </span>
         )}
       </div>
+
+      {isFile && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20">
+          <Paperclip size={12} className="text-amber-400 shrink-0" />
+          <p className="text-xs text-amber-300/80">See the <span className="font-medium">Evidence tab</span> for uploaded files.</p>
+        </div>
+      )}
 
       {isText && resp.responseText && (
         <div className="px-3 py-2 rounded-lg bg-surface border border-border">
@@ -376,10 +658,6 @@ function AnswerPreview({ question, resp }) {
 }
 
 // ── Shared tab — visibility: ALL ───────────────────────────────────────────────
-// Both vendor and org sides see this channel. Used for:
-//   - Revision requests (responder → contributor)
-//   - Formal notices visible to both parties
-//   - Resolution acknowledgements
 
 function SharedTab({ qiId, assessmentId, canComment, userSide }) {
   const { comments, isLoading, addComment, adding } = useQuestionComments(
@@ -421,13 +699,13 @@ function SharedTab({ qiId, assessmentId, canComment, userSide }) {
         showVisibility={false}
         showType={true}
         emptyMessage="No shared discussion yet."
+        questionInstanceId={qiId}
       />
     </div>
   )
 }
 
 // ── Internal tab — VENDOR_INTERNAL (vendor) or INTERNAL (org) ─────────────────
-// Private to one side. The other side never sees these comments.
 
 function InternalTab({ qiId, assessmentId, canComment, userSide, userRole }) {
   const isVendorSide = userSide === 'VENDOR'
@@ -437,7 +715,6 @@ function InternalTab({ qiId, assessmentId, canComment, userSide, userRole }) {
     qiId, { enabled: !!qiId }
   )
 
-  // Filter to only this side's private comments
   const privateComments = comments.filter(c => c.visibility === myVisibility)
 
   const handleAddComment = (data) => addComment({
@@ -465,6 +742,7 @@ function InternalTab({ qiId, assessmentId, canComment, userSide, userRole }) {
         showVisibility={false}
         showType={false}
         emptyMessage={`No ${isVendorSide ? 'vendor-internal' : 'org-internal'} notes yet.`}
+        questionInstanceId={qiId}
       />
     </div>
   )

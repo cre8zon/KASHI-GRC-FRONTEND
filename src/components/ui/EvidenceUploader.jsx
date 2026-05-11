@@ -20,7 +20,7 @@
  */
 
 import { useRef, useState }       from 'react'
-import { Upload, File, Trash2, Download, Link, Loader2, X, CheckCircle2 } from 'lucide-react'
+import { Upload, Trash2, Download, Link, Loader2, X, CheckCircle2, Eye } from 'lucide-react'
 import { cn }              from '../../lib/cn'
 import { formatDate }      from '../../utils/format'
 import { formatBytes }     from '../../utils/format'
@@ -30,6 +30,7 @@ import {
   useRemoveDocumentLink,
   useDocumentDownload,
 } from '../../hooks/useDocuments'
+import { DocumentPreviewDrawer } from './DocumentPreviewDrawer'
 import toast from 'react-hot-toast'
 
 // ─── MIME validation (mirrors server allowlist) ───────────────────────────────
@@ -66,7 +67,7 @@ const getMimeInfo = (mimeType) =>
 
 // ─── DocumentRow — one file in the list ──────────────────────────────────────
 
-function DocumentRow({ doc, entityType, entityId, linkType, canRemove, compact }) {
+function DocumentRow({ doc, entityType, entityId, linkType, canRemove, compact, onPreview }) {
   const { openDocument, loading: downloading } = useDocumentDownload()
   const { mutate: removeLink, isPending: removing } = useRemoveDocumentLink(entityType, entityId, linkType)
   const mimeInfo = getMimeInfo(doc.mimeType)
@@ -77,9 +78,14 @@ function DocumentRow({ doc, entityType, entityId, linkType, canRemove, compact }
   return (
     <div className={cn(
       'flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-border',
-      'bg-surface-overlay/40 hover:bg-surface-overlay/70 transition-colors group',
+      'bg-surface-overlay/40 transition-colors group',
+      doc.documentId && onPreview
+        ? 'cursor-pointer hover:bg-brand-500/5 hover:border-brand-500/30'
+        : 'hover:bg-surface-overlay/70',
       compact && 'py-2'
-    )}>
+    )}
+      onClick={() => doc.documentId && onPreview && onPreview(doc)}
+    >
       {/* File type badge */}
       <div className={cn(
         'shrink-0 mt-0.5 text-[9px] font-mono font-medium px-1.5 py-0.5 rounded',
@@ -130,11 +136,17 @@ function DocumentRow({ doc, entityType, entityId, linkType, canRemove, compact }
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+      {/* Actions — always visible, stop propagation so they don't trigger row click */}
+      <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+        {/* Preview hint — subtle eye icon always visible */}
+        {doc.documentId && onPreview && (
+          <span className="p-1 text-text-muted/40 group-hover:text-brand-400 transition-colors" title="Click row to preview">
+            <Eye size={12} />
+          </span>
+        )}
         {doc.downloadUrl || doc.documentId ? (
           <button
-            onClick={() => openDocument(doc.documentId, doc.fileName)}
+            onClick={(e) => { e.stopPropagation(); openDocument(doc.documentId, doc.fileName) }}
             disabled={downloading}
             title="Download"
             className="p-1 rounded hover:bg-surface-overlay text-text-muted hover:text-text-primary transition-colors"
@@ -145,7 +157,8 @@ function DocumentRow({ doc, entityType, entityId, linkType, canRemove, compact }
 
         {canRemove && (
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation()
               if (window.confirm(`Remove "${doc.title || doc.fileName}" from this item? The file is kept in the document store.`))
                 removeLink(doc.linkId)
             }}
@@ -255,21 +268,25 @@ function UploadProgressBar({ fileName, progress, done, error }) {
 export default function EvidenceUploader({
   entityType,
   entityId,
-  linkType    = 'ATTACHMENT',
+  linkType     = 'ATTACHMENT',
   documentType = 'EVIDENCE',
-  canUpload   = true,
-  canRemove   = true,
-  compact     = false,
-  emptyLabel  = 'No files attached yet',
+  canUpload    = true,
+  canRemove    = true,
+  compact      = false,
+  emptyLabel   = 'No files attached yet',
   className,
+  /** Called after each successful upload — use to invalidate parent query caches */
+  onUploadSuccess,
 }) {
+  // staleTime: 0 forces immediate refetch after upload invalidates the cache
   const { data: docs = [], isLoading } = useEntityDocuments(
     entityType, entityId, linkType,
-    { enabled: !!entityType && !!entityId }
+    { enabled: !!entityType && !!entityId, staleTime: 0 }
   )
   const { upload, progress, isUploading } = useDocumentUpload()
 
-  const [uploads, setUploads] = useState([]) // [{ id, name, progress, done, error }]
+  const [uploads,    setUploads]    = useState([]) // [{ id, name, progress, done, error }]
+  const [previewDoc, setPreviewDoc] = useState(null) // doc to preview in-app
 
   const handleFiles = async (files) => {
     for (const file of files) {
@@ -282,9 +299,14 @@ export default function EvidenceUploader({
           entityType,
           entityId,
           linkType,
-          silent: true, // we show our own progress UI
-          onSuccess: () =>
-            setUploads(prev => prev.map(u => u.id === uid ? { ...u, progress: 100, done: true } : u)),
+          silent: true,
+          onSuccess: () => {
+            setUploads(prev => prev.map(u => u.id === uid ? { ...u, progress: 100, done: true } : u))
+            onUploadSuccess?.()
+            // Clear the progress row after docs list has time to refresh and show the file
+            setTimeout(() =>
+              setUploads(prev => prev.filter(u => u.id !== uid)), 2500)
+          },
           onError: (err) =>
             setUploads(prev => prev.map(u => u.id === uid
               ? { ...u, error: err?.response?.data?.error?.message ?? err?.message ?? 'Failed', done: false }
@@ -293,12 +315,13 @@ export default function EvidenceUploader({
       } catch { /* error handled by onError above */ }
     }
 
-    // Auto-clear completed/failed uploads after 4 seconds
+    // Clear failed uploads after 6 seconds
     setTimeout(() =>
-      setUploads(prev => prev.filter(u => !u.done && !u.error)), 4000)
+      setUploads(prev => prev.filter(u => !u.error)), 6000)
   }
 
   return (
+    <>
     <div className={cn('space-y-2', className)}>
       {/* Upload zone */}
       {canUpload && !compact && (
@@ -350,10 +373,19 @@ export default function EvidenceUploader({
               linkType={linkType}
               canRemove={canRemove}
               compact={compact}
+              onPreview={setPreviewDoc}
             />
           ))}
         </div>
       )}
     </div>
+
+    {/* In-app document viewer — portal to document.body, works everywhere */}
+    <DocumentPreviewDrawer
+      document={previewDoc}
+      open={!!previewDoc}
+      onClose={() => setPreviewDoc(null)}
+    />
+  </>
   )
 }
