@@ -587,6 +587,40 @@ const STEP_ACTION_OPTIONS = [
   },
 ]
 
+
+// ── Actor resolution options ─────────────────────────────────────────────────
+const ACTOR_RESOLUTION_OPTIONS = [
+  { value: 'ROLE_BASED',
+    label: 'Role-based',
+    desc:  'All users holding the actor role(s) receive a task (pool)' },
+  { value: 'ASSIGNMENT_SCOPED',
+    label: 'Assignment-scoped',
+    desc:  'Only users explicitly assigned work in a prior step receive a task' },
+]
+
+function ActorResolutionSelector({ resolution, onChange }) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {ACTOR_RESOLUTION_OPTIONS.map(opt => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={cn(
+            'flex flex-col items-start gap-0.5 px-3 py-2 rounded-lg border text-left transition-colors',
+            resolution === opt.value
+              ? 'border-brand-500/50 bg-brand-500/10 text-brand-400'
+              : 'border-border bg-surface-raised text-text-muted hover:border-brand-500/30 hover:text-text-primary'
+          )}
+        >
+          <span className="text-xs font-semibold">{opt.label}</span>
+          <span className="text-[10px] leading-tight opacity-80">{opt.desc}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function StepActionSelector({ value, onChange }) {
   return (
     <div className="grid grid-cols-2 gap-1.5">
@@ -677,7 +711,7 @@ function ObserverRolesSelector({ observerRoleIds, onChange }) {
 }
 
 // ── StepCard inside the form ──────────────────────────────────────────────────
-function StepFormCard({ step, index, total, errors, onChange, onRemove, dragHandleProps }) {
+export function StepFormCard({ step, index, total, errors, onChange, onRemove, dragHandleProps }) {
   const [expanded, setExpanded] = useState(true)
   const isSystem = step.side === 'SYSTEM'
 
@@ -866,6 +900,22 @@ function StepFormCard({ step, index, total, errors, onChange, onRemove, dragHand
                 </div>
               )}
 
+              {/* Row 2c2: Actor Resolution — how actor tasks are distributed */}
+              {(step.roleIds || []).length > 0 && (
+                <div>
+                  <label className="text-[10px] font-medium text-text-secondary uppercase tracking-wide block mb-2">
+                    Actor Task Distribution
+                    <span className="ml-1 text-text-muted normal-case font-normal">
+                      — who receives ACTOR tasks when this step activates
+                    </span>
+                  </label>
+                  <ActorResolutionSelector
+                    resolution={step.actorResolution || 'ROLE_BASED'}
+                    onChange={(val) => set('actorResolution', val)}
+                  />
+                </div>
+              )}
+
               {/* Row 2d: Observer Roles — read-only visibility, no task */}
               <div>
                 <label className="text-[10px] font-medium text-text-secondary uppercase tracking-wide block mb-2">
@@ -952,11 +1002,11 @@ function StepFormCard({ step, index, total, errors, onChange, onRemove, dragHand
 function downloadTemplate() {
   const headers = [
     'order','name','side','stepAction','approvalType','slaHours',
-    'automatedAction','assignerResolution','actorRoles','assignerRoles','observerRoles','navKey','assignerNavKey',
+    'automatedAction','assignerResolution','actorResolution','actorRoles','assignerRoles','observerRoles','navKey','assignerNavKey',
   ]
   const rows = [
-    ['1','Execute Assessment',            'SYSTEM',  '',           'ANY_ONE','',   'EXECUTE_ASSESSMENT','POOL',          '',                '',                ''],
-    ['2','VRM Acknowledges Assessment',   'VENDOR',  'ACKNOWLEDGE','ANY_ONE','48', '',                 'PUSH_TO_ROLES', 'VENDOR_VRM',       'ORG_VRM_MANAGER', ''],
+    ['1','Execute Assessment',            'SYSTEM',  '',           'ANY_ONE','',   'EXECUTE_ASSESSMENT','POOL',          'ROLE_BASED',      '',                '',                ''],
+    ['2','VRM Acknowledges Assessment',   'VENDOR',  'ACKNOWLEDGE','ANY_ONE','48', '',                 'PUSH_TO_ROLES', 'ROLE_BASED',      'VENDOR_VRM',       'ORG_VRM_MANAGER', ''],
     ['3','VRM Delegates to Vendor CISO',  'VENDOR',  'ASSIGN',    'ANY_ONE','24', '',                 'PREVIOUS_ACTOR','VENDOR_VRM',       '',                ''],
     ['4','Vendor CISO Assigns Groups',    'VENDOR',  'ASSIGN',    'ANY_ONE','48', '',                 'PREVIOUS_ACTOR','VENDOR_CISO',      '',                ''],
     ['5','Responders Assign Questions',   'VENDOR',  'ASSIGN',    'ANY_ONE','24', '',                 'PREVIOUS_ACTOR','VENDOR_RESPONDER',  '',                ''],
@@ -1107,10 +1157,10 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
                   <p className="text-text-muted font-mono text-[10px] leading-relaxed">
                     order, name, side, stepAction,<br/>
                     approvalType, slaHours, automatedAction,<br/>
-                    assignerResolution, actorRoles, assignerRoles,<br/>
+                    assignerResolution, actorResolution, actorRoles, assignerRoles,<br/>
                     observerRoles, navKey
                     approvalType, slaHours, automatedAction,<br/>
-                    assignerResolution, actorRoles, assignerRoles, observerRoles
+                    assignerResolution, actorResolution, actorRoles, assignerRoles, observerRoles
                   </p>
                   <p className="text-text-muted mt-1.5">
                     Role names semicolon-separated e.g. <code>VENDOR_VRM;VENDOR_CISO</code>
@@ -1281,6 +1331,7 @@ export function StepForm({ steps, setSteps, errors, workflowId }) {
     automatedAction: null,
     assignerResolution: 'POOL',
     assignerRoleIds: [],
+    actorResolution: 'ROLE_BASED',
     allowOverride: true,
     stepAction: null,
     navKey: null,
@@ -1403,11 +1454,15 @@ export function stepsToFormState(apiSteps = []) {
     automatedAction:      s.automatedAction || null,
     assignerResolution:   s.assignerResolution || 'POOL',
     assignerRoleIds:      s.assignerRoleIds || [],
+    actorResolution:      s.actorResolution || 'ROLE_BASED',
+    actorResolution:      s.actorResolution || 'ROLE_BASED',
     allowOverride:        s.allowOverride !== undefined ? s.allowOverride : true,
     stepAction:           s.stepAction || null,
     navKey:               s.navKey || null,
     assignerNavKey:       s.assignerNavKey || null,
     observerRoleIds:      s.observerRoleIds || [],
+    // UI access override — snapshotted into StepInstance at step activation time
+    stepUiOverrideJson:   s.stepUiOverrideJson || null,
     sections: (s.sections || []).map(sec => ({
       id:                 sec.id || null,
       sectionKey:         sec.sectionKey || '',
@@ -1418,6 +1473,12 @@ export function stepsToFormState(apiSteps = []) {
       completionEvent:    sec.completionEvent || '',
       requiresAssignment: sec.requiresAssignment || false,
       tracksItems:        sec.tracksItems || false,
+      // NEW: UI config fields — snapshotted into task_section_completions at task creation
+      sectionScreenKey:   sec.sectionScreenKey || '',
+      itemScreenKey:      sec.itemScreenKey || '',
+      itemRefType:        sec.itemRefType || '',
+      sectionUiJson:      sec.sectionUiJson || '',
+      itemUiJson:         sec.itemUiJson || '',
     })),
   }))
 }
@@ -1443,7 +1504,9 @@ export function stepsToPayload(steps) {
     navKey:               s.navKey || undefined,
     assignerNavKey:       s.assignerNavKey || undefined,
     observerRoleIds:      s.observerRoleIds || [],
-    // Gap 4: include sections — only send rows with all three required fields
+    // UI access override — stored in workflow_steps.step_ui_override_json
+    // Snapshotted into step_instances.snap_ui_override_json at step activation
+    stepUiOverrideJson:   s.stepUiOverrideJson || undefined,
     sections: (s.sections || [])
       .filter(sec => sec.sectionKey && sec.completionEvent && sec.label)
       .map((sec, idx) => ({
@@ -1456,6 +1519,13 @@ export function stepsToPayload(steps) {
         completionEvent:    sec.completionEvent,
         requiresAssignment: sec.requiresAssignment || false,
         tracksItems:        sec.tracksItems || false,
+        // NEW: UI config — stored in workflow_step_sections, snapshotted into
+        // task_section_completions.snap_* at task creation (never re-read from blueprint)
+        sectionScreenKey:   sec.sectionScreenKey || undefined,
+        itemScreenKey:      sec.itemScreenKey || undefined,
+        itemRefType:        sec.itemRefType || undefined,
+        sectionUiJson:      sec.sectionUiJson || undefined,
+        itemUiJson:         sec.itemUiJson || undefined,
       })),
   }))
 }

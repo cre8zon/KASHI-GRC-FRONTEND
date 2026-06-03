@@ -39,7 +39,7 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
 
       // Don't re-fetch on reconnect by default.
-      refetchOnReconnect: false,
+      refetchOnReconnect: true,
     },
     mutations: {
       onError: (error) => {

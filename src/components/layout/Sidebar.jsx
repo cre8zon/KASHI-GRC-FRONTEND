@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen,
-  LogOut, Settings, User, ShieldCheck
+  LogOut, Settings, User, ShieldCheck, WifiOff, RefreshCw,
 } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { useNavigation } from '../../hooks/useUIConfig'
 import { useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
+import { openTab } from '../../store/slices/tabsSlice'
 import { selectBranding } from '../../store/slices/uiConfigSlice'
 import { selectAuth } from '../../store/slices/authSlice'
 import { useTheme } from '../../hooks/useTheme'
@@ -15,7 +17,7 @@ import { useLogout } from '../../hooks/useAuth'
 import { Skeleton } from '../ui/EmptyState'
 import { initials } from '../../utils/format'
 import api from '../../config/axios.config'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 function NavIcon({ name, size = 16, ...props }) {
   const Icon = Icons[name] || Icons.Circle
@@ -101,11 +103,16 @@ function KashiLogo({ size = 28, className }) {
 // ── NavItem ───────────────────────────────────────────────────────────────────
 function NavItem({ item, depth = 0, collapsed = false, t }) {
   const location = useLocation()
-  const [open, setOpen] = useState(() => location.pathname.startsWith(item.route || ''))
+  const routeMatches = (route) => {
+    if (!route) return false
+    return location.pathname === route ||
+           location.pathname.startsWith(route + '/')
+  }
+  const [open, setOpen] = useState(() => routeMatches(item.route))
   const hasChildren = item.children?.length > 0
 
   if (hasChildren) {
-    const isActive = location.pathname.startsWith(item.route || '')
+    const isActive = routeMatches(item.route)
     if (collapsed) return null
     return (
       <div>
@@ -143,8 +150,17 @@ function NavItem({ item, depth = 0, collapsed = false, t }) {
 
   const badgeCount = useBadgeCount(item.badgeCountEndpoint || null)
 
+  const dispatch = useDispatch()
+  const handleClick = (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault()
+      dispatch(openTab({ route: item.route, title: item.label, icon: item.icon }))
+    }
+  }
+
   return (
     <NavLink to={item.route} end title={collapsed ? item.label : undefined}
+      onClick={handleClick}
       className={({ isActive }) => cn(
         'flex items-center rounded-lg text-sm transition-all group relative',
         collapsed ? 'justify-center w-9 h-9 mx-auto p-0' : 'gap-2.5 px-3 py-2',
@@ -248,9 +264,54 @@ function SidebarUserPanel({ collapsed, t, auth, branding }) {
   )
 }
 
+// ── Nav Error State ───────────────────────────────────────────────────────────
+// Shown when navigation fails to load (server down, network error).
+// Replaces the empty dark sidebar so users know why there's nothing there.
+function NavErrorState({ collapsed, t, effectiveTheme, onRetry }) {
+  if (collapsed) {
+    // Collapsed: just show a WifiOff icon with a click-to-retry tooltip
+    return (
+      <div className="flex flex-col items-center gap-2 py-4">
+        <button onClick={onRetry} title="Server unreachable — click to retry"
+          className={cn('w-9 h-9 flex items-center justify-center rounded-lg transition-colors', t.bgHover)}>
+          <WifiOff size={16} className="text-red-400/70" />
+        </button>
+      </div>
+    )
+  }
+  return (
+    <div className={cn(
+      'mx-3 mt-2 px-3 py-3 rounded-lg border text-xs',
+      effectiveTheme === 'light'
+        ? 'bg-red-50 border-red-200 text-red-700'
+        : 'bg-red-500/10 border-red-500/20 text-red-400'
+    )}>
+      <div className="flex items-center gap-2 font-semibold mb-1">
+        <WifiOff size={12} />
+        Server unreachable
+      </div>
+      <p className={cn('leading-relaxed',
+        effectiveTheme === 'light' ? 'text-red-600' : 'text-red-400/70'
+      )}>
+        Navigation couldn't load. The backend may be starting up.
+      </p>
+      <button onClick={onRetry}
+        className={cn(
+          'mt-2.5 flex items-center gap-1.5 text-[11px] font-medium',
+          'underline underline-offset-2 hover:no-underline transition-colors',
+          effectiveTheme === 'light' ? 'text-red-700' : 'text-red-400'
+        )}>
+        <RefreshCw size={10} />
+        Retry
+      </button>
+    </div>
+  )
+}
+
 // ── Main Sidebar ──────────────────────────────────────────────────────────────
 export function Sidebar({ collapsed, onToggle }) {
-  const { data: navItems = [], isLoading } = useNavigation()
+  const qc = useQueryClient()
+  const { data: navItems = [], isLoading, isError } = useNavigation()
   const branding       = useSelector(selectBranding)
   const auth           = useSelector(selectAuth)
 
@@ -275,9 +336,14 @@ export function Sidebar({ collapsed, onToggle }) {
     return () => window.removeEventListener('kashi-sidebar-changed', handler)
   }, [])
 
-  // If brand theme but branding not loaded yet, show dark temporarily
-  // Sidebar re-renders automatically when branding Redux state loads
-  const effectiveTheme = (!branding && sidebarPref === 'brand')
+  // If brand theme but branding not loaded yet:
+  // - If user has a saved sidebar color in localStorage → keep 'brand' so brandBg renders correctly
+  // - If no saved color at all → fall back to 'dark' temporarily
+  // This ensures server-down state shows the user's chosen color, not hardcoded dark blue.
+  const hasSavedColor = (() => {
+    try { const c = localStorage.getItem('kashi_sidebar_color'); return !!c && c.length > 0 } catch { return false }
+  })()
+  const effectiveTheme = (!branding && sidebarPref === 'brand' && !hasSavedColor)
     ? 'dark'
     : (sidebarPref || branding?.sidebarTheme || 'brand')
   const t              = getSidebarTokens(effectiveTheme)
@@ -302,6 +368,17 @@ export function Sidebar({ collapsed, onToggle }) {
     const b = Math.round(parseInt(hex.slice(4,6), 16) * 0.55)
     return { backgroundColor: `rgb(${r} ${g} ${b})` }
   })()
+
+  const handleNavRetry = () => qc.invalidateQueries({ queryKey: ['navigation'] })
+  const location = useLocation()
+  const navRef = useRef(null)
+
+  useEffect(() => {
+    // NavLink sets aria-current="page" on the active link — use that instead of
+    // class-based selection which also matches parent labels with font-medium
+    const active = navRef.current?.querySelector('a[aria-current="page"]')
+    active?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [location.pathname])
 
   return (
     <aside
@@ -351,7 +428,7 @@ export function Sidebar({ collapsed, onToggle }) {
       )}
 
       {/* Nav */}
-      <nav className={cn('flex-1 overflow-y-auto py-3 space-y-4 min-h-0', collapsed ? 'px-1.5' : 'px-2.5')}>
+      <nav ref={navRef} className={cn('flex-1 overflow-y-auto py-3 space-y-4 min-h-0', collapsed ? 'px-1.5' : 'px-2.5')}>
         {isLoading && (
           <div className={cn('space-y-1 px-2', collapsed && 'px-1.5')}>
             {!collapsed && (
@@ -380,7 +457,18 @@ export function Sidebar({ collapsed, onToggle }) {
             ))}
           </div>
         )}
-        {!isLoading && Object.entries(grouped).map(([module, items]) => (
+
+        {/* ── NEW: server error state — replaces empty dark sidebar ── */}
+        {isError && !isLoading && (
+          <NavErrorState
+            collapsed={collapsed}
+            t={t}
+            effectiveTheme={effectiveTheme}
+            onRetry={handleNavRetry}
+          />
+        )}
+
+        {!isLoading && !isError && Object.entries(grouped).map(([module, items]) => (
           <div key={module}>
             {!collapsed && module !== '_root' && (
               <p className={cn('px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest', t.section)}>

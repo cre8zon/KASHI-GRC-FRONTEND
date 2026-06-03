@@ -1022,11 +1022,11 @@ export default function VendorAssessmentFillPage() {
 
   // ALL hooks before any early returns — Rules of Hooks
   useEffect(() => {
-    if (isRevisionEntry) return  // let backend guard decide — don't redirect
+    if (isRevisionEntry || isAssignmentEntry) return  // contributor/revision: backend guards, don't redirect
     if (!accessLoading && access && !access.canView) {
       navigate('/workflow/inbox', { replace: true })
     }
-  }, [accessLoading, access, navigate, isRevisionEntry])
+  }, [accessLoading, access, navigate, isRevisionEntry, isAssignmentEntry])
 
   // Auto-open the drawer for the target question when arriving via "Go to item".
   // Fires once after contributorQs loads and questionInstanceIdParam is set.
@@ -1055,7 +1055,7 @@ export default function VendorAssessmentFillPage() {
     </div>
   )
 
-  if (!isRevisionEntry && access && !access.canView) return null
+  if (!isRevisionEntry && !isAssignmentEntry && access && !access.canView) return null
 
   if (!assessment) return (
     <div className="p-6 text-center text-text-muted text-sm">

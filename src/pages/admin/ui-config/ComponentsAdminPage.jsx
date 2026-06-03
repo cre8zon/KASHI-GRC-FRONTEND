@@ -15,7 +15,7 @@ import { cn }          from '../../../lib/cn'
 import { COLOR_MAP }   from '../../../config/constants'
 import toast           from 'react-hot-toast'
 
-const COMPONENT_TYPES = ['BADGE_SET', 'DROPDOWN', 'RADIO_GROUP', 'MULTI_SELECT', 'STATUS_MAP']
+const COMPONENT_TYPES = ['BADGE', 'DROPDOWN', 'MULTI_SELECT', 'RADIO', 'CHECKBOX_GROUP', 'TABLE_COLUMNS', 'FEATURE_FLAG', 'STATUS_FLOW']
 const COLOR_TAGS = Object.keys(COLOR_MAP)
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -200,12 +200,17 @@ export default function ComponentsAdminPage() {
     { key: 'isVisible',     label: 'Visible',  width: 70, type: 'custom',
       render: (r) => <Badge value={r.isVisible ? 'yes' : 'no'} label={r.isVisible ? 'Yes' : 'No'}
         colorTag={r.isVisible ? 'green' : 'gray'} /> },
-    { key: '__actions',     label: '',         width: 100, type: 'custom',
+    { key: '__actions',     label: '',         width: 130, type: 'custom',
       render: (r) => (
         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
           <Button size="xs" variant="ghost" icon={ChevronRight} onClick={() => setSelected(r)}>
             Options
           </Button>
+          <button onClick={() => setEditTarget(r)}
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors"
+            title="Edit component">
+            <Pencil size={12} />
+          </button>
           <button onClick={() => setDeleteTarget(r)}
             className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
             <Trash2 size={12} />
@@ -236,12 +241,19 @@ export default function ComponentsAdminPage() {
         pagination={data?.pagination} onPageChange={setPage}
         loading={isLoading} emptyMessage="No components." />
 
-      {/* Create modal */}
-      <Modal open={editTarget === true} onClose={() => setEditTarget(null)}
-        title="New UI Component" size="md"
+      {/* Create / Edit modal */}
+      <Modal open={!!editTarget} onClose={() => setEditTarget(null)}
+        title={editTarget === true ? 'New UI Component' : 'Edit UI Component'} size="md"
         footer={null}>
-        <ComponentForm onSubmit={(d) => create(d, { onSuccess: () => setEditTarget(null) })}
-          isPending={creating} onClose={() => setEditTarget(null)} />
+        <ComponentForm
+          item={editTarget !== true ? editTarget : undefined}
+          onSubmit={(d) =>
+            editTarget === true
+              ? create(d, { onSuccess: () => setEditTarget(null) })
+              : update({ id: editTarget.id, data: d }, { onSuccess: () => setEditTarget(null) })
+          }
+          isPending={editTarget === true ? creating : updating}
+          onClose={() => setEditTarget(null)} />
       </Modal>
 
       {/* Options panel */}
@@ -261,7 +273,7 @@ export default function ComponentsAdminPage() {
 function ComponentForm({ item, onSubmit, isPending, onClose }) {
   const [form, setForm] = useState({
     componentKey:  item?.componentKey  || '',
-    componentType: item?.componentType || 'BADGE_SET',
+    componentType: item?.componentType || 'BADGE',
     screen:        item?.screen        || '',
     module:        item?.module        || '',
     label:         item?.label         || '',
@@ -289,11 +301,21 @@ function ComponentForm({ item, onSubmit, isPending, onClose }) {
         <Input label="Label" value={form.label}
           onChange={e => set('label', e.target.value)} placeholder="Vendor Status" />
       </div>
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={() => set('isVisible', !form.isVisible)}
+          className={cn('flex items-center gap-2 px-3 py-1.5 rounded-md border text-xs font-medium transition-colors',
+            form.isVisible
+              ? 'bg-green-500/10 border-green-500/30 text-green-400'
+              : 'bg-surface-overlay border-border text-text-muted')}>
+          <span className={cn('w-2 h-2 rounded-full', form.isVisible ? 'bg-green-400' : 'bg-text-muted')} />
+          {form.isVisible ? 'Visible' : 'Hidden'}
+        </button>
+      </div>
       <div className="flex justify-end gap-2 pt-2 border-t border-border">
         <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
         <Button size="sm" loading={isPending}
           onClick={() => { if (!form.componentKey.trim()) { toast.error('Key required'); return } onSubmit(form) }}>
-          Create
+          {item ? 'Save Changes' : 'Create'}
         </Button>
       </div>
     </div>

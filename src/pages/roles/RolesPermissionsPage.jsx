@@ -168,9 +168,11 @@ function RoleForm({ side: defaultSide, onSubmit, isPending, onClose }) {
     p.name?.toLowerCase().includes(permSearch.toLowerCase())
   )
 
-  // Group by resourceType
+  // Group by module then resourceType
   const grouped = filteredPerms.reduce((acc, p) => {
-    const key = p.resourceType || 'GENERAL'
+    const mod = (p.module && p.module !== 'NULL' && p.module !== '') ? p.module : null
+    const rtype = (p.resourceType && p.resourceType !== 'NULL' && p.resourceType !== '') ? p.resourceType : null
+    const key = mod || rtype || 'GENERAL'
     if (!acc[key]) acc[key] = []
     acc[key].push(p)
     return acc
@@ -317,7 +319,9 @@ function RolePermissionEditor({ role, onClose }) {
   )
 
   const grouped = filteredPerms.reduce((acc, p) => {
-    const key = p.resourceType || 'GENERAL'
+    const mod = (p.module && p.module !== 'NULL' && p.module !== '') ? p.module : null
+    const rtype = (p.resourceType && p.resourceType !== 'NULL' && p.resourceType !== '') ? p.resourceType : null
+    const key = mod || rtype || 'GENERAL'
     if (!acc[key]) acc[key] = []
     acc[key].push(p)
     return acc
@@ -568,7 +572,9 @@ function PermissionsPanel({ canManage }) {
   )
 
   const grouped = filtered.reduce((acc, p) => {
-    const key = p.resourceType || 'GENERAL'
+    const mod = (p.module && p.module !== 'NULL' && p.module !== '') ? p.module : null
+    const rtype = (p.resourceType && p.resourceType !== 'NULL' && p.resourceType !== '') ? p.resourceType : null
+    const key = mod || rtype || 'GENERAL'
     if (!acc[key]) acc[key] = []
     acc[key].push(p)
     return acc

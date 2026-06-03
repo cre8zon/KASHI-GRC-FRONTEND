@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../config/axios.config'
 import { workflowsApi } from '../api/workflows.api'
+import { uiConfigApi } from '../api/uiConfig.api'
 import { QUERY_KEYS } from '../config/constants'
 import { useSelector } from 'react-redux'
 import { selectAuth } from '../store/slices/authSlice'
@@ -9,28 +10,11 @@ import toast from 'react-hot-toast'
 /**
  * useMyTasks — fetches tasks for the logged-in user from the enriched endpoint.
  *
- * FIXED: Previously called workflowsApi.tasks.pending(userId) which resolves to
- *   GET /v1/workflow-instances/tasks/user/:id
- *   This endpoint returns flat TaskInstanceResponse objects with no stepName,
- *   entityType, entityId, or priority. The TaskInbox component needs all of
- *   these fields to render cards and for resolveTaskRoute() to build URLs.
- *   Every "Open task" button was silently a no-op because resolveTaskRoute()
- *   always returned null (stepName was undefined).
+ * Calls GET /v1/workflows/my-tasks which returns enriched TaskInstanceResponse:
+ *   taskId, stepInstanceId, assignedUserId, status, stepName, stepOrder,
+ *   entityType, entityId, workflowName, workflowId, priority, assignedAt.
  *
- * NOW: Calls GET /v1/workflows/my-tasks which is served by
- *   AssessmentController.getMyTasks() and delegates to
- *   WorkflowEngineService.getPendingTasksForUser() — returning enriched
- *   TaskInstanceResponse objects that include:
- *     taskId, stepInstanceId, assignedUserId, status, stepName, stepOrder,
- *     entityType, entityId, workflowName, workflowId, priority, assignedAt.
- *
- * The optional `status` param filters by TaskStatus. Defaults to PENDING
- * (the user's active inbox) when omitted.
- *
- * Polls every 60s so the badge count stays fresh. Enabled only when userId
- * is available (i.e. user is authenticated).
- *
- * @param {object} params - optional: { status: 'PENDING' | 'APPROVED' | ... }
+ * Polls every 60s. Enabled only when userId is available.
  */
 export const useMyTasks = (params = {}) => {
   const { userId } = useSelector(selectAuth)
@@ -38,21 +22,11 @@ export const useMyTasks = (params = {}) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.MY_TASKS, userId, params],
     queryFn: () => {
-      // Build query params — only include status if explicitly provided
       const queryParams = {}
       if (params.status) queryParams.status = params.status
-
-      // The axios interceptor (axios.config.js) unwraps ApiResponse<List<TaskInstanceResponse>>:
-      //   interceptor: response.data?.data ?? response.data
-      // For ApiResponse<List>: { success: true, data: [...] }
-      //   → interceptor returns the array directly.
-      // No select() transformation needed — adding one would double-unwrap.
       return api.get('/v1/workflows/my-tasks', { params: queryParams })
     },
-    // No select() — axios interceptor already returns TaskInstanceResponse[].
-    // Consumers use: Array.isArray(data) ? data : []
-    // NOT data?.items (that was the old PaginatedResponse shape — no longer applies).
-    refetchInterval: 60 * 1000,  // poll every 60s for fresh badge count
+    refetchInterval: 60 * 1000,
     enabled: !!userId,
     staleTime: 30 * 1000,
   })
@@ -60,20 +34,13 @@ export const useMyTasks = (params = {}) => {
 
 /**
  * useTaskAction — submits any of the 8 task actions.
- *
- * FIXED: Added a null-guard before calling the API. If taskInstanceId is
- *   undefined or null (which happens when the inbox renders with stale data
- *   and resolveTaskRoute returns null), the mutation now throws a local error
- *   instead of building a URL like /tasks/undefined/action which Spring
- *   cannot cast to Long and returns a 400.
- *
- * Invalidates MY_TASKS so the inbox badge count updates immediately on success.
+ * Guards against null taskInstanceId before calling the API.
+ * Invalidates MY_TASKS on success.
  */
 export const useTaskAction = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data) => {
-      // Guard: taskInstanceId must be a valid number before calling the API
       if (!data?.taskInstanceId) {
         return Promise.reject(new Error(
           'taskInstanceId is required for task action. ' +
@@ -92,20 +59,17 @@ export const useTaskAction = () => {
 
 /**
  * useWorkflowList — lists global workflow blueprints.
- * staleTime: 2 minutes — blueprint definitions change rarely (only Platform Admin edits them).
- * Without staleTime, React Query refetches on every window focus and component mount,
- * meaning the Workflows page fired a fresh request (60+ DB queries) on every tab switch.
+ * staleTime: 2 minutes — blueprints are admin-only, rarely change.
  */
 export const useWorkflowList = (params) => useQuery({
   queryKey: [...QUERY_KEYS.WORKFLOWS, params],
   queryFn: () => workflowsApi.blueprints.list(params),
-  staleTime: 2 * 60 * 1000,  // 2 minutes — blueprints are admin-only, rarely change
+  staleTime: 2 * 60 * 1000,
   gcTime:    5 * 60 * 1000,
 })
 
 /**
  * useWorkflowInstanceStatus — fetches a single instance with full step/task detail.
- * Logic unchanged.
  */
 export const useWorkflowInstanceStatus = (instanceId) => useQuery({
   queryKey: ['workflow-instance', instanceId],
@@ -115,10 +79,7 @@ export const useWorkflowInstanceStatus = (instanceId) => useQuery({
 
 /**
  * useWorkflowProgress — fetches per-step progress for a workflow instance.
- * Returns the rich progress data from GET /v1/workflow-instances/{id}/progress:
- * every step with assigned user names, task history, SLA status, duration.
- *
- * Used by WorkflowTimeline (VendorDetailPage) and InstanceDetail (WorkflowPage).
+ * Used by WorkflowTimeline and InstanceDetail.
  */
 export const useWorkflowProgress = (instanceId) => useQuery({
   queryKey: ['workflow-progress', instanceId],
@@ -126,55 +87,94 @@ export const useWorkflowProgress = (instanceId) => useQuery({
   enabled:  !!instanceId,
   staleTime: 30 * 1000,
 })
+
 /**
  * useAccessContext — resolves what the current user can do on a workflow page.
  *
- * Replaces the scattered useEffect task-gate pattern in every workflow page.
- * Called on page mount with the stepInstanceId from URL params and optionally
- * the taskId the user navigated from.
+ * ── BACKWARD COMPATIBLE — used by all existing TPRM pages ────────────────────
+ * Calls GET /v1/workflow-instances/tasks/access-context (original endpoint).
+ * Returns the base AccessContext: mode, canView, canEdit, canAct, reason,
+ * stepStatus, workflowStatus.
  *
- * Returns AccessContext:
- *   mode         "EDIT" | "OBSERVER" | "COMPLETED" | "DENIED"
- *   canView      false → redirect to /workflow/inbox
- *   canEdit      false → all form inputs disabled
- *   canAct       false → action buttons hidden
- *   reason       human-readable explanation (shown in observer/completed banners)
- *   stepStatus   current step status
- *   workflowStatus current workflow status
+ * DO NOT change this hook's signature or endpoint — the following pages depend on it:
+ *   VendorAssessmentFillPage.jsx    → useAccessContext(stepInstanceId, taskId)
+ *   VendorAssessmentAssignPage.jsx  → useAccessContext(stepInstanceId, taskId)
+ *   VendorAssessmentResponderReviewPage.jsx → useAccessContext(stepInstanceId, taskId)
  *
- * Usage in every workflow page:
- *   const { data: access, isLoading } = useAccessContext(stepInstanceId, taskId)
- *   if (!access?.canView) return <Navigate to="/workflow/inbox" />
- *   <MyForm mode={access.mode} canAct={access.canAct} />
+ * For new module pages that need the extended AccessContext (permissions, sodViolations,
+ * visibleTabs, editableFields, etc.), use useViewContext() instead.
  */
 export const useAccessContext = (stepInstanceId, taskId) => useQuery({
   queryKey: ['access-context', stepInstanceId, taskId],
   queryFn:  () => workflowsApi.tasks.accessContext(stepInstanceId, taskId),
   enabled:  !!stepInstanceId,
   staleTime: 30 * 1000,
-  retry: false,  // don't retry on DENIED — redirect immediately
+  retry: false,
 })
+
+/**
+ * useViewContext — resolves the full 3-layer access context for new module pages.
+ *
+ * Calls GET /v1/ui-config/view-context (new ViewContextController endpoint).
+ * Returns the extended AccessContext with all new fields:
+ *   mode, canView, canEdit, canAct        — base (same as useAccessContext)
+ *   permissions[]                          — resolved permission codes for this user
+ *   sodViolations[]                        — SoD conflicts detected on this instance
+ *   visibleTabs[], hiddenTabs[]            — tab visibility from step UI override
+ *   editableFields[], readOnlyFields[], hiddenFields[]  — field-level access
+ *   availableActions[]                     — allowed workflow task actions
+ *   stepLabel                              — display name for current step
+ *
+ * ── CALL PATTERNS ────────────────────────────────────────────────────────────
+ *   List page:   useViewContext('RISK')             — role permissions only
+ *   Detail page: useViewContext('RISK', riskId)     — + SoD if active instance exists
+ *   Task page:   useViewContext('RISK', riskId, stepInstanceId) — full resolution
+ *
+ * Used by: UniversalModulePage, RecordDetailTemplate, WorkflowBlueprintDesigner,
+ *          and all future GRC module pages.
+ */
+export const useViewContext = (entityType, entityId, stepInstanceId) => useQuery({
+  queryKey: ['view-context', entityType, entityId, stepInstanceId],
+  queryFn:  () => uiConfigApi.viewContext(entityType, entityId, stepInstanceId),
+  enabled:  !!entityType,
+  staleTime: 30 * 1000,
+  retry: false,
+})
+
 // ══════════════════════════════════════════════════════════════════════════════
 // COMPOUND TASK HOOKS
 // ══════════════════════════════════════════════════════════════════════════════
-// compoundTaskApi is imported via the already-loaded api instance
+
+// Internal API — not exported (consumers use the hooks below)
 const _cta = {
-  progress:      (tid) => api.get(`/v1/compound-tasks/${tid}/progress`),
-  saveDraft:     (tid, d) => api.post(`/v1/compound-tasks/${tid}/draft`, d, { headers: { 'Content-Type': 'application/json' } }),
-  getDraft:      (tid) => api.get(`/v1/compound-tasks/${tid}/draft`),
-  assignSection: (tid, skey, uids, notes) => api.post(`/v1/compound-tasks/${tid}/sections/${skey}/assign`, { assigneeUserIds: uids, notes }),
-  completeItem:  (tid, skey, iid, payload) => api.post(`/v1/compound-tasks/${tid}/sections/${skey}/items/${iid}/complete`, payload),
+  progress:       (tid)              => api.get(`/v1/compound-tasks/${tid}/progress`),
+  saveDraft:      (tid, d)           => api.post(`/v1/compound-tasks/${tid}/draft`, d, { headers: { 'Content-Type': 'application/json' } }),
+  getDraft:       (tid)              => api.get(`/v1/compound-tasks/${tid}/draft`),
+  assignSection:  (tid, skey, uids, notes) => api.post(`/v1/compound-tasks/${tid}/sections/${skey}/assign`, { assigneeUserIds: uids, notes }),
+  registerItems:  (tid, skey, items) => api.post(`/v1/compound-tasks/${tid}/sections/${skey}/items`, items),
+  assignItems:    (tid, skey, itemIds, assignedToUserId) =>
+                    api.post(`/v1/compound-tasks/${tid}/sections/${skey}/items/assign`, { itemIds, assignedToUserId }),
+  completeItem:   (tid, skey, iid, payload) => api.post(`/v1/compound-tasks/${tid}/sections/${skey}/items/${iid}/complete`, payload),
+  completeSection:(tid, skey)        => api.post(`/v1/compound-tasks/${tid}/sections/${skey}/complete`),
+  completeSubTask:(subTaskId)        => api.post(`/v1/compound-tasks/sub-tasks/${subTaskId}/complete`),
 }
 
 /**
  * useCompoundTaskProgress — fetches section checklist for a compound task.
- * Returns TaskSectionProgressResponse[] — each item has:
- *   sectionKey, label, required, completed, completedAt,
- *   tracksItems, itemsTotal, itemsCompleted,
- *   requiresAssignment, assigneesTotal, assigneesCompleted
  *
- * Used by every work page to render CompoundTaskProgress.
- * Auto-refreshes every 10s so the bar stays live.
+ * Returns TaskSectionProgressResponse[] — UPDATED shape now includes:
+ *   sectionKey, label, required, completed, completedAt
+ *   tracksItems, itemsTotal, itemsCompleted
+ *   requiresAssignment, assigneesTotal, assigneesCompleted
+ *   [NEW] sectionScreenKey — screen config for section container UI
+ *   [NEW] itemScreenKey    — screen config for each item card
+ *   [NEW] itemRefType      — CONTROL | QUESTION_RESPONSE | FINDING | etc.
+ *   [NEW] sectionUiJson    — inline override for section container
+ *   [NEW] itemUiJson       — inline override for item cards
+ *   [NEW] items[]          — SectionItemResponse[] when tracksItems=true
+ *     each: { id, itemRefType, itemRefId, itemLabel, status, assignedToUserId, hasOpenActionItem }
+ *
+ * Auto-refreshes every 15s so progress bars stay live.
  */
 export const useCompoundTaskProgress = (taskId) => useQuery({
   queryKey:  ['compound-progress', taskId],
@@ -187,13 +187,12 @@ export const useCompoundTaskProgress = (taskId) => useQuery({
 
 /**
  * useDraftSave — auto-save and restore draft for a compound task.
- * Call saveDraft(formState) on any field change or on a 30s timer.
+ * Call saveDraft(formState) on field changes or on a 30s timer.
  * Call loadDraft() on mount to restore unsaved work.
  */
 export const useDraftSave = (taskId) => {
   const { mutate } = useMutation({
-    mutationFn: (draftData) =>
-      _cta.saveDraft(taskId, JSON.stringify(draftData)),
+    mutationFn: (draftData) => _cta.saveDraft(taskId, JSON.stringify(draftData)),
   })
   const loadDraft = async () => {
     if (!taskId) return null
@@ -208,8 +207,7 @@ export const useDraftSave = (taskId) => {
 
 /**
  * useSectionAssign — Case 2: assign a section's work to other users.
- * Used on ASSIGN steps (steps 3, 8) — creates sub-tasks for each assignee
- * and fires TaskSectionAssignedEvent → WebSocket push to their inboxes.
+ * Creates sub-tasks for each assignee and fires TaskSectionAssignedEvent.
  */
 export const useSectionAssign = (taskId) => {
   const qc = useQueryClient()
@@ -219,13 +217,14 @@ export const useSectionAssign = (taskId) => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['compound-progress', taskId] })
     },
+    onError: (e) => toast.error(e?.response?.data?.message || 'Assignment failed'),
   })
 }
 
 /**
- * useCompleteItem — Case 3: mark one item (question/control) done.
- * When all items for a section are marked, the backend auto-fires
- * the section's completionEvent → section completes → gate rechecks.
+ * useCompleteItem — Case 3: mark one item (control/finding/question) done.
+ * When all items for a section complete, backend auto-fires the section's
+ * completionEvent → section completes → gate rechecks → may auto-approve task.
  */
 export const useCompleteItem = (taskId) => {
   const qc = useQueryClient()
@@ -235,5 +234,92 @@ export const useCompleteItem = (taskId) => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['compound-progress', taskId] })
     },
+    onError: (e) => toast.error(e?.response?.data?.message || 'Failed to complete item'),
+  })
+}
+
+/**
+ * NEW: useRegisterItems — Case 3: register items to track within a section.
+ *
+ * Called when a module's section first becomes active and the items are known.
+ * e.g. when a risk assessment step becomes active, register all controls as items.
+ *
+ * POST /v1/compound-tasks/:taskId/sections/:sectionKey/items
+ * Body: [{ itemRefType: 'CONTROL', itemRefId: 42, label: 'CC6.1 Access Control' }]
+ *
+ * Idempotent — backend skips already-registered items (same taskId + sectionKey + itemRefType + itemRefId).
+ */
+export const useRegisterItems = (taskId) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ sectionKey, items }) =>
+      _cta.registerItems(taskId, sectionKey, items),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['compound-progress', taskId] })
+    },
+    onError: (e) => toast.error(e?.response?.data?.message || 'Failed to register items'),
+  })
+}
+
+/**
+ * NEW: useAssignItems — Case 3: assign specific items to a user within a section.
+ *
+ * Used when a ACTOR (e.g. risk analyst) wants to delegate specific controls
+ * to another user. Creates action items automatically via CompoundSectionRenderer.
+ *
+ * POST /v1/compound-tasks/:taskId/sections/:sectionKey/items/assign
+ * Body: { itemIds: [88, 89], assignedToUserId: 123 }
+ */
+export const useAssignItems = (taskId) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ sectionKey, itemIds, assignedToUserId }) =>
+      _cta.assignItems(taskId, sectionKey, itemIds, assignedToUserId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['compound-progress', taskId] })
+    },
+    onError: (e) => toast.error(e?.response?.data?.message || 'Assignment failed'),
+  })
+}
+
+/**
+ * NEW: useCompleteSection — explicitly submit a section as done.
+ *
+ * Used by the section submit button in CompoundSectionRenderer.
+ * Alternative to the event-driven auto-complete path (Case 1).
+ *
+ * POST /v1/compound-tasks/:taskId/sections/:sectionKey/complete
+ */
+export const useCompleteSection = (taskId) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (sectionKey) => _cta.completeSection(taskId, sectionKey),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['compound-progress', taskId] })
+      toast.success('Section submitted')
+    },
+    onError: (e) => toast.error(e?.response?.data?.message || 'Submit failed'),
+  })
+}
+
+/**
+ * NEW: useCompleteSubTask — Case 2: mark a sub-task done (after section work is finished).
+ *
+ * Called by the assignee of a section sub-task when they finish their work.
+ * Backend checks if all sub-tasks for that section are done → fires completionEvent.
+ *
+ * POST /v1/compound-tasks/sub-tasks/:subTaskId/complete
+ */
+export const useCompleteSubTask = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (subTaskId) => _cta.completeSubTask(subTaskId),
+    onSuccess: (_, subTaskId) => {
+      // Invalidate all compound progress queries — we don't always know the parent taskId here
+      qc.invalidateQueries({ queryKey: ['compound-progress'] })
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.MY_TASKS })
+      toast.success('Work submitted')
+    },
+    onError: (e) => toast.error(e?.response?.data?.message || 'Failed to submit'),
   })
 }

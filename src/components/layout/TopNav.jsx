@@ -64,7 +64,8 @@ export function TopNav({ onMenuToggle }) {
   const primaryRole  = roles?.[0]
   const isVendor     = vendorId != null || roles?.some(r => r.side === 'VENDOR')
   const roleName     = primaryRole?.roleName?.replace(/_/g, ' ')?.replace(/\b\w/g, c => c.toUpperCase()) || ''
-  const sideLabel    = isVendor ? 'Vendor' : 'Organization'
+  const primarySide  = primaryRole?.side || (isVendor ? 'VENDOR' : 'ORGANIZATION')
+  const sideLabel    = { ORGANIZATION: 'Organization', VENDOR: 'Vendor', AUDITOR: 'Auditor', AUDITEE: 'Auditee', SYSTEM: 'System' }[primarySide] ?? 'Organization'
 
   return (
     <header className="h-12 flex items-center justify-between px-4 border-b border-border bg-surface shrink-0 gap-4">
@@ -115,7 +116,7 @@ export function TopNav({ onMenuToggle }) {
           <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-surface-overlay">
             <span className={cn(
               'w-1.5 h-1.5 rounded-full shrink-0',
-              isVendor ? 'bg-amber-400' : 'bg-brand-400'
+              { VENDOR: 'bg-amber-400', AUDITOR: 'bg-emerald-400', AUDITEE: 'bg-purple-400', SYSTEM: 'bg-red-400' }[primarySide] ?? 'bg-brand-400'
             )} />
             <span className="text-[11px] font-medium text-text-muted">{sideLabel}</span>
             <ChevronRight size={10} className="text-border" />

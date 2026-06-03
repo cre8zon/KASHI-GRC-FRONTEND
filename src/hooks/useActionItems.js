@@ -101,6 +101,9 @@ function handleUserEvent(msg, qc) {
       return [...arr, item]
     })
 
+    // Update individual item cache if it was already fetched
+    qc.setQueryData(['action-item', item.id], item)
+
     // Update badge count
     qc.invalidateQueries({ queryKey: QUERY_KEY_COUNT })
 
@@ -140,6 +143,57 @@ export function useEntityActionItems(entityType, entityId, { enabled = true } = 
 }
 
 /**
+ * useGetActionItem — fetch a single action item by ID.
+ *
+ * Used by CompoundSectionRenderer and item detail drawers to load a specific
+ * action item for display or editing.
+ *
+ * GET /v1/action-items/:id
+ */
+export function useGetActionItem(id, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: ['action-item', id],
+    queryFn:  () => actionItemsApi.getById(id),
+    select:   (d) => d?.data ?? d,
+    enabled:  !!id && enabled,
+    staleTime: 30_000,
+  })
+}
+
+/**
+ * useUpdateActionItem — update an action item's details.
+ *
+ * Used by action item edit forms in new module pages.
+ * Invalidates the my-items list and the individual item cache on success.
+ * Real-time WS events will also update both caches if the backend pushes them.
+ *
+ * PUT /v1/action-items/:id
+ * Body: { title?, description?, dueAt?, priority?, assignedTo?, navContext?, itemScreenKey? }
+ */
+export function useUpdateActionItem() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...data }) => actionItemsApi.update(id, data),
+    onSuccess: (result) => {
+      const item = result?.data ?? result
+      if (!item?.id) return
+      // Update individual item cache
+      qc.setQueryData(['action-item', item.id], item)
+      // Update in my-items list if present
+      qc.setQueryData(QUERY_KEY_MY, (prev) => {
+        const arr = Array.isArray(prev) ? prev : []
+        const idx = arr.findIndex(x => x.id === item.id)
+        if (idx < 0) return prev
+        const next = [...arr]
+        next[idx] = item
+        return next
+      })
+    },
+    onError: (e) => toast.error(e?.message || 'Failed to update action item'),
+  })
+}
+
+/**
  * useUpdateActionItemStatus — PATCH status mutation.
  */
 export function useUpdateActionItemStatus() {
@@ -155,6 +209,8 @@ export function useUpdateActionItemStatus() {
         const arr = Array.isArray(prev) ? prev : []
         return arr.map(x => x.id === item.id ? item : x)
       })
+      // Update individual item cache
+      qc.setQueryData(['action-item', item.id], item)
       qc.invalidateQueries({ queryKey: QUERY_KEY_COUNT })
     },
     onError: (e) => toast.error(e?.message || 'Failed to update action item'),

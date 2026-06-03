@@ -76,6 +76,7 @@ export const useNavigation = () => useQuery({
   queryFn:  uiConfigApi.navigation,
   staleTime: 10 * 60 * 1000,
   //staleTime: 0, // force fresh fetch — revert after confirming fix
+  retry: 1,
 })
 
 export const useScreenConfig = (screenKey) => useQuery({

@@ -1,6 +1,18 @@
 import { useState } from 'react'
 import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
-import { DynamicBadge } from './Badge'
+import { DynamicBadge, Badge } from './Badge'
+import { COLOR_MAP } from '../../config/constants'
+
+// Semantic color fallback for values that don't have a configured componentKey
+const SEMANTIC_COLORS = {
+  CRITICAL:'red', HIGH:'amber', MEDIUM:'yellow', LOW:'green',
+  OPEN:'blue', IN_PROGRESS:'indigo', PENDING_REVIEW:'purple',
+  TRIAGED:'cyan', RESOLVED:'green', CLOSED:'gray',
+  ACCEPTED_RISK:'amber', PENDING_VALIDATION:'yellow',
+  INTERNAL:'blue', EXTERNAL:'purple', AUTOMATED:'cyan', REGULATORY:'indigo',
+  ACTIVE:'green', INACTIVE:'gray', DRAFT:'gray', APPROVED:'green',
+  REJECTED:'red', CANCELLED:'gray', COMPLETED:'green',
+}
 import { cn } from '../../lib/cn'
 import { formatDate, truncate } from '../../utils/format'
 
@@ -25,15 +37,38 @@ export function DataTable({
   selectedIds = [],
   onSelectionChange,
 }) {
-  const [hoveredRow, setHoveredRow] = useState(null)
+  const [hoveredRow,  setHoveredRow]  = useState(null)
+  const [dragColIdx,  setDragColIdx]  = useState(null)  // column drag-to-reorder
+  const [localCols,   setLocalCols]   = useState(null)  // null = use prop columns
+  const displayCols = localCols || columns
 
   const renderCell = (row, col) => {
     const val = row[col.key]
     switch (col.type) {
       case 'custom':
         return col.render ? col.render(row) : <span>{val ?? '—'}</span>
-      case 'badge':
-        return <DynamicBadge value={val} componentKey={col.componentKey || col.key} config={config} />
+      case 'badge': {
+        // Try DynamicBadge first (reads colorTag from screenConfig.components)
+        // If no componentKey or config, fall back to semantic color map
+        const hasConfig = config?.components?.[col.componentKey || col.key]?.options?.length > 0
+        if (hasConfig) {
+          return <DynamicBadge value={val} componentKey={col.componentKey || col.key} config={config} />
+        }
+        const colorTag = SEMANTIC_COLORS[String(val).toUpperCase()] ||
+          // Boolean fallback — true = bad (breached), false = good (on track) for SLA-type fields
+          (val === true  ? 'red'   :
+           val === false ? 'green' : 'gray')
+        const cls = COLOR_MAP[colorTag] || COLOR_MAP.gray
+        // Human-friendly label for boolean badge columns
+        const boolLabel = typeof val === 'boolean'
+          ? (val ? 'Breached' : 'On track')
+          : String(val ?? '—').replace(/_/g,' ')
+        return (
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-semibold whitespace-nowrap ${cls}`}>
+            {boolLabel}
+          </span>
+        )
+      }
       case 'date':
         return <span className="font-mono text-xs text-text-secondary">{formatDate(val)}</span>
       case 'mono':
@@ -42,6 +77,23 @@ export function DataTable({
         return <span className="font-mono text-xs tabular-nums">{val ?? '—'}</span>
       case 'truncate':
         return <span title={val}>{truncate(val, col.truncateLen || 40)}</span>
+      // FIX: 'user' type — render ownerName / assigneeName alongside the id field.
+      // Screen designer sets key: 'ownerId' but the API often returns ownerName as a companion field.
+      // Try {key}Name, {key}Email, or the raw value (which may already be a name string).
+      case 'user': {
+        const nameKey = col.key.replace(/Id$/, 'Name').replace(/id$/, 'Name')
+        const display = row[nameKey] || val
+        if (!display) return <span className="text-text-muted">—</span>
+        const initials = String(display).split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
+        return (
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 text-[9px] font-semibold flex items-center justify-center shrink-0">
+              {initials}
+            </span>
+            <span className="text-xs text-text-primary truncate max-w-24">{display}</span>
+          </span>
+        )
+      }
       default:
         return <span>{val ?? '—'}</span>
     }
@@ -71,14 +123,27 @@ export function DataTable({
                   />
                 </th>
               )}
-              {columns.map(col => (
+              {displayCols.map((col, ci) => (
                 <th
                   key={col.key}
                   style={{ width: col.width }}
+                  draggable
+                  onDragStart={() => setDragColIdx(ci)}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={() => {
+                    if (dragColIdx === null || dragColIdx === ci) return
+                    const next = [...displayCols]
+                    const [moved] = next.splice(dragColIdx, 1)
+                    next.splice(ci, 0, moved)
+                    setLocalCols(next)
+                    setDragColIdx(null)
+                  }}
+                  onDragEnd={() => setDragColIdx(null)}
                   className={cn(
                     'px-3 py-2 text-left text-xs font-semibold text-text-muted uppercase tracking-wider',
-                    'whitespace-nowrap select-none',
-                    col.sortable && 'cursor-pointer hover:text-text-secondary'
+                    'whitespace-nowrap select-none cursor-grab active:cursor-grabbing',
+                    col.sortable && 'hover:text-text-secondary',
+                    dragColIdx === ci && 'opacity-40'
                   )}
                   onClick={() => col.sortable && onSort?.(col.key)}
                 >
@@ -90,11 +155,25 @@ export function DataTable({
             </tr>
           </thead>
           <tbody>
-            {loading && (
-              <tr><td colSpan={columns.length + (selectable ? 1 : 0)} className="py-16 text-center">
-                <span className="inline-block w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-              </td></tr>
-            )}
+            {loading && Array.from({ length: 6 }).map((_, r) => (
+              <tr key={r} className="border-b border-border/50">
+                {selectable && (
+                  <td className="pl-4 py-3">
+                    <div className="h-4 w-4 rounded bg-surface-overlay animate-pulse" />
+                  </td>
+                )}
+                {columns.map((col, c) => (
+                  <td key={c} className="px-4 py-3">
+                    {c === 1
+                      ? <div className="h-3 bg-surface-overlay rounded animate-pulse" style={{ width: `${60 + (r * 13 + c * 7) % 30}%` }} />
+                      : c === 2
+                      ? <div className="h-5 w-16 rounded-full bg-surface-overlay animate-pulse" />
+                      : <div className="h-3 bg-surface-overlay rounded animate-pulse" style={{ width: `${40 + (r * 7 + c * 11) % 25}%` }} />
+                    }
+                  </td>
+                ))}
+              </tr>
+            ))}
             {!loading && data.length === 0 && (
               <tr><td colSpan={columns.length + (selectable ? 1 : 0)} className="py-16 text-center text-text-muted text-sm">
                 {emptyMessage}
@@ -127,7 +206,7 @@ export function DataTable({
                     />
                   </td>
                 )}
-                {columns.map(col => (
+                {displayCols.map(col => (
                   <td key={col.key} className="px-3 py-2.5 text-text-primary">
                     {renderCell(row, col)}
                   </td>
