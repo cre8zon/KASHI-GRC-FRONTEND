@@ -2,6 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Policy content styles — used by PolicyEditorPage (TipTap editor) AND
+ * the EntityDrawer in UniversalModulePage when displaying RICH_TEXT policy fields.
+ * Must be global so both surfaces pick them up.
+ */
+.policy-content h1 {
+  font-size: 1.5rem; font-weight: 700; color: var(--text-primary);
+  margin: 1.5rem 0 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;
+}
+.policy-content h2 {
+  font-size: 1.15rem; font-weight: 600; color: var(--text-primary);
+  margin: 1.25rem 0 0.5rem;
+}
+.policy-content h3 {
+  font-size: 0.95rem; font-weight: 600; color: var(--text-secondary);
+  margin: 1rem 0 0.4rem;
+}
+.policy-content p { margin: 0.5rem 0; color: var(--text-primary); }
+.policy-content ul, .policy-content ol {
+  margin: 0.5rem 0 0.5rem 1.5rem; color: var(--text-primary);
+}
+.policy-content li { margin: 0.25rem 0; }
+.policy-content blockquote {
+  border-left: 3px solid var(--color-brand-500); margin: 0.75rem 0;
+  padding: 0.5rem 1rem; background: rgba(99,102,241,0.05);
+  border-radius: 0 6px 6px 0; color: var(--text-secondary);
+}
+.policy-content hr {
+  border: none; border-top: 1px solid var(--border); margin: 1.5rem 0;
+}
+.policy-content table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+.policy-content td, .policy-content th {
+  border: 1px solid var(--border); padding: 6px 10px;
+  font-size: 0.8rem; color: var(--text-primary);
+}
+.policy-content th { background: var(--surface-overlay); font-weight: 600; }
+.policy-content code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.78rem; background: rgba(99,102,241,0.08);
+  border: 1px solid rgba(99,102,241,0.15); border-radius: 3px;
+  padding: 0.1em 0.35em; color: var(--color-brand-300, #a5b4fc);
+}
+.policy-content pre {
+  background: var(--surface-overlay); border: 1px solid var(--border);
+  border-radius: 6px; padding: 1rem; margin: 0.75rem 0; overflow-x: auto;
+}
+.policy-content pre code { background: none; border: none; padding: 0; font-size: 0.8rem; color: var(--text-secondary); }
+.policy-content mark { background: rgba(251,191,36,0.2); color: inherit; border-radius: 2px; padding: 0.05em 0.1em; }
+.policy-content s { color: var(--text-muted); }
+.policy-link {
+  color: var(--color-brand-400, #818cf8); text-decoration: underline;
+  text-underline-offset: 2px; cursor: pointer;
+}
+.policy-link:hover { color: var(--color-brand-300, #a5b4fc); }
+
+/* TipTap editor — placeholder and focus reset */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted); pointer-events: none; float: left; height: 0;
+}
+.tiptap { outline: none; }
+
 @layer utilities {
   .data-row { @apply transition-colors duration-100; }
   .gradient-border {
