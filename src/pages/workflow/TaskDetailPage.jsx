@@ -16,6 +16,7 @@ import {
   Shield, FileText, Calendar, Flag,
 } from 'lucide-react'
 import { workflowsApi } from '../../api/workflows.api'
+import { useNavigation } from '../../hooks/useUIConfig'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
@@ -124,6 +125,20 @@ function StepTimeline({ steps }) {
   )
 }
 
+// ─── Route helper (mirrors TaskInbox.resolveTaskRoute) ───────────────────────
+// Resolves the entity work URL for a task so the detail page can link directly
+// to /module/issue/1?stepInstanceId=42&taskId=7 instead of being a dead end.
+
+function resolveTaskRoute(task, navItems) {
+  if (!task?.artifactId) return null
+  const qp = `?taskId=${task.id}&stepInstanceId=${task.stepInstanceId}`
+  if (task.navKey) {
+    const nav = (navItems || []).find(n => n.navKey === task.navKey)
+    if (nav?.route) return nav.route.replace(':id', task.artifactId) + qp
+  }
+  return null
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function TaskActivityFeed({ taskId }) {
@@ -147,6 +162,7 @@ export default function TaskDetailPage() {
   const { taskId } = useParams()
   const navigate   = useNavigate()
   const { mutate: actOnTask, isPending: acting } = useTaskAction()
+  const { data: navItems = [] } = useNavigation()
 
   const { data: task, isLoading } = useTaskById(taskId)
   const { data: sections = [] }   = useCompoundTaskProgress(taskId ? Number(taskId) : null)
@@ -154,6 +170,10 @@ export default function TaskDetailPage() {
 
   const isActive = task?.status === 'PENDING' || task?.status === 'IN_PROGRESS'
   const steps    = instanceStatus?.stepHistory || []
+
+  // Resolve entity route — if one exists this is a work task and we show an
+  // "Open entity" CTA. If null it's an APPROVE/ASSIGN task handled inline.
+  const entityRoute = task ? resolveTaskRoute(task, navItems) : null
 
   if (isLoading) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -247,17 +267,36 @@ export default function TaskDetailPage() {
         )}
 
         {/* Active task actions */}
-        {isActive && isActor && task.navKey && (
-          <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
-            <p className="text-sm font-medium text-amber-400 mb-1">This task requires action</p>
-            <p className="text-xs text-text-muted mb-3">
-              Open the task page to complete your work, then submit from there.
-            </p>
-            <Button size="sm" variant="primary" icon={ArrowRight}
-              onClick={() => navigate('/workflow/inbox')}>
-              Open in Inbox
-            </Button>
-          </div>
+        {isActive && (
+          entityRoute ? (
+            // Work task (FILL / REVIEW / EVALUATE / GENERATE / ACKNOWLEDGE):
+            // The user must open the entity page to do actual work — the entity page
+            // reads stepInstanceId from the URL and enforces the correct field access.
+            <div className="p-4 rounded-xl border border-brand-500/20 bg-brand-500/5">
+              <p className="text-sm font-medium text-brand-400 mb-1">Open the entity to complete this task</p>
+              <p className="text-xs text-text-muted mb-3">
+                Your access level for this step ({task.resolvedStepAction}) has been applied.
+                Fields you can edit will be unlocked on the entity page.
+              </p>
+              <Button size="sm" variant="primary" icon={ArrowRight}
+                onClick={() => navigate(entityRoute)}>
+                Open {task.entityType} #{task.entityId}
+              </Button>
+            </div>
+          ) : isActor && (
+            // Pure APPROVE / ASSIGN task — inline action is fine (no content work)
+            <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
+              <p className="text-sm font-medium text-amber-400 mb-1">This task requires your approval</p>
+              <p className="text-xs text-text-muted mb-3">
+                Review the details above then approve or reject.
+              </p>
+              <Button size="sm" variant="primary" icon={CheckCircle2}
+                loading={acting}
+                onClick={() => handleAction('APPROVE')}>
+                Approve
+              </Button>
+            </div>
+          )
         )}
 
         {/* Activity — real-time comments */}

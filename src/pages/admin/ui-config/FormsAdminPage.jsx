@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, RefreshCw, Pencil, Trash2, ChevronRight, X,
-  ToggleLeft, ToggleRight, GripVertical,
+  ToggleLeft, ToggleRight, GripVertical, Eye,
 } from 'lucide-react'
 import { uiAdminApi }  from '../../../api/uiConfig.api'
 import { PageLayout }  from '../../../components/layout/PageLayout'
@@ -12,6 +12,7 @@ import { Badge }       from '../../../components/ui/Badge'
 import { Modal, ConfirmDialog } from '../../../components/ui/Modal'
 import { Input }       from '../../../components/ui/Input'
 import { cn }          from '../../../lib/cn'
+import { FormPreviewDrawer } from './FormPreviewDrawer'
 import toast           from 'react-hot-toast'
 
 const FIELD_TYPES = [
@@ -19,6 +20,9 @@ const FIELD_TYPES = [
   'SELECT','MULTI_SELECT','RADIO','CHECKBOX','TOGGLE',
   'DATE','DATETIME','TEXTAREA','RICH_TEXT',
   'FILE_UPLOAD','SECTION_HEADER','DIVIDER',
+  // New field types
+  'PHONE','URL','CURRENCY','RATING','SLIDER',
+  'JSON_EDITOR','LOOKUP','MULTILINE_LIST','COLOR','TAG',
 ]
 const HTTP_METHODS = ['POST','PUT','PATCH']
 
@@ -71,6 +75,8 @@ function FieldRow({ field, formId, onDelete }) {
     TEXT:'cyan', EMAIL:'blue', SELECT:'purple', MULTI_SELECT:'purple',
     RADIO:'indigo', CHECKBOX:'amber', TOGGLE:'amber', NUMBER:'green',
     TEXTAREA:'cyan', FILE_UPLOAD:'orange', SECTION_HEADER:'gray', DIVIDER:'gray',
+    PHONE:'blue', URL:'blue', CURRENCY:'green', RATING:'amber', SLIDER:'amber',
+    JSON_EDITOR:'purple', LOOKUP:'purple', MULTILINE_LIST:'teal', COLOR:'pink', TAG:'teal',
   }
 
   if (!editing) return (
@@ -251,6 +257,7 @@ export default function FormsAdminPage() {
   const [editTarget, setEditTarget]     = useState(null)  // form or true for create
   const [fieldsTarget, setFieldsTarget] = useState(null)  // form to manage fields
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [previewTarget, setPreviewTarget] = useState(null) // form to preview — NEW
 
   const { data, isLoading, refetch } = useForms({ skip: (page-1)*50, take: 50 })
 
@@ -272,9 +279,12 @@ export default function FormsAdminPage() {
       render: (r) => <Badge value={r.httpMethod} label={r.httpMethod} colorTag="blue" /> },
     { key: 'submitUrl',   label: 'Submit URL', width: 220,
       render: (r) => <span className="text-xs font-mono text-text-muted truncate">{r.submitUrl}</span> },
-    { key: '__actions',   label: '',           width: 130, type: 'custom',
+    { key: '__actions',   label: '',           width: 175, type: 'custom',
       render: (r) => (
         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+          {/* NEW: Preview button */}
+          <Button size="xs" variant="ghost" icon={Eye}
+            onClick={() => setPreviewTarget(r)}>Preview</Button>
           <Button size="xs" variant="ghost" icon={ChevronRight}
             onClick={() => setFieldsTarget(r)}>Fields</Button>
           <button onClick={() => setEditTarget(r)}
@@ -340,6 +350,12 @@ export default function FormsAdminPage() {
         onConfirm={() => remove(deleteTarget?.id, { onSuccess: () => setDeleteTarget(null) })}
         loading={deleting} title="Delete Form" variant="danger" confirmLabel="Delete"
         message={`Delete "${deleteTarget?.formKey}"? All its fields will also be deleted.`} />
+
+      {/* NEW: Live form preview drawer */}
+      <FormPreviewDrawer
+        form={previewTarget}
+        onClose={() => setPreviewTarget(null)}
+      />
     </PageLayout>
   )
 }

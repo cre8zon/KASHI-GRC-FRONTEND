@@ -152,7 +152,15 @@ export function TaskInbox({ filterFn } = {}) {
           return (
             <div key={tid}
               className="px-4 py-3 hover:bg-surface-overlay/50 transition-colors cursor-pointer"
-              onClick={(e) => { if (e.target.closest("button")) return; navigate(`/workflow/tasks/${tid}`) }}>
+              onClick={(e) => {
+                if (e.target.closest("button")) return
+                // If a route exists (work task) → go directly to the entity page with task context.
+                // The entity page (UniversalModulePage) reads stepInstanceId from the URL and
+                // passes it to useViewContext for step-aware field access resolution.
+                // If no route (APPROVE/ASSIGN inline task) → open task detail for metadata view.
+                if (route) navigate(route)
+                else navigate(`/workflow/tasks/${tid}`)
+              }}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   {/* Priority + entity + role + action badges */}

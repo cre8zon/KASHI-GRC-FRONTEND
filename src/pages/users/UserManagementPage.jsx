@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import {
@@ -63,22 +63,37 @@ function useActivateUser() {
   })
 }
 
-function useAssignRole() {
+// ── FIX: mutations now accept an onLocalUpdate callback ───────────────────────
+// Previously both mutations only invalidated ['users'] on success.
+// The modal holds a stale `user` prop so the "Currently Assigned" section
+// never updated until the modal was closed and reopened.
+// Fix: caller passes onLocalUpdate → modal state is updated immediately on
+// mutation success, independent of the server cache invalidation.
+
+function useAssignRole(onLocalUpdate) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ tenantId, userId, roleIds }) =>
       rolesApi.assignToUser(tenantId, userId, roleIds),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); toast.success('Role assigned') },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['users'] })
+      onLocalUpdate?.(vars.roleIds, 'add')
+      toast.success('Role assigned')
+    },
     onError: (e) => toast.error(e?.response?.data?.error?.message || 'Failed'),
   })
 }
 
-function useRemoveRole() {
+function useRemoveRole(onLocalUpdate) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ tenantId, userId, roleId }) =>
       rolesApi.removeFromUser(tenantId, userId, roleId),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); toast.success('Role removed') },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['users'] })
+      onLocalUpdate?.([vars.roleId], 'remove')
+      toast.success('Role removed')
+    },
     onError: (e) => toast.error(e?.response?.data?.error?.message || 'Failed'),
   })
 }
@@ -122,12 +137,36 @@ function RolesCell({ roles = [] }) {
 }
 
 // ─── Role Assignment Panel ────────────────────────────────────────────────────
+//
+// FIX — optimistic local role state
+//
+// Root cause of the bug:
+//   `user` is passed as a prop from the parent's `roleTarget` state.
+//   When assign/remove mutations succeed they invalidate ['users'], which
+//   refetches the table — but the modal is still open with the original
+//   `user` prop. React doesn't re-render the modal with the new server data
+//   because `roleTarget` in the parent hasn't changed (it still holds the
+//   old user object). Result: "Currently Assigned" shows stale roles until
+//   the modal is closed and reopened.
+//
+// Fix:
+//   Track assigned roles in `localRoles` state inside the panel, seeded
+//   from `user.roles` on mount. Both mutations call `handleLocalUpdate`
+//   on success which immediately adds/removes from `localRoles`.
+//   The UI reads `localRoles` instead of `user.roles`, so it updates
+//   in the same render cycle as the mutation completes — no modal
+//   close/reopen needed.
 
 function RoleAssignPanel({ user, tenantId, side }) {
   const [selectedSide, setSelectedSide] = useState(side)
+
+  // ── Local role state — the fix ────────────────────────────────────────────
+  // Seeded from user.roles on mount. Updated optimistically on assign/remove.
+  const [localRoles, setLocalRoles] = useState(() => user.roles || [])
+
+  // Also keep a lookup of all role objects we've seen, so when we add a role
+  // we can display its name immediately without waiting for a server fetch.
   const { data: rolesData, isLoading } = useRoles(tenantId, selectedSide)
-  const { mutate: assign, isPending: assigning } = useAssignRole()
-  const { mutate: remove, isPending: removing  } = useRemoveRole()
 
   const flatRoles = (() => {
     const raw = rolesData?.data || rolesData
@@ -137,12 +176,43 @@ function RoleAssignPanel({ user, tenantId, side }) {
     return []
   })()
 
-  const userRoleIds = new Set((user.roles || []).map(r => r.id || r.roleId))
+  // Build a map of roleId → role object from server data so we can enrich
+  // newly added roles with their name immediately.
+  const roleInfoMap = flatRoles.reduce((acc, r) => {
+    const id = r.role_id || r.id || r.roleId
+    if (id) acc[id] = r
+    return acc
+  }, {})
+
+  // Called by both mutations on success — updates local state immediately
+  const handleLocalUpdate = (roleIds, action) => {
+    setLocalRoles(prev => {
+      if (action === 'remove') {
+        return prev.filter(r => !roleIds.includes(r.id || r.roleId))
+      }
+      // action === 'add' — add roles not already in the list
+      const existing = new Set(prev.map(r => r.id || r.roleId))
+      const toAdd = roleIds
+        .filter(id => !existing.has(id))
+        .map(id => {
+          const info = roleInfoMap[id]
+          return info
+            ? { id, roleId: id, roleName: info.name || info.roleName, name: info.name || info.roleName }
+            : { id, roleId: id, roleName: String(id), name: String(id) }
+        })
+      return [...prev, ...toAdd]
+    })
+  }
+
+  const { mutate: assign, isPending: assigning } = useAssignRole(handleLocalUpdate)
+  const { mutate: remove, isPending: removing  } = useRemoveRole(handleLocalUpdate)
+
+  const localRoleIds = new Set(localRoles.map(r => r.id || r.roleId))
   const busy = assigning || removing
 
   const toggleRole = (roleId) => {
     if (busy) return
-    if (userRoleIds.has(roleId)) {
+    if (localRoleIds.has(roleId)) {
       remove({ tenantId, userId: user.id || user.userId, roleId })
     } else {
       assign({ tenantId, userId: user.id || user.userId, roleIds: [roleId] })
@@ -161,7 +231,7 @@ function RoleAssignPanel({ user, tenantId, side }) {
         <div className="min-w-0">
           <p className="text-sm font-medium text-text-primary truncate">{user.fullName || '—'}</p>
           <p className="text-xs text-text-muted truncate">{user.email}</p>
-          {(!user.roles || user.roles.length === 0) && (
+          {localRoles.length === 0 && (
             <p className="text-[10px] text-amber-400 mt-0.5 flex items-center gap-1">
               <AlertTriangle size={9} /> No roles assigned yet
             </p>
@@ -169,22 +239,25 @@ function RoleAssignPanel({ user, tenantId, side }) {
         </div>
       </div>
 
-      {/* Currently assigned roles */}
-      {user.roles && user.roles.length > 0 && (
+      {/* Currently assigned roles — reads localRoles, not user.roles */}
+      {localRoles.length > 0 && (
         <div>
           <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
             Currently Assigned
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {user.roles.map(r => {
+            {localRoles.map(r => {
               const id = r.id || r.roleId
               return (
                 <span key={id}
                   className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-brand-500/10 border border-brand-500/20 text-brand-400 font-mono">
                   {r.roleName || r.name}
-                  <button onClick={() => toggleRole(id)} disabled={busy}
-                    className="hover:text-red-400 transition-colors ml-0.5 leading-none"
-                    title="Remove role">
+                  <button
+                    onClick={() => toggleRole(id)}
+                    disabled={busy}
+                    className="hover:text-red-400 transition-colors ml-0.5 leading-none disabled:opacity-40"
+                    title="Remove role"
+                  >
                     ×
                   </button>
                 </span>
@@ -227,10 +300,11 @@ function RoleAssignPanel({ user, tenantId, side }) {
         </p>
       )}
 
+      {/* All available roles — checked state reads localRoleIds */}
       <div className="flex flex-col gap-1 max-h-56 overflow-y-auto">
         {flatRoles.map(role => {
           const id       = role.role_id || role.id || role.roleId
-          const assigned = userRoleIds.has(id)
+          const assigned = localRoleIds.has(id)
           return (
             <button key={id} onClick={() => toggleRole(id)} disabled={busy}
               className={cn(
@@ -256,6 +330,7 @@ function RoleAssignPanel({ user, tenantId, side }) {
 }
 
 // ─── Invite User Modal ────────────────────────────────────────────────────────
+// Unchanged from original
 
 function InviteUserModal({ open, onClose, side, tenantId, vendorId }) {
   const { data: rolesData } = useRoles(tenantId, side)
@@ -371,32 +446,18 @@ function InviteUserModal({ open, onClose, side, tenantId, vendorId }) {
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
+// Unchanged from original
 
-/**
- * UserManagementPage
- *
- * Props:
- *   side        — 'ORGANIZATION' | 'VENDOR' | 'SYSTEM' | …
- *   vendorId    — (optional) when passed as prop, scopes the list to a specific
- *                 vendor (used when org-admin navigates to a vendor's team page).
- *                 Can also be provided via ?vendorId= query param.
- *
- * Vendor-side users (loggedInVendorId != null) are always scoped to their own
- * vendor on the backend — the frontend doesn't need to pass anything extra.
- */
 export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: vendorIdProp }) {
   const { tenantId }      = useSelector(selectAuth)
   const loggedInVendorId  = useSelector(selectVendorId)
   const { hasPermission } = usePermission()
 
-  // Accept vendorId from either prop (org-admin drilling into a vendor) or
-  // from the URL query param (?vendorId=42) for direct links.
   const [searchParams] = useSearchParams()
   const vendorIdFromUrl = searchParams.get('vendorId')
     ? Number(searchParams.get('vendorId'))
     : null
 
-  // Effective vendorId: prop wins over query param; logged-in vendor always wins on backend.
   const vendorId = vendorIdProp ?? vendorIdFromUrl ?? loggedInVendorId ?? undefined
 
   const canInvite      = hasPermission('USER_CREATE')
@@ -418,8 +479,6 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
     search:   search || undefined,
     sortBy:   `${sortBy}=${sortDir}`,
     side,
-    // Pass vendorId to backend so it scopes the query to the specific vendor.
-    // Undefined (not passed) when side != VENDOR or no specific vendor is requested.
     vendorId: side === 'VENDOR' && vendorId ? vendorId : undefined,
   })
 
@@ -553,10 +612,15 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
         vendorId={vendorId}
       />
 
+      {/* Role modal — key={roleTarget?.id} forces RoleAssignPanel to
+          remount with fresh localRoles state each time a different user
+          is opened. Without this, switching from user A to user B
+          would show user A's cached localRoles until the panel re-seeded. */}
       <Modal open={!!roleTarget} onClose={() => setRoleTarget(null)}
         title="Manage Roles" size="sm">
         {roleTarget && (
           <RoleAssignPanel
+            key={roleTarget.id || roleTarget.userId}
             user={roleTarget}
             tenantId={tenantId}
             side={side}

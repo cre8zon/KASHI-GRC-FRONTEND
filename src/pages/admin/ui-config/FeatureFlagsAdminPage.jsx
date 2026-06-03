@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, RefreshCw, Trash2, ToggleLeft, ToggleRight, Zap } from 'lucide-react'
+import { Plus, RefreshCw, Trash2, ToggleLeft, ToggleRight, Zap, Pencil } from 'lucide-react'
 import { uiAdminApi } from '../../../api/uiConfig.api'
 import { PageLayout }  from '../../../components/layout/PageLayout'
 import { Button }      from '../../../components/ui/Button'
@@ -21,6 +21,7 @@ const useFlags = (params) => useQuery({
 
 export default function FeatureFlagsAdminPage() {
   const [showCreate, setShowCreate] = useState(false)
+  const [editTarget, setEditTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const qc = useQueryClient()
 
@@ -97,6 +98,13 @@ export default function FeatureFlagsAdminPage() {
                 )}
               </div>
 
+              {/* Edit */}
+              <button onClick={() => setEditTarget(flag)}
+                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors shrink-0"
+                title="Edit flag">
+                <Pencil size={12} />
+              </button>
+
               {/* Delete */}
               <button onClick={() => setDeleteTarget(flag)}
                 className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0">
@@ -112,6 +120,19 @@ export default function FeatureFlagsAdminPage() {
         title="New Feature Flag" size="sm"
         footer={null}>
         <FlagForm onSubmit={create} isPending={creating} onClose={() => setShowCreate(false)} />
+      </Modal>
+
+      {/* Edit modal */}
+      <Modal open={!!editTarget} onClose={() => setEditTarget(null)}
+        title={`Edit Flag — ${editTarget?.flagKey}`} size="sm"
+        footer={null}>
+        {editTarget && (
+          <EditFlagForm
+            flag={editTarget}
+            onSubmit={(d) => update({ id: editTarget.id, data: d }, { onSuccess: () => setEditTarget(null) })}
+            isPending={false}
+            onClose={() => setEditTarget(null)} />
+        )}
       </Modal>
 
       <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}
@@ -172,6 +193,70 @@ function FlagForm({ onSubmit, isPending, onClose }) {
         <Button size="sm" loading={isPending}
           onClick={() => { if (!form.flagKey.trim()) { toast.error('Key required'); return } onSubmit(form) }}>
           Create Flag
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function EditFlagForm({ flag, onSubmit, isPending, onClose }) {
+  const [form, setForm] = useState({
+    description:     flag.description     || '',
+    allowedSidesJson: flag.allowedSidesJson || '',
+    isEnabled:       flag.isEnabled,
+  })
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Read-only key display */}
+      <div className="p-2 rounded-md bg-surface-overlay border border-border">
+        <p className="text-[10px] text-text-muted uppercase tracking-wide mb-0.5">Flag Key (immutable)</p>
+        <p className="text-sm font-mono text-brand-400">{flag.flagKey}</p>
+      </div>
+
+      <Input label="Description" value={form.description}
+        onChange={e => set('description', e.target.value)}
+        placeholder="Enables the new dashboard redesign" />
+
+      <div>
+        <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">
+          Allowed Sides (JSON)
+        </label>
+        <input value={form.allowedSidesJson}
+          onChange={e => set('allowedSidesJson', e.target.value)}
+          placeholder='["ORGANIZATION","VENDOR"] — blank = all sides'
+          className="h-8 w-full rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {SIDES.map(s => (
+            <button key={s} type="button"
+              onClick={() => set('allowedSidesJson', `["${s}"]`)}
+              className="px-2 py-0.5 rounded border border-border text-[10px] text-text-muted hover:text-brand-400 hover:border-brand-500/40 transition-colors">
+              {s}
+            </button>
+          ))}
+          <button type="button" onClick={() => set('allowedSidesJson', '')}
+            className="px-2 py-0.5 rounded border border-border text-[10px] text-text-muted hover:text-text-primary transition-colors">
+            All
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={() => set('isEnabled', !form.isEnabled)}
+          className={cn('flex items-center gap-2 px-3 py-1.5 rounded-md border text-xs font-medium transition-colors',
+            form.isEnabled
+              ? 'bg-green-500/10 border-green-500/30 text-green-400'
+              : 'bg-surface-overlay border-border text-text-muted')}>
+          {form.isEnabled ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+          {form.isEnabled ? 'Enabled' : 'Disabled'}
+        </button>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-2 border-t border-border">
+        <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+        <Button size="sm" loading={isPending} onClick={() => onSubmit(form)}>
+          Save Changes
         </Button>
       </div>
     </div>

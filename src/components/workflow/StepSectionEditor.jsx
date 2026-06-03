@@ -17,6 +17,18 @@ import { cn } from '../../lib/cn'
  *     onChange={(sections) => onChange({ ...step, sections })}
  *     stepSide={step.side}
  *   />
+ *
+ * ── NEW FIELDS (Gap P2 fix) ───────────────────────────────────────────────────
+ * When tracksItems = true, three new inputs appear in the Advanced panel:
+ *   sectionScreenKey — screen config key for section container (assignment panel, submit button)
+ *   itemScreenKey    — screen config key for each item card (DynamicForm fields + ItemPanel)
+ *   itemRefType      — what each itemRefId points to: CONTROL, FINDING, QUESTION_RESPONSE, etc.
+ *   sectionUiJson    — inline JSON override merged on top of sectionScreenKey config
+ *   itemUiJson       — inline JSON override merged on top of itemScreenKey config
+ *
+ * These are snapshotted into task_section_completions.snap_* at task creation and
+ * returned in TaskSectionProgressResponse for CompoundSectionRenderer to consume.
+ * Setting them is optional — sections without screenKeys fall back to CompoundTaskProgress.
  */
 
 const COMPLETION_EVENT_SUGGESTIONS = [
@@ -32,6 +44,17 @@ const COMPLETION_EVENT_SUGGESTIONS = [
   'FINDINGS_CONFIRMED',
 ]
 
+const ITEM_REF_TYPE_SUGGESTIONS = [
+  'CONTROL',
+  'RISK_CONTROL',
+  'FINDING',
+  'AUDIT_EVIDENCE',
+  'QUESTION_RESPONSE',
+  'POLICY_CLAUSE',
+  'EXCEPTION',
+  'INCIDENT',
+]
+
 const EMPTY_SECTION = {
   sectionKey:         '',
   sectionOrder:       1,
@@ -40,7 +63,13 @@ const EMPTY_SECTION = {
   required:           true,
   completionEvent:    '',
   requiresAssignment: false,
-  tracksItems:        false,
+  tracksItems:        true,
+  // UI config fields (optional — only used when tracksItems = true)
+  sectionScreenKey:   '',
+  itemScreenKey:      '',
+  itemRefType:        '',
+  sectionUiJson:      '',
+  itemUiJson:         '',
 }
 
 export function StepSectionEditor({ sections = [], onChange, stepSide }) {
@@ -292,6 +321,102 @@ function SectionRow({ section, index, onUpdate, onRemove }) {
             />
             <span className="text-xs text-text-secondary">Tracks individual items</span>
           </label>
+
+          {/* ── UI config fields — screen keys always visible (TPRM always tracks items) ── */}
+          <>
+              {/* Divider */}
+              <div className="col-span-2 mt-1 pt-1 border-t border-border/50">
+                <p className="text-[10px] text-text-muted flex items-center gap-1.5">
+                  <Info size={9} />
+                  Screen config — drives CompoundSectionRenderer UI for this section's items.
+                  Leave blank to use the legacy CompoundTaskProgress fallback (existing TPRM).
+                </p>
+              </div>
+
+              {/* sectionScreenKey */}
+              <div>
+                <label className="block text-[10px] text-text-muted uppercase tracking-wide mb-0.5">
+                  Section screen key
+                </label>
+                <input
+                  value={section.sectionScreenKey || ''}
+                  onChange={e => onUpdate('sectionScreenKey', e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+                  placeholder="e.g. risk_control_section"
+                  className="h-7 w-full rounded border border-border bg-surface-raised px-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+                <p className="text-[9px] text-text-muted mt-0.5">
+                  GET /v1/ui-config/screen/:key → section container config
+                </p>
+              </div>
+
+              {/* itemScreenKey */}
+              <div>
+                <label className="block text-[10px] text-text-muted uppercase tracking-wide mb-0.5">
+                  Item screen key
+                </label>
+                <input
+                  value={section.itemScreenKey || ''}
+                  onChange={e => onUpdate('itemScreenKey', e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+                  placeholder="e.g. risk_control_item"
+                  className="h-7 w-full rounded border border-border bg-surface-raised px-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+                <p className="text-[9px] text-text-muted mt-0.5">
+                  GET /v1/ui-config/screen/:key → item card config
+                </p>
+              </div>
+
+              {/* itemRefType */}
+              <div className="col-span-2">
+                <label className="block text-[10px] text-text-muted uppercase tracking-wide mb-0.5">
+                  Item ref type
+                </label>
+                <input
+                  value={section.itemRefType || ''}
+                  onChange={e => onUpdate('itemRefType', e.target.value.toUpperCase().replace(/\s+/g, '_'))}
+                  placeholder="CONTROL"
+                  list={`irt-suggestions-${index}`}
+                  className="h-7 w-full rounded border border-border bg-surface-raised px-2 text-xs font-mono text-brand-400 placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+                <datalist id={`irt-suggestions-${index}`}>
+                  {ITEM_REF_TYPE_SUGGESTIONS.map(t => <option key={t} value={t} />)}
+                </datalist>
+                <p className="text-[9px] text-text-muted mt-0.5">
+                  What itemRefId points to — used for action item creation and nav context.
+                </p>
+              </div>
+
+              {/* JSON overrides — only shown when tracksItems is explicitly enabled */}
+              {section.tracksItems && (<>
+              <div className="col-span-2">
+                <label className="block text-[10px] text-text-muted uppercase tracking-wide mb-0.5">
+                  Section UI override JSON
+                  <span className="ml-1 text-text-muted/60 normal-case">(optional — extends sectionScreenKey)</span>
+                </label>
+                <textarea
+                  value={section.sectionUiJson || ''}
+                  onChange={e => onUpdate('sectionUiJson', e.target.value)}
+                  placeholder={'{\n  "hiddenTabs": ["comments"],\n  "availableActions": ["COMPLETE"]\n}'}
+                  rows={3}
+                  className="w-full rounded border border-border bg-surface-raised px-2 py-1.5 text-xs font-mono text-text-primary placeholder:text-text-muted/50 resize-none focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+
+              {/* itemUiJson */}
+              <div className="col-span-2">
+                <label className="block text-[10px] text-text-muted uppercase tracking-wide mb-0.5">
+                  Item UI override JSON
+                  <span className="ml-1 text-text-muted/60 normal-case">(optional — extends itemScreenKey)</span>
+                </label>
+                <textarea
+                  value={section.itemUiJson || ''}
+                  onChange={e => onUpdate('itemUiJson', e.target.value)}
+                  placeholder={'{\n  "readOnlyFields": ["risk_rating"],\n  "hiddenFields": ["internal_notes"]\n}'}
+                  rows={3}
+                  className="w-full rounded border border-border bg-surface-raised px-2 py-1.5 text-xs font-mono text-text-primary placeholder:text-text-muted/50 resize-none focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+              </>)}
+          </>
         </div>
       )}
     </div>
