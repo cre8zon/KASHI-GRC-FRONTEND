@@ -26,6 +26,7 @@ import { ControlInstanceEvidenceTab }    from '../../components/audit/ControlIns
 import { TestInstanceMappedControlsTab } from '../../components/audit/TestInstanceMappedControlsTab'
 import { PolicyInstanceMappedControlsTab } from '../../components/audit/PolicyInstanceMappedControlsTab'
 import { PolicyContentTab }              from '../../components/audit/PolicyContentTab'
+import { PolicyVersionsTab }             from '../../components/audit/PolicyVersionsTab'
 import { TestPolicyCsvImportModal }  from '../../components/audit/TestPolicyCsvImportModal'
 import { WorkflowTimeline }       from '../../components/workflow/WorkflowTimeline'
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
@@ -216,9 +217,16 @@ function ModuleListView({ bp }) {
 
   const createMut = useMutation({
     mutationFn: (data) => moduleApi.create(bp.apiBasePath, data),
-    onSuccess: () => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
       toast.success(`${bp.displayName} created successfully`)
+      // AUDIT_POLICY with RICH_TEXT: go straight to the editor after creation.
+      // No point landing back on the list — the user needs to write the content.
+      if (bp.entityType === 'AUDIT_POLICY') {
+        const created = res?.data?.data || res?.data || res
+        const newId = created?.id
+        if (newId) navigate(`/audit/policies/${newId}/edit`)
+      }
     },
     onError: (e) => {
       setCreateOpen(true) // re-open on error so user can fix
@@ -229,6 +237,10 @@ function ModuleListView({ bp }) {
   // Drawer — row click opens a slide-over with full entity data + interactive fields + actions.
   // The drawer uses detailScreenKey config (same as full page) — configure once, applies to both.
   const [drawerId, setDrawerId] = useState(null)
+
+  // All rows open the drawer so users can see metadata (Overview, Linked Controls, Versions).
+  // For AUDIT_POLICY RICH_TEXT the drawer shows an "Edit Content" button that navigates to the editor.
+  const handleRowClick = (row) => setDrawerId(row.id)
 
   // Build columns from screen config or blueprint field schema.
   // FIX: ScreenConfigResponse wraps columns inside layout.columnsJson (a JSON string stored in UiLayout).
@@ -362,7 +374,7 @@ function ModuleListView({ bp }) {
               bp={bp}
               screenConfig={screenConfig}
               loading={isLoading}
-              onRowClick={(row) => setDrawerId(row.id)}
+              onRowClick={handleRowClick}
               emptyMessage={`No ${bp.displayNamePlural?.toLowerCase() || 'records'} found`}
             />
           ) : (
@@ -390,7 +402,7 @@ function ModuleListView({ bp }) {
                 config={screenConfig}
                 data={items}
                 loading={isLoading || !screenConfig}
-                onRowClick={(row) => setDrawerId(row.id)}
+                onRowClick={handleRowClick}
                 emptyMessage={`No ${bp.displayNamePlural?.toLowerCase() || 'records'} found`}
                 sortBy={sortBy}
                 sortDir={sortDir}
@@ -1236,6 +1248,10 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, vc }) {
       />
     )
   }
+
+  if (tabKey === 'versions' && entityType === 'AUDIT_POLICY') {
+    return <PolicyVersionsTab entity={entity} />
+  }
   if (tabKey === 'tests' && entityType === 'AUDIT_CONTROL') {
     return (
       <LibraryMappingTab
@@ -1490,7 +1506,13 @@ function FieldDisplay({ label, value, type, editable, field = {} }) {
         )
       }
 
-      case 'RICH_TEXT': case 'TEXTAREA':
+      case 'RICH_TEXT':
+        return (
+          <div className="text-sm text-text-primary leading-relaxed policy-content max-h-48 overflow-y-auto"
+            dangerouslySetInnerHTML={{ __html: String(value) }} />
+        )
+
+      case 'TEXTAREA':
         return (
           <div className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto">
             {String(value)}
@@ -1805,10 +1827,17 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
       setActingId(action.id)
       const payload = Object.fromEntries(Object.entries(meta).filter(([k]) => !k.startsWith('__')))
       if (remarks) payload.remarks = remarks
-      await api({ method: action.httpMethod || 'POST', url, data: payload })
+      const res = await api({ method: action.httpMethod || 'POST', url, data: payload })
       qc.invalidateQueries({ queryKey: ['drawer-entity', bp.apiBasePath, entityId] })
       qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
       toast.success(action.label + ' successful')
+      // __redirectToCreated: navigate to a route substituting the newly created entity's id.
+      // Used for "New version" — the API returns { id, version } of the new draft.
+      if (meta.__redirectToCreated) {
+        const created = res?.data?.data || res?.data || res
+        const newId = created?.id
+        if (newId) navigate(meta.__redirectToCreated.replace('{id}', newId))
+      }
     } catch (e) {
       toast.error(e?.response?.data?.message || action.label + ' failed')
     } finally { setActingId(null) }
