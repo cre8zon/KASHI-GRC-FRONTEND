@@ -404,12 +404,18 @@ function AutomatedActionSelector({ value, onChange }) {
 // Shown for non-SYSTEM steps that have actor roles.
 // Determines how the step gets assigned when it becomes active.
 //
+// NONE           → no assigner tasks — use with ENTITY_CREATOR or ENTITY_OWNER
 // POOL           → shared queue, first role-holder claims
 // PUSH_TO_ROLES  → push to specific assigner roles (+ role picker appears)
 // PREVIOUS_ACTOR → whoever approved the previous step assigns this one
 // INITIATOR      → workflow creator assigns
 
 const RESOLUTION_OPTIONS = [
+  {
+    value: 'NONE',
+    label: 'None (no coordinator)',
+    desc: 'No assigner tasks created. Use when actor is already resolved via Entity Creator or Entity Owner — no coordinator needed.',
+  },
   {
     value: 'POOL',
     label: 'Pool (shared queue)',
@@ -592,10 +598,16 @@ const STEP_ACTION_OPTIONS = [
 const ACTOR_RESOLUTION_OPTIONS = [
   { value: 'ROLE_BASED',
     label: 'Role-based',
-    desc:  'All users holding the actor role(s) receive a task (pool)' },
+    desc:  'All role holders get a task (pool) — first to act advances the step' },
   { value: 'ASSIGNMENT_SCOPED',
     label: 'Assignment-scoped',
     desc:  'Only users explicitly assigned work in a prior step receive a task' },
+  { value: 'ENTITY_CREATOR',
+    label: 'Entity creator',
+    desc:  'One task for whoever created/started this workflow (e.g. issue triage step 1)' },
+  { value: 'ENTITY_OWNER',
+    label: 'Entity owner',
+    desc:  "One task for the entity's owner field (e.g. issue.ownerId for steps 2-4)" },
 ]
 
 function ActorResolutionSelector({ resolution, onChange }) {
@@ -911,8 +923,34 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
                   </label>
                   <ActorResolutionSelector
                     resolution={step.actorResolution || 'ROLE_BASED'}
-                    onChange={(val) => set('actorResolution', val)}
+                    onChange={(val) => {
+                      set('actorResolution', val)
+                      // Auto-set assigner to NONE when actor is self-resolved
+                      if (val === 'ENTITY_CREATOR' || val === 'ENTITY_OWNER') {
+                        set('assignerResolution', 'NONE')
+                      }
+                    }}
                   />
+                  {/* autoCompleteActorOnSubmit — show only when actorResolution is ENTITY_CREATOR or ENTITY_OWNER */}
+                  {(step.actorResolution === 'ENTITY_CREATOR' || step.actorResolution === 'ENTITY_OWNER' || step.stepAction === 'FILL') && (
+                    <label className="flex items-start gap-2.5 cursor-pointer mt-2">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 accent-brand-500"
+                        checked={!!step.autoCompleteActorOnSubmit}
+                        onChange={e => set('autoCompleteActorOnSubmit', e.target.checked)}
+                      />
+                      <div>
+                        <p className="text-xs font-medium text-text-primary">Auto-complete task on form submit</p>
+                        <p className="text-[10px] text-text-muted leading-snug mt-0.5">
+                          When checked: submitting the FILL form auto-approves the actor's task —
+                          no separate inbox approval needed. The step advances based on its approval type
+                          (ANY_ONE advances immediately; ALL waits for every actor to submit).
+                          Works for: issue triage, policy draft, evidence upload, questionnaire fill.
+                        </p>
+                      </div>
+                    </label>
+                  )}
                 </div>
               )}
 
@@ -1002,7 +1040,7 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
 function downloadTemplate() {
   const headers = [
     'order','name','side','stepAction','approvalType','slaHours',
-    'automatedAction','assignerResolution','actorResolution','actorRoles','assignerRoles','observerRoles','navKey','assignerNavKey',
+    'automatedAction','assignerResolution','actorResolution','actorRoles','assignerRoles','observerRoles','navKey','assignerNavKey','autoCompleteActorOnSubmit',
   ]
   const rows = [
     ['1','Execute Assessment',            'SYSTEM',  '',           'ANY_ONE','',   'EXECUTE_ASSESSMENT','POOL',          'ROLE_BASED',      '',                '',                ''],

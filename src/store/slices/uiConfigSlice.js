@@ -51,25 +51,18 @@ export function applyBranding(branding) {
     if (rgb) root.style.setProperty('--color-accent', `${rgb.r} ${rgb.g} ${rgb.b}`)
   }
 
-  // Apply sidebar theme from branding — but only if user hasn't set
-  // their own personal preference (stored in localStorage).
-  // User preference always wins over org branding default.
+  // Apply sidebar theme from branding — only if user has no personal preference.
+  // Personal pref (set via Settings Display) always wins over org default.
   const userSidebarPref = (() => {
     try { return localStorage.getItem('kashi_sidebar_theme') } catch { return null }
   })()
 
   if (branding.sidebarTheme && !userSidebarPref) {
-    let sidebarRgb
-    if (branding.sidebarTheme === 'brand' && branding.primaryColor) {
-      const rgb = hexToRgb(branding.primaryColor)
-      // Darken the brand color slightly for sidebar so text is readable
-      if (rgb) sidebarRgb = `${Math.round(rgb.r * 0.7)} ${Math.round(rgb.g * 0.7)} ${Math.round(rgb.b * 0.7)}`
-    } else if (branding.sidebarTheme === 'light') {
-      sidebarRgb = '255 255 255'
-    } else {
-      sidebarRgb = '10 15 30'   // dark (default)
+    try { localStorage.setItem('kashi_sidebar_theme', branding.sidebarTheme) } catch {}
+    if (branding.primaryColor) {
+      try { localStorage.setItem('kashi_sidebar_color', branding.primaryColor) } catch {}
     }
-    if (sidebarRgb) root.style.setProperty('--color-sidebar', sidebarRgb)
+    window.dispatchEvent(new CustomEvent('kashi-sidebar-changed'))
   }
 
   if (branding.companyName) document.title = branding.companyName

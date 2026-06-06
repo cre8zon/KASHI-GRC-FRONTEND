@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
+import { selectUser } from '../store/slices/authSlice'
 import { uiConfigApi } from '../api/uiConfig.api'
 import { setBootstrap } from '../store/slices/uiConfigSlice'
 import { updateContext } from '../store/slices/authSlice'
@@ -7,8 +8,9 @@ import { QUERY_KEYS } from '../config/constants'
 
 export const useBootstrap = () => {
   const dispatch = useDispatch()
+  const { userId } = useSelector(selectUser) || {}
   return useQuery({
-    queryKey: QUERY_KEYS.BOOTSTRAP,
+    queryKey: [...QUERY_KEYS.BOOTSTRAP, userId || 'anon'],
     queryFn: async () => {
       const data = await uiConfigApi.bootstrap()
       dispatch(setBootstrap(data))
@@ -71,13 +73,16 @@ export const useBootstrap = () => {
   })
 }
 
-export const useNavigation = () => useQuery({
-  queryKey: QUERY_KEYS.NAVIGATION,
-  queryFn:  uiConfigApi.navigation,
-  staleTime: 10 * 60 * 1000,
-  //staleTime: 0, // force fresh fetch — revert after confirming fix
-  retry: 1,
-})
+export const useNavigation = () => {
+  const { userId } = useSelector(selectUser) || {}
+  return useQuery({
+    queryKey: [...QUERY_KEYS.NAVIGATION, userId || 'anon'],
+    queryFn:  uiConfigApi.navigation,
+    staleTime: 0,
+    retry: 1,
+    enabled: !!userId,
+  })
+}
 
 export const useScreenConfig = (screenKey) => useQuery({
   queryKey: QUERY_KEYS.SCREEN(screenKey),
@@ -100,8 +105,12 @@ export const useScreenActions = (screenKey, entityStatus) => useQuery({
   enabled:  !!screenKey,
 })
 
-export const useDashboardWidgets = () => useQuery({
-  queryKey: QUERY_KEYS.DASHBOARD,
-  queryFn:  uiConfigApi.dashboard,
-  staleTime: 5 * 60 * 1000,
-})
+export const useDashboardWidgets = () => {
+  const { userId } = useSelector(selectUser) || {}
+  return useQuery({
+    queryKey: [...QUERY_KEYS.DASHBOARD, userId || 'anon'],
+    queryFn:  uiConfigApi.dashboard,
+    staleTime: 5 * 60 * 1000,
+    enabled: !!userId,  // don't fetch until user is known
+  })
+}

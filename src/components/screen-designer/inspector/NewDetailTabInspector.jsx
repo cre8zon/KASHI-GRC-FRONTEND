@@ -10,11 +10,31 @@ import { Button } from '../../ui/Button'
 import { InspectorSection, Row, IField, IInp, ISel } from '../shared/InspectorHelpers'
 import { SIDES, HTTP_METHODS, ACTION_VARIANTS, LAYOUT_MODES,
          SCREEN_TYPES, FIELD_TYPES, FIELD_TYPE_GROUPS, CAPABILITY_TABS } from '../constants'
+import { moduleBlueprintsApi as moduleApi } from '../../../api/moduleBlueprints.api'
 
 
 function NewDetailTabInspector({ screenKey, layout, onSave }) {
   const qc = useQueryClient()
   const [label, setLabel] = useState('')
+
+  // Derive entityType from screenKey (e.g. 'issue_detail' → 'ISSUE')
+  // to fetch blueprint and check which capability tabs are enabled
+  const entityType = screenKey?.replace(/_detail$|_list$/, '').toUpperCase()
+  const { data: bpRes } = useQuery({
+    queryKey: ['blueprint-for-sd', entityType],
+    queryFn:  () => moduleApi.blueprint(entityType),
+    enabled:  !!entityType,
+    staleTime: 60_000,
+  })
+  const bp = bpRes?.data || bpRes
+
+  // Capability tabs that are disabled on this blueprint
+  const disabledCapTabs = {
+    workflow: !bp?.supportsWorkflow,
+    evidence: !bp?.supportsDocuments,
+    comments: !bp?.supportsComments,
+    actions:  !bp?.supportsActionItems,
+  }
 
   // Derive current tab list from layout.tabsJson so we can append to it
   const currentTabs = useMemo(() => {
@@ -71,6 +91,33 @@ function NewDetailTabInspector({ screenKey, layout, onSave }) {
           can be configured with role-level visibility rules after adding.
         </p>
 
+        {/* Capability tab warnings — show when blueprint has caps disabled */}
+        {bp && Object.values(disabledCapTabs).some(Boolean) && (
+          <div className="space-y-1 mb-3">
+            <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-lg border border-amber-500/20 bg-amber-500/5">
+              <span className="text-amber-400 text-[11px] mt-0.5 shrink-0">⚙</span>
+              <div className="text-[10px] text-amber-300/80 leading-relaxed">
+                Some capability tabs are <strong>disabled in Blueprint Settings</strong> and
+                won't appear at runtime even if added here:
+                <ul className="mt-1 space-y-0.5">
+                  {disabledCapTabs.workflow && (
+                    <li>• <strong>Workflow</strong> — enable <code className="font-mono">supportsWorkflow</code> in Blueprint Settings</li>
+                  )}
+                  {disabledCapTabs.evidence && (
+                    <li>• <strong>Evidence</strong> — enable <code className="font-mono">supportsDocuments</code></li>
+                  )}
+                  {disabledCapTabs.comments && (
+                    <li>• <strong>Comments</strong> — enable <code className="font-mono">supportsComments</code></li>
+                  )}
+                  {disabledCapTabs.actions && (
+                    <li>• <strong>Action Items</strong> — enable <code className="font-mono">supportsActionItems</code></li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
         <IField label="Tab label *">
           <IInp value={label} onChange={setLabel} placeholder="e.g. Tests · Policies · Risk score · Remediations" />
         </IField>
@@ -79,6 +126,20 @@ function NewDetailTabInspector({ screenKey, layout, onSave }) {
           <IField label="Derived key (auto)">
             <code className="text-[10px] font-mono text-text-muted">{derivedKey}</code>
           </IField>
+        )}
+        {/* Warn if user is trying to add a known capability tab that's disabled */}
+        {derivedKey && disabledCapTabs[derivedKey] !== undefined && disabledCapTabs[derivedKey] && (
+          <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-lg border border-amber-500/20 bg-amber-500/5 text-[10px] text-amber-300/80">
+            <span className="text-amber-400 shrink-0">⚙</span>
+            <span>
+              <strong>{label.trim()}</strong> is a capability tab. It won't appear at runtime
+              until <code className="font-mono">{
+                derivedKey === 'workflow' ? 'supportsWorkflow' :
+                derivedKey === 'evidence' ? 'supportsDocuments' :
+                derivedKey === 'comments' ? 'supportsComments' : 'supportsActionItems'
+              }</code> is enabled in Blueprint Settings → Capabilities.
+            </span>
+          </div>
         )}
 
         <p className="text-[9px] text-text-muted leading-relaxed">

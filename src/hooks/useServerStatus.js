@@ -22,7 +22,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQueryClient }  from '@tanstack/react-query'
 import { serverStatusStore } from '../store/serverStatusStore'
 
-const HEALTH_ENDPOINT  = '/actuator/health'
+const HEALTH_ENDPOINT  = '/v1/health'
 const PING_INTERVAL_MS = 15_000   // re-check every 15s when suspected down
 const SLOW_THRESHOLD   = 3_000    // >3s response = degraded
 const BASE_URL         = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'

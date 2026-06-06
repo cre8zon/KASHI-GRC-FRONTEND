@@ -423,7 +423,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
               ).map(el => (
                 <button key={el.key}
                   onClick={() => onSelectElement({
-                    type:      el.tabKey ? el.key : el.key,
+                    type:      el.tabKey ? 'tab' : el.key,  // 'tab' so Inspector renders DetailTabInspector
                     label:     el.label,
                     tab:       el.rawLabel || el.label,
                     tabKey:    el.tabKey,

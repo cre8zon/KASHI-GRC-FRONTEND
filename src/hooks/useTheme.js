@@ -1,4 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+
+// Shared context — ThemeProvider fills this so all consumers share one state
+export const ThemeContext = createContext(null)
+
 
 const APP_KEY     = 'kashi_theme'
 const SIDEBAR_KEY = 'kashi_sidebar_theme'
@@ -55,17 +59,23 @@ applyAppTheme(getSavedApp())
 })()
 
 export function useTheme() {
-  const [theme, setThemeState] = useState(getSavedApp)
+  // If ThemeProvider is mounted above us, use its shared state.
+  // This ensures changing theme in Settings instantly updates Sidebar and all consumers.
+  const ctx = useContext(ThemeContext)
+  const [localTheme, setLocalThemeState] = useState(getSavedApp)
 
-  const setTheme = useCallback((next) => {
+  const setLocalTheme = useCallback((next) => {
     if (!VALID_APP.includes(next)) return
-    setThemeState(next)
+    setLocalThemeState(next)
     applyAppTheme(next)
     try { localStorage.setItem(APP_KEY, next) } catch {}
   }, [])
 
+  if (ctx) return ctx
+
+  const theme  = localTheme
+  const setTheme = setLocalTheme
   const isDark = theme === 'dark' ||
     (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-
   return { theme, setTheme, isDark }
 }

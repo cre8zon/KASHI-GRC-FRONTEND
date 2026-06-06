@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   ThemeContext,
   getSavedApp, getSavedSidebar,
-  applyAppTheme, applySidebarBg,
+  applyAppTheme,
 } from '../hooks/useTheme'
 
 const VALID_APP     = ['dark', 'light', 'system']
@@ -14,20 +14,12 @@ const SIDEBAR_KEY = 'kashi_sidebar_theme'
  * ThemeProvider — wrap AppShell with this.
  * All useTheme() calls inside share the same state so changing
  * sidebar theme in Settings instantly updates the Sidebar.
+ * Sidebar background is handled by Sidebar itself via localStorage +
+ * kashi-sidebar-changed event — no CSS var needed here.
  */
-export function ThemeProvider({ children, primaryColor }) {
+export function ThemeProvider({ children }) {
   const [theme,        setThemeState]   = useState(getSavedApp)
   const [sidebarTheme, setSidebarState] = useState(getSavedSidebar)
-
-  // Apply sidebar on mount — primaryColor may already be available from Redux
-  // Also re-apply when primaryColor loads (brand sidebar needs actual color)
-  useEffect(() => {
-    const saved = getSavedSidebar()
-    if (saved) {
-      // User has preference — always apply it, use correct primaryColor now
-      applySidebarBg(saved, primaryColor)
-    }
-  }, [primaryColor])
 
   const setTheme = useCallback((next) => {
     if (!VALID_APP.includes(next)) return
@@ -36,12 +28,11 @@ export function ThemeProvider({ children, primaryColor }) {
     try { localStorage.setItem(APP_KEY, next) } catch {}
   }, [])
 
-  const setSidebarTheme = useCallback((next, color) => {
+  const setSidebarTheme = useCallback((next) => {
     if (!VALID_SIDEBAR.includes(next)) return
     setSidebarState(next)
-    applySidebarBg(next, color || primaryColor)
     try { localStorage.setItem(SIDEBAR_KEY, next) } catch {}
-  }, [primaryColor])
+  }, [])
 
   // Sync across browser tabs
   useEffect(() => {
@@ -52,12 +43,11 @@ export function ThemeProvider({ children, primaryColor }) {
       if (e.key === SIDEBAR_KEY) {
         const v = VALID_SIDEBAR.includes(e.newValue) ? e.newValue : null
         setSidebarState(v)
-        if (v) applySidebarBg(v, primaryColor)
       }
     }
     window.addEventListener('storage', handler)
     return () => window.removeEventListener('storage', handler)
-  }, [primaryColor])
+  }, [])
 
   const isDark = theme === 'dark' ||
     (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)

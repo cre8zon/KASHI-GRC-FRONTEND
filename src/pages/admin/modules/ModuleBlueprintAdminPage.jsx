@@ -463,12 +463,25 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
 
         {tab === 'caps' && (
           <div className="space-y-2 max-w-md">
+            {/* Hint banner — shown when any capability is disabled */}
             {[
-              { key: 'supportsWorkflow', label: 'Workflow', desc: 'Workflow instances can be started on this entity', icon: GitBranch },
-              { key: 'supportsActionItems', label: 'Action items', desc: 'Action items can be linked to records of this type', icon: CheckCircle2 },
-              { key: 'supportsDocuments', label: 'Documents', desc: 'Evidence documents can be uploaded to records', icon: Upload },
-              { key: 'supportsComments', label: 'Comments', desc: 'Discussion threads appear on detail pages', icon: MessageSquare },
-              { key: 'showInNav', label: 'Navigation', desc: 'Module appears in the sidebar navigation', icon: Navigation },
+              'supportsWorkflow','supportsActionItems','supportsDocuments',
+              'supportsComments','showInNav'
+            ].some(k => !bp[k]) && (
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 mb-3">
+                <span className="text-amber-400 mt-0.5 shrink-0">⚙</span>
+                <div className="text-[11px] text-amber-300/80">
+                  Some capabilities are disabled. The corresponding tabs will not appear on
+                  detail pages for this module. Click <strong>Edit blueprint</strong> to enable them.
+                </div>
+              </div>
+            )}
+            {[
+              { key: 'supportsWorkflow',    label: 'Workflow',      desc: 'Workflow instances can be started on this entity — shows the Workflow tab on detail pages', icon: GitBranch },
+              { key: 'supportsActionItems', label: 'Action items',  desc: 'Action items can be linked to records of this type — shows the Action Items tab', icon: CheckCircle2 },
+              { key: 'supportsDocuments',   label: 'Documents',     desc: 'Evidence documents can be uploaded to records — shows the Evidence tab', icon: Upload },
+              { key: 'supportsComments',    label: 'Comments',      desc: 'Discussion threads appear on detail pages — shows the Comments tab', icon: MessageSquare },
+              { key: 'showInNav',           label: 'Navigation',    desc: 'Module appears in the sidebar navigation', icon: Navigation },
             ].map(c => (
               <div key={c.key} className={cn(
                 'flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors',
@@ -481,6 +494,11 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium text-text-primary">{c.label}</div>
                   <div className="text-[11px] text-text-muted">{c.desc}</div>
+                  {!bp[c.key] && (
+                    <div className="text-[10px] text-amber-400/70 mt-0.5">
+                      ⚙ Tab hidden on detail pages — enable to show
+                    </div>
+                  )}
                 </div>
                 <div className={cn('text-xs font-medium', bp[c.key] ? 'text-green-400' : 'text-text-muted')}>
                   {bp[c.key] ? 'Enabled' : 'Disabled'}

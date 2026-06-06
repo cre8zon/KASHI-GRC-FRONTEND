@@ -10,9 +10,19 @@ import { LAYOUT_MODES } from '../constants'
 function LayoutModeInspector({ screenKey }) {
   const qc = useQueryClient()
   const [layoutId, setLayoutId]   = useState(null)
-  const [storedLayout, setStoredLayout] = useState(null)  // FIX: preserve full layout
+  const [storedLayout, setStoredLayout] = useState(null)
   const [mode, setMode]           = useState('FULL_PAGE')
+  const [scope, setScope]         = useState('GLOBAL')
+  const [targetTenantId, setTargetTenantId] = useState(null)
   const [saving, setSaving]       = useState(false)
+
+  // Fetch tenant list for TENANT scope selector
+  const { data: tenantsRes } = useQuery({
+    queryKey: ['admin-tenants'],
+    queryFn:  () => api.get('/v1/admin/tenants?size=50'),
+    staleTime: 5 * 60_000,
+  })
+  const tenants = tenantsRes?.data?.data?.content || tenantsRes?.data?.content || []
 
   const { data: layoutData } = useQuery({
     queryKey: ['sd-layout', screenKey],
@@ -26,8 +36,12 @@ function LayoutModeInspector({ screenKey }) {
     const layout = Array.isArray(items) ? items[0] : items
     if (layout?.id) {
       setLayoutId(layout.id)
-      setStoredLayout(layout)  // FIX: store full layout for safe saves
+      setStoredLayout(layout)
       setMode(layout.layoutMode || 'FULL_PAGE')
+      // Infer scope from stored tenantId
+      if (layout.tenantId == null)  setScope('GLOBAL')
+      else if (layout.tenantId === 1) setScope('PLATFORM')
+      else { setScope('TENANT'); setTargetTenantId(layout.tenantId) }
     }
   }, [layoutData])
 
@@ -43,6 +57,8 @@ function LayoutModeInspector({ screenKey }) {
         tabsJson:       storedLayout?.tabsJson       ?? null,
         layoutMode:     newMode,
         roleAccessJson: storedLayout?.roleAccessJson ?? '{}',
+        scope:          scope,
+        targetTenantId: scope === 'TENANT' ? targetTenantId : null,
       })
       qc.invalidateQueries({ queryKey: ['sd-layout', screenKey] })
       qc.invalidateQueries({ queryKey: ['sd-all-layouts'] })
@@ -62,10 +78,17 @@ function LayoutModeInspector({ screenKey }) {
   return (
     <InspectorSection title="Layout mode">
       <p className="text-[9px] text-text-muted mb-3 leading-relaxed">
-        Controls how this DETAIL screen opens at runtime. Saved to the layout record and read by{' '}
-        <code className="font-mono">RecordDetailTemplate</code> via{' '}
-        <code className="font-mono">viewContext.layoutMode</code>.
+        Controls how this screen opens when a user clicks a list row.
+        Saved to <code className="font-mono">ui_layouts.layout_mode</code>.
       </p>
+      <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-lg border border-brand-500/15 bg-brand-500/5 mb-3">
+        <span className="text-brand-400 text-[11px] shrink-0">💡</span>
+        <p className="text-[9px] text-text-muted leading-relaxed">
+          Capability tabs (Workflow, Evidence, Comments) only appear if enabled in
+          Blueprint Settings → Capabilities. Configure tabs shown using the
+          <strong> Tabs</strong> inspector on this screen.
+        </p>
+      </div>
       <div className="space-y-2">
         {LAYOUT_MODES.map(({ value, label, Icon, color, dimColor, desc }) => {
           const active = mode === value
@@ -99,6 +122,56 @@ function LayoutModeInspector({ screenKey }) {
           )
         })}
       </div>
+      {/* Scope selector — controls which tenants see this layout */}
+      <div className="mt-3 pt-3 border-t border-border">
+        <p className="text-[9px] font-semibold text-text-muted uppercase tracking-wide mb-2">Visibility scope</p>
+        <div className="space-y-1.5">
+          {[
+            { value: 'GLOBAL',   label: 'Global',          desc: 'All tenants inherit this layout' },
+            { value: 'PLATFORM', label: 'Platform only',   desc: 'Only visible in admin panel' },
+            { value: 'TENANT',   label: 'Specific tenant', desc: 'Override for one tenant only' },
+          ].map(s => (
+            <button key={s.value} onClick={() => { setScope(s.value); if (s.value !== 'TENANT') setTargetTenantId(null) }}
+              className={`w-full text-left flex items-start gap-2 px-3 py-2 rounded-lg border text-[10px] transition-all ${
+                scope === s.value
+                  ? 'border-brand-500/40 bg-brand-500/10 text-brand-300'
+                  : 'border-border text-text-muted hover:border-border-strong'
+              }`}>
+              <span className={`mt-0.5 w-3 h-3 rounded-full border shrink-0 flex items-center justify-center ${
+                scope === s.value ? 'border-brand-400 bg-brand-400' : 'border-text-muted'
+              }`}>
+                {scope === s.value && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+              </span>
+              <div>
+                <span className="font-medium">{s.label}</span>
+                <span className="text-[9px] block text-text-muted opacity-70">{s.desc}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Tenant picker — shown when scope = TENANT */}
+        {scope === 'TENANT' && (
+          <div className="mt-2">
+            <select
+              value={targetTenantId || ''}
+              onChange={e => setTargetTenantId(Number(e.target.value) || null)}
+              className="w-full text-[10px] px-2 py-1.5 rounded border border-border bg-surface-overlay text-text-primary">
+              <option value="">— Select tenant —</option>
+              {tenants.filter(t => t.id !== 1).map(t => (
+                <option key={t.id} value={t.id}>{t.name} (#{t.id})</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {scope === 'GLOBAL' && (
+          <p className="text-[9px] text-amber-400/70 mt-1.5">
+            ⚙ Changes will apply to all tenants on next page load
+          </p>
+        )}
+      </div>
+
       {saving && (
         <p className="text-[9px] text-text-muted mt-2 text-center animate-pulse">Saving…</p>
       )}
