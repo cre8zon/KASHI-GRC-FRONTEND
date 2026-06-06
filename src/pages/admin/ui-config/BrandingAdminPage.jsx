@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Palette, Save, Eye, EyeOff, RotateCcw, Globe, Mail, Type } from 'lucide-react'
 import { uiAdminApi, uiConfigApi } from '../../../api/uiConfig.api'
+import { usersApi } from '../../../api/users.api'
 import { QUERY_KEYS } from '../../../config/constants'
-import { applyBrandingLive } from '../../../store/slices/uiConfigSlice'
+import { applyBrandingLive, applyBranding } from '../../../store/slices/uiConfigSlice'
+import { selectAuth } from '../../../store/slices/authSlice'
 import { PageLayout }        from '../../../components/layout/PageLayout'
 import { Card, CardHeader, CardBody } from '../../../components/ui/Card'
 import { Button }            from '../../../components/ui/Button'
@@ -30,6 +32,7 @@ const PRESET_PALETTES = [
 export default function BrandingAdminPage() {
   const qc       = useQueryClient()
   const dispatch = useDispatch()
+  const auth     = useSelector(selectAuth)
 
   const { data: existing, isLoading } = useQuery({
     queryKey: ['admin-branding'],
@@ -66,23 +69,25 @@ export default function BrandingAdminPage() {
   }, [existing])
 
   const set = useCallback((k, v) => {
-    setForm(f => {
-      const next = { ...f, [k]: v }
-      // Live preview: apply colors to app immediately as user picks
-      if (livePreview && (k === 'primaryColor' || k === 'accentColor')) {
-        dispatch(applyBrandingLive({ [k]: v }))
+    setForm(f => ({ ...f, [k]: v }))
+    // Live preview: dispatch outside setForm updater — calling dispatch inside a state
+    // updater triggers "setState during render" because updaters can run during render.
+    if (livePreview && (k === 'primaryColor' || k === 'accentColor' || k === 'sidebarTheme')) {
+      // Clear personal pref so the admin sees their org branding changes live
+      if (k === 'sidebarTheme') {
+        try { localStorage.removeItem('kashi_sidebar_theme') } catch {}
+        try { localStorage.removeItem('kashi_sidebar_color') } catch {}
       }
-      return next
-    })
+      applyBranding({ ...form, [k]: v })
+      dispatch(applyBrandingLive({ [k]: v }))
+    }
   }, [livePreview, dispatch])
 
   const handlePreviewToggle = () => {
     if (livePreview) {
-      // Turning off — restore original branding
-      if (original) dispatch(applyBrandingLive(original))
+      if (original) { try { localStorage.removeItem('kashi_sidebar_theme') } catch {}; applyBranding(original); dispatch(applyBrandingLive(original)) }
     } else {
-      // Turning on — apply current form state
-      dispatch(applyBrandingLive(form))
+      try { localStorage.removeItem('kashi_sidebar_theme') } catch {}; applyBranding(form); dispatch(applyBrandingLive(form))
     }
     setLivePreview(p => !p)
   }
@@ -90,18 +95,32 @@ export default function BrandingAdminPage() {
   const handleReset = () => {
     if (original) {
       setForm(original)
-      if (livePreview) dispatch(applyBrandingLive(original))
+      if (livePreview) { try { localStorage.removeItem('kashi_sidebar_theme') } catch {}; applyBranding(original); dispatch(applyBrandingLive(original)) }
     }
   }
 
   const { mutate: save, isPending } = useMutation({
     mutationFn: (data) => isExisting ? uiAdminApi.branding.update(data) : uiAdminApi.branding.create(data),
-    onSuccess: () => {
-      // Invalidate bootstrap so next navigation/reload gets fresh branding from server
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.BOOTSTRAP })
-      qc.invalidateQueries({ queryKey: ['admin-branding'] })
-      // Apply immediately to the live app — no reload needed
+    onSuccess: async () => {
+      // Platform admin is setting org branding — they should see the result.
+      // 1. Save the new sidebarTheme as admin's personal pref in DB so
+      //    bootstrap refetch returns the new value and doesn't revert it.
+      try {
+        await usersApi.preferences.save({
+          ui_sidebar_theme: form.sidebarTheme,
+          ui_sidebar_color: form.primaryColor,
+        })
+      } catch {}
+      // 2. Clear localStorage so applyBranding's user-override guard passes
+      try { localStorage.removeItem('kashi_sidebar_theme') } catch {}
+      try { localStorage.removeItem('kashi_sidebar_color') } catch {}
+      applyBranding(form)
       dispatch(applyBrandingLive(form))
+      qc.setQueryData(['admin-branding'], (prev) => ({ ...(prev || {}), ...form }))
+      qc.setQueryData(
+        [...QUERY_KEYS.BOOTSTRAP, auth?.userId ? String(auth.userId) : 'anon'],
+        (prev) => prev ? { ...prev, branding: { ...(prev.branding || {}), ...form } } : prev
+      )
       setOriginal(form)
       toast.success('Branding saved and applied live')
     },

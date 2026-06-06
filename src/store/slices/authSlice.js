@@ -56,7 +56,12 @@ export default authSlice.reducer
 
 export const selectAuth            = (s) => s.auth
 export const selectIsAuthenticated = (s) => s.auth.isAuthenticated
-export const selectUser            = (s) => ({ userId: s.auth.userId, email: s.auth.email, fullName: s.auth.fullName })
+export const selectUser            = createSelector(
+  (s) => s.auth.userId,
+  (s) => s.auth.email,
+  (s) => s.auth.fullName,
+  (userId, email, fullName) => ({ userId, email, fullName })
+)
 export const selectTenantId        = (s) => s.auth.tenantId
 export const selectRoles           = (s) => s.auth.roles
 export const selectVendorId        = (s) => s.auth.vendorId

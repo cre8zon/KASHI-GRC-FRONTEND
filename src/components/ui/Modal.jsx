@@ -2,11 +2,22 @@ import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '../../lib/cn'
 
+// Track how many modals are open so cleanup from one doesn't unfreeze scroll
+// while another modal is still open.
+let openModalCount = 0
+
 export function Modal({ open, onClose, title, subtitle, children, size = 'md', footer }) {
   useEffect(() => {
-    if (open) document.body.style.overflow = 'hidden'
-    else document.body.style.overflow = ''
-    return () => { document.body.style.overflow = '' }
+    if (open) {
+      openModalCount++
+      document.body.style.overflow = 'hidden'
+    }
+    return () => {
+      if (open) {
+        openModalCount = Math.max(0, openModalCount - 1)
+        if (openModalCount === 0) document.body.style.overflow = ''
+      }
+    }
   }, [open])
 
   if (!open) return null
@@ -40,12 +51,13 @@ export function Modal({ open, onClose, title, subtitle, children, size = 'md', f
   )
 }
 
-export function ConfirmDialog({ open, onClose, onConfirm, title, message, confirmLabel = 'Confirm', variant = 'danger', loading }) {
+export function ConfirmDialog({ open, onClose, onCancel, onConfirm, title, message, description, confirmLabel = 'Confirm', variant = 'danger', loading }) {
+  const handleClose = onClose || onCancel
   return (
-    <Modal open={open} onClose={onClose} title={title} size="sm"
+    <Modal open={open} onClose={handleClose} title={title} size="sm"
       footer={
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="h-8 px-3 text-sm text-text-secondary hover:text-text-primary rounded-md hover:bg-surface-overlay transition-colors">Cancel</button>
+          <button onClick={handleClose} className="h-8 px-3 text-sm text-text-secondary hover:text-text-primary rounded-md hover:bg-surface-overlay transition-colors">Cancel</button>
           <button
             onClick={onConfirm}
             disabled={loading}
@@ -60,7 +72,7 @@ export function ConfirmDialog({ open, onClose, onConfirm, title, message, confir
         </div>
       }
     >
-      <p className="text-sm text-text-secondary">{message}</p>
+      <p className="text-sm text-text-secondary">{message || description}</p>
     </Modal>
   )
 }

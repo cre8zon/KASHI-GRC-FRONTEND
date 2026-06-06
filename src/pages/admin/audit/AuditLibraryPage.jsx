@@ -2295,14 +2295,14 @@ function CreateTemplateForm({ onClose, onCreated }) {
     },
     onError: () => toast.error('Failed to create template'),
   })
-  const [form, setForm] = useState({ name: '', description: '', frameworkRef: '', auditType: 'INTERNAL' })
+  const [form, setForm] = useState({ templateName: '', description: '', frameworkRef: '', auditType: 'INTERNAL' })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   return (
     <div className="flex flex-col gap-4">
       <div>
         <label className="block text-xs text-text-secondary mb-1">Template name *</label>
-        <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. ISO 27001 Full Audit"
+        <input value={form.templateName} onChange={e => set('templateName', e.target.value)} placeholder="e.g. ISO 27001 Full Audit"
           className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -2319,7 +2319,7 @@ function CreateTemplateForm({ onClose, onCreated }) {
             className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
-      <Button variant="primary" loading={isPending} disabled={!form.name.trim()} onClick={() => create(form)}>
+      <Button variant="primary" loading={isPending} disabled={!form.templateName.trim()} onClick={() => create(form)}>
         Create & Open Builder
       </Button>
     </div>
@@ -2388,7 +2388,7 @@ function EditTemplateRowForm({ template, onClose }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function AuditLibraryPage({ defaultTab = 'controls' }) {
+export default function AuditLibraryPage({ defaultTab = 'templates' }) {
   const auth = useSelector(selectAuth)
   const { data: auditLibConfig } = useScreenConfig('audit_library')
 

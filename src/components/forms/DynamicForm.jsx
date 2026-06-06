@@ -72,6 +72,18 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
       )}
       <div className="grid grid-cols-12 gap-3">
         {fields.map(field => {
+          // is_visible=0 — render as hidden input so value is still in the payload
+          // but the user never sees it (e.g. workflowId defaulting to 15)
+          if (field.isVisible === false || field.isVisible === 0) {
+            return (
+              <input
+                key={field.fieldKey}
+                type="hidden"
+                {...register(field.fieldKey)}
+                defaultValue={field.defaultValue ?? ''}
+              />
+            )
+          }
           if (!isFieldVisible(field, watchedValues)) return null
           // Gap 1: respect vc.hiddenFields — skip fields the backend says to hide
           if (hiddenFields.includes(field.fieldKey)) return null
@@ -533,6 +545,9 @@ function FormField({ field, register, control, error, config, isEditable = true 
 }
 
 function isFieldVisible(field, values) {
+  // Respect is_visible=0 from the DB — field hidden entirely from UI
+  // but still included in form payload via hidden input (see render logic below)
+  if (field.isVisible === false || field.isVisible === 0) return false
   if (!field.dependsOnJson) return true
   try {
     const dep = typeof field.dependsOnJson === 'string'

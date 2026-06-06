@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { moduleBlueprintsApi as moduleApi } from '../../../api/moduleBlueprints.api'
 import { Layers, List, Eye, EyeOff, Plus, Search, Settings, Code2, Copy, ChevronRight, ChevronDown, GitBranch, Shield, Users, Zap, X, Save, RefreshCw, Lock, Unlock, MousePointerClick, Table2, Layout, PanelLeft, FileEdit, Square, ArrowRight, CheckCircle2, AlertTriangle, GripVertical, Pencil, Trash2, Link2, ExternalLink, Info, Hash, Columns2, SlidersHorizontal, Flag, Tag, Activity, PanelRight, Calendar, User, FileText } from 'lucide-react'
 import { cn } from '../../../lib/cn'
 import api from '../../../config/axios.config'
@@ -14,11 +15,34 @@ import { SIDES, HTTP_METHODS, ACTION_VARIANTS, LAYOUT_MODES,
 import { RoleVisibilityEditor } from './RoleVisibilityEditor'
 import { WorkflowStepVisibility } from './WorkflowStepVisibility'
 
+// Maps tab key → blueprint capability field
+const CAPABILITY_TAB_TO_BP = {
+  workflow:   { field: 'supportsWorkflow',    label: 'Workflow' },
+  evidence:   { field: 'supportsDocuments',   label: 'Evidence' },
+  comments:   { field: 'supportsComments',    label: 'Comments' },
+  actions:    { field: 'supportsActionItems', label: 'Action Items' },
+  'action-items': { field: 'supportsActionItems', label: 'Action Items' },
+}
+
 function TabInspector({ tab, tabKey, screenKey, layout }) {
   const qc = useQueryClient()
 
   // ── Tab label editing ──────────────────────────────────────────────────────
   const [labelEdit, setLabelEdit] = useState(tab || '')
+
+  // ── Blueprint fetch for capability hint ───────────────────────────────────
+  const entityType = screenKey?.replace(/_detail$|_list$/, '').toUpperCase()
+  const { data: bpRes } = useQuery({
+    queryKey: ['blueprint-for-tab-inspector', entityType],
+    queryFn:  () => moduleApi.blueprint(entityType),
+    enabled:  !!entityType,
+    staleTime: 60_000,
+  })
+  const bp = bpRes?.data || bpRes
+  const resolvedTabKey = tabKey || tab?.toLowerCase().replace(/\s+/g, '_')
+  const capInfo = CAPABILITY_TAB_TO_BP[resolvedTabKey]
+  const isCapabilityTab = !!capInfo
+  const isCapDisabled   = isCapabilityTab && bp && !bp[capInfo.field]
 
   // ── Derive current tab list from layout.tabsJson (or hardcoded defaults) ──
   const BUILTIN_TAB_LABELS = ['Overview', 'Workflow', 'Evidence', 'Comments', 'History']
@@ -103,6 +127,29 @@ function TabInspector({ tab, tabKey, screenKey, layout }) {
           <div className="flex items-start gap-1.5 px-2 py-1.5 rounded bg-blue-500/5 border border-blue-500/20 text-[9px] text-blue-400 leading-relaxed">
             <Info size={10} className="mt-0.5 shrink-0" />
             <span>Built-in capability tab — always available when this screen type uses it. You can rename it or hide it per-role, but it cannot be deleted.</span>
+          </div>
+        )}
+
+        {/* Capability disabled warning — shown when bp has this cap turned off */}
+        {isCapDisabled && (
+          <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-lg border border-amber-500/20 bg-amber-500/5 mt-2">
+            <span className="text-amber-400 text-[11px] shrink-0 mt-0.5">⚙</span>
+            <div className="text-[10px] text-amber-300/80 leading-relaxed">
+              <strong>{capInfo.label}</strong> capability is <strong>disabled</strong> in Blueprint Settings.
+              This tab won't appear at runtime until{' '}
+              <code className="font-mono text-[9px]">{capInfo.field}</code> is enabled in{' '}
+              <strong>Module Blueprints → {entityType} → Capabilities</strong>.
+            </div>
+          </div>
+        )}
+
+        {/* Capability enabled confirmation */}
+        {isCapabilityTab && bp && !isCapDisabled && (
+          <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg border border-green-500/20 bg-green-500/5 mt-2">
+            <span className="text-green-400 text-[10px] shrink-0 mt-0.5">✓</span>
+            <span className="text-[9px] text-green-300/80">
+              {capInfo.label} capability is enabled — this tab will appear at runtime.
+            </span>
           </div>
         )}
       </InspectorSection>

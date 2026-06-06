@@ -3,7 +3,7 @@ import { DashboardGrid } from '../../components/charts/DashboardWidget'
 import { TaskInbox } from '../../components/workflow/TaskInbox'
 import { Card, CardHeader, CardBody } from '../../components/ui/Card'
 import { useSelector } from 'react-redux'
-import { selectAuth } from '../../store/slices/authSlice'
+import { selectAuth, selectRoleSides } from '../../store/slices/authSlice'
 import { useMyTasks } from '../../hooks/useWorkflow'
 import { cn } from '../../lib/cn'
 import { ListTodo, Flag, ChevronRight } from 'lucide-react'
@@ -24,6 +24,7 @@ import { useMyActionItems } from '../../hooks/useActionItems'
 export default function DashboardPage() {
   const { data: widgets = [], isLoading: widgetsLoading } = useDashboardWidgets()
   const { fullName } = useSelector(selectAuth)
+  const userSides = useSelector(selectRoleSides)
   const { data: tasksData } = useMyTasks({ status: 'PENDING' })
 
   const pendingTasks = Array.isArray(tasksData) ? tasksData : (tasksData?.items ?? [])
@@ -51,7 +52,7 @@ export default function DashboardPage() {
           ))}
         </div>
       ) : widgets.length > 0 ? (
-        <DashboardGrid widgets={widgets} />
+        <DashboardGrid widgets={widgets} userSides={userSides} />
       ) : null}
 
       {/* Task inbox */}

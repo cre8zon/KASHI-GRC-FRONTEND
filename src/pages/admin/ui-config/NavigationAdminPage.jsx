@@ -137,9 +137,9 @@ function useGrantPermission(onLocalUpdate) {
     mutationFn: ({ roleId, permissionId }) =>
       rbacApi.grants.upsert(roleId, { permissionId, granted: true }),
     onSuccess: (data, vars) => {
-      // data = { id, roleId, granted } from upsert response (after interceptor unwrap)
       const grantId = data?.id ?? data?.data?.id ?? null
-      qc.invalidateQueries({ queryKey: ['perm-roles'] })  // prefix-matches ['perm-roles', permCode]
+      qc.invalidateQueries({ queryKey: ['perm-roles'] })
+      qc.invalidateQueries({ queryKey: ['navigation'] })  // refresh sidebar for all users
       onLocalUpdate(Number(vars.roleId), true, grantId)
       toast.success('Permission granted')
     },
@@ -153,6 +153,7 @@ function useRevokePermission(onLocalUpdate) {
     mutationFn: ({ grantId }) => rbacApi.grants.delete(grantId),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['perm-roles'] })
+      qc.invalidateQueries({ queryKey: ['navigation'] })  // refresh sidebar
       onLocalUpdate(Number(vars.roleId), false)
       toast.success('Permission revoked')
     },
@@ -330,17 +331,26 @@ function PermissionRolesModal({ open, onClose, permCode, allPermsData }) {
       setLocalGranted(idSet)
       setLocalRoleMap(map)
     } else {
-      // Subsequent sync after refetch — patch real grantIds into existing entries
-      // and pick up any newly confirmed server grants
+      // Subsequent sync after refetch:
+      // - Patch real grantIds into localRoleMap for confirmed grants
+      // - Add any new server grants not yet in local
+      // - Remove entries where server confirms revoke AND local has a real grantId
+      //   (grantId=null = optimistic pending grant — never remove those)
+      const serverIds = new Set(serverRoles.map(r => Number(r.roleId)))
       setLocalRoleMap(prev => {
         const next = { ...prev }
         serverRoles.forEach(r => {
           const id = Number(r.roleId)
-          if (next[id]) {
-            next[id] = { ...next[id], grantId: r.grantId }  // patch real grantId
-          } else {
-            next[id] = r  // new server-confirmed grant
-            setLocalGranted(s => { const n = new Set(s); n.add(id); return n })
+          next[id] = next[id]
+            ? { ...next[id], grantId: r.grantId }  // patch real grantId
+            : r                                      // new server grant
+        })
+        // Remove entries server no longer has — but only confirmed grants (grantId != null)
+        // Optimistic grants (grantId=null) are kept until server confirms or user sees toast
+        Object.keys(next).forEach(id => {
+          if (!serverIds.has(Number(id)) && next[id]?.grantId != null) {
+            delete next[Number(id)]
+            setLocalGranted(s => { const n = new Set(s); n.delete(Number(id)); return n })
           }
         })
         return next
@@ -491,10 +501,24 @@ function PermissionRolesModal({ open, onClose, permCode, allPermsData }) {
                   <span className="text-[9px] text-text-muted">{r.roleLevel}</span>
                   <button
                     disabled={busy}
-                    onClick={() => {
+                    onClick={async () => {
                       if (!r.grantId) {
-                        // grantId null — invalidate to get real grantId then auto-revoke
-                        qc.invalidateQueries({ queryKey: ['perm-roles', permCode] })
+                        // grantId unknown — fetch it from server then revoke
+                        try {
+                          const res = await rbacApi.grants.list(id)
+                          const grants = res?.data?.data || res?.data || []
+                          const match = grants.find(g => g.permissionCode === permCode || g.permissionId === permInfo?.id)
+                          if (match?.id) {
+                            revoke({ grantId: match.id, roleId: id })
+                          } else {
+                            // Grant not found in permission_grants — may be in role_permissions
+                            // Just remove from local state and show success
+                            updateLocal(id, false)
+                            toast.success('Permission revoked')
+                          }
+                        } catch(e) {
+                          toast.error('Could not resolve grant ID')
+                        }
                         return
                       }
                       revoke({ grantId: r.grantId, roleId: id })
@@ -565,9 +589,26 @@ function PermissionRolesModal({ open, onClose, permCode, allPermsData }) {
                 <button
                   key={id}
                   disabled={busy}
-                  onClick={() => {
-                    const permId = allPermsData?.items?.find(p => p.code === permCode)?.id
-                    if (!permId) { toast.error('Permission ID not found'); return }
+                  onClick={async () => {
+                    // Find existing permission or auto-create it
+                    let permId = allPermsData?.items?.find(p => p.code === permCode)?.id
+                    if (!permId) {
+                      // Permission code doesn't exist yet — create it on the fly
+                      try {
+                        const created = await rbacApi.permissions.create({
+                          code: permCode,
+                          name: permCode.replace(/_/g, ' ').replace(/\w/g, c => c.toUpperCase()),
+                          description: `Auto-created for nav item permission gate`,
+                        })
+                        permId = created?.data?.data?.id || created?.data?.id
+                        if (!permId) { toast.error('Could not create permission'); return }
+                        // Refresh permissions list so future grants work
+                        qc.invalidateQueries({ queryKey: ['all-permissions'] })
+                      } catch (e) {
+                        toast.error('Failed to create permission: ' + (e?.message || 'unknown'))
+                        return
+                      }
+                    }
                     // Optimistically update local state immediately
                     updateLocal(id, true, {
                       roleId: id, roleName: name,

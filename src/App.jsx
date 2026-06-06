@@ -9,6 +9,7 @@ import { ROLE_SIDES } from './config/constants'
 
 // Layout
 import { AppShell } from './components/layout/AppShell'
+import { ThemeProvider } from './providers/ThemeProvider'
 
 // Auth
 import LoginPage               from './pages/auth/LoginPage'
@@ -114,6 +115,16 @@ function usePlatformAdmin() {
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
+// Wraps AppShell with ThemeProvider so all useTheme() consumers share one state.
+// primaryColor from Redux ensures brand-theme sidebar uses the correct color.
+function AppShellWithTheme() {
+  return (
+    <ThemeProvider>
+      <AppShell />
+    </ThemeProvider>
+  )
+}
+
 export default function App() {
   const isPlatformAdmin = usePlatformAdmin()
   const dispatch = useDispatch()
@@ -138,7 +149,7 @@ export default function App() {
       <Route path="/tenants/:id/welcome-email" element={<RequireAuth><SendWelcomeEmailPage /></RequireAuth>} />
 
       {/* Protected AppShell */}
-      <Route element={<RequireAuth><AppShell /></RequireAuth>}>
+      <Route element={<RequireAuth><AppShellWithTheme /></RequireAuth>}>
         <Route path="/dashboard"      element={<DashboardPage />} />
         <Route path="/settings"       element={<SettingsPage />} />
         <Route path="/workflow/inbox"        element={<WorkflowInboxPage />} />

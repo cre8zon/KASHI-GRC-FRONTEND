@@ -12,7 +12,11 @@ import {
 
 const CHART_COLORS = ['#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#6366f1']
 
-function useWidgetData(widget) {
+function useWidgetData(widget, userSides) {
+  // Check if user's sides match widget's allowedSidesJson
+  const sideAllowed = !widget.allowedSidesJson ||
+    (userSides || []).some(s => widget.allowedSidesJson.includes(`"${s}"`))
+
   return useQuery({
     queryKey: ['widget-data', widget.widgetKey],
     queryFn: async () => {
@@ -23,7 +27,7 @@ function useWidgetData(widget) {
       return result ?? null
     },
     refetchInterval: (widget.refreshIntervalSeconds || 300) * 1000,
-    enabled: !!widget.dataEndpoint,
+    enabled: !!widget.dataEndpoint && sideAllowed,  // don't fetch if side doesn't match
   })
 }
 
@@ -170,12 +174,12 @@ const COL_SPAN = {
   8: 'col-span-8', 9: 'col-span-9', 12: 'col-span-12',
 }
 
-export function DashboardGrid({ widgets = [] }) {
+export function DashboardGrid({ widgets = [], userSides = [] }) {
   return (
     <div className="grid grid-cols-12 gap-4">
       {widgets.map(widget => (
         <div key={widget.widgetKey} className={COL_SPAN[widget.gridCols] || 'col-span-6'}>
-          <DashboardWidgetCard widget={widget} />
+          <DashboardWidgetCard widget={widget} userSides={userSides} />
         </div>
       ))}
     </div>

@@ -237,10 +237,23 @@ function ModuleListView({ bp }) {
   // Drawer — row click opens a slide-over with full entity data + interactive fields + actions.
   // The drawer uses detailScreenKey config (same as full page) — configure once, applies to both.
   const [drawerId, setDrawerId] = useState(null)
+  // Fetch screen config for list view — needed for layoutMode
+  const { data: listScreenRes } = useScreenConfig(bp.detailScreenKey)
+  // layoutMode from DB: 'DRAWER' (default) or 'FULL_PAGE'
+  // Drives whether clicking a list row opens a side drawer or navigates to full detail page
+  const layoutMode = listScreenRes?.layout?.layoutMode || 'DRAWER'
 
   // All rows open the drawer so users can see metadata (Overview, Linked Controls, Versions).
   // For AUDIT_POLICY RICH_TEXT the drawer shows an "Edit Content" button that navigates to the editor.
-  const handleRowClick = (row) => setDrawerId(row.id)
+  const handleRowClick = (row) => {
+    if (layoutMode === 'FULL_PAGE') {
+      // Navigate directly to full detail page — no drawer
+      const base = bp.listScreenKey?.replace('_list', '') || bp.entityType.toLowerCase().replace('_', '')
+      navigate(`/module/${base}/${row.id}`)
+    } else {
+      setDrawerId(row.id)
+    }
+  }
 
   // Build columns from screen config or blueprint field schema.
   // FIX: ScreenConfigResponse wraps columns inside layout.columnsJson (a JSON string stored in UiLayout).
@@ -494,12 +507,19 @@ function ModuleListView({ bp }) {
 // ─── Detail View ──────────────────────────────────────────────────────────────
 
 const BASE_TABS = [
-  { key: 'overview', label: 'Overview', icon: Eye, always: true },
-  { key: 'workflow', label: 'Workflow', icon: GitBranch, cap: 'supportsWorkflow' },
-  { key: 'actions',  label: 'Action items', icon: CheckCircle2, cap: 'supportsActionItems' },
-  { key: 'evidence', label: 'Evidence', icon: Upload, cap: 'supportsDocuments' },
-  { key: 'comments', label: 'Comments', icon: MessageSquare, cap: 'supportsComments' },
-  { key: 'history',  label: 'History', icon: Activity, always: true },
+  // always:true — these show on every entity unconditionally (GRC audit requirements)
+  { key: 'overview', label: 'Overview',      icon: Eye,          always: true },
+
+  // Capability tabs — only shown when blueprint explicitly enables them
+  // (bp.supportsXxx = true) OR when sdTabKeys from tabsJson includes the key.
+  // Default is hidden — admin must enable from Blueprint Settings → Capabilities.
+  { key: 'workflow', label: 'Workflow',      icon: GitBranch,    cap: 'supportsWorkflow' },
+  { key: 'actions',  label: 'Action items',  icon: CheckCircle2, cap: 'supportsActionItems' },
+  { key: 'evidence', label: 'Evidence',      icon: Upload,       cap: 'supportsDocuments' },
+  { key: 'comments', label: 'Comments',      icon: MessageSquare,cap: 'supportsComments' },
+
+  // always:true — audit trail required for every GRC entity
+  { key: 'history',  label: 'History',       icon: Activity,     always: true },
 ]
 
 // Capability tab keys — these are always rendered by a fixed component, not SD fields
@@ -606,8 +626,13 @@ function ModuleDetailView({ bp, id }) {
   // filtered to only those valid for the current entity status and user's side.
   const screenActions = useMemo(() => {
     if (!Array.isArray(screenConfig?.actions)) return []
+    const seen = new Set()
     return screenConfig.actions.filter(action => {
       if (action.isActive === false) return false
+      // Deduplicate by actionKey — same action may appear multiple times if
+      // inserted multiple times in DB (e.g. ISSUE_REOPEN inserted per-role)
+      if (seen.has(action.actionKey)) return false
+      seen.add(action.actionKey)
       if (action.allowedStatusesJson) {
         try {
           const allowed = JSON.parse(action.allowedStatusesJson)
@@ -669,12 +694,19 @@ function ModuleDetailView({ bp, id }) {
       qcDetail.invalidateQueries({ queryKey: ['module-detail', bp.apiBasePath, id] })
       qcDetail.invalidateQueries({ queryKey: ['view-context', bp.entityType, id] })
       qcDetail.invalidateQueries({ queryKey: ['module-workflow', bp.entityType, id] })
+      qcDetail.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
       toast.success(action.label + ' successful')
-      // After a lifecycle action (activate/complete/cancel) strip the task context
-      // from the URL — the step is done so taskId/stepInstanceId are stale.
-      // Navigate to the clean entity page so UMP re-fetches fresh view context.
-      if (['ACTIVATE','COMPLETE','CANCEL'].includes(action.actionKey)) {
-        navigate(`/module/${bp.listScreenKey?.replace('_list','') || bp.entityType.toLowerCase().replace('_','')}/${id}`)
+      // Navigate to clean page URL for any status-changing action so the entire
+      // component remounts with fresh data — prevents stale status showing in
+      // action buttons and header (e.g. Reopen showing on OPEN issue)
+      const STATUS_CHANGING_ACTIONS = [
+        'ACTIVATE','COMPLETE','CANCEL',
+        'ISSUE_TRIAGE','ISSUE_START_REMEDIATION','ISSUE_SUBMIT_REVIEW',
+        'ISSUE_VALIDATE','ISSUE_CLOSE','ISSUE_ACCEPT_RISK','ISSUE_REOPEN'
+      ]
+      if (STATUS_CHANGING_ACTIONS.includes(action.actionKey)) {
+        const base = bp.listScreenKey?.replace('_list','') || bp.entityType.toLowerCase().replace('_','')
+        navigate(`/module/${base}/${id}`)
       }
     } catch (e) {
       toast.error(e?.response?.data?.message || action.label + ' failed')
@@ -742,10 +774,32 @@ function ModuleDetailView({ bp, id }) {
 
   const updateMut = useMutation({
     mutationFn: (data) => moduleApi.update(bp.apiBasePath, id, data),
-    onSuccess: () => {
+    onSuccess: async () => {
       qc.invalidateQueries({ queryKey: ['module-detail', bp.apiBasePath, id] })
       toast.success('Updated')
       setEditOpen(false)
+
+      // ── autoCompleteActorOnSubmit ──────────────────────────────────────────
+      // If this page was opened from a workflow task link (?taskId=N&stepInstanceId=M)
+      // and the step has autoCompleteActorOnSubmit=true, auto-approve the task
+      // so the user doesn't need to go back to inbox and click approve separately.
+      // The backend handles step advancement and next-step task creation.
+      if (taskId && vc?.autoCompleteActorOnSubmit) {
+        try {
+          await api.post('/v1/workflow-instances/tasks/action', {
+            taskInstanceId: Number(taskId),
+            actionType: 'APPROVE',
+            remarks: 'Auto-completed on form submit',
+          })
+          qc.invalidateQueries({ queryKey: ['workflow-task', taskId] })
+          toast.success('Task completed — workflow advancing')
+        } catch (err) {
+          // Non-blocking — form save succeeded, just couldn't auto-complete task
+          console.warn('[autoCompleteActorOnSubmit] Failed to auto-approve task:', err)
+          toast('Form saved. Go to inbox to complete the workflow task.', { icon: 'ℹ️' })
+        }
+      }
+      // ── end autoCompleteActorOnSubmit ──────────────────────────────────────
     },
     onError: (e) => toast.error(e?.response?.data?.message || 'Failed'),
   })
@@ -760,15 +814,35 @@ function ModuleDetailView({ bp, id }) {
 
   // Resolve visible tabs: base caps + custom SD tabs (from tabsJson)
   const visibleTabs = useMemo(() => {
+    // Parse SD tabsJson to get the explicitly configured tab list
+    let sdTabKeys = null
+    try {
+      const parsed = JSON.parse(sdLayout?.tabsJson || 'null')
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        sdTabKeys = parsed.map(t =>
+          typeof t === 'string' ? t.toLowerCase().replace(/\s+/g, '_') : t.key
+        )
+      }
+    } catch {}
+
     const base = BASE_TABS.filter(t => {
+      // Always-tabs (Overview, History) always show
       if (t.always) return true
-      if (t.cap && !bp[t.cap]) return false
+      // Capability tab — show if blueprint has it enabled, regardless of tabsJson
+      // tabsJson controls ordering and custom tabs, not capability tab visibility
+      if (t.cap) {
+        if (!bp[t.cap]) return false           // cap disabled in blueprint → hide
+        if (vc.hiddenTabs?.includes(t.key)) return false
+        return true                             // cap enabled → always show
+      }
+      // Non-capability base tab — respect tabsJson and viewContext
+      if (sdTabKeys && !sdTabKeys.includes(t.key)) return false
       if (vc.hiddenTabs?.includes(t.key)) return false
       if (vc.visibleTabs?.length > 0 && !vc.visibleTabs.includes(t.key)) return false
       return true
     })
-    // Inject Screen Designer custom tabs (non-capability tabs from tabsJson)
-    // after Overview, before Workflow
+    // Inject SD custom tabs (non-capability) in order they appear in tabsJson
+    // Insert after Overview but before capability tabs
     const overviewIdx = base.findIndex(t => t.key === 'overview')
     const customTabs = sdCustomTabs.map(t => ({
       key: t.key, label: t.label, icon: Hash, isCustom: true,
@@ -778,7 +852,7 @@ function ModuleDetailView({ bp, id }) {
       ...customTabs,
       ...base.slice(overviewIdx + 1),
     ]
-  }, [bp, vc, sdCustomTabs])
+  }, [bp, vc, sdCustomTabs, sdLayout?.tabsJson])
 
   // Build field sections from blueprint schema
   let schema = { sections: [] }
@@ -991,7 +1065,7 @@ function ModuleDetailView({ bp, id }) {
         )}
 
         {tab === 'workflow' && bp.supportsWorkflow && (
-          <WorkflowTab entityType={bp.entityType} entityId={id} vc={vc} bp={bp} />
+          <WorkflowTab entityType={bp.entityType} entityId={id} vc={vc} bp={bp} entity={entity} />
         )}
 
         {tab === 'actions' && bp.supportsActionItems && (
@@ -1124,22 +1198,50 @@ function ModuleDetailView({ bp, id }) {
 
 // ─── Sub-tabs ─────────────────────────────────────────────────────────────────
 
-function WorkflowTab({ entityType, entityId, vc, bp }) {
-  // Step 1: get the active workflow instance to find its id
-  const { data: instanceRes } = useQuery({
+function WorkflowTab({ entityType, entityId, vc, bp, entity }) {
+  // Step 1: get workflow instance
+  // Prefer entity.workflowInstanceId (works for both IN_PROGRESS and COMPLETED).
+  // /active only returns IN_PROGRESS — CLOSED/COMPLETED issues would show empty.
+  const entityWorkflowId = entity?.workflowInstanceId
+  const { data: instanceRes, isLoading: instanceLoading } = useQuery({
     queryKey: ['module-workflow', entityType, entityId],
-    queryFn: () => api.get('/v1/workflow-instances/active', { params: { entityType, entityId } }),
+    queryFn: async () => {
+      if (entityWorkflowId) {
+        return api.get(`/v1/workflow-instances/${entityWorkflowId}`)
+      }
+      return api.get('/v1/workflow-instances/active', { params: { entityType, entityId } })
+    },
     enabled: !!entityId,
+    staleTime: 0,  // always fresh — reopen creates new instance
   })
   const instance = instanceRes?.data || instanceRes
 
   // Step 2: fetch full step-by-step progress once we have the instance id
-  const { data: progressRes } = useQuery({
+  const { data: progressRes, isLoading: progressLoading } = useQuery({
     queryKey: ['wf-progress', instance?.id],
     queryFn: () => api.get(`/v1/workflow-instances/${instance.id}/progress`),
     enabled: !!instance?.id,
+    staleTime: 0,
   })
   const progress = progressRes?.data || progressRes
+  const wfLoading = instanceLoading || (!!instance?.id && progressLoading)
+
+  // Loading skeleton
+  if (wfLoading) {
+    return (
+      <div className="max-w-2xl space-y-3 py-2">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="flex items-start gap-3 p-3 border border-border rounded-lg">
+            <div className="w-8 h-8 rounded-full bg-surface-overlay animate-pulse shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 w-40 bg-surface-overlay rounded animate-pulse" />
+              <div className="h-2 w-24 bg-surface-overlay rounded animate-pulse" />
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   if (!instance) {
     return (
@@ -1273,6 +1375,11 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, vc }) {
     )
   }
 
+  // ISSUE — linked findings tab (audit findings linked to this issue)
+  if ((tabKey === 'linked-findings' || tabKey === 'linked_findings') && entityType === 'ISSUE') {
+    return <IssueFindingsTab issueId={entity?.id} />
+  }
+
   // eslint-disable-next-line no-unused-vars
   void entityType  // used above only; generic path below is form-key-driven
   const formKey = `${detailScreenKey}_tab_${tabKey}`
@@ -1341,28 +1448,133 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, vc }) {
   )
 }
 
+// ── IssueFindingsTab — shows audit findings linked to this issue ──────────────
+// Calls GET /v1/issues/{id}/linked-findings
+// Auditors raise findings during SOC2/TPRM audits → linked here for traceability
+function IssueFindingsTab({ issueId }) {
+  const { data: res, isLoading } = useQuery({
+    queryKey: ['issue-linked-findings', issueId],
+    queryFn: () => api.get(`/v1/issues/${issueId}/linked-findings`),
+    enabled: !!issueId,
+  })
+  const findings = res?.data || res || []
+
+  if (isLoading) return (
+    <div className="py-8 flex items-center justify-center">
+      <RefreshCw size={16} className="animate-spin text-text-muted" />
+    </div>
+  )
+
+  if (findings.length === 0) return (
+    <div className="py-12 text-center">
+      <p className="text-sm text-text-muted">No linked findings yet.</p>
+      <p className="text-xs text-text-muted mt-1 opacity-60">
+        Use the Link Finding button to associate audit findings with this issue.
+      </p>
+    </div>
+  )
+
+  return (
+    <div className="space-y-2">
+      {findings.map((f, i) => (
+        <div key={f.id || i}
+          className="flex items-start gap-3 p-3 rounded-lg border border-border bg-surface-secondary hover:border-border-strong transition-colors">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-medium text-text-primary truncate">
+                {f.findingRef || f.ref || `#${f.id}`}
+              </span>
+              {f.severity && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 font-medium">
+                  {f.severity}
+                </span>
+              )}
+              {f.status && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400">
+                  {f.status}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-text-muted mt-0.5 truncate">{f.title || f.description || '—'}</p>
+            {f.auditName && <p className="text-[10px] text-text-muted mt-0.5">Audit: {f.auditName}</p>}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function HistoryTab({ entityType, entityId, apiBasePath }) {
-  const { data: res } = useQuery({
+  const { data: res, isLoading: historyLoading } = useQuery({
     queryKey: ['module-history', apiBasePath, entityId],
     queryFn: () => api.get(`${apiBasePath}/${entityId}/history`),
     enabled: !!entityId,
+    staleTime: 0,
   })
   const history = res?.data || res || []
 
-  return (
-    <div className="max-w-2xl space-y-2">
-      {history.length === 0
-        ? <p className="text-xs text-text-muted">No history recorded yet</p>
-        : history.map((h, i) => (
-          <div key={i} className="flex items-start gap-3 text-xs">
-            <div className="w-1.5 h-1.5 rounded-full bg-brand-500 mt-1.5 shrink-0" />
-            <div className="flex-1">
-              <span className="text-text-primary">{h.action || h.description}</span>
-              <span className="text-text-muted ml-2">{h.actorName || h.userId}</span>
-              <span className="text-text-muted ml-2">{h.createdAt ? new Date(h.createdAt).toLocaleString() : ''}</span>
+  if (historyLoading) {
+    return (
+      <div className="max-w-2xl space-y-3 py-2">
+        {[1,2,3,4,5].map(i => (
+          <div key={i} className="flex items-start gap-3 pb-3 border-b border-border last:border-0">
+            <div className="w-2 h-2 rounded-full bg-surface-overlay animate-pulse mt-1.5 shrink-0" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-3 rounded animate-pulse bg-surface-overlay" style={{ width: `${55 + (i * 13) % 40}%` }} />
+              <div className="h-2 w-32 rounded animate-pulse bg-surface-overlay" />
+              <div className="h-2 w-48 rounded animate-pulse bg-surface-overlay" />
             </div>
           </div>
-        ))
+        ))}
+      </div>
+    )
+  }
+
+  // Friendly labels for workflow event types
+  const EVENT_LABELS = {
+    STEP_STARTED:               'Step started',
+    STEP_ADVANCED:              'Advanced to next step',
+    STEP_AUTO_COMPLETED_ON_SUBMIT: 'Auto-completed on submit',
+    TASK_AUTO_COMPLETED_ON_SUBMIT: 'Task auto-completed on submit',
+    WORKFLOW_COMPLETED:         'Workflow completed',
+    APPROVE:                    'Approved',
+    REJECT:                     'Rejected',
+    SEND_BACK:                  'Sent back',
+    REASSIGN:                   'Reassigned',
+    ASSIGNER_TASK_APPROVED:     'Coordinator approved',
+  }
+
+  return (
+    <div className="max-w-2xl space-y-2 py-2">
+      {history.length === 0
+        ? <p className="text-xs text-text-muted">No history recorded yet</p>
+        : history.map((h, i) => {
+          // WorkflowHistoryResponse fields: eventType, stepName, stepOrder,
+          // fromStatus, toStatus, performedBy, performedAt, remarks
+          const label = EVENT_LABELS[h.eventType] || h.eventType || h.action || h.description || '—'
+          const step  = h.stepName ? `${h.stepOrder ? h.stepOrder + '. ' : ''}${h.stepName}` : null
+          // performedByName is resolved server-side in WorkflowEngineService.toHistoryResponse()
+          const actor = h.performedByName || (h.performedBy ? `User #${h.performedBy}` : null)
+          const when  = h.performedAt || h.createdAt
+          const transition = h.fromStatus && h.toStatus ? `${h.fromStatus} → ${h.toStatus}` : null
+          return (
+            <div key={i} className="flex items-start gap-3 text-xs border-b border-border pb-2 last:border-0">
+              <div className="w-1.5 h-1.5 rounded-full bg-brand-500 mt-1.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-text-primary">{label}</span>
+                  {step && <span className="text-brand-400 text-[10px] bg-brand-500/10 px-1.5 py-0.5 rounded">{step}</span>}
+                  {transition && <span className="text-text-muted text-[10px]">{transition}</span>}
+                </div>
+                <div className="flex items-center gap-3 mt-0.5">
+                  {actor && <span className="text-text-muted">by {actor}</span>}
+                  {when  && <span className="text-text-muted">{new Date(when).toLocaleString()}</span>}
+                </div>
+                {h.remarks && <p className="text-text-muted italic mt-0.5 truncate">"{h.remarks}"</p>}
+              </div>
+            </div>
+          )
+        })
       }
     </div>
   )
@@ -1705,8 +1917,13 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
   // ── 3. Actions filtered by entity status and vc.permissions ───────────────
   const screenActions = useMemo(() => {
     if (!Array.isArray(screenConfig?.actions)) return []
+    const seen = new Set()
     return screenConfig.actions.filter(action => {
       if (action.isActive === false) return false
+      // Deduplicate by actionKey — prevents duplicate buttons if same action
+      // inserted multiple times in DB
+      if (seen.has(action.actionKey)) return false
+      seen.add(action.actionKey)
       if (action.allowedStatusesJson) {
         try {
           const allowed = JSON.parse(action.allowedStatusesJson)
@@ -1830,7 +2047,20 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
       const res = await api({ method: action.httpMethod || 'POST', url, data: payload })
       qc.invalidateQueries({ queryKey: ['drawer-entity', bp.apiBasePath, entityId] })
       qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+      qc.invalidateQueries({ queryKey: ['view-context', bp.entityType, entityId] })
+      qc.invalidateQueries({ queryKey: ['module-workflow', bp.entityType, entityId] })
       toast.success(action.label + ' successful')
+      // For status-changing actions in drawer: re-fetch entity immediately
+      // so action buttons re-filter with new status (no stale cache)
+      const DRAWER_STATUS_ACTIONS = [
+        'ISSUE_TRIAGE','ISSUE_START_REMEDIATION','ISSUE_SUBMIT_REVIEW',
+        'ISSUE_VALIDATE','ISSUE_CLOSE','ISSUE_ACCEPT_RISK','ISSUE_REOPEN'
+      ]
+      if (DRAWER_STATUS_ACTIONS.includes(action.actionKey)) {
+        // Force immediate refetch — don't wait for background revalidation
+        await qc.refetchQueries({ queryKey: ['drawer-entity', bp.apiBasePath, entityId] })
+        await qc.refetchQueries({ queryKey: ['view-context', bp.entityType, entityId] })
+      }
       // __redirectToCreated: navigate to a route substituting the newly created entity's id.
       // Used for "New version" — the API returns { id, version } of the new draft.
       if (meta.__redirectToCreated) {
@@ -1943,7 +2173,15 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
           </div>
 
           {/* Action buttons — below title, above tabs */}
-          {screenActions.length > 0 && (
+          {isLoading ? (
+            /* Skeleton action buttons while entity/screen loads */
+            <div className="flex items-center gap-2 flex-wrap mt-3">
+              {[64, 80, 72].map((w, i) => (
+                <div key={i} className="h-7 rounded-md animate-pulse bg-surface-overlay"
+                  style={{ width: w }} />
+              ))}
+            </div>
+          ) : screenActions.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap mt-3">
               {screenActions.map(action => (
                 <Button key={action.id} size="sm"

@@ -20,6 +20,11 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
     <div className="space-y-3">
       {/* Table */}
       <CanvasCard label="Table" hint="click a column header to configure it">
+        {/* Preview banner — makes clear these are not real records */}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border bg-amber-500/5">
+          <span className="text-[9px] text-amber-400/80 font-medium">⚠ Preview data</span>
+          <span className="text-[9px] text-text-muted">— column values below are mock examples, not real records. Configure columns using the column headers.</span>
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-[10px]">
             <thead>
@@ -59,12 +64,15 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
                       col.isPrimary ? 'font-semibold text-text-primary' : 'text-text-primary',
                       col.monoFont && 'font-mono text-text-secondary',
                     )}>
-                      {col.type === 'badge'
-                        ? <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[9px]">{r[col.key] || '—'}</span>
-                        : col.type === 'select'
-                          ? <span className="px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 text-[9px]">{r[col.key] || '—'}</span>
-                          : (r[col.key] ? String(r[col.key]) : '—')
-                      }
+                      {(() => {
+                        // Show mock value — use record field if key matches, else generate placeholder
+                        const mockVal = r[col.key] ?? `sample_${col.key}_${r.id}`
+                        if (col.type === 'badge' || col.type === 'select') {
+                          const color = col.type === 'badge' ? 'blue' : 'purple'
+                          return <span className={`px-1.5 py-0.5 rounded bg-${color}-500/10 text-${color}-400 text-[9px]`}>{r[col.key] || 'VALUE'}</span>
+                        }
+                        return <span className="text-text-muted/70">{r[col.key] ? String(r[col.key]) : <span className="italic opacity-50">{col.key}</span>}</span>
+                      })()}
                     </td>
                   ))}
                   <td />
