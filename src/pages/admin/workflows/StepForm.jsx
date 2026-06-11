@@ -1501,6 +1501,7 @@ export function stepsToFormState(apiSteps = []) {
     observerRoleIds:      s.observerRoleIds || [],
     // UI access override — snapshotted into StepInstance at step activation time
     stepUiOverrideJson:   s.stepUiOverrideJson || null,
+    sodRulesJson:         s.sodRulesJson || null,
     sections: (s.sections || []).map(sec => ({
       id:                 sec.id || null,
       sectionKey:         sec.sectionKey || '',
@@ -1545,6 +1546,9 @@ export function stepsToPayload(steps) {
     // UI access override — stored in workflow_steps.step_ui_override_json
     // Snapshotted into step_instances.snap_ui_override_json at step activation
     stepUiOverrideJson:   s.stepUiOverrideJson || undefined,
+    // SOD rules — stored in workflow_steps.sod_rules_json
+    // Snapshotted into step_instances.snap_sod_rules_json at step activation
+    sodRulesJson:         s.sodRulesJson || undefined,
     sections: (s.sections || [])
       .filter(sec => sec.sectionKey && sec.completionEvent && sec.label)
       .map((sec, idx) => ({

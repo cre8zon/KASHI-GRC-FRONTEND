@@ -1564,6 +1564,19 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
           } catch {}
         }
         const value = entity?.[field.fieldKey]
+        // Hide fields with depends_on_json that don't match current entity values
+        if (field.dependsOnJson) {
+          try {
+            const dep = typeof field.dependsOnJson === 'string'
+              ? JSON.parse(field.dependsOnJson) : field.dependsOnJson
+            const entityVal = entity?.[dep.field]
+            const matches = dep.operator === 'eq' ? entityVal === dep.value
+              : dep.operator === 'in' ? dep.value.includes(entityVal)
+              : dep.operator === 'neq' ? entityVal !== dep.value
+              : true
+            if (!matches) return null
+          } catch (e) { /* invalid depends_on_json — show field */ }
+        }
         return (
           <div key={fi} className={`col-span-${field.gridCols || 6}`}>
             <FieldDisplay

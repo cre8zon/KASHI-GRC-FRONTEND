@@ -78,6 +78,11 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
           // is_visible=0 — render as hidden input so value is still in the payload
           // but the user never sees it (e.g. workflowId defaulting to 15)
           if (field.isVisible === false || field.isVisible === 0) {
+            // For hidden fields with dependsOnJson: only render (and register) the one
+            // whose condition matches — prevents duplicate field keys with different defaults
+            if (field.dependsOnJson && !isFieldVisible({ ...field, isVisible: 1 }, watchedValues)) {
+              return null
+            }
             return (
               <input
                 key={field.fieldKey}

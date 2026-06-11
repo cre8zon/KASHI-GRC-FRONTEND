@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Check, Clock, Circle, X, Zap, ChevronDown, ChevronRight,
-         Users, AlertTriangle, RotateCcw, RefreshCw, RotateCw, AlertCircle } from 'lucide-react'
+         Users, AlertTriangle, RotateCcw, RefreshCw, RotateCw, AlertCircle, GitBranch } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { workflowsApi } from '../../api/workflows.api'
 import { assessmentsApi } from '../../api/assessments.api'
@@ -437,11 +437,21 @@ export function WorkflowTimeline({ progress, workflowInstanceId, isAdmin = false
   const summary = Array.isArray(progress) ? progress[0] : progress
   if (!summary) return null
 
-  const { steps = [], instanceStatus, stepsCompleted, totalSteps } = summary
+  const { steps = [], instanceStatus, stepsCompleted, totalSteps, workflowName } = summary
   const pct = totalSteps > 0 ? Math.round((stepsCompleted / totalSteps) * 100) : 0
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Workflow name + instance ID */}
+      {workflowName && (
+        <div className="flex items-center gap-1.5 text-xs text-text-muted">
+          <GitBranch size={11} className="text-brand-400 shrink-0" />
+          <span className="font-medium text-text-secondary">{workflowName}</span>
+          {workflowInstanceId && (
+            <span className="text-text-muted/50">· Instance #{workflowInstanceId}</span>
+          )}
+        </div>
+      )}
       {/* Progress bar */}
       <div className="flex items-center gap-3">
         <div className="flex-1 h-1.5 bg-surface-overlay rounded-full overflow-hidden">
