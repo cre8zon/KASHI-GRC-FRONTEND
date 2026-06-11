@@ -17,11 +17,13 @@ import {
 import { authApi }       from '../../api/auth.api'
 import { usersApi }      from '../../api/users.api'
 import toast             from 'react-hot-toast'
+import IntegrationsPage  from './IntegrationsPage'
 
 const TABS = [
-  { id: 'profile',  label: 'Profile',  icon: User    },
-  { id: 'display',  label: 'Display',  icon: Palette },
-  { id: 'security', label: 'Security', icon: Shield  },
+  { id: 'profile',      label: 'Profile',      icon: User    },
+  { id: 'display',      label: 'Display',      icon: Palette },
+  { id: 'security',     label: 'Security',     icon: Shield  },
+  { id: 'integrations', label: 'Integrations', icon: Key     },
 ]
 
 const PRESET_PALETTES = [
@@ -532,7 +534,8 @@ export default function SettingsPage() {
       <div className="p-6">
         {tab === 'profile'  && <ProfileTab  auth={auth} branding={branding} userColor={(() => { try { return localStorage.getItem('kashi_sidebar_color') } catch { return null } })()} />}
         {tab === 'display'  && <DisplayTab  branding={branding} />}
-        {tab === 'security' && <SecurityTab />}
+        {tab === 'security'      && <SecurityTab />}
+        {tab === 'integrations'  && <IntegrationsPage />}
       </div>
     </PageLayout>
   )

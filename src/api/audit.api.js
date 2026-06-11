@@ -446,4 +446,25 @@ export const auditApi = {
         api.get(`/v1/audit/library/policies/${policyId}/controls`),
     },
   },
+
+  // ── Findings ──────────────────────────────────────────────────────────────
+
+  findings: {
+    /** List all findings for an engagement — used by EngagementFindingsTab */
+    listByEngagement: (engagementId) =>
+      api.get(`/v1/audit/engagements/${engagementId}/findings`),
+
+    /** Escalate a finding to Issue Management — creates a linked Issue */
+    escalateToIssue: (findingId) =>
+      api.post(`/v1/audit/findings/${findingId}/escalate-to-issue`),
+  },
+
+  // ── Engagement integration snapshots ──────────────────────────────────────
+
+  integrationSnapshots: {
+    /** List EngagementIntegrationSnapshot rows for an engagement
+     *  Used by EngagementIntegrationTab to show automated check status */
+    listForEngagement: (engagementId) =>
+      api.get(`/v1/audit/engagements/${engagementId}/integration-snapshots`),
+  },
 }

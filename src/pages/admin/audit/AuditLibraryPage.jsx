@@ -44,6 +44,7 @@ import { cn }          from '../../../lib/cn'
 import { useSelector } from 'react-redux'
 import { useScreenConfig } from '../../../hooks/useUIConfig'
 import { selectAuth }  from '../../../store/slices/authSlice'
+import { DynamicSelect } from '../../../components/ui/Select'
 import toast           from 'react-hot-toast'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -181,11 +182,49 @@ const useAllTemplatesForMapper = () => useQuery({
   queryFn:  () => auditApi.library.templates.list({ skip: 0, take: 500 }),
 })
 
+/** NEW: Tests currently linked to a library control */
+const useControlTests = (controlId) => useQuery({
+  queryKey: ['audit-library-control-tests', controlId],
+  queryFn:  () => auditApi.library.controls.listTests(controlId),
+  enabled:  !!controlId,
+})
+
+/** NEW: Policies currently linked to a library control */
+const useControlPolicies = (controlId) => useQuery({
+  queryKey: ['audit-library-control-policies', controlId],
+  queryFn:  () => auditApi.library.controls.listPolicies(controlId),
+  enabled:  !!controlId,
+})
+
+/** NEW: All tests — for the link-test picker inside ControlPickerModal */
+const useAllTests = () => useQuery({
+  queryKey: ['audit-library-tests-all'],
+  queryFn:  () => auditApi.library.tests.list({ skip: 0, take: 500 }),
+})
+
+/** NEW: All policies — for the link-policy picker inside ControlPickerModal */
+const useAllPolicies = () => useQuery({
+  queryKey: ['audit-library-policies-all'],
+  queryFn:  () => auditApi.library.policies.list({ skip: 0, take: 500 }),
+})
+
+/** Get active options for a componentKey from screenConfig.
+ *  Global components (screen=null) are included in every screen's config.
+ */
+const useUiComponentOptions = (componentKey) => {
+  const { data: config } = useScreenConfig('audit_library')
+  const options = config?.components?.[componentKey]?.options ?? []
+  return { data: options.filter(o => o.isActive !== false) }
+}
+
 // ── Mutation Hooks ────────────────────────────────────────────────────────────
 
 function makeControlMutations() {
   const qc = useQueryClient()
-  const inv = () => qc.invalidateQueries({ queryKey: ['audit-library-controls'] })
+  const inv = () => {
+    qc.invalidateQueries({ queryKey: ['audit-library-controls'] })
+    qc.invalidateQueries({ queryKey: ['audit-library-controls-all'] })
+  }
   return {
     create: useMutation({ mutationFn: auditApi.library.controls.create, onSuccess: inv, onError: () => toast.error('Failed') }),
     update: useMutation({ mutationFn: ({ id, data }) => auditApi.library.controls.update(id, data), onSuccess: () => { inv(); toast.success('Control updated') }, onError: () => toast.error('Failed') }),
@@ -198,6 +237,7 @@ function makeSectionMutations() {
   const inv = () => {
     qc.invalidateQueries({ queryKey: ['audit-library-sections'] })
     qc.invalidateQueries({ queryKey: ['audit-section-children'] })
+    qc.invalidateQueries({ queryKey: ['audit-library-sections-all'] })
   }
   return {
     create: useMutation({ mutationFn: auditApi.library.sections.create, onSuccess: inv, onError: () => toast.error('Failed') }),
@@ -346,6 +386,7 @@ function useCreateChildSection(templateId) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['audit-library-template-full', templateId] })
       qc.invalidateQueries({ queryKey: ['audit-library-sections'] })
+      qc.invalidateQueries({ queryKey: ['audit-library-sections-all'] })
       qc.invalidateQueries({ queryKey: ['audit-section-children'] })
       toast.success('Child section added')
     },
@@ -1163,10 +1204,38 @@ SECTION  1      "A.6 — Org…"       A.6           ← back to level 1`}
 // ─── Section Picker Modal (builder) ───────────────────────────────────────────
 
 function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, onClose }) {
+  const qc = useQueryClient()
   const { mutate: addSection, isPending } = useAddSection(templateId)
   const { data: libData, isLoading }      = useAllRootSections()
-  const [search, setSearch]   = useState('')
+  const [mode, setMode]         = useState('pick')
+  const [search, setSearch]     = useState('')
   const [selected, setSelected] = useState(null)
+  const [newName, setNewName]   = useState('')
+  const [newCode, setNewCode]   = useState('')
+  const [newFw,   setNewFw]     = useState('')
+
+  const { mutate: createSection, isPending: creating } = useMutation({
+    mutationFn: (data) => auditApi.library.sections.create(data),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['audit-library-sections'] })
+      qc.invalidateQueries({ queryKey: ['audit-library-sections-all'] })
+      const created = res?.id ? res : res?.data
+      if (created?.id) {
+        addSection({ sectionId: created.id, orderNo: nextOrder }, { onSuccess: handleClose })
+      } else {
+        toast.success('Section created — select it from the list')
+        setMode('pick')
+        setNewName(''); setNewCode(''); setNewFw('')
+      }
+    },
+    onError: () => toast.error('Failed to create section'),
+  })
+
+  const handleClose = () => {
+    setMode('pick'); setSearch(''); setSelected(null)
+    setNewName(''); setNewCode(''); setNewFw('')
+    onClose()
+  }
 
   const allSections = libData?.items ?? libData ?? []
   const filtered = allSections.filter(s =>
@@ -1176,51 +1245,103 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
 
   const handleAdd = () => {
     if (!selected) return
-    addSection(
-      { sectionId: selected.id, orderNo: nextOrder },
-      { onSuccess: () => { onClose(); setSelected(null); setSearch('') } }
-    )
+    addSection({ sectionId: selected.id, orderNo: nextOrder }, { onSuccess: handleClose })
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Add Root Section"
-      subtitle="Select a library section to map to this template" size="md"
+    <Modal open={open} onClose={handleClose} title="Add Root Section"
+      subtitle="Select a library section or create a new one to map to this template" size="md"
       footer={
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-          <Button size="sm" loading={isPending} disabled={!selected} onClick={handleAdd}>Add to Template</Button>
+          <Button variant="ghost" size="sm" onClick={handleClose}>Cancel</Button>
+          {mode === 'pick'
+            ? <Button size="sm" loading={isPending} disabled={!selected} onClick={handleAdd}>Add to Template</Button>
+            : <Button size="sm" loading={creating || isPending} disabled={!newName.trim()} onClick={() => createSection({ name: newName.trim(), sectionCode: newCode.trim() || null, frameworkRef: newFw.trim() || null, parentId: null })}>Create & Add</Button>
+          }
         </div>
       }>
-      <div className="flex flex-col gap-3">
-        <div className="relative">
-          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search sections…"
-            className="h-8 pl-8 pr-3 w-full rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
-        </div>
-        <div className="max-h-72 overflow-y-auto rounded-lg border border-border divide-y divide-border">
-          {isLoading && <div className="flex items-center justify-center py-10"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>}
-          {!isLoading && filtered.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-10">
-              <BookOpen size={20} className="text-text-muted mb-2" />
-              <p className="text-xs text-text-muted">{allSections.length === 0 ? 'No root sections in library.' : 'No matching sections.'}</p>
-            </div>
-          )}
-          {!isLoading && filtered.map(s => (
-            <button key={s.id} onClick={() => setSelected(s)}
-              className={cn('w-full text-left px-4 py-3 hover:bg-surface-overlay transition-colors flex items-center gap-3',
-                selected?.id === s.id && 'bg-brand-500/5 border-l-2 border-brand-500')}>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  {s.sectionCode && <span className="font-mono text-[10px] text-text-muted">{s.sectionCode}</span>}
-                  <p className="text-sm text-text-primary">{s.name}</p>
-                </div>
-                {s.frameworkRef && <p className="text-[10px] text-text-muted mt-0.5">{s.frameworkRef}</p>}
-              </div>
-              {selected?.id === s.id && <CheckCircle2 size={14} className="text-brand-400 shrink-0" />}
+
+      {/* Mode tabs */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex gap-1 p-1 rounded-lg bg-surface-overlay border border-border w-fit">
+          {[{ key: 'pick', label: 'Pick from library' }, { key: 'create', label: 'Create new' }].map(t => (
+            <button key={t.key} onClick={() => setMode(t.key)}
+              className={cn('px-3 py-1.5 text-xs rounded-md font-medium transition-colors flex items-center gap-1',
+                mode === t.key ? 'bg-surface-raised text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary')}>
+              {t.key === 'create' && <Plus size={11} />}{t.label}
             </button>
           ))}
         </div>
+        {mode === 'create' && (
+          <div className="flex items-center gap-2 text-[11px] text-text-muted">
+            <span className="flex items-center justify-center h-4 w-4 rounded-full bg-brand-500 text-white text-[9px] font-bold">1</span>
+            <span className="text-text-secondary font-medium">Fill details</span>
+            <span>→</span>
+            <span className="flex items-center justify-center h-4 w-4 rounded-full bg-surface-overlay border border-border text-[9px] font-bold">2</span>
+            <span>Link tests &amp; policies</span>
+          </div>
+        )}
       </div>
+
+      {mode === 'pick' && (
+        <div className="flex flex-col gap-3">
+          <div className="relative">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search sections…"
+              className="h-8 pl-8 pr-3 w-full rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          </div>
+          <div className="max-h-72 overflow-y-auto rounded-lg border border-border divide-y divide-border">
+            {isLoading && <div className="flex items-center justify-center py-10"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>}
+            {!isLoading && filtered.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-10">
+                <BookOpen size={20} className="text-text-muted mb-2" />
+                <p className="text-xs text-text-muted mb-3">{allSections.length === 0 ? 'No root sections in library.' : 'No matching sections.'}</p>
+                <Button size="xs" variant="secondary" icon={Plus} onClick={() => setMode('create')}>Create new section</Button>
+              </div>
+            )}
+            {!isLoading && filtered.map(s => (
+              <button key={s.id} onClick={() => setSelected(s)}
+                className={cn('w-full text-left px-4 py-3 hover:bg-surface-overlay transition-colors flex items-center gap-3',
+                  selected?.id === s.id && 'bg-brand-500/5 border-l-2 border-brand-500')}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {s.sectionCode && <span className="font-mono text-[10px] text-text-muted">{s.sectionCode}</span>}
+                    <p className="text-sm text-text-primary">{s.name}</p>
+                  </div>
+                  {s.frameworkRef && <p className="text-[10px] text-text-muted mt-0.5">{s.frameworkRef}</p>}
+                </div>
+                {selected?.id === s.id && <CheckCircle2 size={14} className="text-brand-400 shrink-0" />}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {mode === 'create' && (
+        <div className="flex flex-col gap-3">
+          <div>
+            <label className="block text-xs text-text-secondary mb-1">Section name *</label>
+            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. A — Organisational Controls"
+              className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-text-secondary mb-1">Section code</label>
+              <input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="e.g. A, CC6"
+                className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
+              <input value={newFw} onChange={e => setNewFw(e.target.value)} placeholder="e.g. ISO 27001"
+                className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            </div>
+          </div>
+          <div className="flex items-start gap-2 p-3 bg-brand-500/5 border border-brand-500/20 rounded-lg">
+            <AlertCircle size={12} className="text-brand-400 mt-0.5 shrink-0" />
+            <p className="text-[11px] text-brand-400/80 leading-relaxed">Creates a new root section in the library and maps it to this template immediately.</p>
+          </div>
+        </div>
+      )}
     </Modal>
   )
 }
@@ -1228,13 +1349,118 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
 // ─── Control Picker Modal (builder) ───────────────────────────────────────────
 
 function ControlPickerModal({ open, sectionId, sectionName, templateId, existingControlIds, nextOrder, onClose }) {
+  const qc = useQueryClient()
   const { mutate: addControl, isPending } = useAddControl(templateId)
   const { data: libData, isLoading }      = useAllControls()
-  const [search, setSearch]     = useState('')
+  const [mode, setMode]             = useState('pick')
+  const [search, setSearch]         = useState('')
   const [typeFilter, setTypeFilter] = useState('')
-  const [selected, setSelected] = useState(null)
-  const [weight, setWeight]     = useState('')
-  const [mandatory, setMandatory] = useState(false)
+  const [selected, setSelected]     = useState(null)
+  const [weight, setWeight]         = useState('')
+  const [mandatory, setMandatory]   = useState(false)
+  const [rightTab, setRightTab]     = useState('config')
+
+  // Create-new state
+  const [newName, setNewName]   = useState('')
+  const [newCode, setNewCode]   = useState('')
+  const [newFw,   setNewFw]     = useState('')
+  const [newType, setNewType]   = useState('DOCUMENT_REVIEW')
+  const [newTag,  setNewTag]    = useState('')
+  const [newDesc, setNewDesc]   = useState('')
+
+  // Step-2: control just created — stay open for test/policy mapping
+  const [createdControl, setCreatedControl] = useState(null) // { id, name, controlCode }
+
+  // Test/Policy picker state (for right panel tabs)
+  const [testSearch, setTestSearch] = useState('')
+  const [polSearch,  setPolSearch]  = useState('')
+  const [showTestPicker, setShowTestPicker]   = useState(false)
+  const [showPolPicker,  setShowPolPicker]    = useState(false)
+
+  // The "active" control for test/policy queries — createdControl in step-2, selected in pick mode
+  const activeControlId = createdControl?.id ?? selected?.id ?? null
+
+  const { data: linkedTestsRaw, isLoading: loadingLinkedTests }     = useControlTests(activeControlId)
+  const { data: linkedPolsRaw,  isLoading: loadingLinkedPolicies }  = useControlPolicies(activeControlId)
+  const { data: allTestsRaw,    isLoading: loadingAllTests }        = useAllTests()
+  const { data: allPolsRaw,     isLoading: loadingAllPolicies }     = useAllPolicies()
+
+  const linkedTests    = Array.isArray(linkedTestsRaw) ? linkedTestsRaw : (linkedTestsRaw?.items ?? linkedTestsRaw?.data ?? [])
+  const linkedPolicies = Array.isArray(linkedPolsRaw)  ? linkedPolsRaw  : (linkedPolsRaw?.items  ?? linkedPolsRaw?.data  ?? [])
+  const allTests       = Array.isArray(allTestsRaw)    ? allTestsRaw    : (allTestsRaw?.items    ?? allTestsRaw?.data    ?? [])
+  const allPolicies    = Array.isArray(allPolsRaw)     ? allPolsRaw     : (allPolsRaw?.items     ?? allPolsRaw?.data     ?? [])
+
+  const linkedTestIds = linkedTests.map(t => t.id ?? t.testId)
+  const linkedPolIds  = linkedPolicies.map(p => p.id ?? p.policyId)
+
+  const { mutate: linkTest,     isPending: linkingTest }     = useMutation({ mutationFn: (testId)   => auditApi.library.controls.linkTest(activeControlId, testId),   onSuccess: () => { qc.invalidateQueries({ queryKey: ['audit-library-control-tests',    activeControlId] }); toast.success('Test linked')   }, onError: () => toast.error('Failed') })
+  const { mutate: unlinkTest,   isPending: unlinkingTest }   = useMutation({ mutationFn: (testId)   => auditApi.library.controls.unlinkTest(activeControlId, testId), onSuccess: () => { qc.invalidateQueries({ queryKey: ['audit-library-control-tests',    activeControlId] }); toast.success('Test unlinked') }, onError: () => toast.error('Failed') })
+  const { mutate: linkPolicy,   isPending: linkingPolicy }   = useMutation({ mutationFn: (policyId) => auditApi.library.controls.linkPolicy(activeControlId, policyId),   onSuccess: () => { qc.invalidateQueries({ queryKey: ['audit-library-control-policies', activeControlId] }); toast.success('Policy linked')   }, onError: () => toast.error('Failed') })
+  const { mutate: unlinkPolicy, isPending: unlinkingPolicy } = useMutation({ mutationFn: (policyId) => auditApi.library.controls.unlinkPolicy(activeControlId, policyId), onSuccess: () => { qc.invalidateQueries({ queryKey: ['audit-library-control-policies', activeControlId] }); toast.success('Policy unlinked') }, onError: () => toast.error('Failed') })
+
+  const availableTests    = allTests.filter(t => !linkedTestIds.includes(t.id ?? t.testId) && (!testSearch || t.name.toLowerCase().includes(testSearch.toLowerCase())))
+  const availablePolicies = allPolicies.filter(p => !linkedPolIds.includes(p.id ?? p.policyId) && (!polSearch || p.title.toLowerCase().includes(polSearch.toLowerCase())))
+
+  // Create-new test state (step 2 test panel)
+  const [showCreateTestStep2, setShowCreateTestStep2] = useState(false)
+  const [nt2Name, setNt2Name] = useState('')
+  const [nt2Ref,  setNt2Ref]  = useState('')
+  const [nt2Freq, setNt2Freq] = useState('')
+  const [nt2Auto, setNt2Auto] = useState('MANUAL')
+  const { data: freqOptions = [] } = useUiComponentOptions('audit_test_frequency')
+
+  const { mutate: createAndLinkTestStep2, isPending: creatingTestStep2 } = useMutation({
+    mutationFn: async (data) => {
+      const res     = await auditApi.library.tests.create(data)
+      const created = res?.id ? res : res?.data
+      if (created?.id) await auditApi.library.controls.linkTest(activeControlId, created.id)
+      return created
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['audit-library-control-tests', activeControlId] })
+      qc.invalidateQueries({ queryKey: ['audit-library-tests-all'] })
+      toast.success('Test created and linked')
+      setShowCreateTestStep2(false)
+      setNt2Name(''); setNt2Ref(''); setNt2Freq(''); setNt2Auto('MANUAL')
+    },
+    onError: () => toast.error('Failed to create test'),
+  })
+
+  const { mutate: createControl, isPending: creating } = useMutation({
+    mutationFn: (data) => auditApi.library.controls.create(data),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['audit-library-controls'] })
+      qc.invalidateQueries({ queryKey: ['audit-library-controls-all'] })
+      const created = res?.id ? res : res?.data
+      if (created?.id) {
+        addControl(
+          { sectionId, controlId: created.id, data: { orderNo: nextOrder, weight: parseFloat(weight) || 1.0, isMandatory: mandatory } },
+          {
+            onSuccess: () => {
+              // Stay open — transition to step 2 for test/policy mapping
+              setCreatedControl({ id: created.id, name: created.name ?? newName, controlCode: (created.controlCode ?? newCode) || null })
+              toast.success('Control created and mapped — now link tests & policies')
+            },
+          }
+        )
+      } else {
+        toast.success('Control created — select it from the list')
+        setMode('pick')
+        setNewName(''); setNewCode(''); setNewFw(''); setNewType('DOCUMENT_REVIEW'); setNewTag(''); setNewDesc('')
+      }
+    },
+    onError: () => toast.error('Failed to create control'),
+  })
+
+  const handleClose = () => {
+    setMode('pick'); setSearch(''); setTypeFilter(''); setSelected(null)
+    setWeight(''); setMandatory(false); setRightTab('config')
+    setNewName(''); setNewCode(''); setNewFw(''); setNewType('DOCUMENT_REVIEW'); setNewTag(''); setNewDesc('')
+    setTestSearch(''); setPolSearch(''); setShowTestPicker(false); setShowPolPicker(false)
+    setShowCreateTestStep2(false); setNt2Name(''); setNt2Ref(''); setNt2Freq(''); setNt2Auto('MANUAL')
+    setCreatedControl(null)
+    onClose()
+  }
 
   const allControls = libData?.items ?? libData ?? []
   const filtered = allControls.filter(c => {
@@ -1248,73 +1474,168 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
     if (!selected) return
     addControl(
       { sectionId, controlId: selected.id, data: { orderNo: nextOrder, weight: parseFloat(weight) || 1.0, isMandatory: mandatory } },
-      { onSuccess: () => { onClose(); setSelected(null); setWeight(''); setMandatory(false); setSearch(''); setTypeFilter('') } }
+      { onSuccess: handleClose }
     )
   }
 
-  return (
-    <Modal open={open} onClose={onClose} title="Add Control from Library"
-      subtitle={sectionName ? `Map a control into section: ${sectionName}` : 'Map a control into this section'}
-      size="xl"
-      footer={
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-text-muted">
-            {selected
-              ? <span className="text-brand-400">"{selected.name.slice(0, 50)}{selected.name.length > 50 ? '…' : ''}" selected</span>
-              : 'No control selected'}
-          </p>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-            <Button size="sm" loading={isPending} onClick={handleAdd} disabled={!selected}>Add to Section</Button>
-          </div>
-        </div>
-      }>
-      <div className="flex gap-4 h-[400px]">
-        <div className="flex flex-col flex-1 min-w-0">
-          <div className="flex gap-2 mb-3">
-            <div className="relative flex-1">
-              <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search controls…"
-                className="h-7 pl-8 pr-3 w-full rounded-md border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
-            </div>
-            <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
-              className="h-7 appearance-none pl-2 pr-6 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
-              <option value="">All types</option>
-              {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
-          </div>
-          <div className="flex-1 overflow-y-auto rounded-lg border border-border divide-y divide-border">
-            {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>}
-            {!isLoading && filtered.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-10">
-                <Shield size={20} className="text-text-muted mb-2" />
-                <p className="text-xs text-text-muted">{allControls.length === 0 ? 'No controls in library.' : 'No matching controls.'}</p>
+  // ── Shared Test/Policy link panels (used in both pick right-panel and step-2) ──
+  const testLinkPanelJsx = (
+    <div className="flex flex-col gap-2">
+      <div className="rounded-lg border border-border divide-y divide-border">
+        {loadingLinkedTests && <div className="flex justify-center py-3"><Loader2 size={13} className="text-brand-400 animate-spin" /></div>}
+        {!loadingLinkedTests && linkedTests.length === 0 && <p className="text-[11px] text-text-muted px-3 py-3">No tests linked yet.</p>}
+        {!loadingLinkedTests && linkedTests.map(t => {
+          const id = t.id ?? t.testId
+          return (
+            <div key={id} className="flex items-center gap-2 px-2 py-1.5 group">
+              <div className="flex-1 min-w-0">
+                {t.testRef && <span className="font-mono text-[9px] text-brand-400 mr-1">{t.testRef}</span>}
+                <span className="text-[11px] text-text-primary line-clamp-1">{t.testName ?? t.name}</span>
               </div>
-            )}
-            {!isLoading && filtered.map(c => (
-              <button key={c.id} onClick={() => setSelected(c)}
-                className={cn('w-full text-left px-3 py-2.5 hover:bg-surface-overlay transition-colors flex items-start gap-3',
-                  selected?.id === c.id && 'bg-brand-500/5 border-l-2 border-brand-500')}>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    {c.controlCode && <span className="font-mono text-[10px] text-text-muted">{c.controlCode}</span>}
-                    <p className="text-xs text-text-primary leading-relaxed line-clamp-2">{c.name}</p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge colorTag={TEST_TYPE_COLOR[c.testType] ?? 'gray'} size="sm">
-                      {TEST_TYPES.find(t => t.value === c.testType)?.label ?? c.testType}
-                    </Badge>
-                    {c.frameworkRef && <span className="text-[10px] text-text-muted">{c.frameworkRef}</span>}
-                    {c.controlTag && <GuardTagBadge tag={c.controlTag} />}
-                  </div>
-                </div>
-                {selected?.id === c.id && <CheckCircle2 size={14} className="text-brand-400 shrink-0 mt-0.5" />}
+              <button onClick={() => unlinkTest(id)} disabled={unlinkingTest}
+                className="h-4 w-4 flex items-center justify-center rounded text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+                <Trash2 size={9} />
               </button>
-            ))}
+            </div>
+          )
+        })}
+      </div>
+      {/* Link existing */}
+      <button onClick={() => { setShowTestPicker(v => !v); setShowCreateTestStep2(false) }}
+        className="flex items-center gap-1 text-[11px] text-brand-400 hover:text-brand-300">
+        <Plus size={10} /> {showTestPicker ? 'Hide' : 'Link existing test'}
+      </button>
+      {showTestPicker && (
+        <div className="flex flex-col gap-1">
+          <div className="relative">
+            <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+            <input value={testSearch} onChange={e => setTestSearch(e.target.value)} placeholder="Search tests…"
+              className="h-6 pl-5 pr-2 w-full rounded border border-border bg-surface-raised text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          </div>
+          <div className="max-h-32 overflow-y-auto rounded-lg border border-border divide-y divide-border">
+            {loadingAllTests && <div className="flex justify-center py-3"><Loader2 size={12} className="text-brand-400 animate-spin" /></div>}
+            {!loadingAllTests && availableTests.length === 0 && <p className="text-[11px] text-text-muted px-2 py-2">No available tests.</p>}
+            {!loadingAllTests && availableTests.map(t => {
+              const id = t.id ?? t.testId
+              return (
+                <button key={id} onClick={() => linkTest(id)} disabled={linkingTest}
+                  className="w-full text-left flex items-center gap-2 px-2 py-1.5 hover:bg-surface-overlay transition-colors">
+                  <div className="flex-1 min-w-0">
+                    {t.testRef && <span className="font-mono text-[9px] text-brand-400 mr-1">{t.testRef}</span>}
+                    <span className="text-[11px] text-text-primary line-clamp-1">{t.testName ?? t.name}</span>
+                  </div>
+                  <Plus size={9} className="text-text-muted shrink-0" />
+                </button>
+              )
+            })}
           </div>
         </div>
-        <div className="w-52 shrink-0">
-          <div className="p-3 rounded-lg bg-surface-overlay border border-border">
+      )}
+      {/* Create new test */}
+      <button onClick={() => { setShowCreateTestStep2(v => !v); setShowTestPicker(false) }}
+        className="flex items-center gap-1 text-[11px] text-brand-400 hover:text-brand-300">
+        <Plus size={10} /> {showCreateTestStep2 ? 'Hide' : 'Create new test'}
+      </button>
+      {showCreateTestStep2 && (
+        <div className="flex flex-col gap-2 p-2 rounded-lg border border-border bg-surface-overlay">
+          <input value={nt2Name} onChange={e => setNt2Name(e.target.value)} placeholder="Test name *"
+            className="h-6 px-2 w-full rounded border border-border bg-surface-raised text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          <div className="grid grid-cols-2 gap-1.5">
+            <input value={nt2Ref} onChange={e => setNt2Ref(e.target.value)} placeholder="Ref (e.g. T-01)"
+              className="h-6 px-2 rounded border border-border bg-surface-raised text-[11px] font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          <select value={nt2Freq} onChange={e => setNt2Freq(e.target.value)}
+            className="h-6 px-2 rounded border border-border bg-surface-raised text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            <option value="">Frequency</option>
+            {freqOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          </div>
+          <select value={nt2Auto} onChange={e => setNt2Auto(e.target.value)}
+            className="h-6 px-2 rounded border border-border bg-surface-raised text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            <option value="MANUAL">Manual</option>
+            <option value="AUTOMATED">Automated</option>
+          </select>
+          <button onClick={() => createAndLinkTestStep2({ name: nt2Name.trim(), testRef: nt2Ref.trim() || null, frequency: nt2Freq || null, automationType: nt2Auto })}
+            disabled={!nt2Name.trim() || creatingTestStep2}
+            className="h-6 px-3 rounded text-[11px] font-medium bg-brand-500 text-white disabled:opacity-50 hover:bg-brand-600 transition-colors flex items-center justify-center gap-1">
+            {creatingTestStep2 ? <Loader2 size={10} className="animate-spin" /> : <Plus size={10} />}
+            Create &amp; Link
+          </button>
+        </div>
+      )}
+    </div>
+  )
+
+  const policyLinkPanelJsx = (
+    <div className="flex flex-col gap-2">
+      <div className="rounded-lg border border-border divide-y divide-border">
+        {loadingLinkedPolicies && <div className="flex justify-center py-3"><Loader2 size={13} className="text-brand-400 animate-spin" /></div>}
+        {!loadingLinkedPolicies && linkedPolicies.length === 0 && <p className="text-[11px] text-text-muted px-3 py-3">No policies linked yet.</p>}
+        {!loadingLinkedPolicies && linkedPolicies.map(p => {
+          const id = p.id ?? p.policyId
+          return (
+            <div key={id} className="flex items-center gap-2 px-2 py-1.5 group">
+              <div className="flex-1 min-w-0">
+                {p.policyRef && <span className="font-mono text-[9px] text-brand-400 mr-1">{p.policyRef}</span>}
+                <span className="text-[11px] text-text-primary line-clamp-1">{p.title}</span>
+              </div>
+              <button onClick={() => unlinkPolicy(id)} disabled={unlinkingPolicy}
+                className="h-4 w-4 flex items-center justify-center rounded text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+                <Trash2 size={9} />
+              </button>
+            </div>
+          )
+        })}
+      </div>
+      <button onClick={() => setShowPolPicker(v => !v)}
+        className="flex items-center gap-1 text-[11px] text-brand-400 hover:text-brand-300">
+        <Plus size={10} /> {showPolPicker ? 'Hide' : 'Link a policy'}
+      </button>
+      {showPolPicker && (
+        <div className="flex flex-col gap-1">
+          <div className="relative">
+            <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+            <input value={polSearch} onChange={e => setPolSearch(e.target.value)} placeholder="Search policies…"
+              className="h-6 pl-5 pr-2 w-full rounded border border-border bg-surface-raised text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          </div>
+          <div className="max-h-32 overflow-y-auto rounded-lg border border-border divide-y divide-border">
+            {loadingAllPolicies && <div className="flex justify-center py-3"><Loader2 size={12} className="text-brand-400 animate-spin" /></div>}
+            {!loadingAllPolicies && availablePolicies.length === 0 && <p className="text-[11px] text-text-muted px-2 py-2">No available policies.</p>}
+            {!loadingAllPolicies && availablePolicies.map(p => {
+              const id = p.id ?? p.policyId
+              return (
+                <button key={id} onClick={() => linkPolicy(id)} disabled={linkingPolicy}
+                  className="w-full text-left flex items-center gap-2 px-2 py-1.5 hover:bg-surface-overlay transition-colors">
+                  <div className="flex-1 min-w-0">
+                    {p.policyRef && <span className="font-mono text-[9px] text-brand-400 mr-1">{p.policyRef}</span>}
+                    <span className="text-[11px] text-text-primary line-clamp-1">{p.title}</span>
+                  </div>
+                  <Plus size={9} className="text-text-muted shrink-0" />
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
+  // ── Right panel: Config / Tests / Policies tabs (pick mode) ──
+  const rightPanelJsx = (
+    <div className="w-56 shrink-0 flex flex-col gap-2">
+      <div className="flex gap-0.5 p-0.5 rounded-md bg-surface-overlay border border-border">
+        {[{ key: 'config', label: 'Config' }, { key: 'tests', label: 'Tests' }, { key: 'policies', label: 'Policies' }].map(t => (
+          <button key={t.key} onClick={() => setRightTab(t.key)}
+            className={cn('flex-1 py-1 text-[10px] rounded font-medium transition-colors',
+              rightTab === t.key ? 'bg-surface-raised text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary')}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex-1 p-3 rounded-lg bg-surface-overlay border border-border overflow-y-auto" style={{ maxHeight: '360px' }}>
+
+        {/* ── Config tab ── */}
+        {rightTab === 'config' && (
+          <>
             <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">Config in this section</p>
             {!selected ? (
               <p className="text-xs text-text-muted">Select a control on the left.</p>
@@ -1323,9 +1644,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                 <div className="p-2 rounded bg-surface-raised border border-border">
                   <p className="text-[11px] text-text-muted mb-1">Selected</p>
                   <p className="text-xs text-text-primary line-clamp-3">{selected.name}</p>
-                  {selected.controlCode && (
-                    <p className="text-[10px] font-mono text-text-muted mt-1">{selected.controlCode}</p>
-                  )}
+                  {selected.controlCode && <p className="text-[10px] font-mono text-text-muted mt-1">{selected.controlCode}</p>}
                 </div>
                 <div>
                   <label className="text-[11px] font-medium text-text-secondary uppercase tracking-wide block mb-1">Weight</label>
@@ -1344,9 +1663,235 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                 <p className="text-[10px] text-text-muted">Position {nextOrder} in section.</p>
               </div>
             )}
+          </>
+        )}
+
+        {/* ── Tests tab ── */}
+        {rightTab === 'tests' && (
+          <div className="flex flex-col gap-2">
+            <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wide">
+              Linked tests {selected && <span className="font-normal text-text-muted">({linkedTests.length})</span>}
+            </p>
+            {!selected ? <p className="text-xs text-text-muted">Select a control first.</p> : testLinkPanelJsx}
+          </div>
+        )}
+
+        {/* ── Policies tab ── */}
+        {rightTab === 'policies' && (
+          <div className="flex flex-col gap-2">
+            <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wide">
+              Linked policies {selected && <span className="font-normal text-text-muted">({linkedPolicies.length})</span>}
+            </p>
+            {!selected ? <p className="text-xs text-text-muted">Select a control first.</p> : policyLinkPanelJsx}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  return (
+    <Modal open={open} onClose={handleClose} title="Add Control from Library"
+      subtitle={sectionName ? `Map a control into section: ${sectionName}` : 'Map a control into this section'}
+      size="xl"
+      footer={
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-text-muted">
+            {createdControl
+              ? <span className="text-green-400">✓ "{createdControl.name}" created and mapped</span>
+              : mode === 'pick'
+                ? selected
+                  ? <span className="text-brand-400">"{selected.name.slice(0, 50)}{selected.name.length > 50 ? '…' : ''}" selected</span>
+                  : 'No control selected'
+                : <span className="text-brand-400">New control will be created and mapped</span>}
+          </p>
+          <div className="flex gap-2">
+            {createdControl
+              ? <Button size="sm" onClick={handleClose}>Done</Button>
+              : <>
+                  <Button variant="ghost" size="sm" onClick={handleClose}>Cancel</Button>
+                  {mode === 'pick'
+                    ? <Button size="sm" loading={isPending} onClick={handleAdd} disabled={!selected}>Add to Section</Button>
+                    : <Button size="sm" loading={creating || isPending} onClick={() => createControl({ name: newName.trim(), controlCode: newCode.trim() || null, frameworkRef: newFw.trim() || null, testType: newType, controlTag: newTag.trim().toUpperCase() || null, description: newDesc.trim() || null })} disabled={!newName.trim()}>Create & Add</Button>
+                  }
+                </>
+            }
           </div>
         </div>
-      </div>
+      }>
+
+      {/* ── Step 2: control created — map tests & policies ── */}
+      {createdControl ? (
+        <div className="flex flex-col gap-4">
+          {/* Step 2 header */}
+          <div className="flex items-center gap-3 mb-1">
+            <div className="flex items-center gap-2 text-[11px] text-text-muted">
+              <span className="flex items-center justify-center h-4 w-4 rounded-full bg-surface-overlay border border-border text-[9px] font-bold line-through opacity-50">1</span>
+              <span className="line-through opacity-50">Fill details</span>
+              <span>→</span>
+              <span className="flex items-center justify-center h-4 w-4 rounded-full bg-brand-500 text-white text-[9px] font-bold">2</span>
+              <span className="text-text-secondary font-medium">Link tests &amp; policies</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-green-500/5 border border-green-500/20">
+            <CheckCircle2 size={16} className="text-green-400 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-text-primary">
+                {createdControl.name}
+                {createdControl.controlCode && <span className="font-mono text-[11px] text-text-muted ml-2">{createdControl.controlCode}</span>}
+              </p>
+              <p className="text-xs text-text-muted mt-0.5">Created and mapped to this section. Optionally link tests and policies below, then click Done.</p>
+            </div>
+          </div>
+
+          {/* Two-column: Tests | Policies */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
+                Tests <span className="font-normal normal-case text-text-muted">({linkedTests.length} linked)</span>
+              </p>
+              {testLinkPanelJsx}
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
+                Policies <span className="font-normal normal-case text-text-muted">({linkedPolicies.length} linked)</span>
+              </p>
+              {policyLinkPanelJsx}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Mode tabs */}
+          <div className="flex gap-1 mb-4 p-1 rounded-lg bg-surface-overlay border border-border w-fit">
+            {[{ key: 'pick', label: 'Pick from library' }, { key: 'create', label: 'Create new' }].map(t => (
+              <button key={t.key} onClick={() => setMode(t.key)}
+                className={cn('px-3 py-1.5 text-xs rounded-md font-medium transition-colors flex items-center gap-1',
+                  mode === t.key ? 'bg-surface-raised text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary')}>
+                {t.key === 'create' && <Plus size={11} />}{t.label}
+              </button>
+            ))}
+          </div>
+
+          {mode === 'pick' && (
+            <div className="flex gap-4 h-[400px]">
+              <div className="flex flex-col flex-1 min-w-0">
+                <div className="flex gap-2 mb-3">
+                  <div className="relative flex-1">
+                    <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search controls…"
+                      className="h-7 pl-8 pr-3 w-full rounded-md border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  </div>
+                  <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
+                    className="h-7 appearance-none pl-2 pr-6 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    <option value="">All types</option>
+                    {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+                <div className="flex-1 overflow-y-auto rounded-lg border border-border divide-y divide-border">
+                  {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>}
+                  {!isLoading && filtered.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-10">
+                      <Shield size={20} className="text-text-muted mb-2" />
+                      <p className="text-xs text-text-muted mb-3">{allControls.length === 0 ? 'No controls in library.' : 'No matching controls.'}</p>
+                      <Button size="xs" variant="secondary" icon={Plus} onClick={() => setMode('create')}>Create new control</Button>
+                    </div>
+                  )}
+                  {!isLoading && filtered.map(c => (
+                    <button key={c.id} onClick={() => setSelected(c)}
+                      className={cn('w-full text-left px-3 py-2.5 hover:bg-surface-overlay transition-colors flex items-start gap-3',
+                        selected?.id === c.id && 'bg-brand-500/5 border-l-2 border-brand-500')}>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          {c.controlCode && <span className="font-mono text-[10px] text-text-muted">{c.controlCode}</span>}
+                          <p className="text-xs text-text-primary leading-relaxed line-clamp-2">{c.name}</p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge colorTag={TEST_TYPE_COLOR[c.testType] ?? 'gray'} size="sm">
+                            {TEST_TYPES.find(t => t.value === c.testType)?.label ?? c.testType}
+                          </Badge>
+                          {c.frameworkRef && <span className="text-[10px] text-text-muted">{c.frameworkRef}</span>}
+                          {c.controlTag && <GuardTagBadge tag={c.controlTag} />}
+                        </div>
+                      </div>
+                      {selected?.id === c.id && <CheckCircle2 size={14} className="text-brand-400 shrink-0 mt-0.5" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {rightPanelJsx}
+            </div>
+          )}
+
+          {mode === 'create' && (
+            <div className="flex gap-4">
+              <div className="flex-1 flex flex-col gap-3">
+                <div>
+                  <label className="block text-xs text-text-secondary mb-1">Control name *</label>
+                  <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. User access management"
+                    className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-text-secondary mb-1">Control code</label>
+                    <input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="e.g. CC6.1, A.9.1.1"
+                      className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
+                    <input value={newFw} onChange={e => setNewFw(e.target.value)} placeholder="e.g. SOC 2, ISO 27001"
+                      className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-text-secondary mb-1">Test type</label>
+                    <select value={newType} onChange={e => setNewType(e.target.value)}
+                      className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                      {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-text-secondary mb-1">Guard tag</label>
+                    <input value={newTag} onChange={e => setNewTag(e.target.value.toUpperCase())} placeholder="e.g. MFA, ENCRYPTION"
+                      className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-text-secondary mb-1">Description</label>
+                  <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} rows={2}
+                    className="w-full px-3 py-2 rounded-md border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+                <div className="flex items-start gap-2 p-3 bg-brand-500/5 border border-brand-500/20 rounded-lg">
+                  <AlertCircle size={12} className="text-brand-400 mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-brand-400/80 leading-relaxed">Control will be added to the library and immediately mapped into this section. You can link tests and policies on the next step.</p>
+                </div>
+              </div>
+              <div className="w-56 shrink-0">
+                <div className="p-3 rounded-lg bg-surface-overlay border border-border">
+                  <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">Mapping config</p>
+                  <div className="flex flex-col gap-3">
+                    <div>
+                      <label className="text-[11px] font-medium text-text-secondary uppercase tracking-wide block mb-1">Weight</label>
+                      <input type="number" value={weight} onChange={e => setWeight(e.target.value)} placeholder="1.0"
+                        className="h-7 w-full rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <button type="button" onClick={() => setMandatory(m => !m)}
+                        className={cn('relative inline-flex h-4 w-7 items-center rounded-full transition-colors shrink-0',
+                          mandatory ? 'bg-brand-500' : 'bg-surface-raised border border-border')}>
+                        <span className={cn('inline-block h-3 w-3 transform rounded-full bg-white transition-transform',
+                          mandatory ? 'translate-x-3.5' : 'translate-x-0.5')} />
+                      </button>
+                      <span className="text-xs text-text-primary">Mandatory</span>
+                    </label>
+                    <p className="text-[10px] text-text-muted">Position {nextOrder} in section.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </Modal>
   )
 }
@@ -1521,8 +2066,10 @@ function AddChildSectionModal({ open, parentSection, templateId, onClose }) {
  *   - Was using control.mandatory as 'isMandatory'. Now reads control.mandatory directly.
  */
 function ControlRow({ control, index, sectionId, templateId, isPublished }) {
+  const qc = useQueryClient()
   const [showEdit, setShowEdit]     = useState(false)
   const [showRemove, setShowRemove] = useState(false)
+  const [editTab, setEditTab]       = useState('details') // 'details' | 'tests' | 'policies'
 
   // ── Library-level fields (shared — edits affect every template using this control) ──
   const [libName, setLibName]         = useState('')
@@ -1533,9 +2080,88 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
   const [libDesc, setLibDesc]         = useState('')
   const [libErrors, setLibErrors]     = useState({})
 
-  // ── Mapping-level fields (specific to this section's mapping) ──
+  // ── Mapping-level fields (specific to this section’s mapping) ──
   const [mapWeight, setMapWeight]       = useState('')
   const [mapMandatory, setMapMandatory] = useState(false)
+
+  // ── Test/Policy link state (in edit modal) ──
+  const [testSearch,     setTestSearch]     = useState('')
+  const [polSearch,      setPolSearch]      = useState('')
+  const [showTestPicker, setShowTestPicker] = useState(false)
+  const [showPolPicker,  setShowPolPicker]  = useState(false)
+  const [showCreateTest,  setShowCreateTest]  = useState(false)
+  const [editingTestId,   setEditingTestId]   = useState(null)
+  const [etName, setEtName] = useState('')
+  const [etRef,  setEtRef]  = useState('')
+  const [etFreq, setEtFreq] = useState('')
+  const [etAuto, setEtAuto] = useState('MANUAL')
+  const [ntName, setNtName] = useState('')
+  const [ntRef,  setNtRef]  = useState('')
+  const [ntFreq, setNtFreq] = useState('')
+  const [ntAuto, setNtAuto] = useState('MANUAL')
+  const { data: freqOptions = [] } = useUiComponentOptions('audit_test_frequency')
+
+  const { data: linkedTestsRaw,    isLoading: loadingLT } = useControlTests(showEdit ? control.controlId : null)
+  const { data: linkedPoliciesRaw, isLoading: loadingLP } = useControlPolicies(showEdit ? control.controlId : null)
+  const { data: allTestsRaw,       isLoading: loadingAT } = useAllTests()
+  const { data: allPolsRaw,        isLoading: loadingAP } = useAllPolicies()
+
+  const linkedTests    = Array.isArray(linkedTestsRaw)    ? linkedTestsRaw    : (linkedTestsRaw?.data    ?? [])
+  const linkedPolicies = Array.isArray(linkedPoliciesRaw) ? linkedPoliciesRaw : (linkedPoliciesRaw?.data ?? [])
+  const allTests       = Array.isArray(allTestsRaw)       ? allTestsRaw       : (allTestsRaw?.items      ?? allTestsRaw?.data    ?? [])
+  const allPolicies    = Array.isArray(allPolsRaw)        ? allPolsRaw        : (allPolsRaw?.items       ?? allPolsRaw?.data     ?? [])
+
+  const linkedTestIds = linkedTests.map(t => t.id ?? t.testId)
+  const linkedPolIds  = linkedPolicies.map(p => p.id ?? p.policyId)
+
+  const availableTests    = allTests.filter(t => !linkedTestIds.includes(t.id ?? t.testId) && (!testSearch || t.name.toLowerCase().includes(testSearch.toLowerCase())))
+  const availablePolicies = allPolicies.filter(p => !linkedPolIds.includes(p.id ?? p.policyId) && (!polSearch || p.title.toLowerCase().includes(polSearch.toLowerCase())))
+
+  const invLT = () => qc.invalidateQueries({ queryKey: ['audit-library-control-tests',    control.controlId] })
+  const invLP = () => qc.invalidateQueries({ queryKey: ['audit-library-control-policies', control.controlId] })
+
+  const { mutate: linkTest,     isPending: linkingTest }     = useMutation({ mutationFn: (id) => auditApi.library.controls.linkTest(control.controlId, id),     onSuccess: () => { invLT(); toast.success('Test linked')     }, onError: () => toast.error('Failed') })
+  const { mutate: unlinkTest,   isPending: unlinkingTest }   = useMutation({ mutationFn: (id) => auditApi.library.controls.unlinkTest(control.controlId, id),   onSuccess: () => { invLT(); toast.success('Test unlinked')   }, onError: () => toast.error('Failed') })
+  const { mutate: linkPolicy,   isPending: linkingPolicy }   = useMutation({ mutationFn: (id) => auditApi.library.controls.linkPolicy(control.controlId, id),   onSuccess: () => { invLP(); toast.success('Policy linked')   }, onError: () => toast.error('Failed') })
+  const { mutate: unlinkPolicy, isPending: unlinkingPolicy } = useMutation({ mutationFn: (id) => auditApi.library.controls.unlinkPolicy(control.controlId, id), onSuccess: () => { invLP(); toast.success('Policy unlinked') }, onError: () => toast.error('Failed') })
+
+  const { mutate: createAndLinkTest, isPending: creatingTest } = useMutation({
+    mutationFn: async (data) => {
+      const res     = await auditApi.library.tests.create(data)
+      const created = res?.id ? res : res?.data
+      if (created?.id) await auditApi.library.controls.linkTest(control.controlId, created.id)
+      return created
+    },
+    onSuccess: () => {
+      invLT()
+      qc.invalidateQueries({ queryKey: ['audit-library-tests-all'] })
+      toast.success('Test created and linked')
+      setShowCreateTest(false)
+      setNtName(''); setNtRef(''); setNtFreq(''); setNtAuto('MANUAL')
+    },
+    onError: () => toast.error('Failed to create test'),
+  })
+
+  const { mutate: updateTest, isPending: updatingTest } = useMutation({
+    mutationFn: ({ id, data }) => auditApi.library.tests.update(id, data),
+    onSuccess: () => {
+      invLT()
+      qc.invalidateQueries({ queryKey: ['audit-library-tests-all'] })
+      toast.success('Test updated')
+      setEditingTestId(null)
+    },
+    onError: () => toast.error('Failed to update test'),
+  })
+
+  const startEditTest = (t) => {
+    const id = t.id ?? t.testId
+    setEditingTestId(id)
+    setEtName(t.testName ?? t.name ?? '')
+    setEtRef(t.testRef ?? '')
+    setEtFreq(t.frequency ?? '')
+    setEtAuto(t.automationType ?? 'MANUAL')
+    setShowTestPicker(false); setShowCreateTest(false)
+  }
 
   const { mutate: updateControl, isPending: updatingControl } = useUpdateControlInBuilder(templateId)
   const { mutate: updateMapping, isPending: updatingMapping } = useUpdateControlMapping(templateId)
@@ -1553,6 +2179,10 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
     setMapWeight(String(control.weight ?? '1.0'))
     setMapMandatory(control.mandatory ?? false)
     setLibErrors({})
+    setEditTab('details')
+    setShowTestPicker(false); setShowPolPicker(false); setShowCreateTest(false)
+    setTestSearch(''); setPolSearch('')
+    setEditingTestId(null)
   }, [showEdit])
 
   const handleSave = () => {
@@ -1624,99 +2254,333 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
         )}
       </div>
 
-      {/* ── Dual-edit modal: library fields + mapping config ── */}
+      {/* ── Edit modal: Details / Tests / Policies tabs ── */}
       <Modal open={showEdit} onClose={() => setShowEdit(false)} title="Edit Control" size="lg"
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setShowEdit(false)}>Cancel</Button>
-            <Button size="sm" loading={updatingControl || updatingMapping} onClick={handleSave}>Save Changes</Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowEdit(false)}>Close</Button>
+            {editTab === 'details' && (
+              <Button size="sm" loading={updatingControl || updatingMapping} onClick={handleSave}>Save Changes</Button>
+            )}
           </div>
         }>
-        <div className="flex flex-col gap-5">
 
-          {/* Shared-library warning */}
-          <div className="flex items-start gap-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-            <AlertCircle size={13} className="text-amber-400 mt-0.5 shrink-0" />
-            <p className="text-xs text-amber-400/80 leading-relaxed">
-              Changes to name, code, test type, and guard tag update the{' '}
-              <span className="font-semibold text-amber-400">shared library control</span> — reflected in
-              every template that uses it. Weight and mandatory status are specific to this section.
-            </p>
-          </div>
-
-          {/* ── Library fields ── */}
-          <div className="flex flex-col gap-3">
-            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">Library Control</p>
-
-            <div>
-              <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Control name *</label>
-              <input value={libName} onChange={e => { setLibName(e.target.value); setLibErrors({}) }}
-                className={cn('w-full h-9 px-3 rounded-md border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500',
-                  libErrors.libName ? 'border-red-500/50' : 'border-border')} />
-              {libErrors.libName && <p className="text-xs text-red-400 mt-1">{libErrors.libName}</p>}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Control code</label>
-                <input value={libCode} onChange={e => setLibCode(e.target.value)} placeholder="e.g. A.9.1.1"
-                  className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Framework ref</label>
-                <input value={libFw} onChange={e => setLibFw(e.target.value)} placeholder="e.g. ISO 27001"
-                  className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Test type</label>
-                <select value={libTestType} onChange={e => setLibTestType(e.target.value)}
-                  className="h-9 w-full appearance-none pl-3 pr-8 rounded-md border border-border text-sm text-text-primary bg-surface-raised focus:outline-none focus:ring-1 focus:ring-brand-500">
-                  {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Guard tag</label>
-                <input value={libTag} onChange={e => setLibTag(e.target.value.toUpperCase())} placeholder="e.g. MFA, ENCRYPTION"
-                  className="h-9 w-full rounded-md border border-border bg-surface-raised px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Description</label>
-              <textarea rows={2} value={libDesc} onChange={e => setLibDesc(e.target.value)}
-                className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
-            </div>
-          </div>
-
-          <div className="border-t border-border" />
-
-          {/* ── Mapping fields (section-specific) ── */}
-          <div className="flex flex-col gap-3">
-            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
-              Mapping in this section
-              <span className="text-text-muted font-normal normal-case ml-1">— affects this template only</span>
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Weight</label>
-                <input type="number" value={mapWeight} onChange={e => setMapWeight(e.target.value)} placeholder="1.0"
-                  className="h-9 w-full rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
-              </div>
-              <label className="flex items-center gap-3 cursor-pointer pt-5">
-                <button type="button" onClick={() => setMapMandatory(m => !m)}
-                  className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0',
-                    mapMandatory ? 'bg-brand-500' : 'bg-surface-raised border border-border')}>
-                  <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform',
-                    mapMandatory ? 'translate-x-4' : 'translate-x-0.5')} />
-                </button>
-                <span className="text-sm text-text-primary">Mandatory</span>
-              </label>
-            </div>
-          </div>
+        {/* Tab strip */}
+        <div className="flex gap-1 p-1 rounded-lg bg-surface-overlay border border-border w-fit mb-5">
+          {[
+            { key: 'details',  label: 'Details & Mapping' },
+            { key: 'tests',    label: `Tests${linkedTests.length ? ` (${linkedTests.length})` : ''}` },
+            { key: 'policies', label: `Policies${linkedPolicies.length ? ` (${linkedPolicies.length})` : ''}` },
+          ].map(t => (
+            <button key={t.key} onClick={() => setEditTab(t.key)}
+              className={cn('px-3 py-1.5 text-xs rounded-md font-medium transition-colors',
+                editTab === t.key ? 'bg-surface-raised text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary')}>
+              {t.label}
+            </button>
+          ))}
         </div>
+
+        {/* ── Details & Mapping tab ── */}
+        {editTab === 'details' && (
+          <div className="flex flex-col gap-5">
+            <div className="flex items-start gap-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+              <AlertCircle size={13} className="text-amber-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-amber-400/80 leading-relaxed">
+                Changes to name, code, test type, and guard tag update the{' '}
+                <span className="font-semibold text-amber-400">shared library control</span> — reflected in
+                every template that uses it. Weight and mandatory status are specific to this section.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">Library Control</p>
+              <div>
+                <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Control name *</label>
+                <input value={libName} onChange={e => { setLibName(e.target.value); setLibErrors({}) }}
+                  className={cn('w-full h-9 px-3 rounded-md border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500',
+                    libErrors.libName ? 'border-red-500/50' : 'border-border')} />
+                {libErrors.libName && <p className="text-xs text-red-400 mt-1">{libErrors.libName}</p>}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Control code</label>
+                  <input value={libCode} onChange={e => setLibCode(e.target.value)} placeholder="e.g. A.9.1.1"
+                    className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Framework ref</label>
+                  <input value={libFw} onChange={e => setLibFw(e.target.value)} placeholder="e.g. ISO 27001"
+                    className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Test type</label>
+                  <select value={libTestType} onChange={e => setLibTestType(e.target.value)}
+                    className="h-9 w-full appearance-none pl-3 pr-8 rounded-md border border-border text-sm text-text-primary bg-surface-raised focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Guard tag</label>
+                  <input value={libTag} onChange={e => setLibTag(e.target.value.toUpperCase())} placeholder="e.g. MFA, ENCRYPTION"
+                    className="h-9 w-full rounded-md border border-border bg-surface-raised px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Description</label>
+                <textarea rows={2} value={libDesc} onChange={e => setLibDesc(e.target.value)}
+                  className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+            </div>
+
+            <div className="border-t border-border" />
+
+            <div className="flex flex-col gap-3">
+              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
+                Mapping in this section
+                <span className="text-text-muted font-normal normal-case ml-1">— affects this template only</span>
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Weight</label>
+                  <input type="number" value={mapWeight} onChange={e => setMapWeight(e.target.value)} placeholder="1.0"
+                    className="h-9 w-full rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+                <label className="flex items-center gap-3 cursor-pointer pt-5">
+                  <button type="button" onClick={() => setMapMandatory(m => !m)}
+                    className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0',
+                      mapMandatory ? 'bg-brand-500' : 'bg-surface-raised border border-border')}>
+                    <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform',
+                      mapMandatory ? 'translate-x-4' : 'translate-x-0.5')} />
+                  </button>
+                  <span className="text-sm text-text-primary">Mandatory</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Tests tab ── */}
+        {editTab === 'tests' && (
+          <div className="flex flex-col gap-3">
+            {/* Linked tests list */}
+            {loadingLT ? (
+              <div className="flex justify-center py-6"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>
+            ) : (
+              <div className="rounded-lg border border-border divide-y divide-border">
+                {linkedTests.length === 0 && (
+                  <p className="text-sm text-text-muted px-4 py-4">No tests linked to this control yet.</p>
+                )}
+                {linkedTests.map(t => {
+                  const id = t.id ?? t.testId
+                  const isEditing = editingTestId === id
+                  return (
+                    <div key={id}>
+                      {!isEditing ? (
+                        <div className="flex items-center gap-3 px-4 py-2.5 group hover:bg-surface-overlay transition-colors">
+                          <div className="flex-1 min-w-0">
+                            {t.testRef && <span className="font-mono text-[10px] text-brand-400 mr-1.5">{t.testRef}</span>}
+                            <span className="text-sm text-text-primary">{t.testName ?? t.name}</span>
+                            {t.frequency && <span className="text-[10px] text-text-muted ml-2">{t.frequency}</span>}
+                            {t.automationType && t.automationType !== 'MANUAL' && (
+                              <span className="text-[10px] text-brand-400 ml-1.5">{t.automationType}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <button onClick={() => startEditTest(t)} title="Edit"
+                              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay">
+                              <Pencil size={11} />
+                            </button>
+                            <button onClick={() => unlinkTest(id)} disabled={unlinkingTest} title="Unlink"
+                              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10">
+                              <Trash2 size={11} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="px-4 py-3 bg-surface-overlay flex flex-col gap-2">
+                          <input value={etName} onChange={e => setEtName(e.target.value)}
+                            placeholder="Test name *"
+                            className="w-full h-8 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                          <div className="grid grid-cols-3 gap-2">
+                            <input value={etRef} onChange={e => setEtRef(e.target.value)} placeholder="Ref"
+                              className="h-7 px-2 rounded-md border border-border bg-surface-raised text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                            <select value={etFreq} onChange={e => setEtFreq(e.target.value)}
+                              className="h-7 px-2 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                              <option value="">Frequency</option>
+                              {freqOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                            </select>
+                            <select value={etAuto} onChange={e => setEtAuto(e.target.value)}
+                              className="h-7 px-2 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                              <option value="MANUAL">Manual</option>
+                              <option value="AUTOMATED">Automated</option>
+                            </select>
+                          </div>
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={() => setEditingTestId(null)}
+                              className="px-2 py-1 text-xs text-text-muted hover:text-text-primary rounded border border-border hover:bg-surface-overlay transition-colors">
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => updateTest({ id, data: { name: etName.trim(), testRef: etRef.trim() || null, frequency: etFreq || null, automationType: etAuto } })}
+                              disabled={!etName.trim() || updatingTest}
+                              className="px-3 py-1 text-xs font-medium bg-brand-500 text-white rounded disabled:opacity-50 hover:bg-brand-600 transition-colors flex items-center gap-1">
+                              {updatingTest ? <Loader2 size={10} className="animate-spin" /> : null}
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Link existing test */}
+            <div className="border-t border-border pt-3 flex flex-col gap-2">
+              <button onClick={() => { setShowTestPicker(v => !v); setShowCreateTest(false) }}
+                className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-medium">
+                <Plus size={12} /> {showTestPicker ? 'Hide picker' : 'Link existing test'}
+              </button>
+              {showTestPicker && (
+                <div className="flex flex-col gap-2">
+                  <div className="relative">
+                    <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                    <input value={testSearch} onChange={e => setTestSearch(e.target.value)} placeholder="Search library tests…"
+                      className="h-7 pl-7 pr-3 w-full rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  </div>
+                  <div className="max-h-40 overflow-y-auto rounded-lg border border-border divide-y divide-border">
+                    {loadingAT && <div className="flex justify-center py-4"><Loader2 size={14} className="text-brand-400 animate-spin" /></div>}
+                    {!loadingAT && availableTests.length === 0 && <p className="text-xs text-text-muted px-3 py-3">No available tests.</p>}
+                    {!loadingAT && availableTests.map(t => {
+                      const id = t.id ?? t.testId
+                      return (
+                        <button key={id} onClick={() => linkTest(id)} disabled={linkingTest}
+                          className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-surface-overlay transition-colors">
+                          <div className="flex-1 min-w-0">
+                            {t.testRef && <span className="font-mono text-[10px] text-brand-400 mr-1.5">{t.testRef}</span>}
+                            <span className="text-xs text-text-primary line-clamp-1">{t.testName ?? t.name}</span>
+                          </div>
+                          <Plus size={10} className="text-text-muted shrink-0" />
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Create new test */}
+            <div className="border-t border-border pt-3 flex flex-col gap-2">
+              <button onClick={() => { setShowCreateTest(v => !v); setShowTestPicker(false) }}
+                className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-medium">
+                <Plus size={12} /> {showCreateTest ? 'Hide' : 'Create new test and link'}
+              </button>
+              {showCreateTest && (
+                <div className="flex flex-col gap-3 p-3 rounded-lg border border-border bg-surface-overlay">
+                  <div>
+                    <label className="block text-xs text-text-secondary mb-1">Test name *</label>
+                    <input value={ntName} onChange={e => setNtName(e.target.value)} placeholder="e.g. Review access logs"
+                      className="w-full h-8 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-xs text-text-secondary mb-1">Test ref</label>
+                      <input value={ntRef} onChange={e => setNtRef(e.target.value)} placeholder="e.g. T-01"
+                        className="w-full h-8 px-2 rounded-md border border-border bg-surface-raised text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-text-secondary mb-1">Frequency</label>
+                      <select value={ntFreq} onChange={e => setNtFreq(e.target.value)}
+                        className="w-full h-8 px-2 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                        <option value="">Frequency</option>
+                        {freqOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-text-secondary mb-1">Automation</label>
+                      <select value={ntAuto} onChange={e => setNtAuto(e.target.value)}
+                        className="w-full h-8 px-2 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                        <option value="MANUAL">Manual</option>
+                        <option value="AUTOMATED">Automated</option>
+                      </select>
+                    </div>
+                  </div>
+                  <Button size="xs" loading={creatingTest} disabled={!ntName.trim()}
+                    onClick={() => createAndLinkTest({ name: ntName.trim(), testRef: ntRef.trim() || null, frequency: ntFreq || null, automationType: ntAuto })}>
+                    Create & Link Test
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Policies tab ── */}
+        {editTab === 'policies' && (
+          <div className="flex flex-col gap-3">
+            {loadingLP ? (
+              <div className="flex justify-center py-6"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>
+            ) : (
+              <div className="rounded-lg border border-border divide-y divide-border">
+                {linkedPolicies.length === 0 && (
+                  <p className="text-sm text-text-muted px-4 py-4">No policies linked to this control yet.</p>
+                )}
+                {linkedPolicies.map(p => {
+                  const id = p.id ?? p.policyId
+                  return (
+                    <div key={id} className="flex items-center gap-3 px-4 py-2.5 group hover:bg-surface-overlay transition-colors">
+                      <div className="flex-1 min-w-0">
+                        {p.policyRef && <span className="font-mono text-[10px] text-brand-400 mr-1.5">{p.policyRef}</span>}
+                        <span className="text-sm text-text-primary">{p.title}</span>
+                        {p.status && <span className="text-[10px] text-text-muted ml-2">{p.status}</span>}
+                      </div>
+                      <button onClick={() => unlinkPolicy(id)} disabled={unlinkingPolicy} title="Unlink"
+                        className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all">
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className="border-t border-border pt-3 flex flex-col gap-2">
+              <button onClick={() => setShowPolPicker(v => !v)}
+                className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-medium">
+                <Plus size={12} /> {showPolPicker ? 'Hide picker' : 'Link a policy'}
+              </button>
+              {showPolPicker && (
+                <div className="flex flex-col gap-2">
+                  <div className="relative">
+                    <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                    <input value={polSearch} onChange={e => setPolSearch(e.target.value)} placeholder="Search library policies…"
+                      className="h-7 pl-7 pr-3 w-full rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  </div>
+                  <div className="max-h-48 overflow-y-auto rounded-lg border border-border divide-y divide-border">
+                    {loadingAP && <div className="flex justify-center py-4"><Loader2 size={14} className="text-brand-400 animate-spin" /></div>}
+                    {!loadingAP && availablePolicies.length === 0 && <p className="text-xs text-text-muted px-3 py-3">No available policies.</p>}
+                    {!loadingAP && availablePolicies.map(p => {
+                      const id = p.id ?? p.policyId
+                      return (
+                        <button key={id} onClick={() => linkPolicy(id)} disabled={linkingPolicy}
+                          className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-surface-overlay transition-colors">
+                          <div className="flex-1 min-w-0">
+                            {p.policyRef && <span className="font-mono text-[10px] text-brand-400 mr-1.5">{p.policyRef}</span>}
+                            <span className="text-xs text-text-primary line-clamp-1">{p.title}</span>
+                          </div>
+                          <Plus size={10} className="text-text-muted shrink-0" />
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </Modal>
 
       <ConfirmDialog open={showRemove} onClose={() => setShowRemove(false)}
@@ -2240,7 +3104,7 @@ function TemplateMetaForm({ template, templateId, onClose }) {
     onError: () => toast.error('Failed to update template'),
   })
   const [form, setForm] = useState({
-    name:         template?.name         ?? '',
+    templateName: template?.templateName ?? template?.name ?? '',
     description:  template?.description  ?? '',
     frameworkRef: template?.frameworkRef ?? '',
     auditType:    template?.auditType    ?? 'INTERNAL',
@@ -2251,7 +3115,7 @@ function TemplateMetaForm({ template, templateId, onClose }) {
     <div className="flex flex-col gap-4">
       <div>
         <label className="block text-xs text-text-secondary mb-1">Template name *</label>
-        <input value={form.name} onChange={e => set('name', e.target.value)}
+        <input value={form.templateName} onChange={e => set('templateName', e.target.value)}
           className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -2273,7 +3137,7 @@ function TemplateMetaForm({ template, templateId, onClose }) {
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
           className="w-full px-3 py-2 rounded-md border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
-      <Button variant="primary" loading={isPending} disabled={!form.name.trim()}
+      <Button variant="primary" loading={isPending} disabled={!form.templateName.trim()}
         onClick={() => update({ id: templateId, data: form })}>
         Save changes
       </Button>
@@ -2340,14 +3204,14 @@ function EditTemplateRowForm({ template, onClose }) {
     onError: () => toast.error('Failed to update template'),
   })
   const [form, setForm] = useState({
-    name: template?.name ?? '', description: template?.description ?? '',
+    templateName: template?.templateName ?? template?.name ?? '', description: template?.description ?? '',
     frameworkRef: template?.frameworkRef ?? '', auditType: template?.auditType ?? 'INTERNAL',
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   useEffect(() => {
     if (!template) return
-    setForm({ name: template.name ?? '', description: template.description ?? '', frameworkRef: template.frameworkRef ?? '', auditType: template.auditType ?? 'INTERNAL' })
+    setForm({ templateName: template.templateName ?? template.name ?? '', description: template.description ?? '', frameworkRef: template.frameworkRef ?? '', auditType: template.auditType ?? 'INTERNAL' })
   }, [template?.id])
 
   if (!template) return null
@@ -2356,7 +3220,7 @@ function EditTemplateRowForm({ template, onClose }) {
     <div className="flex flex-col gap-4">
       <div>
         <label className="block text-xs text-text-secondary mb-1">Template name *</label>
-        <input value={form.name} onChange={e => set('name', e.target.value)}
+        <input value={form.templateName} onChange={e => set('templateName', e.target.value)}
           className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -2378,7 +3242,7 @@ function EditTemplateRowForm({ template, onClose }) {
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
           className="w-full px-3 py-2 rounded-md border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
-      <Button variant="primary" loading={isPending} disabled={!form.name.trim()}
+      <Button variant="primary" loading={isPending} disabled={!form.templateName.trim()}
         onClick={() => update({ id: template.id, data: form })}>
         Save changes
       </Button>

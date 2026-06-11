@@ -94,7 +94,7 @@ export const useScreenConfig = (screenKey) => useQuery({
 export const useFormConfig = (formKey) => useQuery({
   queryKey: QUERY_KEYS.FORM(formKey),
   queryFn:  () => uiConfigApi.form(formKey),
-  staleTime: 10 * 60 * 1000,
+  staleTime: 0,  // always fresh — components shape changed, cache must not serve old response
   enabled:  !!formKey,
 })
 

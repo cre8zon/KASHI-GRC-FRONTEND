@@ -185,8 +185,11 @@ export function TaskInbox({ filterFn } = {}) {
                     )}
                   </div>
 
-                  {/* Step name */}
+                  {/* Step name + entity title */}
                   <p className="text-sm text-text-primary font-medium">{stepName}</p>
+                  {task.entityTitle && (
+                    <p className="text-xs text-text-primary/80 font-medium truncate">{task.entityTitle}</p>
+                  )}
                   {task.workflowName && (
                     <p className="text-xs text-text-muted">{task.workflowName}</p>
                   )}

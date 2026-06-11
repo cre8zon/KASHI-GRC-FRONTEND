@@ -3,6 +3,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { useFormConfig } from '../../hooks/useUIConfig'
+// useScreenConfig intentionally not imported — formKey is not a screen name;
+// components come from formConfig.components (returned by backend getForm endpoint)
 import { DynamicSelect, Select } from '../ui/Select'
 import { useScreenConfig } from '../../hooks/useUIConfig'
 import { Button } from '../ui/Button'
@@ -17,8 +19,12 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
   editableFields = null,  // from vc.editableFields — when set, ONLY these are editable (null = all editable)
 }) {
   const { data: formConfig, isLoading: loadingForm } = useFormConfig(formKey)
-  const { data: screenConfig } = useScreenConfig(formKey)
-  const config = extraConfig || screenConfig
+  // formConfig.components contains global components returned by the backend's getForm.
+  // extraConfig (from the calling page's screenConfig) is used as a fallback.
+  // useScreenConfig(formKey) is intentionally removed — formKey is not a screen name.
+  const formComponents = formConfig?.components   // UiFormResponse.components map
+                      ?? formConfig?.data?.components  // in case response isn't fully unwrapped
+  const config = extraConfig || (formComponents ? { components: formComponents } : null)
 
   const schema = useMemo(() => {
     if (!formConfig?.fields) return z.object({})

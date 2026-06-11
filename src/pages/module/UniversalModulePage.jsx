@@ -27,6 +27,9 @@ import { TestInstanceMappedControlsTab } from '../../components/audit/TestInstan
 import { PolicyInstanceMappedControlsTab } from '../../components/audit/PolicyInstanceMappedControlsTab'
 import { PolicyContentTab }              from '../../components/audit/PolicyContentTab'
 import { PolicyVersionsTab }             from '../../components/audit/PolicyVersionsTab'
+import { EngagementFindingsTab }         from '../../components/audit/EngagementFindingsTab'
+import { EngagementIntegrationTab }      from '../../components/audit/EngagementIntegrationTab'
+import { ProjectFindingsTab }            from '../../components/audit/ProjectFindingsTab'
 import { TestPolicyCsvImportModal }  from '../../components/audit/TestPolicyCsvImportModal'
 import { WorkflowTimeline }       from '../../components/workflow/WorkflowTimeline'
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
@@ -639,13 +642,36 @@ function ModuleDetailView({ bp, id }) {
           if (entity?.status && !allowed.includes(entity.status)) return false
         } catch {}
       }
-      // Gap 4: hide action if requiredPermission is set and user lacks it in vc.permissions
+      // __hideIfField: hide action when entity field is truthy (set in payloadTemplateJson)
+      // e.g. { "__hideIfField": "ownerId" } hides action when entity.ownerId is set
+      // __showIfFieldNull: show action only when entity field is null/empty
+      try {
+        const meta = JSON.parse(action.payloadTemplateJson || '{}')
+        if (meta.__hideIfField && entity?.[meta.__hideIfField]) return false
+        if (meta.__showIfFieldNull && entity?.[meta.__showIfFieldNull] != null
+            && entity?.[meta.__showIfFieldNull] !== '') return false
+      } catch {}
+      // requiredPermission gate
       if (action.requiredPermission && vc.permissions?.length > 0) {
         if (!vc.permissions.includes(action.requiredPermission)) return false
       }
+      // Workflow-advancing actions: derived from blueprint statusFlowJson transitions.
+      // Each transition has an actionKey — if the current action matches one,
+      // hide it when the user has no active task (vc.canAct === false).
+      // This is zero-code: adding a transition in Module Blueprints automatically
+      // gates the button by task ownership. No hardcoding needed.
+      try {
+        const sf = JSON.parse(bp.statusFlowJson || '{}')
+        const transitionKeys = new Set(
+          (sf.transitions || []).map(t => t.actionKey).filter(Boolean)
+        )
+        // COMPLETE_STEP is a universal workflow action used across all modules
+        transitionKeys.add('COMPLETE_STEP')
+        if (transitionKeys.has(action.actionKey) && vc.canAct === false) return false
+      } catch { /* statusFlowJson parse error — skip transition gate */ }
       return true
     })
-  }, [screenConfig?.actions, entity?.status, vc.permissions])
+  }, [screenConfig?.actions, entity?.status, vc.permissions, vc.canAct, entity])
 
   // Execute a screen action — resolves path params, handles confirmation + remarks.
   // Three action types via payloadTemplateJson convention:
@@ -698,13 +724,14 @@ function ModuleDetailView({ bp, id }) {
       toast.success(action.label + ' successful')
       // Navigate to clean page URL for any status-changing action so the entire
       // component remounts with fresh data — prevents stale status showing in
-      // action buttons and header (e.g. Reopen showing on OPEN issue)
-      const STATUS_CHANGING_ACTIONS = [
-        'ACTIVATE','COMPLETE','CANCEL',
-        'ISSUE_TRIAGE','ISSUE_START_REMEDIATION','ISSUE_SUBMIT_REVIEW',
-        'ISSUE_VALIDATE','ISSUE_CLOSE','ISSUE_ACCEPT_RISK','ISSUE_REOPEN'
-      ]
-      if (STATUS_CHANGING_ACTIONS.includes(action.actionKey)) {
+      // action buttons and header (e.g. Reopen showing on OPEN issue).
+      // Derived from blueprint statusFlowJson transitions — zero hardcoding.
+      const _sf1 = (() => { try { return JSON.parse(bp.statusFlowJson || '{}') } catch { return {} } })()
+      const STATUS_CHANGING_ACTIONS = new Set([
+        'ACTIVATE','COMPLETE','CANCEL',  // universal module actions
+        ...(_sf1.transitions || []).map(t => t.actionKey).filter(Boolean)
+      ])
+      if (STATUS_CHANGING_ACTIONS.has(action.actionKey)) {
         const base = bp.listScreenKey?.replace('_list','') || bp.entityType.toLowerCase().replace('_','')
         navigate(`/module/${base}/${id}`)
       }
@@ -904,7 +931,7 @@ function ModuleDetailView({ bp, id }) {
               disabled={actingId != null && actingId !== action.id}
               onClick={() => handleActionClick(action)}
             >
-              {action.label}
+              {(() => { try { const m = JSON.parse(action.payloadTemplateJson||'{}'); return m.__label || action.label } catch { return action.label } })()}
             </Button>
           ))}
           {/* Edit button hidden — overview fields are now inline-editable on click (Wrike-style) */}
@@ -1091,6 +1118,7 @@ function ModuleDetailView({ bp, id }) {
             detailScreenKey={bp.detailScreenKey}
             entity={entity}
             entityType={bp.entityType}
+            apiBasePath={bp.apiBasePath}
             vc={vc}
           />
         )}
@@ -1298,7 +1326,7 @@ function EvidenceTab({ entityId, entityType, vc }) {
 //   "policies"  → LibraryMappingTab (shows policies linked to this control)
 // All other keys → renders fields from {detailScreenKey}_tab_{tabKey} form key.
 
-function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, vc }) {
+function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBasePath, vc }) {
   // ── Library mapping tabs — rendered by dedicated component ───────────────
   // AUDIT_ENGAGEMENT — sections tree with controls nested + both clickable
   if (tabKey === 'sections' && entityType === 'AUDIT_ENGAGEMENT') {
@@ -1307,6 +1335,18 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, vc }) {
   // AUDIT_ENGAGEMENT — flat control list with clickable detail
   if (tabKey === 'controls' && entityType === 'AUDIT_ENGAGEMENT') {
     return <EngagementControlsTab engagementId={entity?.id} vc={vc} />
+  }
+  // AUDIT_ENGAGEMENT — findings list with escalate-to-issue action
+  if (tabKey === 'findings' && entityType === 'AUDIT_ENGAGEMENT') {
+    return <EngagementFindingsTab engagementId={entity?.id} canEscalate />
+  }
+  // AUDIT_PROJECT — findings list for a project
+  if (tabKey === 'findings' && entityType === 'AUDIT_PROJECT') {
+    return <ProjectFindingsTab projectId={entity?.id} />
+  }
+  // AUDIT_ENGAGEMENT — automated integration check status (EngagementIntegrationSnapshot rows)
+  if (tabKey === 'integrations' && entityType === 'AUDIT_ENGAGEMENT') {
+    return <EngagementIntegrationTab engagementId={entity?.id} />
   }
 
   // AUDIT_CONTROL_INSTANCE — tests and policies tabs use instance-level endpoints
@@ -1406,6 +1446,29 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, vc }) {
     </div>
   )
 
+  // When canEdit is true, render as a live DynamicForm so Arjun can fill in fields.
+  // When read-only, fall back to display-only FieldDisplay grid.
+  const canEdit = vc?.canEdit === true
+  const qc = useQueryClient()
+
+  if (canEdit) {
+    return (
+      <DynamicForm
+        formKey={formKey}
+        defaultValues={entity || {}}
+        extraConfig={null}
+        readOnlyFields={vc?.readOnlyFields || []}
+        hiddenFields={vc?.hiddenFields || []}
+        submitLabel="Save"
+        onSubmit={async (data) => {
+          await api.put(`${apiBasePath}/${entity.id}`, data)
+          qc.invalidateQueries({ queryKey: ['module-entity'] })
+          toast.success('Saved')
+        }}
+      />
+    )
+  }
+
   return (
     <div className="grid grid-cols-12 gap-4">
       {fields.map((field, fi) => {
@@ -1438,7 +1501,7 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, vc }) {
               label={field.label}
               value={value}
               type={field.fieldType}
-              editable={vc?.canEdit && !vc?.readOnlyFields?.includes(field.fieldKey)}
+              editable={false}
               field={field}
             />
           </div>
@@ -2052,11 +2115,11 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
       toast.success(action.label + ' successful')
       // For status-changing actions in drawer: re-fetch entity immediately
       // so action buttons re-filter with new status (no stale cache)
-      const DRAWER_STATUS_ACTIONS = [
-        'ISSUE_TRIAGE','ISSUE_START_REMEDIATION','ISSUE_SUBMIT_REVIEW',
-        'ISSUE_VALIDATE','ISSUE_CLOSE','ISSUE_ACCEPT_RISK','ISSUE_REOPEN'
-      ]
-      if (DRAWER_STATUS_ACTIONS.includes(action.actionKey)) {
+      const _sf2 = (() => { try { return JSON.parse(bp.statusFlowJson || '{}') } catch { return {} } })()
+      const DRAWER_STATUS_ACTIONS = new Set(
+        (_sf2.transitions || []).map(t => t.actionKey).filter(Boolean)
+      )
+      if (DRAWER_STATUS_ACTIONS.has(action.actionKey)) {
         // Force immediate refetch — don't wait for background revalidation
         await qc.refetchQueries({ queryKey: ['drawer-entity', bp.apiBasePath, entityId] })
         await qc.refetchQueries({ queryKey: ['view-context', bp.entityType, entityId] })
@@ -2455,6 +2518,7 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
                 detailScreenKey={bp.detailScreenKey}
                 entity={entity}
                 entityType={bp.entityType}
+                apiBasePath={bp.apiBasePath}
                 vc={vc}
               />
             </div>
