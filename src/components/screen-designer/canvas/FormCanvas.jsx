@@ -72,6 +72,55 @@ function FormCanvas({ screen, selectedElement, onSelectElement, actions }) {
     return raw
   }, [fieldsRes])
 
+  // ── Drag-to-reorder state ──────────────────────────────────────────────────
+  const [dragIndex, setDragIndex]         = useState(null)
+  const [dragOverIndex, setDragOverIndex] = useState(null)
+  const [manualOrder, setManualOrder]     = useState(null) // null = use server order
+
+  // orderedFields: use manual order after a drag, otherwise server order
+  const orderedFields = useMemo(() => {
+    if (manualOrder) return manualOrder
+    return [...fields].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+  }, [fields, manualOrder])
+
+  // Reset manual order when fields reload from server
+  useEffect(() => { setManualOrder(null) }, [formId])
+
+
+  const reorderMut = useMutation({
+    mutationFn: ({ id, sortOrder }) => sdApi.updateField(id, { sortOrder }),
+    onError: () => toast.error('Failed to save field order'),
+  })
+
+  const handleDragStart = (e, index) => {
+    setDragIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (index !== dragOverIndex) setDragOverIndex(index)
+  }
+
+  const handleDrop = (e, dropIndex) => {
+    e.preventDefault()
+    if (dragIndex === null || dragIndex === dropIndex) {
+      setDragIndex(null); setDragOverIndex(null); return
+    }
+    const next = [...orderedFields]
+    const [moved] = next.splice(dragIndex, 1)
+    next.splice(dropIndex, 0, moved)
+    // Assign new sortOrder values (10, 20, 30... to leave gaps for future inserts)
+    const updated = next.map((f, i) => ({ ...f, sortOrder: (i + 1) * 10 }))
+    setManualOrder(updated)
+    setDragIndex(null); setDragOverIndex(null)
+    // Persist each field's new sortOrder
+    updated.forEach(f => reorderMut.mutate({ id: f.id, sortOrder: f.sortOrder }))
+  }
+
+  const handleDragEnd = () => { setDragIndex(null); setDragOverIndex(null) }
+
   // ── Field type → preview renderer ─────────────────────────────────────────
   const fieldPreview = (f) => {
     switch (f.fieldType) {
@@ -131,14 +180,21 @@ function FormCanvas({ screen, selectedElement, onSelectElement, actions }) {
             </div>
           )}
 
-          {/* Render fields in a 12-col grid respecting gridCols */}
+          {/* Render fields in a 12-col grid respecting gridCols — drag grip to reorder */}
           <div className="grid grid-cols-12 gap-2">
-            {fields.map(f => (
+            {orderedFields.map((f, index) => (
               <div key={f.id}
+                draggable
+                onDragStart={e => handleDragStart(e, index)}
+                onDragOver={e => handleDragOver(e, index)}
+                onDrop={e => handleDrop(e, index)}
+                onDragEnd={handleDragEnd}
                 onClick={() => onSelectElement({ type: 'form_field', id: f.id, data: { ...f }, screenKey: screen.key, formId })}
                 style={{ gridColumn: `span ${f.gridCols || 12}` }}
                 className={cn(
-                  'flex flex-col gap-1 p-2 rounded-lg border transition-all cursor-pointer',
+                  'flex flex-col gap-1 p-2 rounded-lg border transition-all cursor-pointer group',
+                  dragIndex === index && 'opacity-40',
+                  dragOverIndex === index && dragIndex !== index && 'border-brand-500 bg-brand-500/5 scale-[1.01]',
                   selectedElement?.id === f.id
                     ? 'border-brand-500 bg-brand-500/5'
                     : f.fieldType === 'SECTION_HEADER' || f.fieldType === 'DIVIDER'
@@ -147,6 +203,7 @@ function FormCanvas({ screen, selectedElement, onSelectElement, actions }) {
                 )}>
                 {f.fieldType !== 'SECTION_HEADER' && f.fieldType !== 'DIVIDER' && f.fieldType !== 'TOGGLE' && (
                   <label className="text-xs font-medium text-text-primary flex items-center gap-1">
+                    <GripVertical size={11} className="text-text-muted opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing shrink-0 -ml-1" />
                     {f.label}
                     {f.isRequired && <span className="text-red-400">*</span>}
                     <span className="ml-auto text-[9px] font-mono text-text-muted">{f.fieldType}</span>

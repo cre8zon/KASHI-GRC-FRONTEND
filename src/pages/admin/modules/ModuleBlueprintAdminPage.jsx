@@ -14,6 +14,7 @@ import { Modal, ConfirmDialog } from '../../../components/ui/Modal'
 import { cn } from '../../../lib/cn'
 import toast from 'react-hot-toast'
 import { moduleBlueprintsApi } from '../../../api/moduleBlueprints.api'
+import { uiAdminApi } from '../../../api/uiConfig.api'
 
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
@@ -30,6 +31,14 @@ const useBlueprintDetail = (id) => useQuery({
   queryKey: ['module-blueprint', id],
   queryFn: () => moduleBlueprintsApi.get(id),
   enabled: !!id,
+})
+
+// ─── Hooks (continued) ─────────────────────────────────────────────────────
+const useScreenActions = (screenKey) => useQuery({
+  queryKey: ['admin-screen-actions', screenKey],
+  queryFn: () => uiAdminApi.actions.list({ screen: screenKey, take: 100 }),
+  enabled: !!screenKey,
+  staleTime: 60_000,
 })
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -257,6 +266,22 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
   try { fieldsSchema = JSON.parse(bp.fieldsSchemaJson || '{}') } catch {}
   try { statusFlow = JSON.parse(bp.statusFlowJson || '{}') } catch {}
 
+  // Fetch ui_actions for the detail screen to validate actionKey sync
+  const { data: screenActionsRaw } = useScreenActions(bp.detailScreenKey)
+  const screenActionKeys = new Set(
+    (Array.isArray(screenActionsRaw) ? screenActionsRaw : (screenActionsRaw?.items || screenActionsRaw?.data || []))
+      .map(a => a.actionKey).filter(Boolean)
+  )
+
+  // Validate each transition: warn if actionKey missing or not found in ui_actions.
+  const transitionIssues = (statusFlow.transitions || []).map((t, i) => {
+    const warnings = []
+    if (!t.actionKey) warnings.push('missing actionKey — vc.canAct gate will not fire')
+    else if (screenActionsRaw !== undefined && screenActionKeys.size > 0 && !screenActionKeys.has(t.actionKey))
+      warnings.push(`actionKey "${t.actionKey}" not found in ui_actions for screen "${bp.detailScreenKey}"`)
+    return { index: i, transition: t, warnings }
+  }).filter(r => r.warnings.length > 0)
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
@@ -419,16 +444,50 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
             </div>
             <div>
               <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Transitions</h3>
-              <div className="space-y-1.5">
-                {(statusFlow.transitions || []).map((t, i) => (
-                  <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border text-xs">
-                    <span className="text-text-secondary font-medium w-28 truncate">{t.from}</span>
-                    <ArrowRight size={12} className="text-text-muted shrink-0" />
-                    <span className="text-text-secondary font-medium w-28 truncate">{t.to}</span>
-                    <span className="text-brand-400 ml-2">{t.label}</span>
-                    {t.permission && <code className="ml-auto text-[10px] font-mono text-text-muted">{t.permission}</code>}
+              {/* Validation warnings banner */}
+              {transitionIssues.length > 0 && (
+                <div className="mb-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5 space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-amber-400">
+                    <AlertTriangle size={12} />
+                    {transitionIssues.length} transition {transitionIssues.length === 1 ? 'issue' : 'issues'} detected
                   </div>
-                ))}
+                  {transitionIssues.map(({ transition: t, warnings }, i) => (
+                    <div key={i} className="text-[11px] text-amber-300/80 pl-4">
+                      <span className="font-medium">{t.from} → {t.to} ({t.label}):</span>
+                      {warnings.map((w, wi) => (
+                        <span key={wi} className="block pl-2 text-amber-400/70">⚠ {w}</span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="space-y-1.5">
+                {(statusFlow.transitions || []).map((t, i) => {
+                  const hasIssue = transitionIssues.some(r => r.index === i)
+                  return (
+                    <div key={i} className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-lg border text-xs',
+                      hasIssue ? 'border-amber-500/30 bg-amber-500/5' : 'border-border'
+                    )}>
+                      <span className="text-text-secondary font-medium w-28 truncate">{t.from}</span>
+                      <ArrowRight size={12} className="text-text-muted shrink-0" />
+                      <span className="text-text-secondary font-medium w-28 truncate">{t.to}</span>
+                      <span className="text-brand-400 ml-2">{t.label}</span>
+                      {t.actionKey
+                        ? <code className={cn('text-[10px] font-mono px-1.5 py-0.5 rounded',
+                            screenActionsRaw === undefined
+                              ? 'text-text-muted bg-surface-overlay'
+                              : screenActionKeys.has(t.actionKey)
+                                ? 'text-green-400 bg-green-500/10'
+                                : 'text-amber-400 bg-amber-500/10')}>
+                            {t.actionKey}
+                          </code>
+                        : <span className="text-[10px] text-text-muted/50 italic ml-1">no actionKey</span>
+                      }
+                      {t.permission && <code className="ml-auto text-[10px] font-mono text-text-muted">{t.permission}</code>}
+                    </div>
+                  )
+                })}
               </div>
             </div>
             <div>
@@ -688,7 +747,7 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
         <div className="space-y-2">
           <div className="text-xs text-blue-300 bg-blue-500/5 border border-blue-500/20 rounded-lg px-3 py-2 flex gap-2">
             <Info size={12} className="mt-0.5 shrink-0" />
-            Define statuses and valid transitions. Transitions can be permission-gated.
+            Define statuses and valid transitions. Each transition should have an <code className="text-[10px] font-mono bg-surface-overlay px-1 rounded">actionKey</code> matching a <code className="text-[10px] font-mono bg-surface-overlay px-1 rounded">ui_actions.action_key</code> for that screen — this gates the button so only users with an active workflow task can trigger it.
           </div>
           <textarea
             value={form.statusFlowJson}
@@ -696,7 +755,14 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
             rows={16}
             spellCheck={false}
             className="w-full px-3 py-2.5 text-xs font-mono bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
-            placeholder={JSON.stringify({ statuses: ['DRAFT','OPEN','CLOSED'], transitions: [{ from: 'DRAFT', to: 'OPEN', label: 'Submit' }, { from: 'OPEN', to: 'CLOSED', label: 'Close', permission: 'risk.approve' }] }, null, 2)}
+            placeholder={JSON.stringify({
+              statuses: ['OPEN','IN_PROGRESS','RESOLVED','CLOSED'],
+              transitions: [
+                { from: 'OPEN', to: 'IN_PROGRESS', label: 'Start', actionKey: 'MY_MODULE_START', permission: 'module.edit' },
+                { from: 'IN_PROGRESS', to: 'RESOLVED', label: 'Resolve', actionKey: 'MY_MODULE_RESOLVE', permission: 'module.resolve' },
+                { from: 'RESOLVED', to: 'CLOSED', label: 'Close', actionKey: 'MY_MODULE_CLOSE' }
+              ]
+            }, null, 2)}
           />
         </div>
       )}

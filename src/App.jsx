@@ -85,6 +85,7 @@ import ControlFrameworksPage  from './pages/admin/audit/ControlFrameworksPage'
 // ── RENAMED: avoid clash with pages/audit/AuditLibraryPage imported below
 import AdminAuditLibraryPage  from './pages/admin/audit/AuditLibraryPage'
 import AuditProjectListPage      from './pages/audit/AuditProjectListPage'
+import AuditProjectDashboardPage from './pages/dashboard/AuditProjectDashboardPage'
 import AuditEngagementListPage   from './pages/audit/AuditEngagementListPage'
 import AuditEngagementDetailPage from './pages/audit/AuditEngagementDetailPage'
 // ── ADDED: org read-only audit library (distinct from admin version above)
@@ -284,6 +285,7 @@ export default function App() {
 
         <Route path="/admin/screen-designer" element={<ScreenDesignerPage />} />
         <Route path="/admin/dashboard" element={<DashboardAdminPage />} />
+        
 
         {/* ── Platform Admin — Audit & Controls Config ─────────── */}
         <Route path="/admin/audit/library"          element={<AdminAuditLibraryPage />} />
@@ -292,6 +294,7 @@ export default function App() {
         <Route path="/admin/controls/frameworks"    element={<ControlFrameworksPage />} />
         <Route path="/audit/projects"             element={<AuditProjectListPage />} />
         <Route path="/audit/projects/:projectId"  element={<AuditEngagementListPage />} />
+        <Route path="/audit/projects/:projectId/dashboard"  element={<AuditProjectDashboardPage />} />
         <Route path="/audit/engagements/:id"      element={<AuditEngagementDetailPage />} />
         {/* ── ADDED: routes that were missing ──────────────────────────────── */}
         <Route path="/audit/engagements"            element={<AuditEngagementListPage />} />

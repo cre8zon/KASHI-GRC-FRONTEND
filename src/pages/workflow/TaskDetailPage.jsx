@@ -64,7 +64,7 @@ const useTaskById = (taskId) => useQuery({
 
 const useInstanceStatus = (instanceId) => useQuery({
   queryKey: ['instance-status', instanceId],
-  queryFn:  () => api.get(`/v1/workflows/instances/${instanceId}/status`),
+  queryFn:  () => api.get(`/v1/workflow-instances/${instanceId}`),
   enabled:  !!instanceId,
 })
 
@@ -169,7 +169,7 @@ export default function TaskDetailPage() {
   const { data: instanceStatus }  = useInstanceStatus(task?.workflowInstanceId)
 
   const isActive = task?.status === 'PENDING' || task?.status === 'IN_PROGRESS'
-  const steps    = instanceStatus?.stepHistory || []
+  const steps    = instanceStatus?.stepInstances || instanceStatus?.steps || []
 
   // Resolve entity route — if one exists this is a work task and we show an
   // "Open entity" CTA. If null it's an APPROVE/ASSIGN task handled inline.
@@ -203,7 +203,7 @@ export default function TaskDetailPage() {
   return (
     <PageLayout
       title={task.stepName || `Task #${taskId}`}
-      subtitle={`${task.workflowName}  ·  Task #${taskId}`}
+      subtitle={`${task.workflowName}  ·  ${task.entityType} #${task.entityId}${task.entityTitle ? ' — ' + task.entityTitle : ''}`}
       actions={
         <div className="flex items-center gap-2">
           <Badge value={task.status} label={statusMeta.label} colorTag={statusMeta.color} />
@@ -237,6 +237,7 @@ export default function TaskDetailPage() {
             { label: 'Action',       value: task.resolvedStepAction },
             { label: 'Priority',     value: task.priority || 'MEDIUM' },
             { label: 'Entity',       value: `${task.entityType} #${task.entityId}`, mono: true },
+            { label: 'Issue/Entity Title', value: task.entityTitle || '—' },
             { label: 'Assigned',     value: task.assignedAt ? formatDateTime(task.assignedAt) : '—' },
             { label: 'Due',          value: task.dueAt ? formatDateTime(task.dueAt) : '—' },
             { label: 'Completed',    value: task.actedAt ? formatDateTime(task.actedAt) : '—' },
