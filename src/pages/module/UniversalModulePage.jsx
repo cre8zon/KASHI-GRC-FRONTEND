@@ -1327,6 +1327,56 @@ function EvidenceTab({ entityId, entityType, vc }) {
 // All other keys → renders fields from {detailScreenKey}_tab_{tabKey} form key.
 
 function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBasePath, vc }) {
+  // ── ALL HOOKS MUST BE AT TOP — Rules of Hooks ────────────────────────────
+  const qc = useQueryClient()
+  const [saving,   setSaving]   = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const prevTabKey    = useRef(tabKey)
+  const tabSavedRef   = useRef({})  // tracks which tabs have been saved this session
+
+  // formKey and form data — always fetched regardless of early returns
+  const formKey = `${detailScreenKey}_tab_${tabKey}`
+  const { data: formRes, isLoading } = useQuery({
+    queryKey: ['module-tab-form', formKey],
+    queryFn: () => uiConfigApi.form(formKey),
+    enabled: !!formKey,
+    staleTime: 5 * 60_000,
+  })
+  const fields = formRes?.fields || []
+
+  const canEdit = vc?.canEdit === true
+  const canAct  = vc?.canAct  === true
+
+  // Compute whether this tab has meaningful content already saved
+  const meaningfulFields = fields.filter(f =>
+    f.fieldType !== 'SECTION_HEADER' && f.fieldType !== 'DIVIDER' && f.fieldType !== 'TOGGLE')
+  const tabHasValues = meaningfulFields.some(f => {
+    const v = entity?.[f.fieldKey]
+    return v !== null && v !== undefined && v !== ''
+      && !(typeof v === 'string' && (v.trim() === '' || v.trim() === '[]'))
+  })
+
+  // On tab switch: auto-edit if canAct AND tab has no saved values yet.
+  // If tab already has values (previously saved), show read-only first.
+  if (prevTabKey.current !== tabKey) {
+    prevTabKey.current = tabKey
+    setSaving(false)
+    // Will be resolved after fields load — start false, let effect below handle it
+    setEditMode(false)
+  }
+
+  // After fields load, decide initial edit mode for this tab.
+  // Only runs on tab switch (tabKey change) — not on every render.
+  // canAct + empty tab → edit mode (first time filling)
+  // canAct + filled tab → read-only (show Edit button to re-enter)
+  useEffect(() => {
+    if (!canAct || fields.length === 0) return
+    setEditMode(!tabHasValues)
+  }, [tabKey, fields.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Note: tabHasValues intentionally excluded from deps — we only want this
+  // to fire on tab-switch, not when entity updates after save.
+  // ─────────────────────────────────────────────────────────────────────────
+
   // ── Library mapping tabs — rendered by dedicated component ───────────────
   // AUDIT_ENGAGEMENT — sections tree with controls nested + both clickable
   if (tabKey === 'sections' && entityType === 'AUDIT_ENGAGEMENT') {
@@ -1422,14 +1472,6 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
 
   // eslint-disable-next-line no-unused-vars
   void entityType  // used above only; generic path below is form-key-driven
-  const formKey = `${detailScreenKey}_tab_${tabKey}`
-  const { data: formRes, isLoading } = useQuery({
-    queryKey: ['module-tab-form', formKey],
-    queryFn: () => uiConfigApi.form(formKey),
-    enabled: !!formKey,
-    staleTime: 5 * 60_000,
-  })
-  const fields = formRes?.fields || []
 
   if (isLoading) return (
     <div className="py-8 flex items-center justify-center">
@@ -1446,31 +1488,58 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
     </div>
   )
 
-  // When canEdit is true, render as a live DynamicForm so Arjun can fill in fields.
-  // When read-only, fall back to display-only FieldDisplay grid.
-  const canEdit = vc?.canEdit === true
-  const qc = useQueryClient()
 
-  if (canEdit) {
+  if (canEdit && editMode) {
     return (
-      <DynamicForm
-        formKey={formKey}
-        defaultValues={entity || {}}
-        extraConfig={null}
-        readOnlyFields={vc?.readOnlyFields || []}
-        hiddenFields={vc?.hiddenFields || []}
-        submitLabel="Save"
-        onSubmit={async (data) => {
-          await api.put(`${apiBasePath}/${entity.id}`, data)
-          qc.invalidateQueries({ queryKey: ['module-entity'] })
-          toast.success('Saved')
-        }}
-      />
+      <div className="flex flex-col gap-3">
+        <DynamicForm
+          formKey={formKey}
+          defaultValues={entity || {}}
+          extraConfig={null}
+          readOnlyFields={vc?.readOnlyFields || []}
+          hiddenFields={vc?.hiddenFields || []}
+          submitLabel="Save changes"
+          loading={saving}
+          onSubmit={async (data) => {
+            setSaving(true)
+            try {
+              await api.put(`${apiBasePath}/${entity.id}`, data)
+              await qc.refetchQueries({ queryKey: ['module-detail', apiBasePath, String(entity?.id)] })
+              toast.success('Saved')
+              setEditMode(false)
+            } catch (e) {
+              toast.error(e?.response?.data?.message || 'Failed to save')
+            } finally {
+              setSaving(false)
+            }
+          }}
+        />
+        <button onClick={() => setEditMode(false)}
+          className="self-start text-xs text-text-muted hover:text-text-primary transition-colors">
+          ✕ Cancel
+        </button>
+      </div>
     )
   }
 
+  // Read-only header with Edit button when user has edit rights
+  const editButton = canEdit ? (
+    <div className="flex justify-end mb-3">
+      <button onClick={() => setEditMode(true)}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        Edit
+      </button>
+    </div>
+  ) : null
+
   return (
-    <div className="grid grid-cols-12 gap-4">
+    <div className="flex flex-col">
+      {editButton}
+      <div className="grid grid-cols-12 gap-4">
       {fields.map((field, fi) => {
         if (field.fieldType === 'SECTION_HEADER') return (
           <div key={fi} className="col-span-12 pt-2">
@@ -1508,11 +1577,9 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
         )
       })}
     </div>
+    </div>
   )
 }
-
-// ── IssueFindingsTab — shows audit findings linked to this issue ──────────────
-// Calls GET /v1/issues/{id}/linked-findings
 // Auditors raise findings during SOC2/TPRM audits → linked here for traceability
 function IssueFindingsTab({ issueId }) {
   const { data: res, isLoading } = useQuery({
@@ -1713,7 +1780,7 @@ function FieldDisplay({ label, value, type, editable, field = {} }) {
       }
 
       case 'TOGGLE': {
-        const on = value === true || value === 'true' || value === 1
+        const on = value === true || value === 'true' || value === 1 || value === '1'
         return (
           <span className={cn('inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded',
             on ? 'bg-green-500/10 text-green-400' : 'bg-surface-overlay text-text-muted border border-border')}>
@@ -1756,9 +1823,18 @@ function FieldDisplay({ label, value, type, editable, field = {} }) {
           </a>
         )
 
-      case 'TAG': case 'MULTI_SELECT': {
-        const items = Array.isArray(value) ? value
-          : String(value).split(',').map(t => t.trim()).filter(Boolean)
+      case 'TAG': case 'MULTI_SELECT': case 'MULTILINE_LIST': {
+        let items = []
+        if (Array.isArray(value)) {
+          items = value
+        } else {
+          const str = String(value).trim()
+          if (str.startsWith('[')) {
+            try { items = JSON.parse(str) } catch { items = [str] }
+          } else {
+            items = str.split(',').map(t => t.trim()).filter(Boolean)
+          }
+        }
         return (
           <div className="flex flex-wrap gap-1">
             {items.map(tag => (
