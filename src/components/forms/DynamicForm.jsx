@@ -3,8 +3,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { useFormConfig } from '../../hooks/useUIConfig'
-// useScreenConfig intentionally not imported — formKey is not a screen name;
-// components come from formConfig.components (returned by backend getForm endpoint)
 import { DynamicSelect, Select } from '../ui/Select'
 import { useScreenConfig } from '../../hooks/useUIConfig'
 import { Button } from '../ui/Button'
@@ -19,11 +17,10 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
   editableFields = null,  // from vc.editableFields — when set, ONLY these are editable (null = all editable)
 }) {
   const { data: formConfig, isLoading: loadingForm } = useFormConfig(formKey)
-  // formConfig.components contains global components returned by the backend's getForm.
-  // extraConfig (from the calling page's screenConfig) is used as a fallback.
-  // useScreenConfig(formKey) is intentionally removed — formKey is not a screen name.
-  const formComponents = formConfig?.components   // UiFormResponse.components map
-                      ?? formConfig?.data?.components  // in case response isn't fully unwrapped
+  // formConfig.components is populated by the backend getForm endpoint,
+  // which calls findByScreenForTenant(formKey) — returning components where
+  // screen = formKey (e.g. issue_create_form) plus global components (screen IS NULL).
+  const formComponents = formConfig?.components ?? formConfig?.data?.components
   const config = extraConfig || (formComponents ? { components: formComponents } : null)
 
   const schema = useMemo(() => {
@@ -81,6 +78,11 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
           // is_visible=0 — render as hidden input so value is still in the payload
           // but the user never sees it (e.g. workflowId defaulting to 15)
           if (field.isVisible === false || field.isVisible === 0) {
+            // For hidden fields with dependsOnJson: only render (and register) the one
+            // whose condition matches — prevents duplicate field keys with different defaults
+            if (field.dependsOnJson && !isFieldVisible({ ...field, isVisible: 1 }, watchedValues)) {
+              return null
+            }
             return (
               <input
                 key={field.fieldKey}
@@ -196,23 +198,26 @@ function FormField({ field, register, control, error, config, isEditable = true 
     case 'TOGGLE':
       return (
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
-          <Controller name={key} control={control} render={({ field: f }) =>
+          <Controller name={key} control={control} render={({ field: f }) => {
+            // Coerce DB integer (0/1) to boolean for consistent handling
+            const boolVal = f.value === true || f.value === 1 || f.value === 'true' || f.value === '1'
+            return (
             <div className="flex items-center gap-3 py-1">
               <button
-                type="button" role="switch" aria-checked={!!f.value}
-                onClick={() => f.onChange(!f.value)}
+                type="button" role="switch" aria-checked={boolVal}
+                onClick={() => f.onChange(!boolVal)}
                 className={cn(
                   'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus-visible:outline-none',
-                  f.value ? 'bg-brand-500' : 'bg-surface-overlay border border-border'
+                  boolVal ? 'bg-brand-500' : 'bg-surface-overlay border border-border'
                 )}>
                 <span className={cn(
                   'inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform',
-                  f.value ? 'translate-x-4' : 'translate-x-0.5'
+                  boolVal ? 'translate-x-4' : 'translate-x-0.5'
                 )} />
               </button>
               <span className="text-sm text-text-primary">{label}</span>
             </div>
-          } />
+          )}} />
         </FieldWrapper>
       )
 
@@ -479,7 +484,12 @@ function FormField({ field, register, control, error, config, isEditable = true 
       return (
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
           <Controller name={key} control={control} render={({ field: f }) => {
-            const items = Array.isArray(f.value) ? f.value : []
+            // Parse JSON string from DB e.g. '["a","b"]' into array
+            const rawVal = f.value
+            const items = Array.isArray(rawVal) ? rawVal
+              : (typeof rawVal === 'string' && rawVal.trim().startsWith('['))
+                ? (() => { try { return JSON.parse(rawVal) } catch { return [] } })()
+              : []
             const [input, setInput] = useState('')
             return (
               <div className="space-y-1.5">

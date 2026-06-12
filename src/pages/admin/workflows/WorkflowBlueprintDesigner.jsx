@@ -39,6 +39,7 @@ import {
   ChevronLeft, GripVertical, Hash,
 } from 'lucide-react'
 import { StepUiOverrideModal } from '../../../components/workflow/StepUiOverrideModal'
+import { SodRulesModal } from '../../../components/workflow/SodRulesModal'
 import { workflowsApi } from '../../../api/workflows.api'
 import { PageLayout }   from '../../../components/layout/PageLayout'
 import { Button }       from '../../../components/ui/Button'
@@ -652,6 +653,7 @@ function StepTimelineRow({ step, index, total, selected, editMode, onClick, onMo
 
 function StepEditorPanel({ step, index, editMode, isPublished, onChange, onClose, blueprintEntityType }) {
   const [overrideModalOpen, setOverrideModalOpen] = useState(false)
+  const [sodModalOpen, setSodModalOpen] = useState(false)
 
   // StepFormCard needs total > 1 to show the remove button — pass 2 as sentinel
   // and no-op onRemove when we don't actually want to remove from here
@@ -751,6 +753,66 @@ function StepEditorPanel({ step, index, editMode, isPublished, onChange, onClose
                 onChange={(json) => {
                   onChange?.({ ...step, stepUiOverrideJson: json })
                   setOverrideModalOpen(false)
+                }}
+              />
+            )}
+          </div>
+        )}
+
+        {/* SOD Rules */}
+        {step.side !== 'SYSTEM' && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <Users size={12} className="text-orange-400" />
+                <span className="text-xs font-semibold text-text-secondary">SOD rules</span>
+                {step.sodRulesJson && (() => {
+                  try {
+                    const rules = JSON.parse(step.sodRulesJson)
+                    return rules.length > 0 ? (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/25">
+                        {rules.length} rule{rules.length > 1 ? 's' : ''}
+                      </span>
+                    ) : null
+                  } catch (e) { return null }
+                })()}
+              </div>
+              {editMode && (
+                <button
+                  onClick={() => setSodModalOpen(true)}
+                  className="flex items-center gap-1.5 text-xs text-orange-400 hover:text-orange-300 transition-colors px-2.5 py-1 rounded-md border border-orange-500/30 hover:bg-orange-500/10"
+                >
+                  <Users size={11} />
+                  {step.sodRulesJson ? 'Edit rules' : 'Configure'}
+                </button>
+              )}
+            </div>
+            <p className="text-[10px] text-text-muted">
+              Prevent the same person from acting on multiple steps (four-eyes principle).
+            </p>
+            {step.sodRulesJson && (() => {
+              try {
+                const rules = JSON.parse(step.sodRulesJson)
+                return (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {rules.map((r, i) => (
+                      <code key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                        {r.type}
+                      </code>
+                    ))}
+                  </div>
+                )
+              } catch (e) { return null }
+            })()}
+
+            {editMode && (
+              <SodRulesModal
+                open={sodModalOpen}
+                onClose={() => setSodModalOpen(false)}
+                value={step.sodRulesJson}
+                onChange={(json) => {
+                  onChange?.({ ...step, sodRulesJson: json })
+                  setSodModalOpen(false)
                 }}
               />
             )}
