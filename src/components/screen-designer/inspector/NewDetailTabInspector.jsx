@@ -12,10 +12,49 @@ import { SIDES, HTTP_METHODS, ACTION_VARIANTS, LAYOUT_MODES,
          SCREEN_TYPES, FIELD_TYPES, FIELD_TYPE_GROUPS, CAPABILITY_TABS } from '../constants'
 import { moduleBlueprintsApi as moduleApi } from '../../../api/moduleBlueprints.api'
 
+const COMMON_TAB_ICONS = [
+  'Hash','Layers','CheckSquare','Shield','AlertTriangle','FileText','Zap',
+  'Activity','BookOpen','GitBranch','ClipboardList','Flag','Users','Eye',
+  'BarChart2','Settings','Link','Upload','MessageSquare','Calendar','Target',
+]
+
+function IconPicker({ value, onChange }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1">
+        {COMMON_TAB_ICONS.map(name => (
+          <button key={name} type="button"
+            onClick={() => onChange(value === name ? '' : name)}
+            className={cn(
+              'px-2 py-0.5 rounded text-[10px] font-mono border transition-colors',
+              value === name
+                ? 'bg-brand-500/20 border-brand-500/40 text-brand-400'
+                : 'bg-surface-overlay border-border text-text-muted hover:text-text-secondary'
+            )}>
+            {name}
+          </button>
+        ))}
+      </div>
+      <input
+        value={value || ''}
+        onChange={e => onChange(e.target.value)}
+        placeholder="Or type any Lucide icon name…"
+        className="w-full h-7 px-2 text-[11px] font-mono bg-surface-raised border border-border rounded text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-500/50"
+      />
+      {value && !COMMON_TAB_ICONS.includes(value) && (
+        <p className="text-[9px] text-amber-400">
+          Custom icon "{value}" — make sure it's a valid Lucide icon name or it'll fall back to #
+        </p>
+      )}
+    </div>
+  )
+}
+
 
 function NewDetailTabInspector({ screenKey, layout, onSave }) {
   const qc = useQueryClient()
   const [label, setLabel] = useState('')
+  const [icon,  setIcon]  = useState('')
 
   // Derive entityType from screenKey (e.g. 'issue_detail' → 'ISSUE')
   // to fetch blueprint and check which capability tabs are enabled
@@ -62,7 +101,7 @@ function NewDetailTabInspector({ screenKey, layout, onSave }) {
       // Prevent duplicate keys or labels
       const isDupe = currentTabs.some(t => t.key === newKey || t.label.toLowerCase() === label.trim().toLowerCase())
       if (isDupe) return Promise.reject(new Error(`A tab named "${label.trim()}" already exists`))
-      const newTab  = { key: newKey, label: label.trim() }
+      const newTab  = { key: newKey, label: label.trim(), ...(icon.trim() ? { icon: icon.trim() } : {}) }
       const newTabs = [...currentTabs, newTab]
       return sdApi.saveLayout(layout.id, {
         layoutKey:      screenKey,
@@ -120,6 +159,10 @@ function NewDetailTabInspector({ screenKey, layout, onSave }) {
 
         <IField label="Tab label *">
           <IInp value={label} onChange={setLabel} placeholder="e.g. Tests · Policies · Risk score · Remediations" />
+        </IField>
+
+        <IField label="Tab icon">
+          <IconPicker value={icon} onChange={setIcon} />
         </IField>
 
         {label.trim() && (

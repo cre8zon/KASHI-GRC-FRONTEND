@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Check, Clock, Circle, X, Zap, ChevronDown, ChevronRight,
-         Users, AlertTriangle, RotateCcw, RefreshCw, RotateCw, AlertCircle, GitBranch } from 'lucide-react'
+         Users, AlertTriangle, RotateCcw, RefreshCw, RotateCw, AlertCircle, GitBranch, Info } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { workflowsApi } from '../../api/workflows.api'
 import { assessmentsApi } from '../../api/assessments.api'
@@ -379,10 +379,22 @@ function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
         {expanded && step.visited && (
           <div className="border-t border-border/50">
             {isSystem && step.automatedAction && (
-              <div className="px-3 py-2 flex items-center gap-2">
-                <Zap size={10} className="text-brand-400 shrink-0" />
-                <span className="text-[10px] text-brand-400 font-mono">{step.automatedAction}</span>
-                <span className="text-[10px] text-text-muted">fired automatically</span>
+              <div className="px-3 py-2 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <Zap size={10} className="text-brand-400 shrink-0" />
+                  <span className="text-[10px] text-brand-400 font-mono">{step.automatedAction}</span>
+                  <span className="text-[10px] text-text-muted">fires automatically</span>
+                </div>
+                {status === 'IN_PROGRESS' && isAdmin && (
+                  <div className="flex items-start gap-2 bg-amber-500/5 border border-amber-500/20 rounded-lg px-2.5 py-2 mt-1">
+                    <Info size={10} className="shrink-0 text-amber-400 mt-0.5" />
+                    <p className="text-[10px] text-amber-300/80 leading-relaxed">
+                      This step auto-completes when all required items are done.
+                      If you're satisfied with progress, you can manually advance
+                      using <span className="font-medium text-amber-400">Re-evaluate</span> → approve on any task above, or the APPROVE action.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
             {/* Actor tasks — the people doing real work */}

@@ -601,7 +601,7 @@ const ACTOR_RESOLUTION_OPTIONS = [
     desc:  'All role holders get a task (pool) — first to act advances the step' },
   { value: 'ASSIGNMENT_SCOPED',
     label: 'Assignment-scoped',
-    desc:  'Only users explicitly assigned work in a prior step receive a task' },
+    desc:  'Only users explicitly assigned work in a prior step receive a task. Optionally add Actor Roles below to also require the assignee currently hold one of those roles.' },
   { value: 'ENTITY_CREATOR',
     label: 'Entity creator',
     desc:  'One task for whoever created/started this workflow (e.g. issue triage step 1)' },
@@ -950,6 +950,42 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
                         </p>
                       </div>
                     </label>
+                  )}
+                  {/* Assignable side + role — shown only for ASSIGNMENT_SCOPED steps */}
+                  {step.actorResolution === 'ASSIGNMENT_SCOPED' && (
+                    <div className="mt-3 pt-3 border-t border-border/40 space-y-2">
+                      <p className="text-[10px] font-medium text-text-secondary uppercase tracking-wide">
+                        Assignment Dropdown Pool
+                        <span className="ml-1 text-text-muted normal-case font-normal">
+                          — which users appear in the picker when this step's actor assigns work
+                        </span>
+                      </p>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <label className="text-[10px] text-text-muted mb-1 block">Side</label>
+                          <select
+                            value={step.assignableSide || ''}
+                            onChange={e => set('assignableSide', e.target.value || null)}
+                            className="w-full bg-surface-overlay border border-border rounded-md px-2 py-1.5 text-xs text-text-primary"
+                          >
+                            <option value="">— None (use next step's actor roles) —</option>
+                            <option value="AUDITOR">AUDITOR</option>
+                            <option value="AUDITEE">AUDITEE</option>
+                            <option value="ORGANIZATION">ORGANIZATION</option>
+                          </select>
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-[10px] text-text-muted mb-1 block">Role ID (optional)</label>
+                          <input
+                            type="number"
+                            value={step.assignableRoleId || ''}
+                            onChange={e => set('assignableRoleId', e.target.value ? Number(e.target.value) : null)}
+                            placeholder="null = all of that side"
+                            className="w-full bg-surface-overlay border border-border rounded-md px-2 py-1.5 text-xs text-text-primary placeholder:text-text-muted"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -1370,6 +1406,8 @@ export function StepForm({ steps, setSteps, errors, workflowId }) {
     assignerResolution: 'POOL',
     assignerRoleIds: [],
     actorResolution: 'ROLE_BASED',
+    assignableSide: null,
+    assignableRoleId: null,
     allowOverride: true,
     stepAction: null,
     navKey: null,
@@ -1493,7 +1531,8 @@ export function stepsToFormState(apiSteps = []) {
     assignerResolution:   s.assignerResolution || 'POOL',
     assignerRoleIds:      s.assignerRoleIds || [],
     actorResolution:      s.actorResolution || 'ROLE_BASED',
-    actorResolution:      s.actorResolution || 'ROLE_BASED',
+    assignableSide:       s.assignableSide || null,
+    assignableRoleId:     s.assignableRoleId || null,
     allowOverride:        s.allowOverride !== undefined ? s.allowOverride : true,
     stepAction:           s.stepAction || null,
     navKey:               s.navKey || null,

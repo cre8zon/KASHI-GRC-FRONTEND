@@ -44,7 +44,6 @@ import {
 } from 'lucide-react'
 import { cn }             from '../../lib/cn'
 import api                from '../../config/axios.config'
-import toast              from 'react-hot-toast'
 
 // ─── Data fetching ────────────────────────────────────────────────────────────
 
@@ -88,6 +87,217 @@ const SEVERITY_CFG = {
   HIGH:     { color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/30', bar: 'bg-orange-500' },
   MEDIUM:   { color: 'text-amber-400',  bg: 'bg-amber-500/10  border-amber-500/30',  bar: 'bg-amber-500'  },
   LOW:      { color: 'text-green-400',  bg: 'bg-green-500/10  border-green-500/30',  bar: 'bg-green-500'  },
+}
+
+// ─── PDF Generator ────────────────────────────────────────────────────────────
+async function generatePDF(engagement, controls = [], findings = [], progress = [], actionItems = []) {
+  const fmtDate  = (dt) => dt ? new Date(dt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long',  year: 'numeric' }) : '—'
+  const fmtShort = (dt) => dt ? new Date(dt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
+
+  const totalControls = controls.length
+  const effective     = controls.filter(c => c.testResult === 'EFFECTIVE').length
+  const ineffective   = controls.filter(c => c.testResult === 'INEFFECTIVE').length
+  const partiallyEff  = controls.filter(c => c.testResult === 'PARTIALLY_EFFECTIVE').length
+  const notTested     = controls.filter(c => !c.testResult || c.testResult === 'NOT_TESTED').length
+  const passRate      = totalControls > 0 ? Math.round((effective / totalControls) * 100) : 0
+  const openFindings  = findings.filter(f => f.status === 'OPEN' || f.status === 'IN_REMEDIATION').length
+
+  const pctColor = passRate >= 80 ? '#166534' : passRate >= 60 ? '#d97706' : '#dc2626'
+  const pctBg    = passRate >= 80 ? '#dcfce7'  : passRate >= 60 ? '#fef3c7'  : '#fee2e2'
+
+  // ── Section-grouped control rows ───────────────────────────────────────────
+  const sectionMap = {}
+  controls.forEach(c => {
+    const sec = c.sectionPath || c.sectionNameSnapshot || 'Ungrouped'
+    if (!sectionMap[sec]) sectionMap[sec] = []
+    sectionMap[sec].push(c)
+  })
+
+  const controlSections = Object.entries(sectionMap).map(([secName, ctrls]) => {
+    const secEff  = ctrls.filter(c => c.testResult === 'EFFECTIVE').length
+    const secIneff= ctrls.filter(c => c.testResult === 'INEFFECTIVE').length
+    const secNT   = ctrls.filter(c => !c.testResult || c.testResult === 'NOT_TESTED').length
+    const secPct  = ctrls.length > 0 ? Math.round((secEff / ctrls.length) * 100) : 0
+    const secColor= secPct >= 80 ? '#166534' : secPct >= 60 ? '#d97706' : '#dc2626'
+
+    const passW = Math.round(secEff   / Math.max(ctrls.length, 1) * 160)
+    const failW = Math.round(secIneff / Math.max(ctrls.length, 1) * 160)
+    const ntW   = 160 - passW - failW
+    const barSvg = `<svg width="160" height="7" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="160" height="7" rx="3" fill="#e5e7eb"/>
+      <rect x="0" y="0" width="${passW}" height="7" rx="3" fill="#22c55e"/>
+      <rect x="${passW}" y="0" width="${failW}" height="7" fill="#ef4444"/>
+      <rect x="${passW+failW}" y="0" width="${ntW}" height="7" rx="3" fill="#d1d5db"/>
+    </svg>`
+
+    const ctrlRows = ctrls.map((c, i) => {
+      const rc = c.testResult === 'EFFECTIVE' ? '#166534'
+               : c.testResult === 'INEFFECTIVE' ? '#dc2626'
+               : c.testResult === 'PARTIALLY_EFFECTIVE' ? '#d97706' : '#9ca3af'
+      const rb = c.testResult === 'EFFECTIVE' ? '#dcfce7'
+               : c.testResult === 'INEFFECTIVE' ? '#fee2e2'
+               : c.testResult === 'PARTIALLY_EFFECTIVE' ? '#fef3c7' : '#f3f4f6'
+      return `<tr style="background:${i%2===0?'#ffffff':'#f9fafb'}">
+        <td style="padding:7px 14px;border-bottom:1px solid #f3f4f6;font-size:11px;font-weight:600;color:#374151">${c.controlCodeSnapshot||c.controlRef||'—'}</td>
+        <td style="padding:7px 14px;border-bottom:1px solid #f3f4f6;font-size:11px">${(c.controlNameSnapshot||c.name||'').replace(/</g,'&lt;')}</td>
+        <td style="padding:7px 14px;border-bottom:1px solid #f3f4f6;font-size:11px;color:#6b7280">${c.frameworkRefSnapshot||c.frameworkRef||'—'}</td>
+        <td style="padding:7px 14px;border-bottom:1px solid #f3f4f6;text-align:center">
+          <span style="padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;background:${rb};color:${rc}">
+            ${c.testResult||'NOT TESTED'}
+          </span>
+        </td>
+      </tr>`
+    }).join('')
+
+    return `
+    <tr style="background:#f8faff">
+      <td colspan="4" style="padding:10px 14px;font-weight:700;font-size:12px;color:#312e81;border-top:2px solid #e0e7ff;border-bottom:1px solid #e0e7ff">
+        ${secName}
+        <span style="font-size:10px;font-weight:400;color:#6b7280;margin-left:12px">
+          ${ctrls.length} controls · ${barSvg} <span style="vertical-align:middle;font-weight:700;color:${secColor}">${secPct}%</span>
+        </span>
+      </td>
+    </tr>
+    ${ctrlRows}`
+  }).join('')
+
+  // ── Findings rows ──────────────────────────────────────────────────────────
+  const findingRows = findings.slice(0, 50).map((f, i) => {
+    const sc = f.severity === 'CRITICAL' ? '#dc2626' : f.severity === 'HIGH' ? '#ea580c' : f.severity === 'MEDIUM' ? '#d97706' : '#6b7280'
+    const sb = f.severity === 'CRITICAL' ? '#fee2e2' : f.severity === 'HIGH' ? '#ffedd5' : f.severity === 'MEDIUM' ? '#fef3c7' : '#f3f4f6'
+    const stc = f.status === 'CLOSED' || f.status === 'RESOLVED' ? '#166534' : f.status === 'IN_REMEDIATION' ? '#1d4ed8' : '#dc2626'
+    const stb = f.status === 'CLOSED' || f.status === 'RESOLVED' ? '#dcfce7'  : f.status === 'IN_REMEDIATION' ? '#eff6ff'  : '#fee2e2'
+    return `<tr style="background:${i%2===0?'#ffffff':'#f9fafb'}">
+      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;font-size:12px;font-weight:600">${(f.title||'').replace(/</g,'&lt;')}</td>
+      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;font-size:11px;color:#374151">${(f.description||'—').slice(0,120).replace(/</g,'&lt;')}</td>
+      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;text-align:center">
+        ${f.severity ? `<span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${sb};color:${sc}">${f.severity}</span>` : '—'}
+      </td>
+      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;text-align:center">
+        <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${stb};color:${stc}">${f.status||'OPEN'}</span>
+      </td>
+    </tr>`
+  }).join('')
+
+  // ── Action items ───────────────────────────────────────────────────────────
+  const openItems = actionItems.filter(a => ['OPEN','IN_PROGRESS','PENDING_REVIEW'].includes(a.status))
+  const actionRows = openItems.slice(0, 30).map((a, i) => {
+    const pc = a.priority === 'CRITICAL' ? '#dc2626' : a.priority === 'HIGH' ? '#ea580c' : a.priority === 'MEDIUM' ? '#d97706' : '#6b7280'
+    const pb = a.priority === 'CRITICAL' ? '#fee2e2' : a.priority === 'HIGH' ? '#ffedd5' : a.priority === 'MEDIUM' ? '#fef3c7' : '#f3f4f6'
+    return `<tr style="background:${i%2===0?'#ffffff':'#f9fafb'}">
+      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;font-size:12px">${(a.title||'').replace(/</g,'&lt;')}</td>
+      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;text-align:center">
+        ${a.priority ? `<span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${pb};color:${pc}">${a.priority}</span>` : '—'}
+      </td>
+      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;text-align:center;font-size:11px;color:${a.dueAt && new Date(a.dueAt) < new Date() ? '#dc2626' : '#374151'}">
+        ${a.dueAt ? fmtShort(a.dueAt) : '—'}
+      </td>
+    </tr>`
+  }).join('')
+
+  // ── Sign-off chain ─────────────────────────────────────────────────────────
+  const signOffRows = progress
+    .filter(s => s.status === 'APPROVED' || s.completedAt)
+    .map(s => `<tr>
+      <td style="padding:8px 14px;border-bottom:1px solid #f3f4f6;font-size:12px;font-weight:600">${s.stepName||s.name||'—'}</td>
+      <td style="padding:8px 14px;border-bottom:1px solid #f3f4f6;font-size:11px;color:#6b7280">${s.completedByName||s.actor||'—'}</td>
+      <td style="padding:8px 14px;border-bottom:1px solid #f3f4f6;font-size:11px;color:#6b7280">${fmtShort(s.completedAt||s.actedAt)}</td>
+      <td style="padding:8px 14px;border-bottom:1px solid #f3f4f6;text-align:center">
+        <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:#dcfce7;color:#166534">APPROVED</span>
+      </td>
+    </tr>`).join('')
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+<title>${engagement.name||'Audit Report'} — ${engagement.engagementRef||''}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fff;color:#1a1a2e}
+  @media print{
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .page-break{page-break-before:always}
+    @page{margin:15mm;size:A4}
+  }
+  .header{background:linear-gradient(135deg,#1e1b4b 0%,#4338ca 100%);color:#fff;padding:32px 40px}
+  .header-meta{font-size:11px;opacity:.7;margin-bottom:8px;letter-spacing:.05em;text-transform:uppercase}
+  .header-title{font-size:26px;font-weight:800;margin-bottom:6px}
+  .header-sub{font-size:13px;opacity:.8;margin-bottom:16px}
+  .header-pills{display:flex;gap:10px;flex-wrap:wrap}
+  .pill{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.3);color:#fff}
+  .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:#e5e7eb}
+  .kpi{background:#fff;padding:20px 16px;text-align:center}
+  .kpi-val{font-size:28px;font-weight:800;line-height:1}
+  .kpi-lbl{font-size:10px;color:#6b7280;margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+  .section-label{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.08em;padding:20px 24px 10px;border-top:2px solid #e5e7eb;margin-top:8px}
+  table{width:100%;border-collapse:collapse}
+  thead th{padding:10px 14px;background:#f3f4f6;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;text-align:left;border-bottom:2px solid #e5e7eb}
+  .compliance-bar-wrap{padding:16px 24px}
+  .compliance-bar-track{width:100%;height:12px;background:#e5e7eb;border-radius:6px;overflow:hidden}
+  .compliance-bar-fill{height:100%;border-radius:6px;background:${passRate>=80?'#22c55e':passRate>=60?'#f59e0b':'#ef4444'};width:${passRate}%}
+  .footer{padding:24px 40px;text-align:center;font-size:10px;color:#9ca3af;border-top:1px solid #e5e7eb;margin-top:32px}
+</style></head><body>
+
+<div class="header">
+  <div class="header-meta">Audit Engagement Report · Generated ${fmtDate(new Date())}</div>
+  <div class="header-title">${engagement.name||'Audit Report'}</div>
+  <div class="header-sub">${engagement.engagementRef||''} · ${engagement.frameworkRef||'—'}</div>
+  <div class="header-pills">
+    ${engagement.auditType ? `<span class="pill">${engagement.auditType}</span>` : ''}
+    ${engagement.plannedStart ? `<span class="pill">${fmtDate(engagement.plannedStart)} – ${fmtDate(engagement.plannedEnd)}</span>` : ''}
+    ${engagement.status ? `<span class="pill">${engagement.status}</span>` : ''}
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-val" style="color:${pctColor};background:${pctBg};padding:6px 10px;border-radius:8px;display:inline-block">${passRate}%</div><div class="kpi-lbl">Compliance</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:#166534">${effective}</div><div class="kpi-lbl">Effective of ${totalControls}</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:#dc2626">${ineffective}</div><div class="kpi-lbl">Ineffective</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:#6b7280">${notTested}</div><div class="kpi-lbl">Not Tested</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:${openFindings>0?'#dc2626':'#166534'}">${openFindings}</div><div class="kpi-lbl">Open Findings</div></div>
+</div>
+
+<div class="compliance-bar-wrap">
+  <div class="compliance-bar-track"><div class="compliance-bar-fill"></div></div>
+</div>
+
+<div class="section-label">Control Results by Section</div>
+<table>
+  <thead><tr><th>Ref</th><th>Control</th><th>Framework</th><th style="text-align:center">Result</th></tr></thead>
+  <tbody>${controlSections}</tbody>
+</table>
+
+${findings.length > 0 ? `
+<div class="section-label page-break">Findings (${findings.length} total · ${openFindings} open)</div>
+<table>
+  <thead><tr><th>Finding</th><th>Description</th><th style="text-align:center">Severity</th><th style="text-align:center">Status</th></tr></thead>
+  <tbody>${findingRows}</tbody>
+</table>
+` : `<div style="padding:16px 24px;margin:16px 24px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px;color:#166534">✓ No findings recorded for this engagement.</div>`}
+
+${openItems.length > 0 ? `
+<div class="section-label">Open Action Items</div>
+<table>
+  <thead><tr><th>Title</th><th style="text-align:center">Priority</th><th style="text-align:center">Due</th></tr></thead>
+  <tbody>${actionRows}</tbody>
+</table>` : ''}
+
+${signOffRows ? `
+<div class="section-label page-break">Workflow Sign-off Chain</div>
+<table>
+  <thead><tr><th>Step</th><th>Completed By</th><th>Date</th><th style="text-align:center">Status</th></tr></thead>
+  <tbody>${signOffRows}</tbody>
+</table>` : ''}
+
+<div class="footer">
+  ${engagement.name||'Audit Engagement'} · ${engagement.engagementRef||''} · Generated ${fmtDate(new Date())} · KashiGRC
+</div>
+</body></html>`
+
+  const win = window.open('', '_blank', 'width=1000,height=800')
+  if (!win) { alert('Please allow popups for PDF generation'); return }
+  win.document.write(html)
+  win.document.close()
+  win.focus()
+  setTimeout(() => win.print(), 700)
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -152,6 +362,14 @@ function CollapsibleSection({ title, count, children }) {
 export default function AuditReportPage() {
   const { id }   = useParams()
   const navigate = useNavigate()
+  const [generatingPDF, setGeneratingPDF] = useState(false)
+
+  const handleDownloadPDF = async () => {
+    setGeneratingPDF(true)
+    try { await generatePDF(engagement, controls, findings, progress, actionItems) }
+    catch (e) { console.error('PDF generation failed', e) }
+    finally { setGeneratingPDF(false) }
+  }
 
   const { data: engRes, isLoading } = useQuery({
     queryKey: ['audit-report-engagement', id],
@@ -237,15 +455,14 @@ export default function AuditReportPage() {
           </div>
         </div>
         <button
-          onClick={() => {
-            toast('PDF export will be available once the report endpoint is built.')
-            // Future: POST /v1/audit/engagements/:id/report → PDF blob
-          }}
+          onClick={handleDownloadPDF}
+          disabled={generatingPDF}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
                      bg-brand-500/10 border border-brand-500/30 text-brand-400
-                     hover:bg-brand-500/20 transition-colors"
+                     hover:bg-brand-500/20 transition-colors disabled:opacity-50"
         >
-          <Download size={12} /> Download PDF
+          <Download size={12} className={generatingPDF ? 'animate-pulse' : ''} />
+          {generatingPDF ? 'Generating…' : 'Download PDF'}
         </button>
       </div>
 

@@ -36,9 +36,10 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
     return z.object(shape)
   }, [formConfig])
 
-  const { register, control, handleSubmit, setError, watch, formState: { errors } } = useForm({
+  const { register, control, handleSubmit, setError, watch, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     defaultValues,
+    mode: 'onTouched',
   })
   const watchedValues = watch()
   const [serverError, setServerError] = useState(null)
@@ -114,7 +115,7 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
         })}
       </div>
       <div className="flex justify-end pt-2">
-        <Button type="submit" loading={loading} loadingText="Saving…">{submitLabel}</Button>
+        <Button type="submit" loading={loading || isSubmitting} loadingText="Saving…" disabled={loading || isSubmitting}>{submitLabel}</Button>
       </div>
     </form>
   )
@@ -228,9 +229,11 @@ function FormField({ field, register, control, error, config, isEditable = true 
             <EntityLookupField
               value={f.value}
               onChange={f.onChange}
+              onBlur={f.onBlur}
               placeholder={placeholder}
               lookupEntityType={field.lookupEntityType}
               lookupApiPath={field.lookupApiPath}
+              error={!!error}
             />
           } />
         </FieldWrapper>
@@ -616,10 +619,23 @@ const LOOKUP_CONFIG = {
   AUDIT_POLICY:   { path: '/v1/audit/library/policies',   search: (q) => `title=${q}`, labelFn: (r) => r.title || r.name, subFn: (r) => r.policyRef || '' },
 }
 
-function EntityLookupField({ value, onChange, placeholder, lookupEntityType, lookupApiPath }) {
+function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityType, lookupApiPath, error }) {
   // Resolve config — explicit path overrides entity type config
   const cfg = LOOKUP_CONFIG[lookupEntityType?.toUpperCase?.()] || LOOKUP_CONFIG.USER
-  const apiPath   = lookupApiPath || cfg.path
+
+  // Split lookupApiPath into base path + pre-set query params.
+  // e.g. '/v1/workflows?entityType=AUDIT_PROJECT' → basePath='/v1/workflows', extraParams={entityType:'AUDIT_PROJECT'}
+  // This is needed so ID-resolution fetches use `${basePath}/${id}` (not `${fullPath}/${id}`
+  // which would produce a malformed URL like '/v1/workflows?entityType=AUDIT_PROJECT/16').
+  const [basePath, extraParams] = (() => {
+    const raw = lookupApiPath || cfg.path
+    const qIdx = raw.indexOf('?')
+    if (qIdx === -1) return [raw, {}]
+    const base = raw.slice(0, qIdx)
+    const params = Object.fromEntries(new URLSearchParams(raw.slice(qIdx + 1)))
+    return [base, params]
+  })()
+
   const searchFmt = cfg.search
   const getLabel  = cfg.labelFn
   const getSub    = cfg.subFn
@@ -635,10 +651,11 @@ function EntityLookupField({ value, onChange, placeholder, lookupEntityType, loo
   const debounce = useRef(null)
   const ref = useRef(null)
 
-  // Resolve display label for an already-selected value
+  // Resolve display label for an already-selected value.
+  // Uses basePath so the ID fetch URL is clean: /v1/workflows/16 (not /v1/workflows?entityType=AUDIT_PROJECT/16).
   useEffect(() => {
     if (!value || display) return
-    api.get(`${apiPath}/${value}`)
+    api.get(`${basePath}/${value}`)
       .then(r => {
         const item = r.data?.data || r.data
         setDisplay(getLabel(item) || String(value))
@@ -646,11 +663,12 @@ function EntityLookupField({ value, onChange, placeholder, lookupEntityType, loo
       .catch(() => setDisplay(String(value)))
   }, [value]) // eslint-disable-line
 
-  // Load initial results (shown on focus before typing)
+  // Load initial results (shown on focus before typing).
+  // Merges extraParams so e.g. entityType=AUDIT_PROJECT is always applied.
   const loadInitial = async () => {
     if (results.length > 0) { setOpen(true); return }
     try {
-      const res = await api.get(apiPath, { params: { take: 10 } })
+      const res = await api.get(basePath, { params: { ...extraParams, take: 10 } })
       const items = Array.isArray(res?.items) ? res.items
         : Array.isArray(res?.data?.items) ? res.data.items
         : Array.isArray(res?.data) ? res.data
@@ -660,14 +678,14 @@ function EntityLookupField({ value, onChange, placeholder, lookupEntityType, loo
     } catch { setResults([]) }
   }
 
-  // Search as user types
+  // Search as user types — merges extraParams with search term.
   useEffect(() => {
     if (!query.trim() || query.length < 2) { setOpen(results.length > 0); return }
     clearTimeout(debounce.current)
     debounce.current = setTimeout(async () => {
       try {
-        const res = await api.get(apiPath, {
-          params: { search: searchFmt(query), take: 8 },
+        const res = await api.get(basePath, {
+          params: { ...extraParams, search: searchFmt(query), take: 8 },
         })
         // axios interceptor unwraps ApiResponse.data, so res IS the payload directly
         // PaginatedResponse shape: { items: [...], pagination: {...} }
@@ -683,23 +701,23 @@ function EntityLookupField({ value, onChange, placeholder, lookupEntityType, loo
   }, [query]) // eslint-disable-line
 
   useEffect(() => {
-    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); onBlur?.() } }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
-  }, [])
+  }, [onBlur])
 
   const select = (item) => {
     onChange(getId(item))
     setDisplay(getLabel(item))
     setQuery(''); setResults([]); setOpen(false)
   }
-  const clear = () => { onChange(null); setDisplay(''); setQuery('') }
+  const clear = () => { onChange(null); setDisplay(''); setQuery(''); onBlur?.() }
   const initials = display ? display.split(' ').map(p => p[0]).filter(Boolean).join('').toUpperCase().slice(0, 2) : '?'
 
   return (
     <div className="relative" ref={ref}>
       {value && display ? (
-        <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary">
+        <div className={cn('flex items-center gap-2 h-9 px-3 rounded-md border bg-surface-raised text-sm text-text-primary', error ? 'border-red-500/60' : 'border-border')}>
           <div className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 text-[9px] font-semibold flex items-center justify-center shrink-0">
             {initials}
           </div>
@@ -713,13 +731,14 @@ function EntityLookupField({ value, onChange, placeholder, lookupEntityType, loo
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
           <input type="text" value={query} onChange={e => setQuery(e.target.value)}
             onFocus={() => { if (query.length >= 2) setOpen(true); else loadInitial() }}
+            onBlur={() => { if (!open) onBlur?.() }}
             placeholder={placeholder || defaultPlaceholder}
-            className="w-full h-9 rounded-md border border-border bg-surface-raised pl-8 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className={cn('w-full h-9 rounded-md border bg-surface-raised pl-8 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1', error ? 'border-red-500/60 focus:ring-red-500/40' : 'border-border focus:ring-brand-500')}
           />
         </div>
       )}
       {open && results.length > 0 && (
-        <div className="absolute z-50 top-full mt-1 w-full bg-surface border border-border rounded-md shadow-lg overflow-hidden">
+        <div className="absolute z-50 top-full mt-1 w-full bg-surface border border-border rounded-md shadow-lg max-h-64 overflow-y-auto">
           {results.map(item => (
             <button key={item.id} type="button" onMouseDown={() => select(item)}
               className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-surface-overlay text-left transition-colors">
@@ -759,6 +778,11 @@ function buildZodField(field) {
     return v
   }
   if (type === 'TOGGLE') return z.boolean().optional()
+
+  if (type === 'LOOKUP') {
+    if (!field.isRequired) return z.any().optional()
+    return z.any().refine(v => v !== null && v !== undefined && v !== '', { message: `${label} is required` })
+  }
 
   if (['SELECT', 'MULTI_SELECT', 'RADIO', 'CHECKBOX'].includes(type)) {
     if (!field.isRequired) return z.any().optional()

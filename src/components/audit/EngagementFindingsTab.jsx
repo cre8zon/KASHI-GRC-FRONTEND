@@ -15,7 +15,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
-  AlertTriangle, CheckCircle2, XCircle, Clock,
+  AlertTriangle, CheckCircle2, XCircle, Clock, Info,
   Shield, Link, ChevronRight, RefreshCw, Plus,
 } from 'lucide-react'
 import api from '../../config/axios.config'
@@ -241,6 +241,19 @@ export function EngagementFindingsTab({ engagementId, canEscalate = true }) {
               {f === 'ALL' ? `All (${all.length})` : STATUS[f]?.label || f}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Compliance score hint */}
+      {all.length > 0 && (
+        <div className="px-4 py-2 border-b border-border/20 flex items-start gap-2 bg-amber-500/5">
+          <Info size={11} className="text-amber-400 shrink-0 mt-0.5" />
+          <p className="text-[10px] text-text-muted leading-relaxed">
+            Open findings reduce the compliance score. Each finding escalated to an Issue follows the
+            <span className="text-text-secondary"> Issue Remediation workflow</span> — once the Issue
+            is closed, the linked finding closes automatically and the score improves.
+            {closedCount > 0 && <span className="text-green-400"> {closedCount} finding{closedCount > 1 ? 's' : ''} resolved.</span>}
+          </p>
         </div>
       )}
 

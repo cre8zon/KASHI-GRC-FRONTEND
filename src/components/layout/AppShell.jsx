@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNotificationToast } from '../../hooks/useNotifications'
 import { Sidebar }            from './Sidebar'
 import { TopNav }             from './TopNav'
 import { TabBar }             from './TabBar'
@@ -11,6 +12,7 @@ import { ServerStatusBanner } from '../ui/ServerStatusBanner'
 export function AppShell() {
   const [collapsed, setCollapsed] = useState(false)
   const { isLoading } = useBootstrap()
+  useNotificationToast()  // Show toast when new notifications arrive
   const { status, retryNow, nextRetryIn, retryCount } = useServerStatus()
 
   if (isLoading) return <PageSkeleton />

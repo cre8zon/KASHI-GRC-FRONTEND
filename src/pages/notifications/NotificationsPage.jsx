@@ -62,12 +62,17 @@ function buildNavUrl(notification) {
   // Entity-based routing fallback
   if (!entityType || !entityId) return null
   switch (entityType) {
-    case 'ACTION_ITEM':       return '/action-items'
-    case 'QUESTION_RESPONSE': return '/action-items'
-    case 'ASSESSMENT':        return `/assessments/${entityId}`
-    case 'TASK':              return '/workflow/inbox'
-    case 'VENDOR':            return `/tprm/vendors/${entityId}`
-    default:                  return null
+    case 'ACTION_ITEM':           return '/action-items'
+    case 'QUESTION_RESPONSE':     return '/action-items'
+    case 'ASSESSMENT':            return `/assessments/${entityId}`
+    case 'TASK':                  return '/workflow/inbox'
+    case 'VENDOR':                return `/tprm/vendors/${entityId}`
+    case 'AUDIT_CONTROL_INSTANCE': return `/module/audit_control_instance/${entityId}`
+    case 'AUDIT_SECTION_INSTANCE': return `/module/audit_engagement/${entityId}`
+    case 'AUDIT_ENGAGEMENT':       return `/module/audit_engagement/${entityId}`
+    case 'AUDIT_PROJECT':          return `/module/audit_project/${entityId}`
+    case 'AUDIT_SECTION_ASSIGNED': return `/module/audit_engagement/${entityId}`
+    default:                      return null
   }
 }
 

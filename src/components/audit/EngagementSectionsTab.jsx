@@ -10,17 +10,6 @@
  *   audit:control:assign-auditee   → show Assign Auditee on control rows
  *   audit:section:submit           → show Submit on section rows
  *   audit:section:reopen           → show Reopen on submitted sections
- *
- * APIs used:
- *   GET  /v1/audit/engagements/{id}/sections
- *   GET  /v1/audit/engagements/{id}/controls
- *   GET  /v1/users?side=AUDITOR&take=200      (for auditor picker)
- *   GET  /v1/users?side=AUDITEE&take=200      (for auditee picker)
- *   PUT  /v1/audit/engagements/{id}/sections/{sid}/assign
- *   PUT  /v1/audit/engagements/{id}/sections/{sid}/assign-auditee
- *   PUT  /v1/audit/engagements/{id}/controls/{cid}/assign-auditee
- *   POST /v1/audit/engagements/{id}/sections/{sid}/submit
- *   POST /v1/audit/engagements/{id}/sections/{sid}/reopen
  */
 
 import { useState, useMemo, useRef, useEffect } from 'react'
@@ -37,10 +26,12 @@ import api    from '../../config/axios.config'
 import { cn } from '../../lib/cn'
 import toast  from 'react-hot-toast'
 
-// ── API helpers ───────────────────────────────────────────────────────────────
 const fetchSections   = (id)   => api.get(`/v1/audit/engagements/${id}/sections`)
 const fetchControls   = (id)   => api.get(`/v1/audit/engagements/${id}/controls`)
 const fetchUsers      = (side) => api.get(`/v1/users`, { params: { side, take: 200 } })
+const fetchEligibleUsers = (stepInstanceId) =>
+  api.get(`/v1/workflow-instances/steps/${stepInstanceId}/eligible-users`)
+    .then(r => Array.isArray(r) ? r : (r?.data?.data || r?.data || r || []))
 
 const assignAuditor        = (eid, sid, body) => api.put(`/v1/audit/engagements/${eid}/sections/${sid}/assign`, body)
 const assignSectionAuditee = (eid, sid, body) => api.put(`/v1/audit/engagements/${eid}/sections/${sid}/assign-auditee`, body)
@@ -48,15 +39,11 @@ const assignControlAuditee = (eid, cid, body) => api.put(`/v1/audit/engagements/
 const submitSection        = (eid, sid, body) => api.post(`/v1/audit/engagements/${eid}/sections/${sid}/submit`, body)
 const reopenSection        = (eid, sid)       => api.post(`/v1/audit/engagements/${eid}/sections/${sid}/reopen`)
 
-// ── Role name constants ─────────────────────────────────────────────────────────────
 const ROLE_AUDITOR_ROLE        = 'AUDITOR_ROLE'
 const ROLE_AUDITEE_CONTRIBUTOR = 'AUDITEE_CONTRIBUTOR'
 
-// ── uid: normalise userId vs id from different endpoints ──────────────────────────
 const uid = (u) => u?.userId ?? u?.id
 
-// ── filterByRole: keep only users whose roles[] includes targetRoleName ──────────────
-// Falls back to full list if nobody matches (prevents empty picker on bad data)
 function filterByRole(users, targetRoleName) {
   if (!targetRoleName || !users.length) return users
   const target = targetRoleName.toUpperCase()
@@ -66,14 +53,12 @@ function filterByRole(users, targetRoleName) {
   return filtered.length > 0 ? filtered : users
 }
 
-// ── flattenUsers: unwrap paginated API response to plain array ────────────────────
 function flattenUsers(raw) {
   const arr = raw?.data?.data?.items || raw?.data?.items || raw?.items
                 || raw?.data?.data   || raw?.data        || raw
   return Array.isArray(arr) ? arr : []
 }
 
-// ── Result badge ──────────────────────────────────────────────────────────────
 const RESULT_CFG = {
   EFFECTIVE:           { label: 'Effective',   color: 'text-green-400',  bg: 'bg-green-500/10',    icon: CheckCircle2 },
   PARTIALLY_EFFECTIVE: { label: 'Partial',     color: 'text-amber-400',  bg: 'bg-amber-500/10',    icon: AlertTriangle },
@@ -92,7 +77,6 @@ function ResultBadge({ result }) {
   )
 }
 
-// ── Build tree from flat section list ────────────────────────────────────────
 function buildTree(sections) {
   const byId = {}
   for (const s of sections) byId[s.id] = { ...s, _children: [] }
@@ -107,7 +91,6 @@ function buildTree(sections) {
   return roots
 }
 
-// ── User display name helper ──────────────────────────────────────────────────
 function userName(user) {
   if (!user) return null
   const firstLast = user.firstName ? `${user.firstName} ${user.lastName||''}`.trim() : null
@@ -119,17 +102,28 @@ function userInitials(user) {
   return n.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 }
 
-// ── Inline user picker dropdown ───────────────────────────────────────────────
+// ── Inline user picker — absolute right-0 so it never goes off the right edge ──
 function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', loading, excludeUserId }) {
   const [open, setOpen]     = useState(false)
   const [query, setQuery]   = useState('')
+  const [flipUp, setFlipUp] = useState(false)
   const ref                 = useRef(null)
+  const btnRef              = useRef(null)
 
   useEffect(() => {
     function handleClick(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
+
+  const handleToggle = (e) => {
+    e.stopPropagation()
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setFlipUp(window.innerHeight - rect.bottom < 260)
+    }
+    setOpen(o => !o)
+  }
 
   const filtered = useMemo(() => {
     let list = excludeUserId ? users.filter(u => uid(u) !== excludeUserId) : users
@@ -143,7 +137,8 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
   return (
     <div ref={ref} className="relative inline-block">
       <button
-        onClick={(e) => { e.stopPropagation(); setOpen(o => !o) }}
+        ref={btnRef}
+        onClick={handleToggle}
         disabled={loading}
         className={cn(
           'flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-md border transition-all',
@@ -169,8 +164,10 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-52 bg-surface-raised border border-border rounded-lg shadow-elevated z-50 overflow-hidden">
-          {/* Search */}
+        <div className={cn(
+          'absolute right-0 w-52 bg-surface-raised border border-border rounded-lg shadow-elevated z-[200] overflow-hidden',
+          flipUp ? 'bottom-full mb-1' : 'top-full mt-1'
+        )}>
           <div className="p-1.5 border-b border-border">
             <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-overlay rounded-md">
               <Search size={10} className="text-text-muted shrink-0" />
@@ -185,7 +182,6 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
             </div>
           </div>
 
-          {/* Unassign option */}
           {selected && (
             <button
               onClick={(e) => { e.stopPropagation(); onChange(null); setOpen(false) }}
@@ -195,7 +191,6 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
             </button>
           )}
 
-          {/* User list */}
           <div className="max-h-48 overflow-y-auto">
             {loading ? (
               <div className="px-3 py-3 text-[10px] text-text-muted text-center">Loading…</div>
@@ -227,7 +222,6 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
   )
 }
 
-// ── Cascade toggle ────────────────────────────────────────────────────────────
 function CascadeToggle({ value, onChange }) {
   return (
     <label
@@ -251,7 +245,6 @@ function CascadeToggle({ value, onChange }) {
   )
 }
 
-// ── Assignment row (auditor or auditee) ───────────────────────────────────────
 function AssignmentCell({ label, icon: Icon, color, users, usersLoading, currentUserId,
   onAssign, saving, excludeUserId }) {
   const [cascade, setCascade] = useState(true)
@@ -275,7 +268,6 @@ function AssignmentCell({ label, icon: Icon, color, users, usersLoading, current
   )
 }
 
-// ── Detail panel ─────────────────────────────────────────────────────────────
 function DetailPanel({ item, type, onClose, auditorUsers, auditeeUsers }) {
   if (!item) return null
   const isSection = type === 'section'
@@ -305,24 +297,17 @@ function DetailPanel({ item, type, onClose, auditorUsers, auditeeUsers }) {
           <p className="text-sm font-medium text-text-primary truncate">{title}</p>
         </div>
       </div>
-
       <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-4">
         {desc && <F label="Description" value={desc} multi />}
         {!isSection && item.testProcedureSnapshot    && <F label="Test procedure"    value={item.testProcedureSnapshot}    multi />}
         {!isSection && item.evidenceGuidanceSnapshot && <F label="Evidence required" value={item.evidenceGuidanceSnapshot} multi />}
         {!isSection && item.testerNotes              && <F label="Tester notes"      value={item.testerNotes}              multi />}
         {!isSection && item.failureDetail            && <F label="Failure detail"    value={item.failureDetail}            multi red />}
-
-        {/* Assignment info */}
         {item.assignedAuditorId && (
-          <F label="Assigned auditor"
-            value={auditor ? userName(auditor) : `User #${item.assignedAuditorId}`}
-            icon={UserCheck} />
+          <F label="Assigned auditor" value={auditor ? userName(auditor) : `User #${item.assignedAuditorId}`} icon={UserCheck} />
         )}
         {item.auditeeAssignedUserId && (
-          <F label="Assigned auditee"
-            value={auditee ? userName(auditee) : `User #${item.auditeeAssignedUserId}`}
-            icon={Users} />
+          <F label="Assigned auditee" value={auditee ? userName(auditee) : `User #${item.auditeeAssignedUserId}`} icon={Users} />
         )}
         {isSection && item.submittedAt && (
           <F label="Submitted at" value={new Date(item.submittedAt).toLocaleString()} icon={Calendar} />
@@ -349,7 +334,6 @@ function F({ label, value, multi, red, icon: Icon }) {
   )
 }
 
-// ── Section tree node ─────────────────────────────────────────────────────────
 function SectionNode({
   node, controlsBySection,
   onSelectSection, onSelectControl,
@@ -363,12 +347,11 @@ function SectionNode({
   const qc                = useQueryClient()
   const controls          = controlsBySection[node.id] || []
   const hasChildren       = node._children?.length > 0
-  const isMySection        = node.assignedAuditorId === currentUserId || node.auditeeAssignedUserId === currentUserId
+  const isMySection       = node.assignedAuditorId === currentUserId || node.auditeeAssignedUserId === currentUserId
 
   const effectiveCount = controls.filter(c => c.testResult === 'EFFECTIVE').length
   const totalCount     = controls.length
 
-  // ── Mutations ─────────────────────────────────────────────────────────────
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['eng-sections', engagementId] })
     qc.invalidateQueries({ queryKey: ['eng-controls', engagementId] })
@@ -404,12 +387,10 @@ function SectionNode({
 
   return (
     <div>
-      {/* Section row */}
       <div
         className={cn('flex items-center gap-1.5 py-1.5 pr-3 hover:bg-surface-overlay/40 group', isMySection && 'border-l-2 border-brand-500/40')}
         style={{ paddingLeft: `${12 + depth * 14}px` }}
       >
-        {/* Expand/collapse */}
         <span
           onClick={(e) => { e.stopPropagation(); setOpen(o => !o) }}
           className="shrink-0 text-text-muted hover:text-text-primary cursor-pointer"
@@ -419,7 +400,6 @@ function SectionNode({
             : <span className="w-[11px]" />}
         </span>
 
-        {/* Section label — click → detail */}
         <span
           onClick={() => onSelectSection(node)}
           className="flex items-center gap-1.5 flex-1 min-w-0 cursor-pointer"
@@ -433,7 +413,6 @@ function SectionNode({
           </span>
         </span>
 
-        {/* Stats pill */}
         {totalCount > 0 && (
           <span className="text-[9px] text-text-muted shrink-0">{effectiveCount}/{totalCount}</span>
         )}
@@ -443,7 +422,6 @@ function SectionNode({
           </span>
         )}
 
-        {/* ── Assignment controls (permission-gated) ── */}
         <div
           className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={e => e.stopPropagation()}
@@ -461,7 +439,13 @@ function SectionNode({
             />
           )}
 
-          {canAssignAuditee && !isSubmitted && node.assignedAuditorId === currentUserId && (
+          {canAssignAuditee && !isSubmitted && (
+            // canAssignAuditee without canAssignAuditor = Step 4 (lead auditor assigns evidence owners)
+            //   → show on ALL sections regardless of who the auditor is
+            // canAssignAuditee with no auditor restriction = auditee-side step
+            //   → show only on sections where current user is the assigned auditor
+            !canAssignAuditor || node.assignedAuditorId === currentUserId
+          ) && (
             <AssignmentCell
               label="Assign auditee"
               icon={Users}
@@ -496,7 +480,6 @@ function SectionNode({
         </div>
       </div>
 
-      {/* Controls under this section */}
       {open && controls.map(ctrl => (
         <ControlRow
           key={ctrl.id}
@@ -512,7 +495,6 @@ function SectionNode({
         />
       ))}
 
-      {/* Child sections */}
       {open && node._children?.map(child => (
         <SectionNode
           key={child.id}
@@ -536,10 +518,10 @@ function SectionNode({
   )
 }
 
-// ── Control row ───────────────────────────────────────────────────────────────
 function ControlRow({ ctrl, engagementId, depth, onSelect, canAssignAuditee,
   auditeeUsers, auditeeUsersLoading, sectionAssignedAuditorId, currentUserId }) {
   const qc = useQueryClient()
+  const isMyControl = ctrl.assignedAuditorId === currentUserId || ctrl.auditeeAssignedUserId === currentUserId
 
   const { mutate: doAssign, isPending } = useMutation({
     mutationFn: ({ userId }) =>
@@ -566,7 +548,6 @@ function ControlRow({ ctrl, engagementId, depth, onSelect, canAssignAuditee,
       </span>
       <ResultBadge result={ctrl.testResult} />
 
-      {/* Auditee assignment on controls — only the auditor assigned to this section */}
       {canAssignAuditee && sectionAssignedAuditorId === currentUserId && (
         <div
           className="opacity-0 group-hover:opacity-100 transition-opacity ml-1"
@@ -585,20 +566,12 @@ function ControlRow({ ctrl, engagementId, depth, onSelect, canAssignAuditee,
   )
 }
 
-// ── Main export ───────────────────────────────────────────────────────────────
-export function EngagementSectionsTab({ engagementId, vc = {} }) {
+export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, onTaskComplete }) {
   const [selected, setSelected] = useState(null)
-  const auth          = useSelector(selectAuth)
+  const auth           = useSelector(selectAuth)
   const currentUserId  = auth?.userId
-  const myRoleNames    = (auth?.roles || []).map(r => (r.roleName || r.name || '').toUpperCase())
-  const isAuditee      = myRoleNames.includes(ROLE_AUDITEE_CONTRIBUTOR.toUpperCase())
-  const isAuditorRole  = myRoleNames.includes(ROLE_AUDITOR_ROLE.toUpperCase())
-  // My View: forced on for auditees, default on for pure AUDITOR_ROLE users,
-  // OFF for LEAD_AUDITOR, GRC_MANAGER, ORGANIZATION side — they see everything
-  const [myView, setMyView] = useState(isAuditee || (isAuditorRole && !myRoleNames.includes('LEAD_AUDITOR')))
-  const effectiveMyView = isAuditee ? true : myView
+  const [myView, setMyView] = useState(false)
 
-  // ── Data fetches ───────────────────────────────────────────────────────────
   const { data: secData, isLoading: secLoading } = useQuery({
     queryKey: ['eng-sections', engagementId],
     queryFn:  () => fetchSections(engagementId),
@@ -611,44 +584,83 @@ export function EngagementSectionsTab({ engagementId, vc = {} }) {
     staleTime: 30_000, enabled: !!engagementId,
   })
 
-  // Permission gates — driven purely by vc.permissions
   const perms              = vc.permissions || []
-  // stepAction from vc: backend sets this from the active step's snap.
-  // Assignment pickers only appear on ASSIGN steps and only for their
-  // specific permission — prevents both showing simultaneously.
-  const isAssignStep         = (vc.stepAction || '').toUpperCase() === 'ASSIGN'
-  const canAssignAuditor     = !isAuditee && isAssignStep && perms.includes('audit:section:assign-auditor')
-  const canAssignAuditee     = !isAuditee && isAssignStep && perms.includes('audit:section:assign-auditee')
-  const canAssignCtrlAuditee = !isAuditee && isAssignStep && perms.includes('audit:control:assign-auditee')
-  const canSubmit            = !isAuditee && perms.includes('audit:section:submit')
-  const canReopen            = !isAuditee && perms.includes('audit:section:reopen')
+  const isAssignStep       = (vc.stepAction || '').toUpperCase() === 'ASSIGN'
+  const canAssignAuditor     = isAssignStep && perms.includes('audit:section:assign-auditor')
+  const canAssignAuditee     = isAssignStep && perms.includes('audit:section:assign-auditee')
+  const canAssignCtrlAuditee = isAssignStep && perms.includes('audit:control:assign-auditee')
 
-  // Only fetch user lists when the corresponding permission is present
+  const [auditorRoleFilter, setAuditorRoleFilter] = useState(null)
+  const [auditeeRoleFilter, setAuditeeRoleFilter] = useState(null)
+  const tenantId = auth?.tenantId
+  const { data: rolesData } = useQuery({
+    queryKey: ['tenant-roles-hierarchy', tenantId],
+    queryFn:  () => api.get(`/v1/tenants/${tenantId}/roles/hierarchy`),
+    staleTime: 5 * 60_000,
+    enabled:  !!(tenantId && (canAssignAuditor || canAssignAuditee || canAssignCtrlAuditee)),
+  })
+  const { auditorRoles, auditeeRoles } = useMemo(() => {
+    const payload   = rolesData?.data?.data || rolesData?.data || rolesData
+    const hierarchy = payload?.hierarchy || {}
+    const flatten   = (side) => (Array.isArray(hierarchy[side]) ? hierarchy[side] : [])
+      .map(r => ({ id: r.role_id ?? r.id, name: r.name }))
+    return { auditorRoles: flatten('AUDITOR'), auditeeRoles: flatten('AUDITEE') }
+  }, [rolesData])
+  const canSubmit = perms.includes('audit:section:submit')
+  const canReopen = perms.includes('audit:section:reopen')
+
+  // eligible-users — gated only on stepInstanceId being present
+  const { data: eligibleUsersRaw = [], isLoading: eligibleLoading } = useQuery({
+    queryKey: ['step-eligible-users', stepInstanceId],
+    queryFn:  () => fetchEligibleUsers(stepInstanceId),
+    staleTime: 60 * 1000,
+    enabled:  !!stepInstanceId,
+  })
+
+  const needsFallback = !stepInstanceId
   const { data: auditorData, isLoading: auditorUsersLoading } = useQuery({
     queryKey: ['users-by-side', 'AUDITOR'],
     queryFn:  () => fetchUsers('AUDITOR'),
     staleTime: 5 * 60_000,
-    enabled:  canAssignAuditor,
+    enabled:  needsFallback && canAssignAuditor,
   })
-
   const { data: auditeeData, isLoading: auditeeUsersLoading } = useQuery({
     queryKey: ['users-by-side', 'AUDITEE'],
     queryFn:  () => fetchUsers('AUDITEE'),
     staleTime: 5 * 60_000,
-    enabled:  canAssignAuditee || canAssignCtrlAuditee,
+    enabled:  needsFallback && (canAssignAuditee || canAssignCtrlAuditee),
   })
 
-  // All side-users (full pool), then role-filtered subsets for each picker
   const allAuditorUsers = useMemo(() => flattenUsers(auditorData), [auditorData])
   const allAuditeeUsers = useMemo(() => flattenUsers(auditeeData), [auditeeData])
-  const auditorUsers    = useMemo(() => filterByRole(allAuditorUsers, ROLE_AUDITOR_ROLE),        [allAuditorUsers])
-  const auditeeUsers    = useMemo(() => filterByRole(allAuditeeUsers, ROLE_AUDITEE_CONTRIBUTOR), [allAuditeeUsers])
 
-  // ── Data processing ────────────────────────────────────────────────────────
+  // When stepInstanceId is present, eligible-users endpoint returns exactly the right list.
+  // Use it directly — no filtering, no fallback logic needed.
+  // When not present (direct browse), fall back to side-filtered user lists.
+  const auditorUsers = !needsFallback
+    ? eligibleUsersRaw
+    : (auditorRoleFilter
+        ? allAuditorUsers.filter(u => (u.roles||[]).some(r => (r.id||r.roleId) === auditorRoleFilter))
+        : filterByRole(allAuditorUsers, ROLE_AUDITOR_ROLE))
+
+  const auditeeUsers = !needsFallback
+    ? eligibleUsersRaw
+    : (auditeeRoleFilter
+        ? allAuditeeUsers.filter(u => (u.roles||[]).some(r => (r.id||r.roleId) === auditeeRoleFilter))
+        : filterByRole(allAuditeeUsers, ROLE_AUDITEE_CONTRIBUTOR))
+
   const sections = useMemo(() => {
     const raw = secData?.data?.data || secData?.data || secData
     return Array.isArray(raw) ? raw : []
   }, [secData])
+
+  const hasAuditorAssignments = sections.some(s => s.assignedAuditorId === currentUserId)
+  const hasAuditeeAssignments = sections.some(s => s.auditeeAssignedUserId === currentUserId)
+  const hasAnyAssignment      = hasAuditorAssignments || hasAuditeeAssignments
+
+  const effectiveMyView = (canAssignAuditor || canAssignAuditee || canAssignCtrlAuditee)
+    ? myView
+    : hasAnyAssignment
 
   const controls = useMemo(() => {
     const raw = ctrlData?.data?.data || ctrlData?.data || ctrlData
@@ -665,38 +677,37 @@ export function EngagementSectionsTab({ engagementId, vc = {} }) {
     return map
   }, [controls])
 
-  // ── My View filtering helpers ──────────────────────────────────────────────────────────────────
-  const nodeHasUser = (node, ctrlMap, userId) => {
+  const nodeHasUser = (node, userId) => {
     if (node.assignedAuditorId === userId || node.auditeeAssignedUserId === userId) return true
-    if ((ctrlMap[node.id] || []).some(c => c.auditeeAssignedUserId === userId)) return true
-    return (node._children || []).some(child => nodeHasUser(child, ctrlMap, userId))
+    return (node._children || []).some(child => nodeHasUser(child, userId))
   }
-  const filterTree = (nodes, ctrlMap, userId) => nodes.reduce((acc, node) => {
-    if (!nodeHasUser(node, ctrlMap, userId)) return acc
-    acc.push({ ...node, _children: filterTree(node._children || [], ctrlMap, userId) })
+  const filterTree = (nodes, userId) => nodes.reduce((acc, node) => {
+    if (!nodeHasUser(node, userId)) return acc
+    acc.push({ ...node, _children: filterTree(node._children || [], userId) })
     return acc
   }, [])
 
   const fullTree = useMemo(() => buildTree(sections), [sections])
   const displayTree = useMemo(() => {
     if (!effectiveMyView || !currentUserId) return fullTree
-    return filterTree(fullTree, controlsBySection, currentUserId)
-  }, [fullTree, controlsBySection, effectiveMyView, currentUserId])
+    return filterTree(fullTree, currentUserId)
+  }, [fullTree, effectiveMyView, currentUserId])
 
-  // For AUDITEE: also narrow each section's controls to only theirs
-  const displayControlsBySection = useMemo(() => {
-    if (!isAuditee || !currentUserId) return controlsBySection
-    const result = {}
-    for (const [sid, ctrls] of Object.entries(controlsBySection)) {
-      result[Number(sid)] = ctrls.filter(c => c.auditeeAssignedUserId === currentUserId)
-    }
-    return result
-  }, [controlsBySection, isAuditee, currentUserId])
+  const displayControlsBySection = controlsBySection
 
-  // ── Assignment summary stats ───────────────────────────────────────────────
-  const assignedSections = sections.filter(s => s.assignedAuditorId).length
+  const assignedSections  = sections.filter(s => s.assignedAuditorId).length
   const submittedSections = sections.filter(s => s.submittedAt).length
   const testedControls    = controls.filter(c => c.testResult && c.testResult !== 'NOT_TESTED').length
+
+  const prevAssignedRef = useRef(0)
+  useEffect(() => {
+    if (!onTaskComplete || !sections.length || !canAssignAuditor) return
+    if (assignedSections === sections.length && prevAssignedRef.current < sections.length) {
+      const timer = setTimeout(() => onTaskComplete(), 1500)
+      return () => clearTimeout(timer)
+    }
+    prevAssignedRef.current = assignedSections
+  }, [assignedSections, sections.length, canAssignAuditor, onTaskComplete])
 
   if (secLoading || ctrlLoading) {
     return <div className="px-4 py-6 text-xs text-text-muted text-center">Loading…</div>
@@ -706,9 +717,7 @@ export function EngagementSectionsTab({ engagementId, vc = {} }) {
   }
 
   return (
-    <div className="relative h-full flex flex-col">
-
-      {/* Detail panel overlay */}
+    <div className="relative h-full flex flex-col overflow-x-hidden">
       {selected && (
         <DetailPanel
           item={selected.item}
@@ -719,10 +728,30 @@ export function EngagementSectionsTab({ engagementId, vc = {} }) {
         />
       )}
 
-      {/* Stats bar */}
+      {canAssignAuditor && sections.length > 0 && assignedSections < sections.length && (
+        <div className="mx-3 mt-2 mb-1 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center gap-2 text-[11px] text-amber-300 shrink-0">
+          <UserCheck size={12} className="shrink-0" />
+          {assignedSections}/{sections.length} section{sections.length !== 1 ? 's' : ''} assigned — assign an auditor to each
+        </div>
+      )}
+      {canAssignAuditee && sections.length > 0 && sections.filter(s => s.auditeeAssignedUserId).length < sections.length && (
+        <div className="mx-3 mt-2 mb-1 px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center gap-2 text-[11px] text-purple-300 shrink-0">
+          <Users size={12} className="shrink-0" />
+          {sections.filter(s => s.auditeeAssignedUserId).length}/{sections.length} section{sections.length !== 1 ? 's' : ''} have auditee assigned
+        </div>
+      )}
+
       <div className="px-3 py-2 border-b border-border/40 flex items-center gap-3 text-[10px] text-text-muted shrink-0 flex-wrap">
         {effectiveMyView ? (
-          <span className="text-brand-300">{displayTree.length} section{displayTree.length !== 1 ? 's' : ''} · {Object.values(displayControlsBySection).reduce((n,a)=>n+a.length,0)} controls — my assignments</span>
+          <span className="text-brand-300">
+            {displayTree.length} section{displayTree.length !== 1 ? 's' : ''} ·{' '}
+            {Object.values(displayControlsBySection).reduce((n,a)=>n+a.length,0)} controls
+            {hasAuditeeAssignments ? ' — my evidence assignments' : ' — my assignments'}
+          </span>
+        ) : !effectiveMyView && !canAssignAuditor && !canAssignAuditee && !hasAnyAssignment ? (
+          <span className="text-text-muted flex items-center gap-1">
+            <Eye size={9} /> {sections.length} sections · {controls.length} controls — read only
+          </span>
         ) : (
           <>
             <span>{sections.length} sections</span>
@@ -741,8 +770,7 @@ export function EngagementSectionsTab({ engagementId, vc = {} }) {
           {!effectiveMyView && canAssignAuditee && <span className="flex items-center gap-0.5 text-purple-400"><Users size={9}/> auditee</span>}
           {!effectiveMyView && canSubmit        && <span className="flex items-center gap-0.5 text-green-400"><CheckCheck size={9}/> submit</span>}
           {!effectiveMyView && canReopen        && <span className="flex items-center gap-0.5 text-amber-400"><RefreshCw size={9}/> reopen</span>}
-          {/* My View toggle — hidden for auditees (always forced on) */}
-          {!isAuditee && (
+          {(canAssignAuditor || canAssignAuditee || canAssignCtrlAuditee) && (
             <button
               onClick={() => setMyView(v => !v)}
               className={cn(
@@ -753,7 +781,7 @@ export function EngagementSectionsTab({ engagementId, vc = {} }) {
               {myView ? <Eye size={9} /> : <EyeOff size={9} />} My view
             </button>
           )}
-          {isAuditee && (
+          {!(canAssignAuditor || canAssignAuditee || canAssignCtrlAuditee) && effectiveMyView && (
             <span className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-md bg-brand-500/10 text-brand-300 border border-brand-500/30">
               <Eye size={9} /> My assignments
             </span>
@@ -761,7 +789,43 @@ export function EngagementSectionsTab({ engagementId, vc = {} }) {
         </div>
       </div>
 
-      {/* Tree */}
+      {(canAssignAuditor || canAssignAuditee || canAssignCtrlAuditee) &&
+       (auditorRoles.length > 0 || auditeeRoles.length > 0) && (
+        <div className="px-3 py-1.5 border-b border-border/30 shrink-0 flex items-center gap-3 flex-wrap bg-surface-raised/30">
+          <span className="text-[9px] text-text-muted font-medium uppercase tracking-wide shrink-0">Filter assignable:</span>
+          {canAssignAuditor && auditorRoles.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <UserCheck size={9} className="text-brand-400 shrink-0"/>
+              <select
+                value={auditorRoleFilter ?? ''}
+                onChange={e => setAuditorRoleFilter(e.target.value ? Number(e.target.value) : null)}
+                className="text-[10px] bg-surface border border-border rounded px-1.5 py-0.5 text-text-secondary focus:outline-none focus:border-brand-500/50 cursor-pointer">
+                <option value="">All auditors</option>
+                {auditorRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+            </div>
+          )}
+          {(canAssignAuditee || canAssignCtrlAuditee) && auditeeRoles.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <Users size={9} className="text-amber-400 shrink-0"/>
+              <select
+                value={auditeeRoleFilter ?? ''}
+                onChange={e => setAuditeeRoleFilter(e.target.value ? Number(e.target.value) : null)}
+                className="text-[10px] bg-surface border border-border rounded px-1.5 py-0.5 text-text-secondary focus:outline-none focus:border-amber-500/50 cursor-pointer">
+                <option value="">All auditees</option>
+                {auditeeRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+            </div>
+          )}
+          {(auditorRoleFilter || auditeeRoleFilter) && (
+            <button onClick={() => { setAuditorRoleFilter(null); setAuditeeRoleFilter(null) }}
+              className="text-[9px] text-text-muted hover:text-text-primary ml-auto">
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto">
         {displayTree.map(node => (
           <SectionNode

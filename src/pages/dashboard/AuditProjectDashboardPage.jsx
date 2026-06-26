@@ -1,29 +1,33 @@
 /**
- * AuditProjectDashboardPage — /audit/projects/:projectId/dashboard
+ * AuditProjectDashboardPage — /audit/programme/:instanceId/dashboard
  *
- * Project-level compliance dashboard showing all engagements under a project,
- * their individual compliance scores, findings, and overall programme health.
+ * Programme-level dashboard for an AuditProjectInstance.
+ * Uses GET /v1/audit/project-instances/:id/report-data — a single endpoint
+ * that aggregates all engagement stats — to avoid calling useQuery in a loop
+ * (Rules of Hooks violation that caused the original error).
  *
- * BACKEND ENDPOINTS:
- *   GET /v1/audit/projects/:id              — project header
- *   GET /v1/audit/projects/:id/templates    — planned templates + engagement links
- *   GET /v1/audit/engagements/:id           — per-engagement stats (fetched for each)
- *   GET /v1/audit/engagements/:id/findings  — per-engagement findings
- *   GET /v1/workflow-instances/:wfId/progress — project workflow progress
+ * Sections:
+ *   1. Header — instance ref, project name, status, period
+ *   2. Programme stats — compliance %, control counts, findings
+ *   3. Framework coverage — one row per engagement with pass bar
+ *   4. Engagement cards — per-engagement detail with controls/findings
+ *   5. Cross-framework findings matrix
+ *
+ * ALSO handles the legacy route /audit/projects/:projectId/dashboard —
+ * in that case projectId IS the instance id (blueprint 11 uses project-instances API).
  */
 
-import { useState, useMemo }    from 'react'
+import { useState }              from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useQuery }             from '@tanstack/react-query'
+import { useQuery }              from '@tanstack/react-query'
 import {
   ArrowLeft, BookOpen, CheckCircle2, XCircle, AlertTriangle,
-  Clock, Shield, BarChart2, ChevronRight, Activity,
-  FolderKanban, Calendar, User, TrendingUp, FileText,
-  Loader2, ExternalLink, Circle, RefreshCw,
+  Shield, BarChart2, ChevronRight, Activity,
+  FolderKanban, Calendar, FileText,
+  Loader2, ExternalLink, Circle,
 } from 'lucide-react'
-import { cn }        from '../../lib/cn'
-import { auditApi }  from '../../api/audit.api'
-import api           from '../../config/axios.config'
+import { cn }    from '../../lib/cn'
+import api       from '../../config/axios.config'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmt = (dt) => dt
@@ -33,73 +37,83 @@ const fmt = (dt) => dt
 const pct = (n, d) => d > 0 ? Math.round((n / d) * 100) : 0
 
 const STATUS_CFG = {
-  PLANNING:    { label: 'Planning',    color: 'text-text-muted', dot: 'bg-text-muted/40'  },
-  FIELDWORK:   { label: 'Fieldwork',  color: 'text-brand-400',  dot: 'bg-brand-400'       },
-  DRAFT_REPORT:{ label: 'Draft',      color: 'text-amber-400',  dot: 'bg-amber-400'       },
-  CLOSED:      { label: 'Closed',     color: 'text-green-400',  dot: 'bg-green-400'       },
-  COMPLETED:   { label: 'Completed',  color: 'text-green-400',  dot: 'bg-green-400'       },
-  IN_PROGRESS: { label: 'In progress',color: 'text-brand-400',  dot: 'bg-brand-400'       },
+  IN_PROGRESS:  { label: 'In progress', color: 'text-brand-400',  dot: 'bg-brand-400'  },
+  COMPLETED:    { label: 'Completed',   color: 'text-green-400',  dot: 'bg-green-400'  },
+  ON_HOLD:      { label: 'On hold',     color: 'text-amber-400',  dot: 'bg-amber-400'  },
+  PLANNING:     { label: 'Planning',    color: 'text-text-muted', dot: 'bg-text-muted/40' },
+  FIELDWORK:    { label: 'Fieldwork',   color: 'text-brand-400',  dot: 'bg-brand-400'  },
+  DRAFT_REPORT: { label: 'Draft',       color: 'text-amber-400',  dot: 'bg-amber-400'  },
+  CLOSED:       { label: 'Closed',      color: 'text-green-400',  dot: 'bg-green-400'  },
+  FINAL_REPORT: { label: 'Final report',color: 'text-purple-400', dot: 'bg-purple-400' },
 }
 
-const RATING_CFG = {
-  EFFECTIVE:           { label: 'Effective',           color: 'text-green-400',  bg: 'bg-green-500/10  border-green-500/30'  },
-  PARTIALLY_EFFECTIVE: { label: 'Partially Effective', color: 'text-amber-400',  bg: 'bg-amber-500/10  border-amber-500/30'  },
-  INEFFECTIVE:         { label: 'Ineffective',         color: 'text-red-400',    bg: 'bg-red-500/10    border-red-500/30'    },
-  NOT_RATED:           { label: 'Not Rated',           color: 'text-text-muted', bg: 'bg-surface-overlay border-border'      },
+const RESULT_CFG = {
+  EFFECTIVE:           { label: 'Effective',     color: 'text-green-400', bg: 'bg-green-500/15 border-green-500/30' },
+  PARTIALLY_EFFECTIVE: { label: 'Partial',       color: 'text-amber-400', bg: 'bg-amber-500/15 border-amber-500/30' },
+  INEFFECTIVE:         { label: 'Ineffective',   color: 'text-red-400',   bg: 'bg-red-500/15   border-red-500/30'  },
+  NOT_TESTED:          { label: 'Not tested',    color: 'text-text-muted',bg: 'bg-surface-overlay border-border'   },
 }
 
-// ── Data hooks ────────────────────────────────────────────────────────────────
-const useProject = (id) => useQuery({
-  queryKey: ['audit-project', id],
-  queryFn:  () => auditApi.projects.get(id),
-  enabled:  !!id,
-})
+// ── Single data fetch ─────────────────────────────────────────────────────────
+const fetchReportData = (instanceId) =>
+  api.get(`/v1/audit/project-instances/${instanceId}/report-data`)
+    .then(r => r?.data?.data || r?.data || r)
 
-const useProjectTemplates = (id) => useQuery({
-  queryKey: ['audit-project-templates', id],
-  queryFn:  () => auditApi.projects.templates.list(id),
-  enabled:  !!id,
-  select:   d => Array.isArray(d) ? d : (d?.items ?? d?.data ?? []),
-})
+// ── Sub-components ────────────────────────────────────────────────────────────
+function StatCard({ label, value, color = 'text-text-primary', icon: Icon, sub }) {
+  return (
+    <div className="bg-surface border border-border rounded-xl px-3 py-3">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        {Icon && <Icon size={11} className={color} />}
+        <span className="text-[9px] text-text-muted uppercase tracking-wide leading-none">{label}</span>
+      </div>
+      <p className={cn('text-xl font-bold tabular-nums', color)}>{value}</p>
+      {sub && <p className="text-[10px] text-text-muted mt-0.5">{sub}</p>}
+    </div>
+  )
+}
 
-const useEngagement = (id) => useQuery({
-  queryKey: ['audit-engagement', id],
-  queryFn:  () => auditApi.engagements.get(id),
-  enabled:  !!id,
-  staleTime: 60_000,
-})
+function PassBar({ value, size = 'md' }) {
+  const color = value >= 80 ? 'bg-green-500' : value >= 60 ? 'bg-amber-500' : 'bg-red-500'
+  const text  = value >= 80 ? 'text-green-400' : value >= 60 ? 'text-amber-400' : 'text-red-400'
+  return (
+    <div className="flex items-center gap-2">
+      <div className={cn('flex-1 rounded-full overflow-hidden bg-surface-overlay', size === 'sm' ? 'h-1' : 'h-1.5')}>
+        <div className={cn('h-full rounded-full', color)} style={{ width: `${value}%` }} />
+      </div>
+      <span className={cn('font-bold tabular-nums shrink-0', text, size === 'sm' ? 'text-[10px]' : 'text-xs')}>
+        {value}%
+      </span>
+    </div>
+  )
+}
 
-const useEngagementFindings = (id) => useQuery({
-  queryKey: ['audit-engagement-findings', id],
-  queryFn:  () => api.get(`/v1/audit/engagements/${id}/findings`)
-    .then(r => Array.isArray(r) ? r : (r?.data ?? [])),
-  enabled:  !!id,
-  staleTime: 60_000,
-})
+function StatusDot({ status }) {
+  const cfg = STATUS_CFG[status] || { label: status || '—', color: 'text-text-muted', dot: 'bg-text-muted/40' }
+  return (
+    <span className={cn('flex items-center gap-1.5 text-[11px] font-medium', cfg.color)}>
+      <span className={cn('w-2 h-2 rounded-full shrink-0', cfg.dot)} />
+      {cfg.label}
+    </span>
+  )
+}
 
-// ── Shared components ─────────────────────────────────────────────────────────
-function ComplianceRing({ pct: value, size = 64 }) {
+function ComplianceRing({ value, size = 64 }) {
   const r     = (size - 8) / 2
   const circ  = 2 * Math.PI * r
   const fill  = circ * (1 - (value ?? 0) / 100)
   const color = (value ?? 0) >= 80 ? '#22c55e' : (value ?? 0) >= 60 ? '#f59e0b' : '#ef4444'
-
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size/2} cy={size/2} r={r} fill="none"
-          stroke="currentColor" strokeWidth={6}
-          className="text-surface-overlay"/>
-        <circle cx={size/2} cy={size/2} r={r} fill="none"
-          stroke={color} strokeWidth={6}
-          strokeDasharray={circ}
-          strokeDashoffset={fill}
-          strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 0.5s ease' }}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="currentColor" strokeWidth={6}
+          className="text-surface-overlay" />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={6}
+          strokeDasharray={circ} strokeDashoffset={fill} strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.5s ease' }} />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-[11px] font-bold tabular-nums"
-          style={{ color }}>
+        <span className="text-[11px] font-bold tabular-nums" style={{ color }}>
           {value != null ? `${value}%` : '—'}
         </span>
       </div>
@@ -107,240 +121,116 @@ function ComplianceRing({ pct: value, size = 64 }) {
   )
 }
 
-function StatusDot({ status }) {
-  const cfg = STATUS_CFG[status] || { color: 'text-text-muted', dot: 'bg-text-muted/40' }
-  return (
-    <span className={cn('flex items-center gap-1.5 text-[11px] font-medium', cfg.color)}>
-      <span className={cn('w-2 h-2 rounded-full shrink-0', cfg.dot)}/>
-      {cfg.label}
-    </span>
-  )
-}
-
-// ── Programme summary stats ───────────────────────────────────────────────────
-function ProgrammeStats({ engagements }) {
-  const active    = engagements.filter(e => e.status === 'FIELDWORK' || e.status === 'IN_PROGRESS').length
-  const completed = engagements.filter(e => e.status === 'CLOSED' || e.status === 'COMPLETED').length
-  const totalCtrl = engagements.reduce((s, e) => s + (e.totalControls ?? 0), 0)
-  const passedCtrl= engagements.reduce((s, e) => s + (e.passedControls ?? 0), 0)
-  const failedCtrl= engagements.reduce((s, e) => s + (e.failedControls ?? 0), 0)
-  const findings  = engagements.reduce((s, e) => s + (e.openFindingCount ?? 0), 0)
-  const overallPct= pct(passedCtrl, totalCtrl)
-
-  const stats = [
-    { label: 'Engagements',    value: engagements.length,  color: 'text-purple-400', icon: BookOpen },
-    { label: 'Active',         value: active,              color: 'text-brand-400',  icon: Activity },
-    { label: 'Completed',      value: completed,           color: 'text-green-400',  icon: CheckCircle2 },
-    { label: 'Controls passed',value: `${passedCtrl}/${totalCtrl}`, color: 'text-green-400', icon: Shield },
-    { label: 'Open findings',  value: findings, color: findings > 0 ? 'text-amber-400' : 'text-green-400', icon: AlertTriangle },
-    { label: 'Overall compliance', value: `${overallPct}%`, color: overallPct >= 80 ? 'text-green-400' : overallPct >= 60 ? 'text-amber-400' : 'text-red-400', icon: BarChart2 },
-  ]
+function EngagementCard({ eng, navigate }) {
+  const [open, setOpen] = useState(false)
+  const compPct = Math.round(eng.passRatePct ?? 0)
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-      {stats.map(s => (
-        <div key={s.label} className="bg-surface border border-border rounded-xl px-3 py-3">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <s.icon size={11} className={s.color}/>
-            <span className="text-[9px] text-text-muted uppercase tracking-wide">{s.label}</span>
-          </div>
-          <p className={cn('text-xl font-bold tabular-nums', s.color)}>{s.value}</p>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// ── Single engagement card ────────────────────────────────────────────────────
-function EngagementCard({ plannedTemplate }) {
-  const navigate = useNavigate()
-  const engId    = plannedTemplate.engagementId
-
-  const { data: eng,      isLoading: engLoading  } = useEngagement(engId)
-  const { data: findings, isLoading: findLoading } = useEngagementFindings(engId)
-
-  if (!engId) {
-    // Not started yet
-    return (
-      <div className="bg-surface border border-border border-dashed rounded-xl p-4
-        flex items-center gap-4">
-        <div className="w-10 h-10 rounded-lg bg-surface-overlay border border-border
-          flex items-center justify-center shrink-0">
-          <BookOpen size={16} className="text-text-muted/50"/>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-text-primary truncate">
-            {plannedTemplate.templateName}
-          </p>
-          <p className="text-[11px] text-text-muted mt-0.5">
-            {plannedTemplate.frameworkRef || 'Not started'} — engagement not yet created
-          </p>
-        </div>
-        <span className="text-[10px] text-text-muted border border-border px-2 py-1 rounded-full shrink-0">
-          Planned
-        </span>
-      </div>
-    )
-  }
-
-  if (engLoading) return (
-    <div className="bg-surface border border-border rounded-xl p-4 flex items-center gap-3">
-      <Loader2 size={16} className="text-text-muted animate-spin"/>
-      <span className="text-sm text-text-muted">Loading engagement…</span>
-    </div>
-  )
-
-  const total   = eng?.totalControls ?? 0
-  const passed  = eng?.passedControls ?? 0
-  const failed  = eng?.failedControls ?? 0
-  const compPct = pct(passed, total)
-  const testedPct = pct(eng?.testedControls ?? 0, total)
-  const openF   = eng?.openFindingCount ?? 0
-  const allF    = Array.isArray(findings) ? findings : []
-  const bySev   = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 }
-  allF.forEach(f => { if (bySev[f.severity] !== undefined) bySev[f.severity]++ })
-  const rating  = eng?.overallRating
-  const rCfg    = RATING_CFG[rating] || RATING_CFG.NOT_RATED
-
-  return (
-    <div className="bg-surface border border-border rounded-xl overflow-hidden
-      hover:border-purple-500/30 transition-colors">
+    <div className="bg-surface border border-border rounded-xl overflow-hidden hover:border-purple-500/30 transition-colors">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 flex items-start gap-3">
-        <ComplianceRing pct={compPct}/>
+        <ComplianceRing value={compPct} />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-text-primary truncate">
-                {eng?.name || plannedTemplate.templateName}
-              </p>
+              <p className="text-sm font-semibold text-text-primary truncate">{eng.name}</p>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="text-[10px] font-mono text-purple-400/70 bg-purple-500/10 px-1.5 py-0.5 rounded">
-                  {eng?.frameworkRef || plannedTemplate.frameworkRef || '—'}
-                </span>
-                <StatusDot status={eng?.status}/>
+                {eng.frameworkRef && (
+                  <span className="text-[10px] font-mono text-purple-400/70 bg-purple-500/10 px-1.5 py-0.5 rounded">
+                    {eng.frameworkRef}
+                  </span>
+                )}
+                <StatusDot status={eng.status} />
               </div>
             </div>
-            <span className={cn('text-[10px] font-bold border rounded px-1.5 py-0.5 shrink-0', rCfg.bg, rCfg.color)}>
-              {rCfg.label}
-            </span>
           </div>
         </div>
       </div>
 
-      {/* Progress bars */}
+      {/* Progress */}
       <div className="px-4 pb-3 space-y-2">
         <div>
           <div className="flex justify-between mb-1">
             <span className="text-[10px] text-text-muted">Compliance</span>
-            <span className="text-[10px] font-mono text-text-secondary">{passed}/{total} controls</span>
+            <span className="text-[10px] font-mono text-text-secondary">{eng.effective}/{eng.totalControls} effective</span>
           </div>
-          <div className="h-1.5 bg-surface-overlay rounded-full overflow-hidden">
-            <div className={cn('h-full rounded-full transition-all',
-              compPct >= 80 ? 'bg-green-500' : compPct >= 60 ? 'bg-amber-500' : 'bg-red-500')}
-              style={{ width: `${compPct}%` }}/>
-          </div>
-        </div>
-        <div>
-          <div className="flex justify-between mb-1">
-            <span className="text-[10px] text-text-muted">Test progress</span>
-            <span className="text-[10px] font-mono text-text-secondary">{testedPct}%</span>
-          </div>
-          <div className="h-1 bg-surface-overlay rounded-full overflow-hidden">
-            <div className="h-full bg-brand-500/60 rounded-full transition-all"
-              style={{ width: `${testedPct}%` }}/>
-          </div>
+          <PassBar value={compPct} />
         </div>
       </div>
 
-      {/* Findings row */}
-      {(openF > 0 || allF.length > 0) && (
-        <div className="px-4 pb-3 flex items-center gap-3 flex-wrap">
-          {['CRITICAL','HIGH','MEDIUM','LOW'].map(sev => bySev[sev] > 0 && (
-            <span key={sev} className={cn('text-[10px] font-semibold flex items-center gap-0.5',
-              sev === 'CRITICAL' ? 'text-red-400' :
-              sev === 'HIGH' ? 'text-orange-400' :
-              sev === 'MEDIUM' ? 'text-amber-400' : 'text-text-muted')}>
-              {bySev[sev]} {sev.toLowerCase()}
+      {/* Finding summary */}
+      {(eng.openFindings > 0 || eng.totalFindings > 0) && (
+        <div className="px-4 pb-3 flex items-center gap-3 text-[10px] flex-wrap">
+          {eng.openFindings > 0 && (
+            <span className="text-amber-400 flex items-center gap-1">
+              <AlertTriangle size={9} />{eng.openFindings} open finding{eng.openFindings !== 1 ? 's' : ''}
             </span>
-          ))}
+          )}
+          {eng.totalFindings > eng.openFindings && (
+            <span className="text-text-muted">{eng.totalFindings} total</span>
+          )}
         </div>
       )}
 
-      {/* Footer links */}
-      <div className="px-4 py-2.5 border-t border-border/60 bg-surface-overlay/30
-        flex items-center gap-3">
+      {/* Controls detail — collapsible */}
+      {(eng.controls || []).length > 0 && (
+        <div className="border-t border-border/60">
+          <button
+            onClick={() => setOpen(o => !o)}
+            className="w-full px-4 py-2 text-[10px] text-text-muted hover:text-text-secondary flex items-center gap-1 transition-colors"
+          >
+            {open ? <XCircle size={10} /> : <ChevronRight size={10} />}
+            {open ? 'Hide' : 'Show'} {eng.controls.length} controls
+          </button>
+          {open && (
+            <div className="px-4 pb-3">
+              <div className="rounded-lg border border-border overflow-hidden">
+                <table className="w-full text-[10px]">
+                  <thead>
+                    <tr className="bg-surface-overlay text-text-muted">
+                      <th className="text-left px-2 py-1.5 font-medium">Ref</th>
+                      <th className="text-left px-2 py-1.5 font-medium">Control</th>
+                      <th className="text-left px-2 py-1.5 font-medium">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {eng.controls.map(c => {
+                      const cfg = RESULT_CFG[c.testResult] || RESULT_CFG.NOT_TESTED
+                      return (
+                        <tr key={c.id} className="border-t border-border/50 hover:bg-surface-overlay/50">
+                          <td className="px-2 py-1.5 font-mono text-text-muted">{c.controlRef || '—'}</td>
+                          <td className="px-2 py-1.5 text-text-primary max-w-[160px] truncate">{c.name}</td>
+                          <td className="px-2 py-1.5">
+                            <span className={cn('px-1.5 py-0.5 rounded border text-[9px] font-medium', cfg.bg, cfg.color)}>
+                              {cfg.label}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="px-4 py-2.5 border-t border-border/60 bg-surface-overlay/30 flex items-center gap-3">
         <button
-          onClick={() => navigate(`/audit/engagements/${engId}`)}
-          className="text-[10px] text-text-muted hover:text-text-primary flex items-center gap-1 transition-colors">
-          <ExternalLink size={10}/>Engagement
+          onClick={() => navigate(`/module/audit_engagement/${eng.engagementId}`)}
+          className="text-[10px] text-text-muted hover:text-text-primary flex items-center gap-1 transition-colors"
+        >
+          <ExternalLink size={10} />Engagement
         </button>
         <button
-          onClick={() => navigate(`/audit/engagements/${engId}/report`)}
-          className="text-[10px] text-text-muted hover:text-purple-400 flex items-center gap-1 transition-colors">
-          <FileText size={10}/>Report
+          onClick={() => navigate(`/audit/engagements/${eng.engagementId}/report`)}
+          className="text-[10px] text-text-muted hover:text-purple-400 flex items-center gap-1 transition-colors"
+        >
+          <FileText size={10} />Report
         </button>
-        <span className="text-[10px] text-text-muted ml-auto font-mono">
-          {eng?.engagementRef || `ENG-${engId}`}
-        </span>
-      </div>
-    </div>
-  )
-}
-
-// ── Cross-framework findings matrix ───────────────────────────────────────────
-function FindingsMatrix({ plannedTemplates }) {
-  const engagements = plannedTemplates.filter(pt => pt.engagementId)
-  if (engagements.length === 0) return null
-
-  return (
-    <div className="bg-surface border border-border rounded-xl p-4">
-      <h3 className="text-xs font-semibold text-text-primary mb-3 flex items-center gap-2">
-        <AlertTriangle size={13} className="text-amber-400"/>
-        Cross-Framework Findings Summary
-      </h3>
-      <div className="space-y-2">
-        {engagements.map(pt => (
-          <FindingsRow key={pt.engagementId} pt={pt}/>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function FindingsRow({ pt }) {
-  const { data: eng }      = useEngagement(pt.engagementId)
-  const { data: findings } = useEngagementFindings(pt.engagementId)
-  const allF  = Array.isArray(findings) ? findings : []
-  const open  = allF.filter(f => f.status === 'OPEN' || f.status === 'IN_REMEDIATION').length
-  const closed= allF.filter(f => f.status === 'CLOSED').length
-  const accepted = allF.filter(f => f.status === 'ACCEPTED_RISK').length
-
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[10px] font-mono text-purple-400/70 w-16 shrink-0">
-        {eng?.frameworkRef || pt.frameworkRef || '—'}
-      </span>
-      <span className="text-[11px] text-text-secondary flex-1 truncate">
-        {eng?.name || pt.templateName}
-      </span>
-      <div className="flex items-center gap-2 shrink-0">
-        {open > 0 && (
-          <span className="text-[10px] text-amber-400 flex items-center gap-1">
-            <AlertTriangle size={9}/>{open} open
-          </span>
-        )}
-        {accepted > 0 && (
-          <span className="text-[10px] text-text-muted">{accepted} accepted</span>
-        )}
-        {closed > 0 && (
-          <span className="text-[10px] text-green-400">{closed} closed</span>
-        )}
-        {allF.length === 0 && (
-          <span className="text-[10px] text-green-400 flex items-center gap-1">
-            <CheckCircle2 size={9}/>No findings
-          </span>
-        )}
+        <span className="text-[10px] text-text-muted ml-auto font-mono">{eng.engagementRef}</span>
       </div>
     </div>
   )
@@ -348,160 +238,189 @@ function FindingsRow({ pt }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AuditProjectDashboardPage() {
-  const { projectId } = useParams()
-  const navigate      = useNavigate()
+  // Support both /audit/programme/:instanceId/dashboard and legacy /audit/projects/:projectId/dashboard
+  const { instanceId, projectId } = useParams()
+  const id       = instanceId || projectId
+  const navigate = useNavigate()
 
-  const { data: project,   isLoading: projLoading  } = useProject(projectId)
-  const { data: templates, isLoading: tmplLoading  } = useProjectTemplates(projectId)
-
-  const planned = templates ?? []
-
-  // Collect engagement stats for programme summary
-  const engagementIds = planned.map(pt => pt.engagementId).filter(Boolean)
-
-  // We derive programme stats from engagement cards — each card fetches its own data.
-  // For the summary bar, we need aggregated data. Fetch each engagement independently.
-  // This is acceptable for project dashboards (typically 2-5 engagements).
-
-  const isLoading = projLoading || tmplLoading
+  const { data: report, isLoading, isError } = useQuery({
+    queryKey: ['project-dashboard', id],
+    queryFn:  () => fetchReportData(id),
+    enabled:  !!id,
+    staleTime: 30_000,
+  })
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-full">
-      <Loader2 size={24} className="animate-spin text-text-muted"/>
+      <Loader2 size={24} className="animate-spin text-text-muted" />
     </div>
   )
 
-  if (!project) return (
+  if (isError || !report) return (
     <div className="flex items-center justify-center h-full">
-      <p className="text-text-muted">Project not found</p>
+      <div className="text-center">
+        <AlertTriangle size={28} className="text-red-400 mx-auto mb-2" />
+        <p className="text-sm text-text-muted">Dashboard data unavailable</p>
+        <button onClick={() => navigate(-1)} className="mt-3 text-xs text-brand-400 underline">Go back</button>
+      </div>
     </div>
   )
+
+  const engagements  = report.engagements || []
+  const overallPct   = Math.round(report.passRatePct ?? 0)
+  const frameworks   = [...new Set(engagements.map(e => e.frameworkRef).filter(Boolean))]
 
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background">
 
-      {/* ── Page header ──────────────────────────────────────────────────── */}
+      {/* ── Header ───────────────────────────────────────────────────────── */}
       <div className="px-6 py-4 border-b border-border bg-surface sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/audit/projects')}
-            className="h-8 w-8 flex items-center justify-center rounded-lg
-              border border-border hover:border-brand-500/40 text-text-muted hover:text-text-primary transition-colors">
-            <ArrowLeft size={15}/>
+          <button onClick={() => navigate(-1)}
+            className="h-8 w-8 flex items-center justify-center rounded-lg border border-border hover:border-brand-500/40 text-text-muted hover:text-text-primary transition-colors">
+            <ArrowLeft size={15} />
           </button>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20
-              flex items-center justify-center">
-              <FolderKanban size={15} className="text-purple-400"/>
+            <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+              <FolderKanban size={15} className="text-purple-400" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-text-primary">{project.name}</h1>
+              <h1 className="text-sm font-bold text-text-primary">{report.projectName}</h1>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-text-muted">{project.projectRef}</span>
-                <StatusDot status={project.status}/>
+                <span className="text-[10px] font-mono text-text-muted">{report.instanceRef || report.projectRef}</span>
+                <StatusDot status={report.status} />
               </div>
             </div>
           </div>
-
           <div className="ml-auto flex items-center gap-2">
-            <Link to={`/audit/projects/${projectId}`}
-              className="text-[11px] text-text-muted hover:text-text-primary flex items-center gap-1
-                px-3 py-1.5 rounded-lg border border-border hover:border-brand-500/30 transition-colors">
-              <ExternalLink size={11}/>Project detail
-            </Link>
+            <button
+              onClick={() => navigate(`/audit/programme/${id}/report`)}
+              className="text-[11px] text-text-muted hover:text-purple-400 flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border hover:border-purple-500/30 transition-colors"
+            >
+              <FileText size={11} />Full Report
+            </button>
           </div>
         </div>
 
-        {/* Project meta */}
-        {(project.description || project.plannedStart) && (
-          <div className="flex items-center gap-4 mt-2 pl-[44px] flex-wrap">
-            {project.description && (
-              <p className="text-[11px] text-text-muted max-w-lg truncate">{project.description}</p>
+        {report.description && (
+          <p className="text-[11px] text-text-muted mt-2 pl-[44px] max-w-lg truncate">{report.description}</p>
+        )}
+        {report.plannedStart && (
+          <p className="text-[10px] text-text-muted mt-1 pl-[44px] flex items-center gap-1">
+            <Calendar size={10} />{fmt(report.plannedStart)} → {fmt(report.plannedEnd)}
+            {frameworks.length > 0 && (
+              <span className="ml-3">· {frameworks.join(' + ')}</span>
             )}
-            {project.plannedStart && (
-              <span className="text-[10px] text-text-muted flex items-center gap-1 shrink-0">
-                <Calendar size={10}/>{fmt(project.plannedStart)} → {fmt(project.plannedEnd)}
-              </span>
-            )}
-          </div>
+          </p>
         )}
       </div>
 
       <div className="p-6 space-y-6">
 
         {/* ── Programme stats ─────────────────────────────────────────────── */}
-        <ProgrammeSummaryStats projectId={projectId} planned={planned}/>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <StatCard label="Engagements"    value={report.engagementCount ?? 0}  color="text-purple-400" icon={BookOpen} />
+          <StatCard label="Compliance"     value={`${overallPct}%`}
+            color={overallPct >= 80 ? 'text-green-400' : overallPct >= 60 ? 'text-amber-400' : 'text-red-400'}
+            icon={BarChart2} />
+          <StatCard label="Effective"      value={report.effectiveControls ?? 0}
+            sub={`of ${report.totalControls ?? 0}`} color="text-green-400" icon={CheckCircle2} />
+          <StatCard label="Ineffective"    value={report.ineffectiveControls ?? 0}
+            color={(report.ineffectiveControls ?? 0) > 0 ? 'text-red-400' : 'text-text-muted'} icon={XCircle} />
+          <StatCard label="Not tested"     value={report.notTestedControls ?? 0} color="text-text-muted" icon={Activity} />
+          <StatCard label="Open findings"  value={report.openFindings ?? 0}
+            color={(report.openFindings ?? 0) > 0 ? 'text-amber-400' : 'text-text-muted'} icon={AlertTriangle} />
+        </div>
 
-        {/* ── Engagement grid ─────────────────────────────────────────────── */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xs font-bold text-text-primary uppercase tracking-wide">
-              Engagements ({planned.length})
-            </h2>
-            <Link to={`/audit/projects/${projectId}`}
-              className="text-[11px] text-text-muted hover:text-brand-400 flex items-center gap-1 transition-colors">
-              Manage<ChevronRight size={11}/>
-            </Link>
+        {/* ── Framework coverage table ─────────────────────────────────────── */}
+        {engagements.length > 0 && (
+          <div className="bg-surface border border-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-border">
+              <h2 className="text-xs font-bold text-text-primary uppercase tracking-wide flex items-center gap-2">
+                <Shield size={12} className="text-purple-400" />Framework Coverage
+              </h2>
+            </div>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-surface-overlay text-text-muted">
+                  <th className="text-left px-4 py-2 font-medium">Framework</th>
+                  <th className="text-left px-4 py-2 font-medium">Engagement</th>
+                  <th className="text-left px-4 py-2 font-medium w-32">Compliance</th>
+                  <th className="text-center px-3 py-2 font-medium">Controls</th>
+                  <th className="text-center px-3 py-2 font-medium">Findings</th>
+                  <th className="text-center px-3 py-2 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {engagements.map(eng => (
+                  <tr key={eng.engagementId} className="border-t border-border/50 hover:bg-surface-overlay/30 cursor-pointer"
+                    onClick={() => navigate(`/module/audit_engagement/${eng.engagementId}`)}>
+                    <td className="px-4 py-2">
+                      <span className="font-mono text-purple-400/80 bg-purple-500/10 px-1.5 py-0.5 rounded text-[10px]">
+                        {eng.frameworkRef || '—'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-text-primary truncate max-w-[180px]">{eng.name}</td>
+                    <td className="px-4 py-2 w-32"><PassBar value={Math.round(eng.passRatePct ?? 0)} size="sm" /></td>
+                    <td className="px-3 py-2 text-center text-text-secondary">{eng.totalControls}</td>
+                    <td className="px-3 py-2 text-center">
+                      {(eng.openFindings ?? 0) > 0
+                        ? <span className="text-amber-400">{eng.openFindings}</span>
+                        : <span className="text-green-400 text-[10px]">✓</span>}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <StatusDot status={eng.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+        )}
 
-          {planned.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center
-              border border-dashed border-border rounded-xl">
-              <BookOpen size={28} className="text-text-muted/40 mb-3"/>
-              <p className="text-sm font-medium text-text-secondary mb-1">No engagements planned</p>
-              <p className="text-xs text-text-muted mb-4">Add templates to this project to start engagements</p>
-              <Link to={`/audit/projects/${projectId}`}
-                className="text-[11px] text-brand-400 hover:text-brand-300 transition-colors">
-                Go to project → Add templates
-              </Link>
+        {/* ── Engagement cards ─────────────────────────────────────────────── */}
+        <div>
+          <h2 className="text-xs font-bold text-text-primary uppercase tracking-wide mb-3">
+            Engagements ({engagements.length})
+          </h2>
+          {engagements.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 border border-dashed border-border rounded-xl text-center">
+              <BookOpen size={28} className="text-text-muted/40 mb-3" />
+              <p className="text-sm font-medium text-text-secondary mb-1">No engagements yet</p>
+              <p className="text-xs text-text-muted">Engagements are created when the project is started</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-              {planned.map(pt => (
-                <EngagementCard key={pt.templateId} plannedTemplate={pt}/>
+              {engagements.map(eng => (
+                <EngagementCard key={eng.engagementId} eng={eng} navigate={navigate} />
               ))}
             </div>
           )}
         </div>
 
-        {/* ── Cross-framework findings matrix ─────────────────────────────── */}
-        <FindingsMatrix plannedTemplates={planned}/>
+        {/* ── Findings summary ─────────────────────────────────────────────── */}
+        {(report.totalFindings ?? 0) > 0 && (
+          <div className="bg-surface border border-border rounded-xl p-4">
+            <h2 className="text-xs font-bold text-text-primary uppercase tracking-wide mb-3 flex items-center gap-2">
+              <AlertTriangle size={12} className="text-amber-400" />Cross-Framework Findings
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'Critical', value: report.criticalFindings ?? 0, color: 'text-red-400'    },
+                { label: 'High',     value: report.highFindings     ?? 0, color: 'text-orange-400' },
+                { label: 'Medium',   value: report.mediumFindings   ?? 0, color: 'text-amber-400'  },
+                { label: 'Low',      value: report.lowFindings      ?? 0, color: 'text-text-muted' },
+              ].map(s => (
+                <div key={s.label} className="text-center">
+                  <p className={cn('text-2xl font-bold tabular-nums', s.color)}>{s.value}</p>
+                  <p className="text-[10px] text-text-muted uppercase tracking-wide mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
   )
-}
-
-// Lazy aggregate stats — fetches each engagement independently
-function ProgrammeSummaryStats({ projectId, planned }) {
-  const started = planned.filter(pt => pt.engagementId)
-
-  // We render a placeholder stats bar if no engagements started yet
-  if (started.length === 0) return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-      {['Engagements','Active','Completed','Controls','Open findings','Compliance'].map(l => (
-        <div key={l} className="bg-surface border border-border rounded-xl px-3 py-3">
-          <span className="text-[9px] text-text-muted uppercase tracking-wide block mb-1.5">{l}</span>
-          <p className="text-xl font-bold text-text-muted/30">—</p>
-        </div>
-      ))}
-    </div>
-  )
-
-  return <ProgrammeStatsLoader engagementIds={started.map(pt => pt.engagementId)}/>
-}
-
-function ProgrammeStatsLoader({ engagementIds }) {
-  // Fetch all engagements — React Query deduplicates with EngagementCard queries
-  const queries = engagementIds.map(id => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    return useQuery({
-      queryKey: ['audit-engagement', id],
-      queryFn:  () => auditApi.engagements.get(id),
-      staleTime: 60_000,
-    })
-  })
-
-  const engagements = queries.map(q => q.data).filter(Boolean)
-
-  return <ProgrammeStats engagements={engagements}/>
 }
