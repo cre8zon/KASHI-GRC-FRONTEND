@@ -27,6 +27,10 @@ const COMMON_ICONS = [
   'ToggleRight','Palette','Menu','Layers','FormInput','UserPlus','FileEdit',
   'ShieldCheck','Inbox','FolderOpen','AlertTriangle','FileUp','Paperclip',
   'CreditCard','Tag','BookOpen','LayoutTemplate','GitMerge','CheckSquare',
+  // Additional icons used across nav + audit modules
+  'FolderKanban','Library','FlaskConical','ShieldAlert','Layout','BookMarked',
+  'ListTodo','LayoutList','PaintBucket','GitBranch','Pencil','RefreshCw',
+  'MessageSquare','Target','Award','Briefcase','Hash','Star','Info',
 ]
 
 const SIDES = ['SYSTEM','ORGANIZATION','VENDOR','AUDITOR','AUDITEE']

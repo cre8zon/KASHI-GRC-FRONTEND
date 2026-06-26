@@ -34,6 +34,18 @@ export const auditApi = {
     updateStatus: (id, status) =>
       api.patch(`/v1/audit/projects/${id}/status`, { status }),
 
+    publish:   (id) => api.post(`/v1/audit/projects/${id}/publish`),
+    unpublish: (id) => api.post(`/v1/audit/projects/${id}/unpublish`),
+
+    setVisibility: (id, visibility) =>
+      api.patch(`/v1/audit/projects/${id}/visibility`, { visibility }),
+
+    tenantAccess: {
+      list:   (projectId)           => api.get(`/v1/audit/projects/${projectId}/tenant-access`),
+      grant:  (projectId, tenantId) => api.post(`/v1/audit/projects/${projectId}/tenant-access/${tenantId}`),
+      revoke: (projectId, tenantId) => api.delete(`/v1/audit/projects/${projectId}/tenant-access/${tenantId}`),
+    },
+
     // ── Project-Template Planning ──────────────────────────────────────────
     // FIX: templates was previously at auditApi.templates (root level) but
     // AuditProjectTemplatesPanel calls auditApi.projects.templates.* — moved here.

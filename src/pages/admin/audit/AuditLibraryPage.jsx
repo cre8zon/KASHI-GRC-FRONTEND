@@ -30,8 +30,9 @@ import {
   Layers, LayoutTemplate, Pencil, Trash2, ChevronDown,
   ChevronRight, Globe, Lock, CheckCircle2, XCircle,
   AlertCircle, Loader2, ArrowLeft, Send, BookOpen, Weight,
-  Link2,
+  Link2, FolderKanban, ExternalLink,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { auditApi }    from '../../../api/audit.api'
 import { PageLayout }  from '../../../components/layout/PageLayout'
 import { DataTable }   from '../../../components/ui/DataTable'
@@ -73,6 +74,7 @@ const AUDIT_TYPES = [
 const STATUS_COLOR = { DRAFT: 'amber', PUBLISHED: 'green' }
 
 const TABS = [
+  { key: 'projects',  label: 'Projects',  icon: FolderKanban },
   { key: 'templates', label: 'Templates', icon: LayoutTemplate },
   { key: 'sections',  label: 'Sections',  icon: Layers },
   { key: 'controls',  label: 'Controls',  icon: Shield },
@@ -3252,11 +3254,451 @@ function EditTemplateRowForm({ template, onClose }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function AuditLibraryPage({ defaultTab = 'templates' }) {
+
+// ─── Audit Project Builder ────────────────────────────────────────────────────
+function AuditProjectBuilder({ projectId, onBack }) {
+  const qc = useQueryClient()
+  const [editMode,    setEditMode]    = useState(false)
+  const [editForm,    setEditForm]    = useState(null)
+  const [showPicker,  setShowPicker]  = useState(false)
+  const [previewId,   setPreviewId]   = useState(null)
+  const [removeTarget,setRemoveTarget]= useState(null)
+  const [showTenants, setShowTenants] = useState(false)
+
+  const { data: project, isLoading: projLoading } = useQuery({
+    queryKey: ['audit-project-builder', projectId],
+    queryFn:  () => auditApi.projects.get(projectId),
+    select:   d => d?.data?.data ?? d?.data ?? d,
+  })
+
+  const { data: plannedRaw, isLoading: plannedLoading, refetch } = useQuery({
+    queryKey: ['audit-project-builder-templates', projectId],
+    queryFn:  () => auditApi.projects.templates.list(projectId),
+    enabled:  !!projectId,
+  })
+  const planned = Array.isArray(plannedRaw) ? plannedRaw : plannedRaw?.items ?? plannedRaw?.data ?? []
+
+  const { data: libraryRaw } = useQuery({
+    queryKey: ['audit-library-templates-published'],
+    queryFn:  () => auditApi.library.templates.list({ status: 'PUBLISHED', take: 100 }),
+  })
+  const library = libraryRaw?.items ?? libraryRaw?.data?.items ?? []
+  const plannedIds = new Set(planned.map(p => p.templateId))
+
+  const { data: accessRaw, refetch: refetchAccess } = useQuery({
+    queryKey: ['audit-project-tenant-access', projectId],
+    queryFn:  () => auditApi.projects.tenantAccess.list(projectId),
+    enabled:  !!projectId,
+  })
+  const accessList = Array.isArray(accessRaw) ? accessRaw
+    : accessRaw?.items ?? accessRaw?.data?.items ?? accessRaw?.data ?? []
+
+  const { data: tenantsRaw } = useQuery({
+    queryKey: ['all-tenants-picker'],
+    queryFn:  () => import('../../../api/tenants.api').then(m => m.tenantsApi.list({ take: 100 })),
+    enabled:  !!projectId,
+    select:   d => d?.data?.items ?? d?.items ?? d?.data ?? [],
+  })
+  const allTenants = Array.isArray(tenantsRaw) ? tenantsRaw : []
+  const grantedIds = new Set(accessList.map(a => a.tenantId))
+
+  const inv = () => {
+    qc.invalidateQueries({ queryKey: ['audit-project-builder-templates', projectId] })
+    qc.invalidateQueries({ queryKey: ['admin-audit-library-projects'] })
+    qc.invalidateQueries({ queryKey: ['audit-project-builder', projectId] })
+  }
+  const invAccess = () => qc.invalidateQueries({ queryKey: ['audit-project-tenant-access', projectId] })
+
+  const addMut = useMutation({
+    mutationFn: (templateId) => auditApi.projects.templates.add(projectId, templateId),
+    onSuccess: () => { inv(); setShowPicker(false); toast.success('Template added') },
+    onError: e => toast.error(e?.response?.data?.message ?? 'Failed to add'),
+  })
+  const removeMut = useMutation({
+    mutationFn: (templateId) => auditApi.projects.templates.remove(projectId, templateId),
+    onSuccess: () => { inv(); setRemoveTarget(null); toast.success('Template removed') },
+    onError: e => toast.error(e?.response?.data?.message ?? 'Failed to remove'),
+  })
+  const updateMut = useMutation({
+    mutationFn: (data) => auditApi.projects.update(projectId, data),
+    onSuccess: () => { inv(); toast.success('Project updated'); setEditMode(false) },
+    onError: e => toast.error(e?.response?.data?.message ?? 'Failed to update'),
+  })
+  const publishMut = useMutation({
+    mutationFn: () => auditApi.projects.publish(projectId),
+    onSuccess: () => { inv(); toast.success('Project published') },
+    onError: e => toast.error(e?.response?.data?.message ?? 'Failed to publish'),
+  })
+  const unpublishMut = useMutation({
+    mutationFn: () => auditApi.projects.unpublish(projectId),
+    onSuccess: () => { inv(); toast.success('Project moved to draft') },
+    onError: e => toast.error(e?.response?.data?.message ?? 'Failed to unpublish'),
+  })
+  const visibilityMut = useMutation({
+    mutationFn: (visibility) => auditApi.projects.setVisibility(projectId, visibility),
+    onSuccess: () => { inv(); toast.success('Visibility updated') },
+    onError: e => toast.error(e?.response?.data?.message ?? 'Failed to update visibility'),
+  })
+  const grantMut = useMutation({
+    mutationFn: (tenantId) => auditApi.projects.tenantAccess.grant(projectId, tenantId),
+    onSuccess: () => { invAccess(); toast.success('Access granted') },
+    onError: e => toast.error(e?.response?.data?.message ?? 'Failed to grant'),
+  })
+  const revokeMut = useMutation({
+    mutationFn: (tenantId) => auditApi.projects.tenantAccess.revoke(projectId, tenantId),
+    onSuccess: () => { invAccess(); toast.success('Access revoked') },
+    onError: e => toast.error(e?.response?.data?.message ?? 'Failed to revoke'),
+  })
+
+  const isPublished = project?.publishStatus === 'PUBLISHED'
+  const visibility  = project?.visibility ?? 'GLOBAL'
+
+  const VISIBILITY_OPTIONS = [
+    { key: 'GLOBAL',   label: 'Global',   desc: 'All organisations',   color: 'text-green-400 border-green-500/30 bg-green-500/10' },
+    { key: 'SPECIFIC', label: 'Specific', desc: 'Named tenants only',  color: 'text-brand-400 border-brand-500/30 bg-brand-500/10' },
+    { key: 'PLATFORM', label: 'Platform', desc: 'Platform admin only', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
+  ]
+
+  if (projLoading) return (
+    <div className="flex items-center justify-center h-full">
+      <Loader2 size={24} className="text-brand-400 animate-spin" />
+    </div>
+  )
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <button onClick={onBack}
+            className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-primary transition-colors">
+            <ArrowLeft size={14} /> Projects
+          </button>
+          <span className="text-text-muted">/</span>
+          <div className="min-w-0">
+            {editMode ? (
+              <input value={editForm?.name ?? ''} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                className="text-base font-semibold bg-transparent border-b border-brand-500 outline-none text-text-primary min-w-[200px]"
+                autoFocus />
+            ) : (
+              <span className="text-base font-semibold text-text-primary">{project?.name}</span>
+            )}
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-xs font-mono text-text-muted">{project?.projectRef}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${isPublished ? 'bg-green-500/10 text-green-400' : 'bg-surface-overlay text-text-muted'}`}>
+                {isPublished ? 'PUBLISHED' : 'DRAFT'}
+              </span>
+              {(() => { const v = VISIBILITY_OPTIONS.find(o => o.key === visibility); return v ? <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${v.color}`}>{v.label}</span> : null })()}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {editMode ? (
+            <>
+              <Button size="sm" variant="ghost" onClick={() => setEditMode(false)}>Cancel</Button>
+              <Button size="sm" variant="primary" loading={updateMut.isPending} onClick={() => updateMut.mutate(editForm)}>Save</Button>
+            </>
+          ) : (
+            <>
+              <Button size="sm" variant="secondary" icon={Pencil}
+                onClick={() => { setEditForm({ name: project?.name, description: project?.description }); setEditMode(true) }}>
+                Edit
+              </Button>
+              {isPublished
+                ? <Button size="sm" variant="ghost" loading={unpublishMut.isPending} onClick={() => unpublishMut.mutate()}>Move to Draft</Button>
+                : <Button size="sm" variant="primary" loading={publishMut.isPending} onClick={() => publishMut.mutate()}>Publish</Button>
+              }
+            </>
+          )}
+        </div>
+      </div>
+
+      {editMode && (
+        <div className="px-6 py-3 border-b border-border bg-surface-raised">
+          <textarea value={editForm?.description ?? ''} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+            rows={2} placeholder="Description (optional)"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+        </div>
+      )}
+      {!editMode && project?.description && (
+        <div className="px-6 py-3 border-b border-border">
+          <p className="text-sm text-text-secondary">{project.description}</p>
+        </div>
+      )}
+
+      <div className="flex-1 overflow-y-auto">
+        {/* Visibility */}
+        <div className="px-6 py-5 border-b border-border">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wide">Visibility</h3>
+            {visibility === 'SPECIFIC' && (
+              <button onClick={() => setShowTenants(t => !t)} className="text-xs text-brand-400 hover:text-brand-300 transition-colors">
+                {showTenants ? 'Hide tenants' : `Manage tenants (${accessList.length})`}
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            {VISIBILITY_OPTIONS.map(opt => (
+              <button key={opt.key} onClick={() => visibilityMut.mutate(opt.key)} disabled={visibilityMut.isPending}
+                className={`flex-1 py-2 px-3 rounded-md border text-xs font-medium transition-colors text-left ${visibility === opt.key ? opt.color : 'border-border text-text-muted hover:text-text-secondary'}`}>
+                <div className="font-semibold">{opt.label}</div>
+                <div className="text-[10px] opacity-70 mt-0.5">{opt.desc}</div>
+              </button>
+            ))}
+          </div>
+          {visibility === 'SPECIFIC' && showTenants && (
+            <div className="mt-4">
+              <div className="flex flex-col gap-1.5 mb-3">
+                {accessList.length === 0 && <p className="text-xs text-text-muted">No tenants have access yet.</p>}
+                {accessList.map(a => {
+                  const t = allTenants.find(t => (t.id ?? t.tenantId) === a.tenantId)
+                  const label = t?.name ?? t?.tenantName ?? `Tenant #${a.tenantId}`
+                  return (
+                    <div key={a.id} className="flex items-center justify-between px-3 py-2 rounded-md bg-surface-overlay text-xs">
+                      <span className="text-text-primary">{label}</span>
+                      <button onClick={() => revokeMut.mutate(a.tenantId)} disabled={revokeMut.isPending} className="text-red-400 hover:text-red-300 transition-colors ml-2">Revoke</button>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto border border-border rounded-md p-2">
+                {allTenants.filter(t => !grantedIds.has(t.id ?? t.tenantId)).map(t => (
+                  <button key={t.id ?? t.tenantId} onClick={() => grantMut.mutate(t.id ?? t.tenantId)} disabled={grantMut.isPending}
+                    className="w-full text-left px-3 py-1.5 rounded text-xs hover:bg-surface-overlay transition-colors flex items-center justify-between">
+                    <span>{t.name ?? t.tenantName ?? `Tenant #${t.id ?? t.tenantId}`}</span>
+                    <Plus size={11} className="text-text-muted" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Planned templates */}
+        <div className="px-6 py-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-medium text-text-primary">Planned templates</h3>
+              <p className="text-xs text-text-muted mt-0.5">Templates included in this programme</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => refetch()} className="p-1.5 text-text-muted hover:text-text-secondary rounded transition-colors"><RefreshCw size={14} /></button>
+              <Button size="sm" icon={Plus} onClick={() => setShowPicker(true)}>Add template</Button>
+            </div>
+          </div>
+
+          {plannedLoading ? (
+            <div className="flex flex-col gap-2">{[1,2].map(i => <div key={i} className="h-16 rounded-lg bg-surface-overlay animate-pulse" />)}</div>
+          ) : !planned.length ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-2 text-text-muted border-2 border-dashed border-border rounded-lg">
+              <LayoutTemplate size={28} className="opacity-30" />
+              <p className="text-sm">No templates planned yet</p>
+              <Button size="sm" icon={Plus} variant="secondary" onClick={() => setShowPicker(true)} className="mt-2">Add template</Button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {planned.map(pt => (
+                <div key={pt.id} className="rounded-lg border border-border p-4 flex items-start gap-3">
+                  <LayoutTemplate size={15} className="text-text-muted mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium">{pt.templateName}</span>
+                      {pt.templateFramework && <span className="text-[10px] font-mono text-text-muted">{pt.templateFramework}</span>}
+                      {pt.templateAuditType && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${pt.templateAuditType === 'INTERNAL' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
+                          {pt.templateAuditType}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => setPreviewId(pt.templateId)} className="h-7 px-2 text-[10px] rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">Preview</button>
+                    <button onClick={() => setRemoveTarget(pt)} className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 size={12} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Modal open={showPicker} onClose={() => setShowPicker(false)} title="Add template to plan">
+        <div className="flex flex-col gap-2 p-4 max-h-96 overflow-y-auto">
+          {library.filter(t => !plannedIds.has(t.id)).map(t => (
+            <button key={t.id} onClick={() => addMut.mutate(t.id)} disabled={addMut.isPending}
+              className="w-full text-left rounded-lg border border-border px-4 py-3 hover:bg-surface-overlay transition-colors flex items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{t.name}</span>
+                  <span className="text-[10px] font-mono text-text-muted">{t.frameworkRef}</span>
+                </div>
+                <p className="text-xs text-text-muted mt-0.5">{t.auditType} · v{t.version}</p>
+              </div>
+              <Plus size={14} className="text-text-muted shrink-0" />
+            </button>
+          ))}
+          {library.filter(t => !plannedIds.has(t.id)).length === 0 && (
+            <p className="text-sm text-text-muted text-center py-4">All published templates already planned</p>
+          )}
+        </div>
+      </Modal>
+
+      <ConfirmDialog open={!!removeTarget} onClose={() => setRemoveTarget(null)}
+        title="Remove template" message={`Remove "${removeTarget?.templateName}" from this project's plan?`}
+        confirmLabel="Remove" confirmVariant="danger" loading={removeMut.isPending}
+        onConfirm={() => removeMut.mutate(removeTarget.templateId)} />
+
+      {previewId && (
+        <Modal open={!!previewId} onClose={() => setPreviewId(null)} title="Template preview">
+          <div className="p-4 text-sm text-text-secondary">Template id={previewId}</div>
+        </Modal>
+      )}
+    </div>
+  )
+}
+
+
+// ─── Projects Library Tab ─────────────────────────────────────────────────────
+function AuditProjectsLibraryTab({ onOpen }) {
+  const qc = useQueryClient()
+  const [showCreate, setShowCreate] = useState(false)
+  const [form, setForm] = useState({ name: '', description: '', plannedStart: '', plannedEnd: '' })
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['admin-audit-library-projects'],
+    queryFn: () => auditApi.projects.list({ take: 100 }),
+    select: d => d?.data?.items ?? d?.items ?? d?.data ?? [],
+  })
+
+  const createMut = useMutation({
+    mutationFn: () => auditApi.projects.create({
+      name: form.name,
+      description: form.description,
+      plannedStart: form.plannedStart || undefined,
+      plannedEnd:   form.plannedEnd   || undefined,
+    }),
+    onSuccess: () => {
+      toast.success('Project created')
+      qc.invalidateQueries({ queryKey: ['admin-audit-library-projects'] })
+      setShowCreate(false)
+      setForm({ name: '', description: '', plannedStart: '', plannedEnd: '' })
+    },
+    onError: (e) => toast.error(e?.response?.data?.message ?? 'Failed to create project'),
+  })
+
+  const projects = data ?? []
+
+  return (
+    <div className="flex flex-col gap-4 p-6">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-text-muted">
+          Global programme templates — organisations select one to instantiate a running audit programme
+        </p>
+        <div className="flex items-center gap-2">
+          <button onClick={() => refetch()} className="p-1.5 text-text-muted hover:text-text-secondary rounded transition-colors">
+            <RefreshCw size={14} />
+          </button>
+          <button onClick={() => setShowCreate(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-brand-500 hover:bg-brand-600 text-white rounded-md transition-colors">
+            <Plus size={13} /> New project
+          </button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex flex-col gap-2">
+          {[1,2,3].map(i => <div key={i} className="h-16 rounded-lg bg-surface-overlay animate-pulse" />)}
+        </div>
+      ) : !projects.length ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-2 text-text-muted">
+          <FolderKanban size={32} className="opacity-30" />
+          <p className="text-sm">No library projects yet</p>
+          <p className="text-xs text-text-muted">Create a project to group audit templates into a reusable programme</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {projects.map(p => (
+            <button key={p.id} onClick={() => onOpen(p.id)}
+              className="w-full text-left rounded-lg border border-border bg-surface-raised hover:bg-surface-overlay transition-colors px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-start gap-3 min-w-0">
+                <FolderKanban size={16} className="text-brand-400 mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-text-primary">{p.name}</span>
+                    <span className="text-xs font-mono text-text-muted">{p.projectRef}</span>
+                    {/* Publish status */}
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${p.publishStatus === 'PUBLISHED' ? 'bg-green-500/10 text-green-400' : 'bg-surface-overlay text-text-muted'}`}>
+                      {p.publishStatus ?? 'DRAFT'}
+                    </span>
+                    {/* Visibility */}
+                    {p.visibility === 'GLOBAL'    && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400"><Globe size={9} />Global</span>}
+                    {p.visibility === 'PLATFORM'  && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">Platform only</span>}
+                    {p.visibility === 'SPECIFIC'  && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400">Selected tenants</span>}
+                    {/* Fallback for projects without new fields (legacy) */}
+                    {!p.visibility && (p.global
+                      ? <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400"><Globe size={9} />Global</span>
+                      : <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-surface-overlay text-text-muted"><Lock size={9} />Org</span>
+                    )}
+                  </div>
+                  {p.description && <p className="text-xs text-text-muted mt-0.5 truncate max-w-xl">{p.description}</p>}
+                  {p.plannedStart && <p className="text-[10px] text-text-muted mt-0.5">{p.plannedStart} — {p.plannedEnd}</p>}
+                </div>
+              </div>
+              <ExternalLink size={13} className="text-text-muted shrink-0" />
+            </button>
+          ))}
+        </div>
+      )}
+
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Library Project">
+        <div className="flex flex-col gap-4 p-4">
+          <div>
+            <label className="text-xs font-medium text-text-secondary block mb-1">Name *</label>
+            <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+              placeholder="e.g. SOC 2 + ISO 27001 Annual Programme 2027" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-text-secondary block mb-1">Description</label>
+            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              rows={2} className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+              placeholder="Optional description" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-text-secondary block mb-1">Planned Start</label>
+              <input type="date" value={form.plannedStart} onChange={e => setForm(f => ({ ...f, plannedStart: e.target.value }))}
+                className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-text-secondary block mb-1">Planned End</label>
+              <input type="date" value={form.plannedEnd} onChange={e => setForm(f => ({ ...f, plannedEnd: e.target.value }))}
+                className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <button onClick={() => setShowCreate(false)}
+              className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary rounded-md border border-border transition-colors">
+              Cancel
+            </button>
+            <button onClick={() => createMut.mutate()}
+              disabled={!form.name || createMut.isPending}
+              className="px-3 py-1.5 text-xs font-medium bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white rounded-md transition-colors">
+              {createMut.isPending ? 'Creating…' : 'Create Project'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  )
+}
+
+export default function AuditLibraryPage({ defaultTab = 'projects' }) {
   const auth = useSelector(selectAuth)
   const { data: auditLibConfig } = useScreenConfig('audit_library')
 
   const [activeTemplate, setActiveTemplate] = useState(null)
+  const [activeProject,  setActiveProject]  = useState(null)
 
   const [tab, setTab]               = useState(defaultTab)
   const [search, setSearch]         = useState('')
@@ -3403,6 +3845,10 @@ export default function AuditLibraryPage({ defaultTab = 'templates' }) {
     return <AuditTemplateBuilder templateId={activeTemplate} onBack={() => setActiveTemplate(null)} />
   }
 
+  if (activeProject) {
+    return <AuditProjectBuilder projectId={activeProject} onBack={() => setActiveProject(null)} />
+  }
+
   const BulkBar = ({ count, label, loading, onDelete, onClear }) =>
     count === 0 ? null : (
       <div className="flex items-center gap-3 px-6 py-2.5 bg-brand-500/5 border-b border-brand-500/20">
@@ -3421,6 +3867,7 @@ export default function AuditLibraryPage({ defaultTab = 'templates' }) {
       subtitle="Manage reusable controls, section trees, and templates"
       actions={
         <div className="flex items-center gap-2">
+          {tab !== 'projects' && (
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input
@@ -3436,6 +3883,7 @@ export default function AuditLibraryPage({ defaultTab = 'templates' }) {
               className="h-8 pl-8 pr-3 w-52 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
+          )}
 
           {tab === 'controls' && (
             <div className="relative">
@@ -3448,6 +3896,7 @@ export default function AuditLibraryPage({ defaultTab = 'templates' }) {
             </div>
           )}
 
+          {tab !== 'projects' && (
           <Button variant="ghost" size="sm" icon={RefreshCw}
             onClick={
                   tab === 'controls'  ? cRefetch :
@@ -3456,6 +3905,7 @@ export default function AuditLibraryPage({ defaultTab = 'templates' }) {
                   tab === 'tests'     ? testRefetch :
                                         polRefetch
                 } />
+          )}
 
           {tab === 'templates' && (
             <>
@@ -3464,11 +3914,13 @@ export default function AuditLibraryPage({ defaultTab = 'templates' }) {
             </>
           )}
 
+          {tab !== 'projects' && (
           <Button size="sm" icon={Plus}
             onClick={() => tab === 'controls' ? setShowCreateC(true) : tab === 'sections' ? setShowCreateS(true) : setShowCreateT(true)}>
             {tab === 'controls' ? 'Add control' : tab === 'sections' ? 'Add section' :
              tab === 'templates' ? 'New template' : tab === 'tests' ? 'Add test' : 'Add policy'}
           </Button>
+          )}
         </div>
       }
     >
@@ -3583,6 +4035,9 @@ export default function AuditLibraryPage({ defaultTab = 'templates' }) {
             </div>
           )
         )}
+
+        {/* Projects tab */}
+        {tab === 'projects' && <AuditProjectsLibraryTab onOpen={(id) => setActiveProject(id)} />}
 
         {/* Templates tab */}
         {tab === 'templates' && (

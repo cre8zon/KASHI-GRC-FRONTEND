@@ -66,7 +66,7 @@ function ContributionPicker({ policyInstanceId, controlInstanceId, current, canE
 
 export function PolicyInstanceMappedControlsTab({ policyInstanceId, vc = {} }) {
   const navigate = useNavigate()
-  const canEdit  = (vc.permissions||[]).includes('audit:policy:review')
+  const canEdit  = (vc.permissions||[]).includes('audit:policy:review') || (vc.permissions||[]).includes('audit:policy:read')
 
   const { data, isLoading } = useQuery({
     queryKey: ['policy-inst-controls', policyInstanceId],

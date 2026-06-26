@@ -46,10 +46,20 @@ function resolveTaskRoute(task, navItems) {
     if (nav?.route) return nav.route.replace(':id', task.artifactId) + qp
   }
 
-  // No navKey → blueprint step is misconfigured.
-  // activateWorkflow() now hard-blocks blueprints missing navKey (Gap 10),
-  // so this path should never be hit in production. Return null — the inbox
-  // renders a disabled "Open Task" button with a misconfiguration warning.
+  // ── Fallback: entityType-based routing ───────────────────────────────────
+  // Handles step instances created before nav_key was set on the blueprint,
+  // or before the ui_navigation row existed. Prevents "contact admin" errors
+  // for known entity types.
+  const ENTITY_ROUTES = {
+    AUDIT_PROJECT:    '/module/audit_project/:id',
+    AUDIT_ENGAGEMENT: '/module/audit_engagement/:id',
+    ISSUE:            '/module/issue/:id',
+    VENDOR:           '/module/vendor_assessment/:id',
+  }
+  const fallbackRoute = ENTITY_ROUTES[task.entityType]
+  if (fallbackRoute) return fallbackRoute.replace(':id', task.artifactId) + qp
+
+  // No navKey and no known entityType — blueprint misconfigured.
   return null
 }
 
@@ -66,8 +76,27 @@ function resolveTaskRoute(task, navItems) {
  * because their "work" is a decision (acknowledge/sign-off/pick someone),
  * not content creation.
  */
+/**
+ * Returns true when this task requires the user to open the work page
+ * before they can act — i.e. no inline Approve/Reject/Assign buttons shown.
+ *
+ * Rule 1: ACTOR tasks on work steps (FILL/REVIEW/GENERATE/EVALUATE/ACKNOWLEDGE)
+ * always open the page — the real work happens there.
+ *
+ * Rule 2: Entity types where ALL work (including assignment and approval) happens
+ * inside the module page's tabs — never inline. This includes AUDIT_PROJECT where
+ * the lead auditor assignment, section assignment, evidence submission etc. all
+ * happen inside the project detail page tabs, not from a modal/inline action.
+ *
+ * ASSIGNER tasks remain inline — they are coordinator/observer roles with no
+ * page-level action to complete.
+ */
+const MODULE_ONLY_ENTITY_TYPES = new Set(['AUDIT_PROJECT', 'AUDIT_ENGAGEMENT'])
+
 function requiresPageOpen(task) {
   if (task.taskRole === 'ASSIGNER') return false
+  // Entity types where the module page IS the work surface — always open it
+  if (MODULE_ONLY_ENTITY_TYPES.has(task.entityType)) return true
   return WORK_STEP_ACTIONS.has(task.resolvedStepAction)
 }
 

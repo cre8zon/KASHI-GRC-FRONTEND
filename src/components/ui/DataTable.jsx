@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { DynamicBadge, Badge } from './Badge'
 import { COLOR_MAP } from '../../config/constants'
@@ -15,12 +15,46 @@ const SEMANTIC_COLORS = {
 }
 import { cn } from '../../lib/cn'
 import { formatDate, truncate } from '../../utils/format'
+import api from '../../config/axios.config'
 
 /**
  * DataTable — fully DB-driven.
  * columns array comes from UiLayout.columnsJson via screenConfig.layout.columns (parsed JSON).
  * Supports: text, badge, date, mono, number column types.
  */
+// LookupCell — resolves a numeric user ID to a display name.
+// Used by the 'lookup' column type in DataTable. Fetches once per unique id value,
+// shows initials avatar + name, falls back to the raw id while loading.
+const lookupCache = {}  // module-level cache — survives re-renders, cleared on page refresh
+function LookupCell({ id }) {
+  const [label, setLabel] = useState(() => lookupCache[id] || null)
+  useEffect(() => {
+    if (!id || label) return
+    if (lookupCache[id]) { setLabel(lookupCache[id]); return }
+    api.get(`/v1/users/${id}`)
+      .then(r => {
+        const u = r?.data?.data || r?.data || r
+        const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email || String(id)
+        lookupCache[id] = name
+        setLabel(name)
+      })
+      .catch(() => { lookupCache[id] = ''; setLabel('') })
+  }, [id]) // eslint-disable-line
+
+  if (!id) return <span className="text-text-muted">—</span>
+  if (label === '') return <span className="text-text-muted">—</span>
+  const display = label || String(id)
+  const initials = display.split(' ').map(p => p[0]).filter(Boolean).join('').toUpperCase().slice(0, 2)
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 text-[9px] font-semibold flex items-center justify-center shrink-0">
+        {initials}
+      </span>
+      <span className={cn('text-xs truncate max-w-24', label ? 'text-text-primary' : 'text-text-muted')}>{display}</span>
+    </span>
+  )
+}
+
 export function DataTable({
   columns = [],
   data = [],
@@ -80,19 +114,24 @@ export function DataTable({
       // FIX: 'user' type — render ownerName / assigneeName alongside the id field.
       // Screen designer sets key: 'ownerId' but the API often returns ownerName as a companion field.
       // Try {key}Name, {key}Email, or the raw value (which may already be a name string).
+      case 'lookup':
+        return <LookupCell id={val} />
       case 'user': {
         const nameKey = col.key.replace(/Id$/, 'Name').replace(/id$/, 'Name')
-        const display = row[nameKey] || val
-        if (!display) return <span className="text-text-muted">—</span>
-        const initials = String(display).split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
-        return (
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 text-[9px] font-semibold flex items-center justify-center shrink-0">
-              {initials}
+        const companion = row[nameKey]
+        if (companion) {
+          const initials = String(companion).split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
+          return (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 text-[9px] font-semibold flex items-center justify-center shrink-0">
+                {initials}
+              </span>
+              <span className="text-xs text-text-primary truncate max-w-24">{companion}</span>
             </span>
-            <span className="text-xs text-text-primary truncate max-w-24">{display}</span>
-          </span>
-        )
+          )
+        }
+        // No companion name field — resolve via fetch
+        return <LookupCell id={val} />
       }
       default:
         return <span>{val ?? '—'}</span>

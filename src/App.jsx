@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { useDispatch } from 'react-redux'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { ScrollToTop } from './components/ScrollToTop'
@@ -7,94 +7,111 @@ import { selectIsAuthenticated, selectRoleSides, validateSession } from './store
 import { useTheme } from './hooks/useTheme'
 import { ROLE_SIDES } from './config/constants'
 
-// Layout
+// Layout — NOT lazy: needed immediately on every page
 import { AppShell } from './components/layout/AppShell'
 import { ThemeProvider } from './providers/ThemeProvider'
 
-// Auth
-import LoginPage               from './pages/auth/LoginPage'
-import ForcePasswordChangePage from './pages/auth/ForcePasswordChangePage'
-import PasswordChangedPage     from './pages/auth/PasswordChangedPage'
+// ── Lazy page imports — each page only loads when its route is first visited ──
+// This eliminates the 280+ JS requests on cold load by splitting into chunks.
 
-// Core
-import DashboardPage     from './pages/dashboard/DashboardPage'
-import SettingsPage      from './pages/settings/SettingsPage'
-import WorkflowInboxPage from './pages/workflow/WorkflowInboxPage'
-import AllTasksPage      from './pages/workflow/AllTasksPage'
-import TaskDetailPage      from './pages/workflow/TaskDetailPage'
-import ActionItemsPage      from './pages/action-items/ActionItemsPage'
-import NotificationsPage    from './pages/notifications/NotificationsPage'
-import AssessmentListPage   from './pages/assessments/AssessmentListPage'
-import AssessmentDetailPage from './pages/assessments/AssessmentDetailPage'
-import UserManagementPage    from './pages/users/UserManagementPage'
-import RolesPermissionsPage from './pages/roles/RolesPermissionsPage'
-import ReportsPage from './pages/reports/ReportsPage'
-import AssessmentReportPage from './pages/reports/AssessmentReportPage'
-// ── ADDED: AuditReportPage was missing — referenced by VIEW_REPORT __navRoute
-import AuditReportPage from './pages/reports/AuditReportPage'
+// Auth — small, loads fast, frequently needed
+const LoginPage               = lazy(() => import('./pages/auth/LoginPage'))
+const ForcePasswordChangePage = lazy(() => import('./pages/auth/ForcePasswordChangePage'))
+const PasswordChangedPage     = lazy(() => import('./pages/auth/PasswordChangedPage'))
 
-// ── ORGANISATION side ─────────────────────────────────────────────────────────
-import VendorListPage        from './pages/tprm/VendorListPage'
-import VendorDetailPage      from './pages/tprm/VendorDetailPage'
-import VendorOnboardPage     from './pages/tprm/VendorOnboardPage'
-import OrgTemplatesPage      from './pages/assessments/OrgTemplatesPage'
-import VendorAssessmentsPage from './pages/assessments/VendorAssessmentsPage'
-import AssessmentReviewPage  from './pages/assessments/AssessmentReviewPage'
-// ↓ NEW: Review Assistant page — mirrors VendorAssessmentFillPage contributor mode
-import ReviewAssistantPage   from './pages/assessments/ReviewAssistantPage'
+// Core — high-traffic pages, loaded early
+const DashboardPage     = lazy(() => import('./pages/dashboard/DashboardPage'))
+const SettingsPage      = lazy(() => import('./pages/settings/SettingsPage'))
+const WorkflowInboxPage = lazy(() => import('./pages/workflow/WorkflowInboxPage'))
+const AllTasksPage      = lazy(() => import('./pages/workflow/AllTasksPage'))
+const TaskDetailPage    = lazy(() => import('./pages/workflow/TaskDetailPage'))
+const ActionItemsPage   = lazy(() => import('./pages/action-items/ActionItemsPage'))
+const NotificationsPage = lazy(() => import('./pages/notifications/NotificationsPage'))
 
-// ── VENDOR side ───────────────────────────────────────────────────────────────
-import VendorAssessmentFillPage            from './pages/vendor/VendorAssessmentFillPage'
-import VendorAssessmentAssignPage          from './pages/vendor/VendorAssessmentAssignPage'
-import VendorAssessmentResponderReviewPage from './pages/vendor/VendorAssessmentResponderReviewPage'
-import VendorAssessmentAcknowledgePage    from './pages/vendor/VendorAssessmentAcknowledgePage'
+// Universal Module Page — the main audit/GRC module renderer
+const UniversalModulePage = lazy(() => import('./pages/module/UniversalModulePage'))
 
-// ── PLATFORM ADMIN ────────────────────────────────────────────────────────────
-import UserListPage            from './pages/users/UserListPage'
-import EmailTemplateManagerPage from './pages/admin/email-templates/EmailTemplateManagerPage'
-import TenantListPage           from './pages/admin/tenants/TenantListPage'
-import CreateTenantPage         from './pages/admin/tenants/CreateTenantPage'
-import TenantSuccessPage        from './pages/admin/tenants/TenantSuccessPage'
-import TenantDetailPage         from './pages/admin/tenants/TenantDetailPage'
-import SendWelcomeEmailPage     from './pages/admin/tenants/SendWelcomeEmailPage'
-import QuestionLibraryPage      from './pages/admin/assessment/QuestionLibraryPage'
-import AssessmentTemplatesPage  from './pages/admin/assessment/AssessmentTemplatesPage'
-import RiskMappingPage          from './pages/admin/assessment/RiskMappingPage'
-import WorkflowPage             from './pages/admin/workflows/WorkflowPage'
-import NavigationAdminPage      from './pages/admin/ui-config/NavigationAdminPage'
-import BlueprintsAdminPage      from './pages/admin/kashiguard/BlueprintsAdminPage'
-import GuardRulesAdminPage      from './pages/admin/kashiguard/GuardRulesAdminPage'
-import ComponentsAdminPage      from './pages/admin/ui-config/ComponentsAdminPage'
-import UiActionsAdminPage       from './pages/admin/ui-config/UiActionsAdminPage'
-import FormsAdminPage           from './pages/admin/ui-config/FormsAdminPage'
-import FeatureFlagsAdminPage    from './pages/admin/ui-config/FeatureFlagsAdminPage'
-import BrandingAdminPage        from './pages/admin/ui-config/BrandingAdminPage'
+// Users & Roles
+const UserManagementPage  = lazy(() => import('./pages/users/UserManagementPage'))
+const RolesPermissionsPage = lazy(() => import('./pages/roles/RolesPermissionsPage'))
+const UserListPage         = lazy(() => import('./pages/users/UserListPage'))
 
-// ── NEW IMPORTS ───────────────────────────────────────────────────────────────
-import UniversalModulePage           from './pages/module/UniversalModulePage'
-import RbacAdminPage                 from './pages/admin/rbac/RbacAdminPage'
-import ModuleBlueprintAdminPage      from './pages/admin/modules/ModuleBlueprintAdminPage'
-import NotificationTemplateAdminPage from './pages/admin/notifications/NotificationTemplateAdminPage'
-import WorkflowBlueprintDesigner     from './pages/admin/workflows/WorkflowBlueprintDesigner'
-import DesignSystemPage              from './pages/admin/design-system/DesignSystemPage'
-import ScreenDesignerPage            from './pages/admin/screen-designer/ScreenDesignerPage'
+// Reports
+const ReportsPage            = lazy(() => import('./pages/reports/ReportsPage'))
+const AssessmentReportPage   = lazy(() => import('./pages/reports/AssessmentReportPage'))
+const AuditReportPage        = lazy(() => import('./pages/reports/AuditReportPage'))
+const AuditProgrammeReportPage = lazy(() => import('./pages/reports/AuditProgrammeReportPage'))
 
-import ControlsLibraryPage    from './pages/admin/audit/ControlsLibraryPage'
-import AuditTemplatesPage     from './pages/admin/audit/AuditTemplatesPage'
-import ControlFrameworksPage  from './pages/admin/audit/ControlFrameworksPage'
-// ── RENAMED: avoid clash with pages/audit/AuditLibraryPage imported below
-import AdminAuditLibraryPage  from './pages/admin/audit/AuditLibraryPage'
-import AuditProjectListPage      from './pages/audit/AuditProjectListPage'
-import AuditProjectDashboardPage from './pages/dashboard/AuditProjectDashboardPage'
-import AuditEngagementListPage   from './pages/audit/AuditEngagementListPage'
-import AuditEngagementDetailPage from './pages/audit/AuditEngagementDetailPage'
-// ── ADDED: org read-only audit library (distinct from admin version above)
-import OrgAuditLibraryPage    from './pages/audit/AuditLibraryPage'
-// ── ADDED: PolicyEditorPage existed but had no route or import
-import PolicyEditorPage       from './pages/policies/PolicyEditorPage'
+// TPRM / Vendor — org side
+const VendorListPage        = lazy(() => import('./pages/tprm/VendorListPage'))
+const VendorDetailPage      = lazy(() => import('./pages/tprm/VendorDetailPage'))
+const VendorOnboardPage     = lazy(() => import('./pages/tprm/VendorOnboardPage'))
+const OrgTemplatesPage      = lazy(() => import('./pages/assessments/OrgTemplatesPage'))
+const VendorAssessmentsPage = lazy(() => import('./pages/assessments/VendorAssessmentsPage'))
+const AssessmentListPage    = lazy(() => import('./pages/assessments/AssessmentListPage'))
+const AssessmentDetailPage  = lazy(() => import('./pages/assessments/AssessmentDetailPage'))
+const AssessmentReviewPage  = lazy(() => import('./pages/assessments/AssessmentReviewPage'))
+const ReviewAssistantPage   = lazy(() => import('./pages/assessments/ReviewAssistantPage'))
 
-import DashboardAdminPage  from './pages/admin/dashboard/DashboardAdminPage'
-import AuditorPortalPage   from './pages/auditor/AuditorPortalPage'
+// Vendor side pages
+const VendorAssessmentFillPage            = lazy(() => import('./pages/vendor/VendorAssessmentFillPage'))
+const VendorAssessmentAssignPage          = lazy(() => import('./pages/vendor/VendorAssessmentAssignPage'))
+const VendorAssessmentResponderReviewPage = lazy(() => import('./pages/vendor/VendorAssessmentResponderReviewPage'))
+const VendorAssessmentAcknowledgePage     = lazy(() => import('./pages/vendor/VendorAssessmentAcknowledgePage'))
+
+// Audit
+const AuditProjectListPage      = lazy(() => import('./pages/audit/AuditProjectListPage'))
+const AuditProjectDashboardPage = lazy(() => import('./pages/dashboard/AuditProjectDashboardPage'))
+const AuditEngagementListPage   = lazy(() => import('./pages/audit/AuditEngagementListPage'))
+const AuditEngagementDetailPage = lazy(() => import('./pages/audit/AuditEngagementDetailPage'))
+const OrgAuditLibraryPage       = lazy(() => import('./pages/audit/AuditLibraryPage'))
+const PolicyEditorPage          = lazy(() => import('./pages/policies/PolicyEditorPage'))
+
+// Auditor portal
+const AuditorPortalPage = lazy(() => import('./pages/auditor/AuditorPortalPage'))
+
+// Workflow admin
+const WorkflowPage             = lazy(() => import('./pages/admin/workflows/WorkflowPage'))
+const WorkflowBlueprintDesigner = lazy(() => import('./pages/admin/workflows/WorkflowBlueprintDesigner'))
+
+// Platform Admin — only loaded by SYSTEM role users
+const EmailTemplateManagerPage   = lazy(() => import('./pages/admin/email-templates/EmailTemplateManagerPage'))
+const TenantListPage             = lazy(() => import('./pages/admin/tenants/TenantListPage'))
+const CreateTenantPage           = lazy(() => import('./pages/admin/tenants/CreateTenantPage'))
+const TenantSuccessPage          = lazy(() => import('./pages/admin/tenants/TenantSuccessPage'))
+const TenantDetailPage           = lazy(() => import('./pages/admin/tenants/TenantDetailPage'))
+const SendWelcomeEmailPage       = lazy(() => import('./pages/admin/tenants/SendWelcomeEmailPage'))
+const QuestionLibraryPage        = lazy(() => import('./pages/admin/assessment/QuestionLibraryPage'))
+const AssessmentTemplatesPage    = lazy(() => import('./pages/admin/assessment/AssessmentTemplatesPage'))
+const RiskMappingPage            = lazy(() => import('./pages/admin/assessment/RiskMappingPage'))
+const NavigationAdminPage        = lazy(() => import('./pages/admin/ui-config/NavigationAdminPage'))
+const BlueprintsAdminPage        = lazy(() => import('./pages/admin/kashiguard/BlueprintsAdminPage'))
+const GuardRulesAdminPage        = lazy(() => import('./pages/admin/kashiguard/GuardRulesAdminPage'))
+const ComponentsAdminPage        = lazy(() => import('./pages/admin/ui-config/ComponentsAdminPage'))
+const UiActionsAdminPage         = lazy(() => import('./pages/admin/ui-config/UiActionsAdminPage'))
+const FormsAdminPage             = lazy(() => import('./pages/admin/ui-config/FormsAdminPage'))
+const FeatureFlagsAdminPage      = lazy(() => import('./pages/admin/ui-config/FeatureFlagsAdminPage'))
+const BrandingAdminPage          = lazy(() => import('./pages/admin/ui-config/BrandingAdminPage'))
+const RbacAdminPage              = lazy(() => import('./pages/admin/rbac/RbacAdminPage'))
+const ModuleBlueprintAdminPage   = lazy(() => import('./pages/admin/modules/ModuleBlueprintAdminPage'))
+const NotificationTemplateAdminPage = lazy(() => import('./pages/admin/notifications/NotificationTemplateAdminPage'))
+const DesignSystemPage           = lazy(() => import('./pages/admin/design-system/DesignSystemPage'))
+const ScreenDesignerPage         = lazy(() => import('./pages/admin/screen-designer/ScreenDesignerPage'))
+const DashboardAdminPage         = lazy(() => import('./pages/admin/dashboard/DashboardAdminPage'))
+const ControlsLibraryPage        = lazy(() => import('./pages/admin/audit/ControlsLibraryPage'))
+const AuditTemplatesPage         = lazy(() => import('./pages/admin/audit/AuditTemplatesPage'))
+const ControlFrameworksPage      = lazy(() => import('./pages/admin/audit/ControlFrameworksPage'))
+const AdminAuditLibraryPage      = lazy(() => import('./pages/admin/audit/AuditLibraryPage'))
+
+// ─── Loading fallback ─────────────────────────────────────────────────────────
+// Shown while a lazy chunk is being fetched — only happens on first visit to a route.
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-full min-h-[200px]">
+      <div className="w-6 h-6 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
+    </div>
+  )
+}
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
 function RequireAuth({ children }) {
@@ -116,8 +133,6 @@ function usePlatformAdmin() {
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
-// Wraps AppShell with ThemeProvider so all useTheme() consumers share one state.
-// primaryColor from Redux ensures brand-theme sidebar uses the correct color.
 function AppShellWithTheme() {
   return (
     <ThemeProvider>
@@ -137,175 +152,127 @@ export default function App() {
   return (
     <>
       <ScrollToTop />
-      <Routes>
-      {/* Public */}
-      <Route path="/auth/login"            element={<RedirectIfAuthed><LoginPage /></RedirectIfAuthed>} />
-      <Route path="/auth/reset-password"   element={<ForcePasswordChangePage />} />
-      <Route path="/auth/password-changed" element={<PasswordChangedPage />} />
-      <Route path="/"                      element={<Navigate to="/dashboard" replace />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Public */}
+          <Route path="/auth/login"            element={<RedirectIfAuthed><LoginPage /></RedirectIfAuthed>} />
+          <Route path="/auth/reset-password"   element={<ForcePasswordChangePage />} />
+          <Route path="/auth/password-changed" element={<PasswordChangedPage />} />
+          <Route path="/"                      element={<Navigate to="/dashboard" replace />} />
 
-      {/* Outside AppShell */}
-      <Route path="/tenants/new"               element={<RequireAuth><CreateTenantPage /></RequireAuth>} />
-      <Route path="/tenants/success"           element={<RequireAuth><TenantSuccessPage /></RequireAuth>} />
-      <Route path="/tenants/:id/welcome-email" element={<RequireAuth><SendWelcomeEmailPage /></RequireAuth>} />
+          {/* Outside AppShell */}
+          <Route path="/tenants/new"               element={<RequireAuth><CreateTenantPage /></RequireAuth>} />
+          <Route path="/tenants/success"           element={<RequireAuth><TenantSuccessPage /></RequireAuth>} />
+          <Route path="/tenants/:id/welcome-email" element={<RequireAuth><SendWelcomeEmailPage /></RequireAuth>} />
 
-      {/* Protected AppShell */}
-      <Route element={<RequireAuth><AppShellWithTheme /></RequireAuth>}>
-        <Route path="/dashboard"      element={<DashboardPage />} />
-        <Route path="/settings"       element={<SettingsPage />} />
-        <Route path="/workflow/inbox"        element={<WorkflowInboxPage />} />
-        <Route path="/workflow/tasks"        element={<AllTasksPage />} />
-        <Route path="/workflow/tasks/:taskId" element={<TaskDetailPage />} />
-        <Route path="/action-items"           element={<ActionItemsPage />} />
-        <Route path="/notifications"          element={<NotificationsPage />} />
-        <Route path="/assessments"           element={<VendorAssessmentsPage />} />
-        <Route path="/assessments/:id"       element={<AssessmentDetailPage />} />
+          {/* Protected AppShell */}
+          <Route element={<RequireAuth><AppShellWithTheme /></RequireAuth>}>
+            <Route path="/dashboard"      element={<DashboardPage />} />
+            <Route path="/settings"       element={<SettingsPage />} />
+            <Route path="/workflow/inbox"         element={<WorkflowInboxPage />} />
+            <Route path="/workflow/tasks"          element={<AllTasksPage />} />
+            <Route path="/workflow/tasks/:taskId"  element={<TaskDetailPage />} />
+            <Route path="/action-items"            element={<ActionItemsPage />} />
+            <Route path="/notifications"           element={<NotificationsPage />} />
+            <Route path="/assessments"             element={<VendorAssessmentsPage />} />
+            <Route path="/assessments/:id"         element={<AssessmentDetailPage />} />
 
-        {/* ── Org side — Vendors / TPRM ────────────────────────────── */}
-        <Route path="/tprm/vendors"          element={<VendorListPage />} />
-        <Route path="/tprm/vendors/onboard"  element={<VendorOnboardPage />} />
-        <Route path="/tprm/vendors/:id"      element={<VendorDetailPage />} />
+            {/* Org side — Vendors / TPRM */}
+            <Route path="/tprm/vendors"          element={<VendorListPage />} />
+            <Route path="/tprm/vendors/onboard"  element={<VendorOnboardPage />} />
+            <Route path="/tprm/vendors/:id"      element={<VendorDetailPage />} />
 
-        {/* ── Org side — Assessments ───────────────────────────────── */}
-        <Route path="/assessments/vendor"     element={<VendorAssessmentsPage />} />
-        <Route path="/assessments/templates"  element={<OrgTemplatesPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/reports/assessments/:id" element={<AssessmentReportPage />} />
+            {/* Org side — Assessments */}
+            <Route path="/assessments/vendor"     element={<VendorAssessmentsPage />} />
+            <Route path="/assessments/templates"  element={<OrgTemplatesPage />} />
+            <Route path="/reports"                element={<ReportsPage />} />
+            <Route path="/reports/assessments/:id" element={<AssessmentReportPage />} />
+            <Route path="/assessments/:id/review"           element={<AssessmentReviewPage />} />
+            <Route path="/assessments/:id/assistant-review" element={<ReviewAssistantPage />} />
 
-        {/*
-          Review pages — two distinct routes for two distinct roles:
+            {/* Org side — Users & Roles */}
+            <Route path="/users" element={
+              isPlatformAdmin
+                ? <UserManagementPage side="SYSTEM" />
+                : <UserManagementPage side="ORGANIZATION" />
+            } />
+            <Route path="/roles" element={
+              isPlatformAdmin
+                ? <RolesPermissionsPage side="SYSTEM" />
+                : <RolesPermissionsPage side="ORGANIZATION" />
+            } />
+            <Route path="/vendor/users"  element={<UserManagementPage side="VENDOR" />} />
 
-          /assessments/:id/review
-            navKey: org_assessment_review
-            Who: ORG_CISO (assigns/approve), ORG_REVIEWER (evaluates sections),
-                 CONSOLIDATOR (step 12), ORG_CISO_APPROVER (final), ORG_ADMIN (sign-off)
-            Panel dispatch: resolveOrgPanel() by actorRoleName + stepAction
+            {/* Org side — Workflow overview */}
+            <Route path="/workflow"
+              element={<WorkflowPage isPlatformAdmin={false} defaultTab="instances" />} />
 
-          /assessments/:id/assistant-review       ← NEW
-            navKey: org_assistant_review
-            Who: ORG_REVIEW_ASSISTANT (evaluates assigned questions only)
-            Mirrors vendor /fill?role=contributor — dedicated focused page
-        */}
-        <Route path="/assessments/:id/review"           element={<AssessmentReviewPage />} />
-        <Route path="/assessments/:id/assistant-review" element={<ReviewAssistantPage />} />
+            {/* Vendor side */}
+            <Route path="/vendor/assessments"                          element={<VendorAssessmentsPage />} />
+            <Route path="/vendor/assessments/:id/fill"                 element={<VendorAssessmentFillPage />} />
+            <Route path="/vendor/assessments/:id/assign"               element={<VendorAssessmentAssignPage />} />
+            <Route path="/vendor/assessments/:id/acknowledge"          element={<VendorAssessmentAcknowledgePage />} />
+            <Route path="/vendor/assessments/:id/responder-review"     element={<VendorAssessmentResponderReviewPage />} />
 
-        {/* ── Org side — Users & Roles ─────────────────────────────── */}
-        <Route path="/users" element={
-          isPlatformAdmin
-            ? <UserManagementPage side="SYSTEM" />
-            : <UserManagementPage side="ORGANIZATION" />
-        } />
-        <Route path="/roles" element={
-          isPlatformAdmin
-            ? <RolesPermissionsPage side="SYSTEM" />
-            : <RolesPermissionsPage side="ORGANIZATION" />
-        } />
-        <Route path="/vendor/users"  element={<UserManagementPage side="VENDOR" />} />
+            {/* External Auditor */}
+            <Route path="/auditor/portal" element={<AuditorPortalPage />} />
 
-        {/* ── Org side — Workflow overview ─────────────────────────── */}
-        <Route path="/workflow"
-          element={<WorkflowPage isPlatformAdmin={false} defaultTab="instances" />} />
+            {/* Platform Admin */}
+            <Route path="/users-list"                     element={<UserListPage />} />
+            <Route path="/admin/email-templates"          element={<EmailTemplateManagerPage />} />
+            <Route path="/admin/assessment/questions"     element={<QuestionLibraryPage />} />
+            <Route path="/admin/assessment/templates"     element={<AssessmentTemplatesPage />} />
+            <Route path="/admin/assessment/risk-mappings" element={<RiskMappingPage />} />
+            <Route path="/admin/workflows"
+              element={<WorkflowPage isPlatformAdmin={isPlatformAdmin} defaultTab="blueprints" />} />
+            <Route path="/admin/workflow-instances"
+              element={<WorkflowPage isPlatformAdmin={isPlatformAdmin} defaultTab="instances" />} />
+            <Route path="/admin/workflows/blueprints"  element={<WorkflowBlueprintDesigner />} />
+            <Route path="/admin/kashiguard/blueprints" element={<BlueprintsAdminPage />} />
+            <Route path="/admin/kashiguard/rules"      element={<GuardRulesAdminPage />} />
+            <Route path="/admin/ui/navigation"  element={<NavigationAdminPage />} />
+            <Route path="/admin/ui/components"  element={<ComponentsAdminPage />} />
+            <Route path="/admin/ui/actions"     element={<UiActionsAdminPage />} />
+            <Route path="/admin/ui/forms"       element={<FormsAdminPage />} />
+            <Route path="/admin/ui/flags"       element={<FeatureFlagsAdminPage />} />
+            <Route path="/admin/ui/branding"    element={<BrandingAdminPage />} />
+            <Route path="/tenants"     element={<TenantListPage />} />
+            <Route path="/tenants/:id" element={<TenantDetailPage />} />
+            <Route path="/admin/rbac"             element={<RbacAdminPage />} />
+            <Route path="/admin/modules"          element={<ModuleBlueprintAdminPage />} />
+            <Route path="/admin/notifications"    element={<NotificationTemplateAdminPage />} />
+            <Route path="/admin/design-system"    element={<DesignSystemPage />} />
+            <Route path="/admin/screen-designer"  element={<ScreenDesignerPage />} />
+            <Route path="/admin/dashboard"        element={<DashboardAdminPage />} />
+            <Route path="/admin/audit/library"          element={<AdminAuditLibraryPage />} />
+            <Route path="/admin/controls/library"       element={<ControlsLibraryPage />} />
+            <Route path="/admin/audit/templates"        element={<AuditTemplatesPage />} />
+            <Route path="/admin/controls/frameworks"    element={<ControlFrameworksPage />} />
 
-        {/* ── Vendor side ──────────────────────────────────────────── */}
-        {/* /vendor/assessments uses the unified AssessmentListPage.
-            Backend scopes results by callerVendorId for vendor users. */}
-        <Route path="/vendor/assessments"
-          element={<VendorAssessmentsPage />} />
-        <Route path="/vendor/assessments/:id/fill"
-          element={<VendorAssessmentFillPage />} />
-        <Route path="/vendor/assessments/:id/assign"
-          element={<VendorAssessmentAssignPage />} />
-        <Route path="/vendor/assessments/:id/acknowledge"
-          element={<VendorAssessmentAcknowledgePage />} />
-        <Route path="/vendor/assessments/:id/responder-review"
-          element={<VendorAssessmentResponderReviewPage />} />
+            {/* Universal Module Page */}
+            <Route path="/module"                                              element={<Navigate to="/admin/modules" replace />} />
+            <Route path="/module/:entityType"                                  element={<UniversalModulePage />} />
+            <Route path="/module/:entityType/:id"                              element={<UniversalModulePage />} />
+            <Route path="/module/:parentEntityType/:parentId/:entityType"      element={<UniversalModulePage />} />
+            <Route path="/module/:parentEntityType/:parentId/:entityType/:id"  element={<UniversalModulePage />} />
 
-        {/* ── External Auditor side ──────────────────────────────────────────── */}
-        <Route path="/auditor/portal"  element={<AuditorPortalPage />} />
+            {/* Audit */}
+            <Route path="/audit/projects"                                element={<AuditProjectListPage />} />
+            <Route path="/audit/projects/:projectId"                     element={<AuditEngagementListPage />} />
+            <Route path="/audit/projects/:projectId/dashboard"          element={<AuditProjectDashboardPage />} />
+            <Route path="/audit/programme/:instanceId/dashboard"        element={<AuditProjectDashboardPage />} />
+            <Route path="/audit/programme/:instanceId/report"           element={<AuditProgrammeReportPage />} />
+            <Route path="/audit/engagements"                            element={<AuditEngagementListPage />} />
+            <Route path="/audit/engagements/:id"                        element={<AuditEngagementDetailPage />} />
+            <Route path="/audit/engagements/:id/report"                 element={<AuditReportPage />} />
+            <Route path="/audit/library"                                element={<OrgAuditLibraryPage />} />
+            <Route path="/audit/policies/:id/edit"                      element={<PolicyEditorPage />} />
+            <Route path="/audit/policies/:id"                           element={<PolicyEditorPage />} />
 
-
-        {/* ── Platform Admin — existing ─────────────────────────────── */}
-        <Route path="/users-list"                     element={<UserListPage />} />
-        <Route path="/admin/email-templates"          element={<EmailTemplateManagerPage />} />
-        <Route path="/admin/assessment/questions"     element={<QuestionLibraryPage />} />
-        <Route path="/admin/assessment/templates"     element={<AssessmentTemplatesPage />} />
-        <Route path="/admin/assessment/risk-mappings" element={<RiskMappingPage />} />
-        <Route path="/admin/workflows"
-          element={<WorkflowPage isPlatformAdmin={isPlatformAdmin} defaultTab="blueprints" />} />
-        <Route path="/admin/workflow-instances"
-          element={<WorkflowPage isPlatformAdmin={isPlatformAdmin} defaultTab="instances" />} />
-        <Route path="/admin/kashiguard/blueprints" element={<BlueprintsAdminPage />} />
-        <Route path="/admin/kashiguard/rules"      element={<GuardRulesAdminPage />} />
-        <Route path="/admin/ui/navigation"  element={<NavigationAdminPage />} />
-        <Route path="/admin/ui/components"  element={<ComponentsAdminPage />} />
-        <Route path="/admin/ui/actions"     element={<UiActionsAdminPage />} />
-        <Route path="/admin/ui/forms"       element={<FormsAdminPage />} />
-        <Route path="/admin/ui/flags"       element={<FeatureFlagsAdminPage />} />
-        <Route path="/admin/ui/branding"    element={<BrandingAdminPage />} />
-        <Route path="/tenants"     element={<TenantListPage />} />
-        <Route path="/tenants/:id" element={<TenantDetailPage />} />
-
-        {/* ── NEW ROUTES ───────────────────────────────────────────── */}
-
-        {/* Universal Module Page — renders any GRC module from blueprint config.
-            Existing hardcoded routes (/tprm/vendors etc.) are completely untouched.
-            This is a new parallel path — only /module/:entityType routes use it. */}
-        {/* Module index — redirects to /admin/modules since no entityType is known */}
-        <Route path="/module" element={<Navigate to="/admin/modules" replace />} />
-        {/* ── Flat module routes ─────────────────────────────────────────────── */}
-        <Route path="/module/:entityType"     element={<UniversalModulePage />} />
-        <Route path="/module/:entityType/:id" element={<UniversalModulePage />} />
-
-        {/* ── v2: Parent-scoped child module routes ──────────────────────────── */}
-        {/* Used when blueprint has parentContextJson set.
-            Examples:
-              /module/audit_engagement/42/audit_control_instance   (controls for engagement 42)
-              /module/audit_engagement/42/audit_control_instance/17 (control 17 detail)
-              /module/audit_project/1/audit_engagement              (engagements for project 1)
-              /module/risk/5/action_item                            (action items for risk 5) */}
-        <Route path="/module/:parentEntityType/:parentId/:entityType"     element={<UniversalModulePage />} />
-        <Route path="/module/:parentEntityType/:parentId/:entityType/:id" element={<UniversalModulePage />} />
-
-        {/* Platform Admin — RBAC & permissions */}
-        <Route path="/admin/rbac"             element={<RbacAdminPage />} />
-
-        {/* Platform Admin — Module blueprints */}
-        <Route path="/admin/modules"          element={<ModuleBlueprintAdminPage />} />
-
-        {/* Platform Admin — Notification templates */}
-        <Route path="/admin/notifications"    element={<NotificationTemplateAdminPage />} />
-
-        {/* Platform Admin — Full-page workflow blueprint designer.
-            Replaces the modal-based editor. WorkflowPage.jsx is untouched —
-            it still handles the Instances tab at /admin/workflows. */}
-        <Route path="/admin/workflows/blueprints" element={<WorkflowBlueprintDesigner />} />
-
-        {/* Platform Admin — Design system / component playground */}
-        <Route path="/admin/design-system"    element={<DesignSystemPage />} />
-
-        <Route path="/admin/screen-designer" element={<ScreenDesignerPage />} />
-        <Route path="/admin/dashboard" element={<DashboardAdminPage />} />
-        
-
-        {/* ── Platform Admin — Audit & Controls Config ─────────── */}
-        <Route path="/admin/audit/library"          element={<AdminAuditLibraryPage />} />
-        <Route path="/admin/controls/library"       element={<ControlsLibraryPage />} />
-        <Route path="/admin/audit/templates"        element={<AuditTemplatesPage />} />
-        <Route path="/admin/controls/frameworks"    element={<ControlFrameworksPage />} />
-        <Route path="/audit/projects"             element={<AuditProjectListPage />} />
-        <Route path="/audit/projects/:projectId"  element={<AuditEngagementListPage />} />
-        <Route path="/audit/projects/:projectId/dashboard"  element={<AuditProjectDashboardPage />} />
-        <Route path="/audit/engagements/:id"      element={<AuditEngagementDetailPage />} />
-        {/* ── ADDED: routes that were missing ──────────────────────────────── */}
-        <Route path="/audit/engagements"            element={<AuditEngagementListPage />} />
-        <Route path="/audit/engagements/:id/report" element={<AuditReportPage />} />
-        <Route path="/audit/library"                element={<OrgAuditLibraryPage />} />
-        <Route path="/audit/policies/:id/edit"      element={<PolicyEditorPage />} />
-        <Route path="/audit/policies/:id"           element={<PolicyEditorPage />} />
-
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Route>
-    </Routes>
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Route>
+        </Routes>
+      </Suspense>
     </>
   )
 }

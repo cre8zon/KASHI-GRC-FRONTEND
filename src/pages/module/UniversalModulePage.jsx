@@ -23,6 +23,7 @@ import { EngagementControlsTab }         from '../../components/audit/Engagement
 import { ControlInstanceTestsTab }       from '../../components/audit/ControlInstanceTestsTab'
 import { ControlInstancePoliciesTab }    from '../../components/audit/ControlInstancePoliciesTab'
 import { ControlInstanceEvidenceTab }    from '../../components/audit/ControlInstanceEvidenceTab'
+import { TestInstanceEvidenceTab }       from '../../components/audit/TestInstanceEvidenceTab'
 import { TestInstanceMappedControlsTab } from '../../components/audit/TestInstanceMappedControlsTab'
 import { PolicyInstanceMappedControlsTab } from '../../components/audit/PolicyInstanceMappedControlsTab'
 import { PolicyContentTab }              from '../../components/audit/PolicyContentTab'
@@ -30,6 +31,7 @@ import { PolicyVersionsTab }             from '../../components/audit/PolicyVers
 import { EngagementFindingsTab }         from '../../components/audit/EngagementFindingsTab'
 import { EngagementIntegrationTab }      from '../../components/audit/EngagementIntegrationTab'
 import { ProjectFindingsTab }            from '../../components/audit/ProjectFindingsTab'
+import ProjectEngagementsTab             from '../../components/audit/ProjectEngagementsTab'
 import { TestPolicyCsvImportModal }  from '../../components/audit/TestPolicyCsvImportModal'
 import { WorkflowTimeline }       from '../../components/workflow/WorkflowTimeline'
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
@@ -39,10 +41,27 @@ import {
   Plus, ArrowLeft, RefreshCw, Search, GitBranch, CheckCircle2,
   Upload, MessageSquare, FileText, Activity, AlertTriangle, Eye,
   ChevronRight, Pencil, Trash2, ExternalLink, Info, Lock, X, CheckSquare,
-  Hash, ServerCrash,
+  Hash, ServerCrash, BarChart2, Play, PlayCircle, XCircle, CheckCircle,
+  Shield, Tag, UserPlus, Send, Archive, RotateCcw, PauseCircle,
+  ShieldOff, Layers, Globe, FolderKanban, CornerDownLeft, Clipboard,
+  Settings, Users, Bell, Star, Zap, Flag, BookOpen, List, LayoutGrid,
+  Calendar, Clock, TrendingUp, Target, Award, Briefcase,
 } from 'lucide-react'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Button } from '../../components/ui/Button'
+
+// Resolves a string icon name from the DB (e.g. "BarChart2") to a Lucide component.
+// Falls back to null when the name is unknown — callers fall back to Hash or nothing.
+const ICON_MAP = {
+  BarChart2, FileText, Play, PlayCircle, XCircle, CheckCircle, CheckCircle2,
+  Shield, Tag, UserPlus, Send, Link, Archive, RotateCcw, PauseCircle,
+  ShieldOff, Layers, Globe, FolderKanban, CornerDownLeft, Upload, Plus,
+  RefreshCw, Search, GitBranch, AlertTriangle, Eye, Pencil, Trash2,
+  Lock, Activity, Info, MessageSquare, ExternalLink, Clipboard, Settings,
+  Users, Bell, Star, Zap, Flag, BookOpen, List, LayoutGrid, Calendar, Clock,
+  TrendingUp, Target, Award, Briefcase, Hash, CheckSquare,
+}
+const resolveIcon = (name) => (name && ICON_MAP[name]) || null
 import { Badge, DynamicBadge } from '../../components/ui/Badge'
 import { COLOR_MAP } from '../../config/constants'
 import { Modal, ConfirmDialog } from '../../components/ui/Modal'
@@ -56,10 +75,14 @@ import toast from 'react-hot-toast'
 import api from '../../config/axios.config'
 import { uiConfigApi } from '../../api/uiConfig.api'
 import { commentsApi } from '../../api/comments.api'
+import { useSelector } from 'react-redux'
+import { selectAuth, selectRoleSides } from '../../store/slices/authSlice'
+import { parseRoleAccessJson, isTabAllowed, isActionAllowed } from '../../components/screen-designer/roleAccessJson'
 // ── v2 additions ─────────────────────────────────────────────────────────────
 import EntityTreeView          from '../../components/module/EntityTreeView'
 import { useModuleSocket,
          useModuleListSocket } from '../../hooks/useModuleSocket'
+import { useUserTaskSocket } from '../../hooks/useWorkflowSocket'
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 
@@ -74,6 +97,10 @@ const moduleApi = {
   update:(basePath, id, data) => api.put(`${basePath}/${id}`, data),
   patch: (basePath, id, data) => api.patch(`${basePath}/${id}`, data),
   delete:(basePath, id) => api.delete(`${basePath}/${id}`),
+  // After task completion — check if same user has next task on same entity
+  nextTask: (entityType, entityId) =>
+    api.get('/v1/workflow-instances/tasks/my-next', { params: { entityType, entityId } })
+       .then(r => r?.data?.data || null),
 }
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
@@ -82,7 +109,9 @@ const useBlueprint = (entityType) => useQuery({
   queryKey: ['module-blueprint-type', entityType],
   queryFn: () => moduleApi.blueprint(entityType),
   enabled: !!entityType,
-  staleTime: 0,  // always fresh — tabs_json changes via Screen Designer
+  staleTime: 10 * 60 * 1000,   // 10 min — only changes via Screen Designer
+  gcTime:   30 * 60 * 1000,    // 30 min in cache — survives navigation away and back
+  refetchOnWindowFocus: false,
 })
 
 const useViewContext = (entityType, entityId, stepInstanceId, taskId) => useQuery({
@@ -90,6 +119,7 @@ const useViewContext = (entityType, entityId, stepInstanceId, taskId) => useQuer
   queryFn: () => moduleApi.viewContext(entityType, entityId, stepInstanceId, taskId),
   enabled: !!entityType,
   staleTime: 30 * 1000,
+  refetchOnWindowFocus: false,
 })
 
 const useScreenConfig = (screenKey) => useQuery({
@@ -97,6 +127,7 @@ const useScreenConfig = (screenKey) => useQuery({
   queryFn: () => moduleApi.screenConfig(screenKey),
   enabled: !!screenKey,
   staleTime: 5 * 60 * 1000,
+  refetchOnWindowFocus: false,
 })
 
 const useEntityList = (basePath, params) => useQuery({
@@ -195,7 +226,7 @@ function ModuleListView({ bp }) {
   const screenConfig = screenRes?.data || screenRes
 
   const params = { search: search || undefined, skip: page * 20, take: 20,
-    sortBy: sortBy || undefined, sortDir: sortBy ? sortDir : undefined }
+    sortBy: sortBy || undefined, sortDirection: sortBy ? sortDir : undefined }
   const { data: listRes, isLoading } = useEntityList(bp.apiBasePath, params)
   // Handle all API response shapes:
   // { items: [...], pagination: {...} }  — our standard PaginatedResponse (axios strips outer data wrapper)
@@ -361,14 +392,17 @@ function ModuleListView({ bp }) {
               direct endpoint → API call. Fallback: show create button if no
               screen actions are configured yet. */}
           {listScreenActions.length > 0
-            ? listScreenActions.map(action => (
+            ? listScreenActions.map(action => {
+              const ListIcon = resolveIcon(action.icon) || (action.actionKey?.includes('CREATE') || action.actionKey?.includes('NEW') ? Plus : undefined)
+              return (
               <Button key={action.id} size="sm"
                 variant={action.variant === 'secondary' ? 'secondary' : 'primary'}
-                icon={action.actionKey?.includes('CREATE') || action.actionKey?.includes('NEW') ? Plus : undefined}
+                icon={ListIcon}
                 onClick={() => handleListAction(action)}>
                 {action.label}
               </Button>
-            ))
+              )
+            })
             : canCreate && (
               <Button icon={Plus} size="sm" onClick={() => setCreateOpen(true)}>
                 New {bp.displayName}
@@ -423,7 +457,9 @@ function ModuleListView({ bp }) {
                 sortBy={sortBy}
                 sortDir={sortDir}
                 onSort={handleSort}
-                selectable={!!screenConfig?.layout?.selectable}
+                pagination={listRes?.pagination || listRes?.data?.pagination}
+                onPageChange={(p) => setPage(p - 1)}
+                selectable={!!screenConfig?.layout?.selectable && listScreenActions.some(a => { try { return JSON.parse(a.payloadTemplateJson || '{}')['__bulk'] === true } catch { return false } })}
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}
               />
@@ -465,9 +501,9 @@ function ModuleListView({ bp }) {
             // FIX: mutateAsync (not mutate) so a rejected promise propagates to
             // DynamicForm's handleFormSubmit catch block, which then calls setError()
             // per field and shows inline validation messages instead of a silent failure.
-            onSubmit={(data) => {
-              setCreateOpen(false)  // close immediately — prevents double-submit
-              createMut.mutate(data)
+            onSubmit={async (data) => {
+              await createMut.mutateAsync(data)
+              setCreateOpen(false)  // close only after success
             }}
             loading={createMut.isPending}
             submitLabel={`Create ${bp.displayName}`}
@@ -490,13 +526,11 @@ function ModuleListView({ bp }) {
             <DynamicForm
               formKey={formKey}
               onSubmit={async (data) => {
-                try {
-                  const endpoint = listFormAction.apiEndpoint || bp.apiBasePath
-                  await api({ method: listFormAction.httpMethod || 'POST', url: endpoint, data })
-                  qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
-                  toast.success(`${bp.displayName} created`)
-                  setListFormAction(null)
-                } catch (e) { toast.error(e?.response?.data?.message || 'Failed') }
+                const endpoint = listFormAction.apiEndpoint || bp.apiBasePath
+                await api({ method: listFormAction.httpMethod || 'POST', url: endpoint, data })
+                qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+                toast.success(`${bp.displayName} created`)
+                setListFormAction(null)  // close only after success
               }}
               submitLabel={listFormAction.label}
             />
@@ -562,27 +596,154 @@ function ModuleDetailView({ bp, id }) {
     } finally { setSaving(false) }
   }
 
-  // ── Workflow task context — injected by TaskInbox when opened from a task ──
-  // URL: /module/issue/1?stepInstanceId=42&taskId=7
-  // stepInstanceId → passed to useViewContext so the backend resolves field-level
-  // access for this specific workflow step (FILL/REVIEW/APPROVE etc.)
-  // taskId → shown in the task context banner so the user knows which task they're on
-  const [searchParams] = useSearchParams()
+  // ── Workflow task context ──────────────────────────────────────────────────
+  const [searchParams, setSearchParams] = useSearchParams()
   const stepInstanceId = searchParams.get('stepInstanceId') || undefined
   const taskId         = searchParams.get('taskId') || undefined
+
+  // ── Seamless task transition via WebSocket ─────────────────────────────────
+  // When the backend assigns a new task to this user on this same entity
+  // (because the previous step completed and advanced), the TASK_ASSIGNED
+  // WebSocket event fires. We update the URL params in place — no inbox trip,
+  // no polling, no page reload. Works for ALL modules generically:
+  // Issues, Audit Projects, TPRM, anything on UniversalModulePage.
+
+  const handleTaskAssigned = useCallback(({ taskId: newTaskId, stepInstanceId: newStepInstanceId, stepName, navKey, artifactId }) => {
+    // Cross-page transition: navKey differs from current page blueprint navKey
+    // e.g. user is on audit_project_detail, new task is on audit_engagement_detail
+    if (navKey && bp?.navKey && navKey !== bp.navKey && artifactId) {
+      const route = navKey.replace('_detail', '')
+      navigate(`/module/${route}/${artifactId}?taskId=${newTaskId}&stepInstanceId=${newStepInstanceId}`)
+      toast.success(`Next step: ${stepName || 'Step'}`, { icon: '→', duration: 3000 })
+      return
+    }
+    // Same-page transition — just update URL params
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev)
+      p.set('taskId',         String(newTaskId))
+      p.set('stepInstanceId', String(newStepInstanceId))
+      return p
+    })
+    const isTransition = !!taskId  // already had a task — this is step advancement
+    if (isTransition) {
+      toast.success(`Next step: ${stepName || 'Step'}`, { icon: '→', duration: 3000 })
+    } else {
+      toast.success(`You've been assigned: ${stepName || 'New task'}`, { icon: '📋', duration: 5000 })
+    }
+  }, [setSearchParams, taskId, navigate, bp?.navKey])
+
+
+  // ── transitionToNextTask — now just clears task context after completion ───
+  // The WebSocket handles automatic transition to the NEXT task.
+  // This function is called after action buttons fire — it clears the current
+  // task params if no new task arrived yet (e.g. last step, workflow complete).
+  const transitionToNextTask = useCallback(async (entityType, entityId) => {
+    try {
+      const next = await moduleApi.nextTask(entityType, entityId)
+      if (next?.taskId && next?.stepInstanceId) {
+        // Backend already assigned next task — WebSocket may have beaten us here.
+        // Only update if taskId in URL hasn't changed yet (WS didn't fire first).
+        setSearchParams(prev => {
+          const p = new URLSearchParams(prev)
+          if (p.get('taskId') !== String(next.taskId)) {
+            p.set('taskId',         String(next.taskId))
+            p.set('stepInstanceId', String(next.stepInstanceId))
+          }
+          return p
+        })
+        return true
+      } else {
+        // No next task — clear task context, go to view mode
+        setSearchParams(prev => {
+          const p = new URLSearchParams(prev)
+          p.delete('taskId')
+          p.delete('stepInstanceId')
+          return p
+        })
+        return false
+      }
+    } catch (err) {
+      console.warn('[transitionToNextTask] failed:', err)
+      return false
+    }
+  }, [setSearchParams])
+
+  // ── Parallel fetch optimisation ───────────────────────────────────────────
+  // Blueprint, entity, and view-context are independent — start all three
+  // immediately so they fetch in parallel instead of blueprint → entity → vc waterfall.
+
+  // ── Generic parallel prefetch ─────────────────────────────────────────────
+  // Once the blueprint resolves (fast from cache after first visit), immediately
+  // prefetch the entity and view-context in parallel. The entity fetch uses
+  // bp.apiBasePath which comes from the blueprint — zero hardcoding, works for
+  // every module universally. On first cold load there's still a waterfall;
+  // on all subsequent navigations blueprint is cached and all three fire together.
+  const qcPrefetch = useQueryClient()
+  useEffect(() => {
+    if (!bp.apiBasePath || !id) return
+    // Prefetch entity if not already in cache
+    qcPrefetch.prefetchQuery({
+      queryKey: ['module-detail', bp.apiBasePath, id],
+      queryFn:  () => moduleApi.get(bp.apiBasePath, id),
+      staleTime: 30 * 1000,
+    })
+  }, [bp.apiBasePath, id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: entityRes, isLoading, isError } = useEntityDetail(bp.apiBasePath, id)
   const entity = entityRes?.data || entityRes
 
   // Gap 3: pass stepInstanceId so backend resolves step-action-aware editableFields
-  const { data: vcRes } = useViewContext(bp.entityType, id, stepInstanceId, taskId)
+  const { data: vcRes } = useViewContext(bp.entityType || entityType, id, stepInstanceId, taskId)
   const vc = vcRes?.data || vcRes || {}
+
+  // ── Self-correct stale URL params ────────────────────────────────────────
+  // When a step transitions (e.g. Step 7 → Step 8), the WebSocket fires
+  // TASK_ASSIGNED to update the URL. If the user missed the WS event (page
+  // was closed, reconnect lag), the URL carries the old stepInstanceId.
+  // Detect by comparing URL params with what the backend says is active.
+  useEffect(() => {
+    const backendStepId = vc.stepInstanceId ? String(vc.stepInstanceId) : null
+    const backendTaskId = vc.taskId         ? String(vc.taskId)         : null
+    const urlStepId     = stepInstanceId    ? String(stepInstanceId)    : null
+    if (backendStepId && urlStepId && backendStepId !== urlStepId) {
+      setSearchParams(prev => {
+        const p = new URLSearchParams(prev)
+        p.set('stepInstanceId', backendStepId)
+        if (backendTaskId) p.set('taskId', backendTaskId)
+        else p.delete('taskId')
+        return p
+      })
+    }
+  }, [vc.stepInstanceId, vc.taskId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Role-based tab/action visibility — Screen Designer's roleAccessJson ────
+  // Data-driven: consults whatever was configured per-role/per-side in Screen
+  // Designer. No tab/action key is ever hardcoded here — if nothing is
+  // configured for a screen, everything stays visible exactly as before.
+  const auth         = useSelector(selectAuth)
+  const currentUserId = auth?.userId
+
+  useUserTaskSocket(currentUserId, {
+    watchEntityType: bp?.entityType,
+    watchEntityId:   id,
+    onTaskAssigned:  handleTaskAssigned,
+  })
+  const userSides     = useSelector(selectRoleSides)
+  const currentSide    = userSides?.[0] || null
+  const currentRoleIds = (auth?.roles || []).map(r => r.id ?? r.roleId).filter(Boolean)
+
+  // Reset to overview whenever the entity ID changes (navigating between records).
+  // Without this, navigating from one detail page to another keeps the previous tab
+  // selected, and the content area can appear blank if that tab's data isn't loaded yet.
+  useEffect(() => { setTab('overview') }, [id])
 
   // Auto-select tab based on workflow step action when coming from a task.
   // Only fires once when vc.stepAction first resolves — doesn't override
   // user's manual tab clicks (useEffect dep is stepAction string, not vc object).
   useEffect(() => {
     if (!stepInstanceId || !vc.stepAction) return
+
+    // Default tab map — works for most entity types
     const tabMap = {
       ASSIGN:      'sections',
       REVIEW:      'controls',
@@ -591,14 +752,40 @@ function ModuleDetailView({ bp, id }) {
       APPROVE:     'overview',
       ACKNOWLEDGE: 'overview',
     }
-    const target = tabMap[vc.stepAction]
-    if (target) setTab(target)
-  }, [vc.stepAction, stepInstanceId])
 
-  const { data: screenRes } = useScreenConfig(bp.detailScreenKey)
+    // Entity-type-specific overrides — where the module's tab keys differ
+    const entityTabOverrides = {
+      AUDIT_PROJECT: {
+        ASSIGN:      'engagements',  // Lead auditor assignment in Engagements tab
+        FILL:        'engagements',  // Findings remediation etc. in Engagements tab
+        REVIEW:      'engagements',
+        APPROVE:     'engagements',
+        ACKNOWLEDGE: 'engagements',
+      },
+    }
+
+    const overrides = entityTabOverrides[bp?.entityType] || {}
+    const target = overrides[vc.stepAction] ?? tabMap[vc.stepAction]
+    if (target) setTab(target)
+  }, [vc.stepAction, stepInstanceId, bp?.entityType])
+
+  // When opened from a task with no resolved stepAction yet, set a sensible
+  // default tab so the page isn't blank while vc loads
+  useEffect(() => {
+    if (!stepInstanceId) return
+    const entityDefaultTabs = {
+      AUDIT_PROJECT:    'engagements',
+      AUDIT_ENGAGEMENT: 'sections',
+    }
+    const defaultForEntity = entityDefaultTabs[bp?.entityType]
+    if (defaultForEntity) setTab(defaultForEntity)
+  }, [stepInstanceId, bp?.entityType])
+
+  const { data: screenRes, isLoading: screenLoading } = useScreenConfig(bp.detailScreenKey)
 
   // ── Screen Designer tabsJson — custom tabs defined in SD detail screen ──────
   const sdLayout = screenRes?.layout
+  const roleAccess = useMemo(() => parseRoleAccessJson(sdLayout?.roleAccessJson), [sdLayout?.roleAccessJson])
   const sdCustomTabs = useMemo(() => {
     try {
       const parsed = JSON.parse(sdLayout?.tabsJson || 'null')
@@ -608,7 +795,7 @@ function ModuleDetailView({ bp, id }) {
           return key && !CAPABILITY_TAB_KEYS.has(key)
         }).map(t => typeof t === 'string'
           ? { key: t.toLowerCase().replace(/\s+/g,'_'), label: t }
-          : { key: t.key, label: t.label || t.key })
+          : { key: t.key, label: t.label || t.key, icon: t.icon || null })
       }
     } catch {}
     return []
@@ -667,11 +854,32 @@ function ModuleDetailView({ bp, id }) {
         )
         // COMPLETE_STEP is a universal workflow action used across all modules
         transitionKeys.add('COMPLETE_STEP')
-        if (transitionKeys.has(action.actionKey) && vc.canAct === false) return false
+        // Workflow-advancing actions require an active task context.
+        // canAct is now set by backend in resolveForModule even without URL taskId:
+        //   - Path A: user has a pending task at this step (vc.taskId populated)
+        //   - Path B: user has workflow:step:override permission (vc.taskId null, vc.stepInstanceId set)
+        // Hide action if backend says canAct=false (wrong role, wrong step, no task, no override)
+        const effectiveCanAct = vc.canAct === true
+        if (transitionKeys.has(action.actionKey) && !effectiveCanAct) return false
+        // When a step uses compound-task section gates (hasSections=true), completion
+        // happens automatically when all section items are done — hide the manual button
+        // to prevent premature APPROVE calls that would fail the gate check.
+        // This is fully generic — works for any module, not just AUDIT_PROJECT.
+        if (action.actionKey === 'COMPLETE_STEP' && vc.hasSections === true) return false
+
+        // Assignment-scoped actions: flagged in ui_actions.requires_assignment = true.
+        // When set, the action is only visible if the entity reports the current user
+        // is assigned (entity.isAssignedToCurrentUser returned by the GET endpoint).
+        // No task context needed — the entity-level assignment IS the scope gate.
+        if (action.requiresAssignment && !taskId) {
+          if (entity?.isAssignedToCurrentUser === false) return false
+        }
       } catch { /* statusFlowJson parse error — skip transition gate */ }
+      // Screen Designer's per-role action visibility (roleAccessJson.actions)
+      if (!isActionAllowed(roleAccess, currentSide, currentRoleIds, action.actionKey)) return false
       return true
     })
-  }, [screenConfig?.actions, entity?.status, vc.permissions, vc.canAct, entity])
+  }, [screenConfig?.actions, entity?.status, vc.permissions, vc.canAct, entity, roleAccess, currentSide, currentRoleIds])
 
   // Execute a screen action — resolves path params, handles confirmation + remarks.
   // Three action types via payloadTemplateJson convention:
@@ -698,6 +906,7 @@ function ModuleDetailView({ bp, id }) {
     const url = (action.apiEndpoint || '')
       .replace('{id}', id)
       .replace('{entityId}', id)
+      .replace('{engagementId}', entity?.engagementId || entity?.engagement_id || id)
       .replace('{taskId}', taskId || '')
       .replace('{stepInstanceId}', stepInstanceId || '')
     try {
@@ -716,12 +925,60 @@ function ModuleDetailView({ bp, id }) {
             .replace('{stepInstanceId}', stepInstanceId || '')
         }
       }
-      await api({ method: action.httpMethod || 'POST', url, data: payload })
+      // ── Override path: workflow:step:override — no task, use override endpoint ──
+      // When backend returns canAct=true but no taskId, the user has override authority.
+      // Route APPROVE/REJECT/SEND_BACK to the step override endpoint instead of task action.
+      const isWorkflowTransition = ['APPROVE', 'REJECT', 'SEND_BACK', 'COMPLETE_STEP'].includes(action.actionKey)
+      const isOverridePath = isWorkflowTransition && vc.canAct && !vc.taskId && vc.stepInstanceId
+      if (isOverridePath) {
+        await api.post(`/v1/workflow-instances/steps/${vc.stepInstanceId}/override`, {
+          action: action.actionKey === 'COMPLETE_STEP' ? 'APPROVE' : action.actionKey,
+          remarks: remarks || undefined,
+        })
+      } else {
+        await api({ method: action.httpMethod || 'POST', url, data: payload })
+      }
       qcDetail.invalidateQueries({ queryKey: ['module-detail', bp.apiBasePath, id] })
       qcDetail.invalidateQueries({ queryKey: ['view-context', bp.entityType, id] })
       qcDetail.invalidateQueries({ queryKey: ['module-workflow', bp.entityType, id] })
       qcDetail.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+      // Invalidate audit instance sub-tabs so they reflect result changes immediately
+      if (bp.entityType === 'AUDIT_TEST_INSTANCE') {
+        qcDetail.invalidateQueries({ queryKey: ['test-inst-controls', Number(id)] })
+        qcDetail.invalidateQueries({ queryKey: ['ctrl-inst-tests'] })
+      }
+      if (bp.entityType === 'AUDIT_POLICY_INSTANCE') {
+        qcDetail.invalidateQueries({ queryKey: ['policy-inst-controls', Number(id)] })
+        qcDetail.invalidateQueries({ queryKey: ['ctrl-inst-policies'] })
+      }
       toast.success(action.label + ' successful')
+
+      // ── Auto-approve task after domain action ──────────────────────────────
+      // For steps with autoCompleteActorOnSubmit=true, approve the workflow task
+      // after the domain action succeeds (e.g. ISSUE_TRIAGE approves the Triage task).
+      // This is the same logic as updateMut.onSuccess but applies to all executeAction calls.
+      if (taskId && vc?.autoCompleteActorOnSubmit) {
+        try {
+          await api.post('/v1/workflow-instances/tasks/action', {
+            taskInstanceId: Number(taskId),
+            actionType: 'APPROVE',
+            remarks: 'Auto-completed after ' + action.label,
+          })
+        } catch (err) {
+          console.warn('[executeAction] autoCompleteActorOnSubmit failed:', err)
+        }
+      }
+
+      // ── Seamless task transition ───────────────────────────────────────────
+      // After any successful action when opened from a task, check if the same
+      // user has a next pending task on this entity. The my-next endpoint is
+      // a cheap indexed query — returns null instantly if no next task exists.
+      // Works for all modules: Issue domain actions, Audit workflow actions, etc.
+      if (taskId) {
+        const transitioned = await transitionToNextTask(bp?.entityType, id)
+        if (transitioned) return // next task found — URL already updated, skip nav below
+      }
+      // ── end seamless task transition ──────────────────────────────────────
       // Navigate to clean page URL for any status-changing action so the entire
       // component remounts with fresh data — prevents stale status showing in
       // action buttons and header (e.g. Reopen showing on OPEN issue).
@@ -761,7 +1018,7 @@ function ModuleDetailView({ bp, id }) {
   // immediately drives the live module page with no code changes.
   const overviewFormKey = bp.detailScreenKey ? `${bp.detailScreenKey}_tab_overview` : null
   const legacyFormKey   = bp.editFormKey || bp.createFormKey
-  const { data: overviewFormRes } = useQuery({
+  const { data: overviewFormRes, isLoading: overviewLoading } = useQuery({
     queryKey: ['module-overview-form', overviewFormKey],
     queryFn:  () => uiConfigApi.form(overviewFormKey),
     enabled:  !!overviewFormKey,
@@ -820,8 +1077,8 @@ function ModuleDetailView({ bp, id }) {
           })
           qc.invalidateQueries({ queryKey: ['workflow-task', taskId] })
           toast.success('Task completed — workflow advancing')
+          await transitionToNextTask(bp?.entityType, id)
         } catch (err) {
-          // Non-blocking — form save succeeded, just couldn't auto-complete task
           console.warn('[autoCompleteActorOnSubmit] Failed to auto-approve task:', err)
           toast('Form saved. Go to inbox to complete the workflow task.', { icon: 'ℹ️' })
         }
@@ -865,27 +1122,34 @@ function ModuleDetailView({ bp, id }) {
       // Non-capability base tab — respect tabsJson and viewContext
       if (sdTabKeys && !sdTabKeys.includes(t.key)) return false
       if (vc.hiddenTabs?.includes(t.key)) return false
-      if (vc.visibleTabs?.length > 0 && !vc.visibleTabs.includes(t.key)) return false
+      // visibleTabs from step config only restricts tabs when user has an active task.
+      // Without a task (read-only browsing), all tabs are always visible.
+      // This implements our rule: step config gates ACTIONS, not read-only visibility.
+      if (taskId && vc.visibleTabs?.length > 0 && !vc.visibleTabs.includes(t.key)) return false
       return true
     })
     // Inject SD custom tabs (non-capability) in order they appear in tabsJson
     // Insert after Overview but before capability tabs
     const overviewIdx = base.findIndex(t => t.key === 'overview')
     const customTabs = sdCustomTabs.map(t => ({
-      key: t.key, label: t.label, icon: Hash, isCustom: true,
+      key: t.key, label: t.label, icon: resolveIcon(t.icon) || Hash, isCustom: true,
     }))
-    return [
+    const merged = [
       ...base.slice(0, overviewIdx + 1),
       ...customTabs,
       ...base.slice(overviewIdx + 1),
     ]
-  }, [bp, vc, sdCustomTabs, sdLayout?.tabsJson])
+    // Apply Screen Designer's per-role tab visibility (roleAccessJson.tabs).
+    // Falls through to "allowed" for any tab/role combination that hasn't
+    // been explicitly configured — existing screens are unaffected.
+    return merged.filter(t => isTabAllowed(roleAccess, currentSide, currentRoleIds, t.key))
+  }, [bp, vc, sdCustomTabs, sdLayout?.tabsJson, roleAccess, currentSide, currentRoleIds])
 
   // Build field sections from blueprint schema
   let schema = { sections: [] }
   try { schema = JSON.parse(bp.fieldsSchemaJson || '{}') } catch {}
 
-  if (isLoading) return <LoadingState />
+  if (isLoading || screenLoading || (overviewFormKey && overviewLoading)) return <LoadingState />
   if (isError)   return <ServerErrorState />
   if (!entity) return <NotFoundState entityType={bp.displayName} />
 
@@ -900,13 +1164,7 @@ function ModuleDetailView({ bp, id }) {
       title={
         <div className="flex items-center gap-2">
           {/* v2: if this is a child module, back goes to the parent-scoped list */}
-          <button onClick={() => {
-            if (bp._parentCtx && bp._parentId) {
-              navigate(`/module/${bp._parentCtx.parentEntityType.toLowerCase()}/${bp._parentId}/${bp.entityType.toLowerCase()}`)
-            } else {
-              navigate(`/module/${bp.entityType.toLowerCase()}`)
-            }
-          }}
+          <button onClick={() => navigate(-1)}
             className="text-text-muted hover:text-text-primary transition-colors">
             <ArrowLeft size={15} />
           </button>
@@ -922,18 +1180,22 @@ function ModuleDetailView({ bp, id }) {
             </div>
           )}
           {/* FIX: Render screen designer actions with correct variants and status guards */}
-          {screenActions.map(action => (
+          {screenActions.map(action => {
+            const ActionIcon = resolveIcon(action.icon)
+            return (
             <Button
               key={action.id}
               size="sm"
               variant={action.variant || 'secondary'}
               loading={actingId != null && actingId === action.id}
               disabled={actingId != null && actingId !== action.id}
+              icon={ActionIcon || undefined}
               onClick={() => handleActionClick(action)}
             >
               {(() => { try { const m = JSON.parse(action.payloadTemplateJson||'{}'); return m.__label || action.label } catch { return action.label } })()}
             </Button>
-          ))}
+            )
+          })}
           {/* Edit button hidden — overview fields are now inline-editable on click (Wrike-style) */}
           {canDelete && (
             <Button variant="danger" size="sm" icon={Trash2} onClick={() => setDeleteTarget(entity)} />
@@ -1100,7 +1362,11 @@ function ModuleDetailView({ bp, id }) {
         )}
 
         {tab === 'evidence' && bp.supportsDocuments && (
-          <EvidenceTab entityId={id} entityType={bp.entityType} vc={vc} />
+          bp.entityType === 'AUDIT_CONTROL_INSTANCE'
+            ? <ControlInstanceEvidenceTab controlInstanceId={entity?.id} vc={vc} />
+            : bp.entityType === 'AUDIT_TEST_INSTANCE'
+              ? <TestInstanceEvidenceTab testInstanceId={entity?.id} vc={vc} />
+              : <EvidenceTab entityId={id} entityType={bp.entityType} vc={vc} />
         )}
 
         {tab === 'comments' && bp.supportsComments && (
@@ -1120,6 +1386,8 @@ function ModuleDetailView({ bp, id }) {
             entityType={bp.entityType}
             apiBasePath={bp.apiBasePath}
             vc={vc}
+            stepInstanceId={stepInstanceId}
+            taskId={taskId}
           />
         )}
       </div>
@@ -1227,32 +1495,50 @@ function ModuleDetailView({ bp, id }) {
 // ─── Sub-tabs ─────────────────────────────────────────────────────────────────
 
 function WorkflowTab({ entityType, entityId, vc, bp, entity }) {
-  // Step 1: get workflow instance
-  // Prefer entity.workflowInstanceId (works for both IN_PROGRESS and COMPLETED).
-  // /active only returns IN_PROGRESS — CLOSED/COMPLETED issues would show empty.
+  // Single query: resolve instance id then fetch progress in one chain.
+  // Previously two sequential queries caused a waterfall (step1 → step2 blocked).
+  // Now we do both in one queryFn — one round trip, no waterfall.
   const entityWorkflowId = entity?.workflowInstanceId
-  const { data: instanceRes, isLoading: instanceLoading } = useQuery({
-    queryKey: ['module-workflow', entityType, entityId],
-    queryFn: async () => {
-      if (entityWorkflowId) {
-        return api.get(`/v1/workflow-instances/${entityWorkflowId}`)
-      }
-      return api.get('/v1/workflow-instances/active', { params: { entityType, entityId } })
-    },
-    enabled: !!entityId,
-    staleTime: 0,  // always fresh — reopen creates new instance
-  })
-  const instance = instanceRes?.data || instanceRes
+  // For project-governed engagements: if the engagement has no own workflow instance
+  // (AUDIT_ENGAGEMENT entities are governed by the project lifecycle, not their own workflow),
+  // fall back to the project instance's workflow so the tab shows the project timeline.
+  // NOTE: GET /engagements/{id} returns projectInstanceId nested as projectSnapshot.id
+  const projectInstanceId = entity?.projectInstanceId ?? entity?.projectSnapshot?.id
+  // For AUDIT_ENGAGEMENT with no own workflow, we must wait for entity to load
+  // so projectInstanceId is available before the query fires.
+  // Without this gate, the query fires immediately with entityType=AUDIT_ENGAGEMENT
+  // and gets NO_ACTIVE_INSTANCE cached, never retrying with the correct AUDIT_PROJECT params.
+  const readyToFetch = entityType === 'AUDIT_ENGAGEMENT'
+    ? !!entity  // wait for entity so projectInstanceId is resolved
+    : !!entityId
 
-  // Step 2: fetch full step-by-step progress once we have the instance id
-  const { data: progressRes, isLoading: progressLoading } = useQuery({
-    queryKey: ['wf-progress', instance?.id],
-    queryFn: () => api.get(`/v1/workflow-instances/${instance.id}/progress`),
-    enabled: !!instance?.id,
-    staleTime: 0,
+  const { data: wfData, isLoading: wfLoading } = useQuery({
+    queryKey: ['module-workflow', entityType, entityId, projectInstanceId ?? null],
+    enabled: readyToFetch,
+    queryFn: async () => {
+      // Resolve the instance
+      let instanceData
+      if (entityWorkflowId) {
+        instanceData = await api.get(`/v1/workflow-instances/${entityWorkflowId}`)
+      } else if (entityType === 'AUDIT_ENGAGEMENT' && projectInstanceId) {
+        // Engagement is governed by the project workflow — fetch project's active workflow
+        instanceData = await api.get('/v1/workflow-instances/active', {
+          params: { entityType: 'AUDIT_PROJECT', entityId: projectInstanceId }
+        })
+      } else {
+        instanceData = await api.get('/v1/workflow-instances/active', { params: { entityType, entityId } })
+      }
+      const inst = instanceData?.data || instanceData
+      if (!inst?.id) return { instance: inst, progress: [] }
+      // Fetch progress immediately — no second render cycle
+      const progressData = await api.get(`/v1/workflow-instances/${inst.id}/progress`)
+      const prog = progressData?.data || progressData
+      return { instance: inst, progress: Array.isArray(prog) ? prog : (prog?.data || []) }
+    },
+    staleTime: 15 * 1000,
   })
-  const progress = progressRes?.data || progressRes
-  const wfLoading = instanceLoading || (!!instance?.id && progressLoading)
+  const instance = wfData?.instance
+  const progress = wfData?.progress
 
   // Loading skeleton
   if (wfLoading) {
@@ -1293,16 +1579,25 @@ function WorkflowTab({ entityType, entityId, vc, bp, entity }) {
       <WorkflowTimeline
         progress={progress}
         workflowInstanceId={instance.id}
-        isAdmin={vc.canEdit !== false}
+        isAdmin={
+          // Admin = can reopen/re-evaluate workflow tasks
+          // Requires WORKFLOW_MANAGE permission (org-side admins only)
+          // workflow:task:assign alone is not enough — auditors also have it
+          (vc.permissions || []).includes('WORKFLOW_MANAGE') ||
+          vc.isAdmin === true
+        }
       />
     </div>
   )
 }
 
 function EvidenceTab({ entityId, entityType, vc }) {
+  // Auditees can upload evidence if they have submit-evidence permission
+  // even without generic canEdit (they have read-limited access, not full edit)
+  const canUpload = vc.canEdit || (vc.permissions || []).includes('audit:control:submit-evidence')
   return (
     <div className="max-w-2xl">
-      {vc.canEdit
+      {canUpload
         ? <div className="flex flex-col items-center gap-3 py-12 border-2 border-dashed border-border rounded-xl text-center cursor-pointer hover:border-brand-500/40 hover:bg-brand-500/3 transition-colors">
             <Upload size={24} className="text-text-muted" />
             <div>
@@ -1326,7 +1621,7 @@ function EvidenceTab({ entityId, entityType, vc }) {
 //   "policies"  → LibraryMappingTab (shows policies linked to this control)
 // All other keys → renders fields from {detailScreenKey}_tab_{tabKey} form key.
 
-function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBasePath, vc }) {
+function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBasePath, vc, stepInstanceId, taskId }) {
   // ── ALL HOOKS MUST BE AT TOP — Rules of Hooks ────────────────────────────
   const qc = useQueryClient()
   const [saving,   setSaving]   = useState(false)
@@ -1336,16 +1631,38 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
 
   // formKey and form data — always fetched regardless of early returns
   const formKey = `${detailScreenKey}_tab_${tabKey}`
+  // Tabs that are always rendered by a dedicated component — no form config needed.
+  // Fetching their formKey produces a 404 and floods the logs with RESOURCE_NOT_FOUND errors.
+  const CUSTOM_RENDERED_TABS = new Set([
+    'sections', 'controls', 'findings', 'engagements', 'integrations',
+    'tests', 'policies', 'evidence', 'workflow', 'comments', 'history',
+  ])
   const { data: formRes, isLoading } = useQuery({
     queryKey: ['module-tab-form', formKey],
     queryFn: () => uiConfigApi.form(formKey),
-    enabled: !!formKey,
+    enabled: !!formKey && !CUSTOM_RENDERED_TABS.has(tabKey),
     staleTime: 5 * 60_000,
   })
   const fields = formRes?.fields || []
 
-  const canEdit = vc?.canEdit === true
-  const canAct  = vc?.canAct  === true
+  // editableTabs: when set on the step, only the listed tabs are editable,
+  // AND only for the user who has a real task at this step (taskId in URL).
+  // If editableTabs is set but hasTask=false (direct URL, no task), block all editing.
+  // This matches Issue workflow behaviour — forms only editable via My Tasks route.
+  const hasTask     = !!vc?.taskId
+  const editableTabsDefined = vc?.editableTabs?.length > 0
+  const tabEditable = editableTabsDefined
+    ? (hasTask && vc.editableTabs.includes(tabKey))
+    : true
+  const canEdit = tabEditable && (vc?.stepAction ? (vc?.canAct === true) : (vc?.canEdit === true))
+  const canAct  = vc?.canAct === true
+
+  // DEBUG — remove after fix confirmed
+  console.log('[TAB-EDIT]', tabKey, {
+    canAct: vc?.canAct, canEdit: vc?.canEdit, taskId: vc?.taskId,
+    stepAction: vc?.stepAction, editableTabs: vc?.editableTabs,
+    hasTask, editableTabsDefined, tabEditable, canEdit
+  })
 
   // Compute whether this tab has meaningful content already saved
   const meaningfulFields = fields.filter(f =>
@@ -1366,25 +1683,25 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
   }
 
   // After fields load, decide initial edit mode for this tab.
-  // Only runs on tab switch (tabKey change) — not on every render.
-  // canAct + empty tab → edit mode (first time filling)
-  // canAct + filled tab → read-only (show Edit button to re-enter)
+  // Wait for vc to be fully loaded (canView defined) before entering edit mode
+  // to avoid flickering into edit mode before editableTabs/hasTask is known.
+  const vcLoaded = vc?.canView !== undefined
   useEffect(() => {
-    if (!canAct || fields.length === 0) return
+    if (!vcLoaded) return
+    if (!canEdit) { setEditMode(false); return }
+    if (fields.length === 0) return
     setEditMode(!tabHasValues)
-  }, [tabKey, fields.length]) // eslint-disable-line react-hooks/exhaustive-deps
-  // Note: tabHasValues intentionally excluded from deps — we only want this
-  // to fire on tab-switch, not when entity updates after save.
+  }, [tabKey, fields.length, canEdit, vcLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
   // ─────────────────────────────────────────────────────────────────────────
 
   // ── Library mapping tabs — rendered by dedicated component ───────────────
   // AUDIT_ENGAGEMENT — sections tree with controls nested + both clickable
   if (tabKey === 'sections' && entityType === 'AUDIT_ENGAGEMENT') {
-    return <EngagementSectionsTab engagementId={entity?.id} vc={vc} />
+    return <EngagementSectionsTab engagementId={entity?.id} vc={vc} stepInstanceId={stepInstanceId} onTaskComplete={() => transitionToNextTask(bp?.entityType, id)} />
   }
   // AUDIT_ENGAGEMENT — flat control list with clickable detail
   if (tabKey === 'controls' && entityType === 'AUDIT_ENGAGEMENT') {
-    return <EngagementControlsTab engagementId={entity?.id} vc={vc} />
+    return <EngagementControlsTab engagementId={entity?.id} vc={vc} taskId={taskId} />
   }
   // AUDIT_ENGAGEMENT — findings list with escalate-to-issue action
   if (tabKey === 'findings' && entityType === 'AUDIT_ENGAGEMENT') {
@@ -1393,6 +1710,10 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
   // AUDIT_PROJECT — findings list for a project
   if (tabKey === 'findings' && entityType === 'AUDIT_PROJECT') {
     return <ProjectFindingsTab projectId={entity?.id} />
+  }
+  // AUDIT_PROJECT — engagements list for this project (click → SOC2 engagement detail)
+  if (tabKey === 'engagements' && entityType === 'AUDIT_PROJECT') {
+    return <ProjectEngagementsTab projectId={entity?.id} vc={vc} stepInstanceId={stepInstanceId} taskId={taskId} onTaskComplete={() => transitionToNextTask(bp?.entityType, id)} />
   }
   // AUDIT_ENGAGEMENT — automated integration check status (EngagementIntegrationSnapshot rows)
   if (tabKey === 'integrations' && entityType === 'AUDIT_ENGAGEMENT') {
@@ -1503,7 +1824,14 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
           onSubmit={async (data) => {
             setSaving(true)
             try {
-              await api.put(`${apiBasePath}/${entity.id}`, data)
+              // Use form's submit_url if defined — allows step-specific endpoints
+              // (e.g. /v1/audit/engagements/{id}/report-review instead of base path).
+              // Fall back to standard entity update if no submit_url configured.
+              const saveUrl = formRes?.submitUrl
+                ? formRes.submitUrl.replace('{id}', String(entity.id))
+                : `${apiBasePath}/${entity.id}`
+              const saveMethod = (formRes?.httpMethod || 'PUT').toLowerCase()
+              await api({ method: saveMethod, url: saveUrl, data })
               await qc.refetchQueries({ queryKey: ['module-detail', apiBasePath, String(entity?.id)] })
               toast.success('Saved')
               setEditMode(false)
@@ -1651,8 +1979,8 @@ function HistoryTab({ entityType, entityId, apiBasePath }) {
   const { data: res, isLoading: historyLoading } = useQuery({
     queryKey: ['module-history', apiBasePath, entityId],
     queryFn: () => api.get(`${apiBasePath}/${entityId}/history`),
+    staleTime: 30 * 1000,
     enabled: !!entityId,
-    staleTime: 0,
   })
   const history = res?.data || res || []
 
@@ -1751,21 +2079,26 @@ function EntityDisplay({ value, lookupEntityType, lookupApiPath }) {
   useEffect(() => {
     if (!valueStr || !valueStr.match(/^\d+$/)) return   // not a numeric ID — no fetch needed
     const cfg = DISPLAY_LOOKUP_CONFIG[lookupEntityType?.toUpperCase?.()]
-    const path = lookupApiPath || cfg?.path
-    if (!path) return   // no config for this entity type — show raw value
+    const rawPath = lookupApiPath || cfg?.path
+    if (!rawPath) return   // no config for this entity type — show raw value
+    // Strip any query params from the path before appending the ID.
+    // e.g. '/v1/workflows?entityType=AUDIT_PROJECT' → '/v1/workflows/16' (not malformed URL).
+    const basePath = rawPath.includes('?') ? rawPath.slice(0, rawPath.indexOf('?')) : rawPath
+    const resolvedPath = `${basePath}/${valueStr}`
     let cancelled = false
-    api.get(`${path}/${valueStr}`)
+    api.get(resolvedPath)
       .then(r => {
         if (cancelled) return
-        const item = r.data?.data || r.data
+        const item = r?.data?.data || r?.data || r
         const resolved = cfg ? cfg.labelFn(item) : (item.name || item.label || item.title || valueStr)
         setLabel(resolved || valueStr)
       })
-      .catch(() => { if (!cancelled) setLabel(valueStr) })
+      .catch(() => { if (!cancelled) setLabel(null) })
     return () => { cancelled = true }
   }, [valueStr, lookupEntityType, lookupApiPath]) // eslint-disable-line
 
   if (!valueStr) return <span className="text-text-muted/40 text-xs italic">—</span>
+  if (label === null && valueStr) return <span className="text-text-muted/40 text-xs italic">—</span>
   return <span className="text-sm text-text-primary">{label || valueStr}</span>
 }
 
@@ -1856,17 +2189,6 @@ function FieldDisplay({ label, value, type, editable, field = {} }) {
               </span>
             ))}
           </div>
-        )
-      }
-
-      case 'MULTILINE_LIST': {
-        const items = Array.isArray(value) ? value : []
-        return (
-          <ul className="list-disc list-inside space-y-0.5">
-            {items.map((item, i) => (
-              <li key={i} className="text-sm text-text-primary">{item}</li>
-            ))}
-          </ul>
         )
       }
 
@@ -2042,8 +2364,8 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
   // ── 1. Full entity data ───────────────────────────────────────────────────
   const { data: entityRes, isLoading: loadingEntity } = useQuery({
     queryKey: ['drawer-entity', bp.apiBasePath, entityId],
-    queryFn:  () => moduleApi.get(bp.apiBasePath, entityId),
-    staleTime: 0, enabled: !!entityId,
+    staleTime: 30 * 1000,
+    queryFn:  () => moduleApi.get(bp.apiBasePath, entityId), enabled: !!entityId,
   })
   const entity = entityRes?.data?.data || entityRes?.data || entityRes
 
@@ -2055,6 +2377,14 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
   })
   const screenConfig = screenRes?.data?.data || screenRes?.data || screenRes
   const isLoading = loadingEntity || screenLoading
+
+  // ── Role-based action visibility — Screen Designer's roleAccessJson ────────
+  const sdLayout        = screenRes?.layout
+  const roleAccess       = useMemo(() => parseRoleAccessJson(sdLayout?.roleAccessJson), [sdLayout?.roleAccessJson])
+  const auth             = useSelector(selectAuth)
+  const userSides         = useSelector(selectRoleSides)
+  const currentSide        = userSides?.[0] || null
+  const currentRoleIds     = (auth?.roles || []).map(r => r.id ?? r.roleId).filter(Boolean)
 
   // ── 2b. View context — field-level access + permission-gated actions ──────
   // Gap 2: needed so DrawerProperty can block click-to-edit on read-only fields.
@@ -2086,9 +2416,11 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
       if (action.requiredPermission && vc.permissions?.length > 0) {
         if (!vc.permissions.includes(action.requiredPermission)) return false
       }
+      // Screen Designer's per-role action visibility (roleAccessJson.actions)
+      if (!isActionAllowed(roleAccess, currentSide, currentRoleIds, action.actionKey)) return false
       return true
     })
-  }, [screenConfig?.actions, entity?.status, vc.permissions])
+  }, [screenConfig?.actions, entity?.status, vc.permissions, roleAccess, currentSide, currentRoleIds])
 
   // ── 4. Form fields for Overview ─────────────────────────────────────────────
   // Same three-level priority as full-page detail (see above):
@@ -2335,14 +2667,18 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
             </div>
           ) : screenActions.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap mt-3">
-              {screenActions.map(action => (
+              {screenActions.map(action => {
+                const DrawerIcon = resolveIcon(action.icon)
+                return (
                 <Button key={action.id} size="sm"
                   variant={action.variant || 'secondary'}
+                  icon={DrawerIcon || undefined}
                   loading={actingId === action.id}
                   onClick={() => handleAction(action)}>
                   {action.label}
                 </Button>
-              ))}
+              )
+            })}
             </div>
           )}
         </div>
@@ -2609,6 +2945,8 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
                 entityType={bp.entityType}
                 apiBasePath={bp.apiBasePath}
                 vc={vc}
+                stepInstanceId={undefined}
+                taskId={undefined}
               />
             </div>
           )}
@@ -2754,6 +3092,11 @@ function DrawerProperty({ field, entity, screenConfig, editingKey, editValue, sa
           {String(rawValue).replace(/_/g,' ')}
         </span>
       )
+    }
+
+    // Lookup — resolve numeric ID to human label via EntityDisplay
+    if (field.fieldType === 'LOOKUP') {
+      return <EntityDisplay value={rawValue} lookupEntityType={field.lookupEntityType} lookupApiPath={field.lookupApiPath} />
     }
 
     // Date

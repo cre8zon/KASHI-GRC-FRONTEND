@@ -103,10 +103,19 @@ export function useWorkflowInstanceSocket(workflowInstanceId, { showToasts = tru
  * Invalidates inbox queries when a new task arrives.
  *
  * @param {number|null} userId
+ * @param {object} options
+ * @param {string}   options.watchEntityType  - if set, only trigger onTaskAssigned for this entity type
+ * @param {number}   options.watchEntityId    - if set, only trigger onTaskAssigned for this entity id
+ * @param {function} options.onTaskAssigned   - called with { taskId, stepInstanceId, stepName, stepAction }
+ *                                              when a new task arrives for the watched entity.
+ *                                              Use this for seamless step transitions — no polling needed.
  */
-export function useUserTaskSocket(userId) {
+export function useUserTaskSocket(userId, { watchEntityType, watchEntityId, onTaskAssigned } = {}) {
   const qc = useQueryClient()
   const clientRef = useStompClient()
+  // Stable ref so the subscription closure always calls the latest callback
+  const onTaskAssignedRef = useRef(onTaskAssigned)
+  useEffect(() => { onTaskAssignedRef.current = onTaskAssigned }, [onTaskAssigned])
 
   useEffect(() => {
     if (!userId) return
@@ -120,12 +129,37 @@ export function useUserTaskSocket(userId) {
           try {
             const event = JSON.parse(message.body)
             if (event.type === 'TASK_ASSIGNED') {
-              // Refresh inbox immediately
+              // Always refresh inbox badge
               qc.invalidateQueries({ queryKey: ['my-tasks'] })
-              toast.success(`New task: ${event.stepName || 'Workflow step'}`, {
-                icon: '📋',
-                duration: 5000,
-              })
+
+              // Seamless transition: if this task is for the entity the user
+              // is currently viewing, call the callback instead of showing
+              // a generic "go to inbox" toast.
+              const isCurrentEntity = watchEntityType && watchEntityId && (
+                // Same-entity match: entityType + entityId matches current page
+                (event.entityType === watchEntityType &&
+                 String(event.entityId) === String(watchEntityId)) ||
+                // Cross-entity match: artifactId matches current page's entity ID
+                // e.g. WF16 task assigned with artifactId=engagementId, user is on engagement page
+                (event.artifactId && String(event.artifactId) === String(watchEntityId))
+              )
+
+              if (isCurrentEntity && onTaskAssignedRef.current) {
+                onTaskAssignedRef.current({
+                  taskId:         event.taskId,
+                  stepInstanceId: event.stepInstanceId,
+                  stepName:       event.stepName,
+                  stepAction:     event.resolvedStepAction,
+                  navKey:         event.navKey,
+                  artifactId:     event.artifactId,
+                })
+              } else {
+                // Different entity or no watch — show inbox toast as before
+                toast.success(`New task: ${event.stepName || 'Workflow step'}`, {
+                  icon: '📋',
+                  duration: 5000,
+                })
+              }
             }
           } catch (e) {
             console.warn('[WS] Failed to parse user event:', e)
@@ -141,7 +175,7 @@ export function useUserTaskSocket(userId) {
       clearInterval(interval)
       sub?.unsubscribe()
     }
-  }, [userId, qc])
+  }, [userId, watchEntityType, watchEntityId, qc]) // eslint-disable-line
 }
 
 /**
@@ -203,12 +237,21 @@ function handleInstanceEvent(event, workflowInstanceId, qc, showToasts) {
       break
 
     case 'STEP_ADVANCED':
+      // Invalidate workflow-related queries so UI updates without manual refresh
+      qc.invalidateQueries({ queryKey: ['workflow-progress', workflowInstanceId] })
+      qc.invalidateQueries({ queryKey: ['workflow-instance', workflowInstanceId] })
+      qc.invalidateQueries({ queryKey: ['my-tasks'] })
+      qc.invalidateQueries({ queryKey: ['view-context'] })
       if (showToasts) {
         toast(`Step advanced: ${event.stepName}`, { icon: '→', duration: 3000 })
       }
       break
 
     case 'STEP_COMPLETED':
+      // Also invalidate on step completion so workflow timeline refreshes
+      qc.invalidateQueries({ queryKey: ['workflow-progress', workflowInstanceId] })
+      qc.invalidateQueries({ queryKey: ['workflow-instance', workflowInstanceId] })
+      qc.invalidateQueries({ queryKey: ['view-context'] })
       if (showToasts) {
         const icon = event.outcome === 'APPROVED' ? '✅' : '❌'
         toast(`${event.stepName}: ${event.outcome}`, { icon, duration: 3000 })

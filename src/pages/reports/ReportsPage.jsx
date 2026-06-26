@@ -78,6 +78,18 @@ const MODULE_REGISTRY = [
     detailRoute: (id) => `/audit/engagements/${id}/report`,
   },
   {
+    id:          'programmes',
+    label:       'Audit Programmes',
+    sublabel:    'Project instances & programme health',
+    icon:        FolderKanban,
+    color:       'text-indigo-400',
+    bg:          'bg-indigo-500/10 border-indigo-500/20',
+    activeBg:    'bg-indigo-500/15 border-indigo-500/40',
+    status:      'live',
+    dashboardRoute: (instanceId) => `/audit/programme/${instanceId}/dashboard`,
+    reportRoute:    (instanceId) => `/audit/programme/${instanceId}/report`,
+  },
+  {
     id:       'issues',
     label:    'Issue Tracking',
     sublabel: 'Remediation & issue management',
@@ -584,12 +596,177 @@ function ModuleTab({ module, active, onClick }) {
 }
 
 // ── Panel router ──────────────────────────────────────────────────────────────
+// ── AUDIT PROGRAMMES data + components ───────────────────────────────────────
+const useProjectInstances = () => useQuery({
+  queryKey: ['reports-project-instances'],
+  queryFn:  () => api.get('/v1/audit/project-instances')
+    .then(r => Array.isArray(r) ? r : (r?.items ?? r?.data?.items ?? r?.data ?? [])),
+  staleTime: 30_000,
+})
+
+function ProgrammeInstanceCard({ instance, module }) {
+  const navigate = useNavigate()
+  const engs     = instance.engagementCount ?? instance.engagements?.length ?? 0
+  const passed   = instance.passedControls  ?? 0
+  const total    = instance.totalControls   ?? 0
+  const findings = instance.openFindingCount ?? 0
+  const pct      = total > 0 ? Math.round(passed / total * 100) : null
+  const status   = instance.status ?? 'IN_PROGRESS'
+
+  const STATUS_COLOR = {
+    IN_PROGRESS: 'text-brand-400 bg-brand-500/10 border-brand-500/20',
+    COMPLETED:   'text-green-400 bg-green-500/10 border-green-500/20',
+    ON_HOLD:     'text-amber-400 bg-amber-500/10 border-amber-500/20',
+    CANCELLED:   'text-red-400 bg-red-500/10 border-red-500/20',
+  }
+
+  return (
+    <div className="bg-surface border border-border rounded-xl overflow-hidden hover:border-indigo-500/40 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-200">
+      <div
+        onClick={() => navigate(module.reportRoute(instance.id))}
+        className="px-4 pt-4 pb-3 flex items-start justify-between gap-3 cursor-pointer"
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <FolderKanban size={12} className="text-text-muted shrink-0"/>
+            <p className="text-sm font-semibold text-text-primary truncate">
+              {instance.projectNameSnapshot || `Programme #${instance.id}`}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 pl-[20px]">
+            <span className="text-[10px] font-mono text-indigo-400/70 bg-indigo-500/10 px-1.5 py-0.5 rounded">
+              {instance.instanceRef || instance.projectRefSnapshot || '—'}
+            </span>
+            <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded border', STATUS_COLOR[status] || STATUS_COLOR.IN_PROGRESS)}>
+              {status.replace(/_/g, ' ')}
+            </span>
+          </div>
+        </div>
+        <ChevronRight size={14} className="text-text-muted shrink-0 mt-0.5"/>
+      </div>
+
+      {pct != null && (
+        <div className="px-4 pb-2 cursor-pointer" onClick={() => navigate(module.reportRoute(instance.id))}>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] text-text-muted">Control compliance</span>
+            <span className={cn('text-[11px] font-bold tabular-nums', pct >= 80 ? 'text-green-400' : pct >= 50 ? 'text-amber-400' : 'text-red-400')}>{pct}%</span>
+          </div>
+          <div className="h-1.5 bg-surface-overlay rounded-full overflow-hidden">
+            <div className={cn('h-full rounded-full transition-all', pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500')}
+              style={{ width: `${pct}%` }}/>
+          </div>
+        </div>
+      )}
+
+      <div className="px-4 py-2.5 border-t border-border/50 flex items-center gap-3 flex-wrap">
+        <span className="flex items-center gap-1 text-[10px] text-text-muted">
+          <BookOpen size={10}/>{engs} engagement{engs !== 1 ? 's' : ''}
+        </span>
+        {total > 0 && (
+          <span className="flex items-center gap-1 text-[10px] text-text-muted">
+            <CheckCircle2 size={10} className="text-green-400"/>{passed}/{total}
+          </span>
+        )}
+        {findings > 0 && (
+          <span className="flex items-center gap-1 text-[10px] text-amber-400">
+            <AlertTriangle size={10}/>{findings}
+          </span>
+        )}
+        {/* Secondary: dashboard link */}
+        <button
+          onClick={(e) => { e.stopPropagation(); navigate(module.dashboardRoute(instance.id)) }}
+          className="ml-auto text-[10px] text-text-muted hover:text-indigo-400 transition-colors flex items-center gap-0.5"
+        >
+          <BarChart2 size={9}/> Dashboard
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ProgrammesPanel({ module }) {
+  const { data: instances = [], isLoading } = useProjectInstances()
+  const [search, setSearch] = useState('')
+
+  const filtered = instances.filter(i =>
+    !search ||
+    (i.projectNameSnapshot || '').toLowerCase().includes(search.toLowerCase()) ||
+    (i.instanceRef || '').toLowerCase().includes(search.toLowerCase()) ||
+    (i.projectRefSnapshot || '').toLowerCase().includes(search.toLowerCase())
+  )
+
+  const active    = instances.filter(i => i.status === 'IN_PROGRESS').length
+  const completed = instances.filter(i => i.status === 'COMPLETED').length
+  const totalCtrl = instances.reduce((s, i) => s + (i.totalControls ?? 0), 0)
+  const passedCtrl= instances.reduce((s, i) => s + (i.passedControls ?? 0), 0)
+
+  if (isLoading) return (
+    <div className="flex items-center justify-center py-24">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin"/>
+        <p className="text-sm text-text-muted">Loading programme reports…</p>
+      </div>
+    </div>
+  )
+
+  return (
+    <div>
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        {[
+          { label: 'Programmes',   value: instances.length, color: 'text-indigo-400', icon: FolderKanban },
+          { label: 'Active',       value: active,           color: 'text-brand-400',  icon: Activity },
+          { label: 'Completed',    value: completed,        color: 'text-green-400',  icon: CheckCircle2 },
+          { label: 'Avg compliance', value: totalCtrl > 0 ? `${Math.round(passedCtrl / totalCtrl * 100)}%` : '—', color: 'text-indigo-400', icon: BarChart2 },
+        ].map(s => (
+          <div key={s.label} className="bg-surface border border-border rounded-xl px-3 py-3">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <s.icon size={11} className={s.color}/>
+              <span className="text-[9px] text-text-muted uppercase tracking-wide leading-none">{s.label}</span>
+            </div>
+            <p className={cn('text-xl font-bold tabular-nums', s.color)}>{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Search */}
+      <div className="flex items-center gap-3 mb-5">
+        <div className="relative flex-1 max-w-xs">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"/>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search programme…"
+            className="w-full pl-8 pr-3 py-2 text-sm bg-surface border border-border rounded-lg
+              text-text-primary placeholder-text-muted focus:outline-none focus:border-indigo-500/50"/>
+        </div>
+        <span className="text-[11px] text-text-muted ml-auto shrink-0">
+          {filtered.length} of {instances.length}
+        </span>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <FolderKanban size={32} className="text-text-muted/40 mb-3"/>
+          <p className="text-sm font-medium text-text-secondary mb-1">No programme instances found</p>
+          <p className="text-xs text-text-muted">Start a project from Audit Programmes → Projects</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtered.map(i => (
+            <ProgrammeInstanceCard key={i.id} instance={i} module={module}/>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ModulePanel({ module }) {
   if (module.status !== 'live') return <ComingSoonPanel module={module}/>
   switch (module.id) {
-    case 'tprm':  return <TPRMPanel  module={module}/>
-    case 'audit': return <AuditPanel module={module}/>
-    default:      return <ComingSoonPanel module={module}/>
+    case 'tprm':        return <TPRMPanel        module={module}/>
+    case 'audit':       return <AuditPanel       module={module}/>
+    case 'programmes':  return <ProgrammesPanel  module={module}/>
+    default:            return <ComingSoonPanel  module={module}/>
   }
 }
 
