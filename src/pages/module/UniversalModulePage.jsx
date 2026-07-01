@@ -73,7 +73,8 @@ import toast from 'react-hot-toast'
 import api from '../../config/axios.config'
 import { uiConfigApi } from '../../api/uiConfig.api'
 import { commentsApi } from '../../api/comments.api'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
+import { selectActiveTabId, saveSubTab, selectActiveSubTab } from '../../store/slices/tabsSlice'
 import { selectAuth, selectRoleSides } from '../../store/slices/authSlice'
 import { parseRoleAccessJson, isTabAllowed, isActionAllowed } from '../../components/screen-designer/roleAccessJson'
 // ── v2 additions ─────────────────────────────────────────────────────────────
@@ -568,7 +569,7 @@ function ModuleDetailView({ bp, id }) {
   // ASSIGN step → sections tab (Lead Auditor assigning sections)
   // REVIEW/EVALUATE → controls tab (Auditor reviewing test results)
   // FILL/APPROVE/ACKNOWLEDGE → overview (default)
-  const [tab, setTab] = useState('overview')
+  // Tab state is URL-driven — declared after searchParams below.
   const [editOpen, setEditOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
 
@@ -598,6 +599,16 @@ function ModuleDetailView({ bp, id }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const stepInstanceId = searchParams.get('stepInstanceId') || undefined
   const taskId         = searchParams.get('taskId') || undefined
+
+  // Tab state persisted in Redux app tab store so switching app tabs restores it.
+  // Falls back to URL param then 'overview'.
+  const dispatch       = useDispatch()
+  const activeAppTabId = useSelector(selectActiveTabId)
+  const savedSubTab    = useSelector(selectActiveSubTab)
+  const tab = savedSubTab || searchParams.get('tab') || 'overview'
+  const setTab = (key) => {
+    dispatch(saveSubTab({ tabId: activeAppTabId, subTab: key }))
+  }
 
   // ── Seamless task transition via WebSocket ─────────────────────────────────
   // When the backend assigns a new task to this user on this same entity
@@ -796,9 +807,10 @@ function ModuleDetailView({ bp, id }) {
   const currentRoleIds = (auth?.roles || []).map(r => r.id ?? r.roleId).filter(Boolean)
 
   // Reset to overview whenever the entity ID changes (navigating between records).
-  // Without this, navigating from one detail page to another keeps the previous tab
-  // selected, and the content area can appear blank if that tab's data isn't loaded yet.
-  useEffect(() => { setTab('overview') }, [id])
+  // Clear saved sub-tab in Redux so the new entity starts on its default tab.
+  useEffect(() => {
+    dispatch(saveSubTab({ tabId: activeAppTabId, subTab: null }))
+  }, [id]) // eslint-disable-line
 
   // Auto-select tab based on workflow step action when coming from a task.
   // Only fires once when vc.stepAction first resolves — doesn't override

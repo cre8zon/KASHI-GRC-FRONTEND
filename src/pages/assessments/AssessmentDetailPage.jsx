@@ -55,6 +55,7 @@
  */
 
 import { useState, useMemo }   from 'react'
+import { usePersistedTab, usePersistedTabReset } from '../../hooks/usePersistedTab'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -705,11 +706,9 @@ function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawe
   const visibleQuestions = showOnlyAnswered
     ? (section.questions||[]).filter(q => !!q.currentResponse)
     : (section.questions||[]).filter(q => {
-        // Org side (reviewer / assessment detail): only show answers from submitted sections.
-        // Before section submission, the responder is still composing — answers are draft.
-        if ((viewMode === 'org_full' || viewMode === 'org_ciso' || viewMode === 'reviewer') &&
-            !section.submittedAt) {
-          return false
+        // Contributor: only show their assigned question(s), read-only
+        if (viewMode === 'contributor') {
+          return q.assignedUserId === userId
         }
         return true
       })
@@ -791,16 +790,17 @@ function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawe
                 </div>
               ))}
             </div>
-          ) : visibleQuestions.length === 0 && !section.submittedAt &&
-              (viewMode === 'org_full' || viewMode === 'org_ciso' || viewMode === 'reviewer') ? (
-            <div className="px-5 py-6 flex items-center gap-2 text-text-muted">
-              <Clock size={13} className="shrink-0 text-amber-400/60" />
-              <p className="text-xs italic">Awaiting vendor submission — answers visible once section is submitted.</p>
-            </div>
           ) : visibleQuestions.length === 0 ? (
-            <p className="px-5 py-6 text-xs text-text-muted italic text-center">No answered questions to display.</p>
+            <p className="px-5 py-6 text-xs text-text-muted italic text-center">No questions to display.</p>
           ) : (
             <div className="divide-y divide-border">
+              {/* Banner for unsubmitted sections — answers may be draft/in-progress */}
+              {!section.submittedAt && (viewMode === 'org_full' || viewMode === 'org_ciso' || viewMode === 'reviewer') && (
+                <div className="px-5 py-2.5 flex items-center gap-2 bg-amber-500/5 border-b border-amber-500/15">
+                  <Clock size={11} className="shrink-0 text-amber-400/70" />
+                  <p className="text-[11px] text-amber-400/80 italic">Section not yet submitted — answers shown are draft responses</p>
+                </div>
+              )}
               {visibleQuestions.map((q,qi)=>(
                 <QuestionRow
                   key={q.questionInstanceId??qi}
@@ -1116,7 +1116,7 @@ function WorkflowPanel({ progressRaw, progressSummary, workflowInstanceId, asses
 export default function AssessmentDetailPage() {
   const { id }   = useParams()
   const navigate = useNavigate()
-  const [tab, setTab] = useState('overview')
+  const [tab, setTab] = usePersistedTab('overview')
   useScrollToQuestion([tab])
   const [drawerQuestion, setDrawerQuestion] = useState(null) // question obj for drawer
 
@@ -1243,7 +1243,10 @@ export default function AssessmentDetailPage() {
     >
       {/* Tab bar */}
       <div className="flex items-center px-6 border-b border-border bg-surface overflow-x-auto shrink-0">
-        {TABS.map(t=>(
+        {TABS.filter(t => {
+          if (viewMode === 'contributor') return ['overview','sections'].includes(t.key)
+          return true
+        }).map(t=>(
           <button key={t.key} onClick={()=>setTab(t.key)}
             className={cn(
               'flex items-center gap-1.5 px-4 py-3 text-[11px] font-medium border-b-2 transition-colors -mb-px whitespace-nowrap',

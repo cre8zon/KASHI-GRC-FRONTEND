@@ -507,6 +507,20 @@ export default function VendorAssessmentAssignPage() {
   const taskId         = activeTask ? String(activeTask.id)              : urlParams.get('taskId')
   const stepInstanceId = activeTask ? String(activeTask.stepInstanceId)  : urlParams.get('stepInstanceId')
   const actorRoleName  = activeTask?.actorRoleName || null
+  // If actorRoleName is null (legacy tasks created before the backend populated it),
+  // derive the view from navKey + stepName as a reliable fallback.
+  // This avoids the CISO always seeing VRMAssignView (the default) when actorRoleName=null.
+  const effectiveRoleName = actorRoleName || (() => {
+    const name = activeTask?.stepName || ''
+    const nk   = activeTask?.navKey   || ''
+    if (name.toLowerCase().includes('ciso') || name.toLowerCase().includes('section'))
+      return 'VENDOR_CISO'
+    if (name.toLowerCase().includes('responder') && name.toLowerCase().includes('assign'))
+      return 'VENDOR_RESPONDER'
+    if (nk === 'vendor_assessment_assign' && activeTask?.taskRole === 'ACTOR')
+      return 'VENDOR_CISO'  // Step 5 ACTOR is always CISO
+    return null
+  })()
   // If this is an ASSIGNER task on a REVIEW step, redirect to review page.
   // This happens when assignerNavKey=vendor_assessment_assign for step 5.
   const stepAction = activeTask?.resolvedStepAction || null
@@ -600,11 +614,11 @@ export default function VendorAssessmentAssignPage() {
       {/* Assignment form */}
       <div className="max-w-2xl mx-auto px-4 py-6">
         <Card>
-          <CardHeader title={(ASSIGN_VIEW_MAP[actorRoleName] || { title: 'Assignment' }).title} />
+          <CardHeader title={(ASSIGN_VIEW_MAP[effectiveRoleName] || { title: 'Assignment' }).title} />
           <CardBody>
             {access.mode === 'EDIT' ? (
               <AssignViewDispatcher
-                actorRoleName={actorRoleName}
+                actorRoleName={effectiveRoleName}
                 assessment={assessment}
                 taskId={taskId}
                 stepInstanceId={stepInstanceId}

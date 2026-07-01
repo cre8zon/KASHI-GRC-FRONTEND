@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { usePersistedTab } from '../../hooks/usePersistedTab'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query'
 import {
@@ -1445,7 +1446,7 @@ export default function VendorDetailPage() {
   const qc       = useQueryClient()
 
   const { data: vendor, isLoading, refetch } = useVendor(id)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = usePersistedTab('overview')
 
   useWorkflowInstanceSocket(vendor?.activeWorkflowInstanceId, { showToasts: true })
 

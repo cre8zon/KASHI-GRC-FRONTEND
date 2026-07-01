@@ -33,7 +33,7 @@ const tabsSlice = createSlice({
         return
       }
       const id = newId()
-      state.tabs.push({ id, title: title || route, route, icon: icon || null })
+      state.tabs.push({ id, title: title || route, route, icon: icon || null, subTab: null })
       state.activeTabId = id
     },
 
@@ -44,6 +44,12 @@ const tabsSlice = createSlice({
       tab.route = route
       tab.title = title || route
       if (icon) tab.icon = icon
+    },
+
+    // Save the active sub-tab key for an app tab (called when user clicks a sub-tab)
+    saveSubTab: (state, { payload: { tabId, subTab } }) => {
+      const tab = state.tabs.find(t => t.id === tabId)
+      if (tab) tab.subTab = subTab
     },
 
     // Switch active tab
@@ -89,12 +95,16 @@ const tabsSlice = createSlice({
 
 export const {
   openTab, navigateActiveTab, activateTab, closeTab,
-  updateTabTitle, closeOtherTabs, closeTabsToRight,
+  updateTabTitle, closeOtherTabs, closeTabsToRight, saveSubTab,
 } = tabsSlice.actions
 
 export const selectTabs        = s => s.tabs.tabs
 export const selectActiveTabId = s => s.tabs.activeTabId
 export const selectActiveTab   = s => s.tabs.tabs.find(t => t.id === s.tabs.activeTabId)
+export const selectActiveSubTab = s => {
+  const active = s.tabs.tabs.find(t => t.id === s.tabs.activeTabId)
+  return active?.subTab || null
+}
 
 export default tabsSlice.reducer
 
