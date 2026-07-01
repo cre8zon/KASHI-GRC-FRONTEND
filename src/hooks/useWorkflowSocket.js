@@ -110,7 +110,7 @@ export function useWorkflowInstanceSocket(workflowInstanceId, { showToasts = tru
  *                                              when a new task arrives for the watched entity.
  *                                              Use this for seamless step transitions — no polling needed.
  */
-export function useUserTaskSocket(userId, { watchEntityType, watchEntityId, onTaskAssigned } = {}) {
+export function useUserTaskSocket(userId, { watchEntityType, watchEntityId, watchParentProjectId, onTaskAssigned } = {}) {
   const qc = useQueryClient()
   const clientRef = useStompClient()
   // Stable ref so the subscription closure always calls the latest callback
@@ -141,7 +141,12 @@ export function useUserTaskSocket(userId, { watchEntityType, watchEntityId, onTa
                  String(event.entityId) === String(watchEntityId)) ||
                 // Cross-entity match: artifactId matches current page's entity ID
                 // e.g. WF16 task assigned with artifactId=engagementId, user is on engagement page
-                (event.artifactId && String(event.artifactId) === String(watchEntityId))
+                (event.artifactId && String(event.artifactId) === String(watchEntityId)) ||
+                // Parent-project match: user is on an engagement page, new task is on the parent project
+                // e.g. Step 3 completes → Step 4 task assigned on AUDIT_PROJECT
+                (watchParentProjectId &&
+                 event.entityType === 'AUDIT_PROJECT' &&
+                 String(event.entityId) === String(watchParentProjectId))
               )
 
               if (isCurrentEntity && onTaskAssignedRef.current) {

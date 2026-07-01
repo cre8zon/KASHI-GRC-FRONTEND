@@ -156,34 +156,29 @@ export default function ProjectEngagementsTab({ projectId, vc = {}, stepInstance
     mutationFn: ({ engId, userId }) => patchEngagement(engId, { leadAuditorId: userId }),
     onMutate:   ({ engId }) => setSavingId(engId),
     onSettled:  () => setSavingId(null),
-    onSuccess:  async (_, { engId }) => {
+    onSuccess:  async (_, { engId, userId }) => {
       qc.invalidateQueries({ queryKey: ['project-engagements', projectId] })
 
-      // Mark this specific engagement's item complete in the compound task section.
-      // completeItemByRef looks up the item by engagementId (itemRefId) — no PK needed.
-      // When ALL engagement items are complete, the backend auto-approves the task
-      // and the workflow advances to the next step automatically.
-      if (taskId) {
-        try {
-          await completeEngagementItem(taskId, 'ENGAGEMENTS_LEAD_ASSIGNED', engId)
-          qc.invalidateQueries({ queryKey: ['workflow-progress'] })
-          // If all assigned, the backend auto-approves the task.
-          // Trigger seamless transition to the next task for this user.
-          const latest = await auditApi.engagements
-            .list({ projectInstanceId: projectId, take: 100 })
-            .then(d => d?.data?.items ?? d?.items ?? d?.data ?? d ?? [])
-          const allAssigned = latest.every(e => !!e.leadAuditorId)
-          const remaining = latest.filter(e => !e.leadAuditorId).length
-          if (allAssigned) {
-            toast.success('All lead auditors assigned — step will complete ✓')
-            // Small delay for backend to finish auto-approval + step advancement
-            setTimeout(() => onTaskComplete?.(), 1200)
-          } else {
-            toast.success(`Lead auditor assigned (${remaining} engagement${remaining !== 1 ? 's' : ''} remaining)`)
-          }
-        } catch (err) {
-          console.warn('[completeEngagementItem] skipped:', err?.response?.data?.message)
-        }
+      if (userId === null || userId === undefined) {
+        // Unassign — backend resets the item, just show a neutral toast
+        toast.info('Lead auditor removed')
+        qc.invalidateQueries({ queryKey: ['workflow-progress'] })
+        return
+      }
+
+      // Assign — backend already calls completeItemByRef via PATCH handler.
+      // Just refresh and show progress toast.
+      qc.invalidateQueries({ queryKey: ['workflow-progress'] })
+      const latest = await auditApi.engagements
+        .list({ projectInstanceId: projectId, take: 100 })
+        .then(d => d?.data?.items ?? d?.items ?? d?.data ?? d ?? [])
+      const allAssigned = latest.every(e => !!e.leadAuditorId)
+      const remaining = latest.filter(e => !e.leadAuditorId).length
+      if (allAssigned) {
+        toast.success('All lead auditors assigned — step will complete ✓')
+        setTimeout(() => onTaskComplete?.(), 1200)
+      } else {
+        toast.success(`Lead auditor assigned (${remaining} engagement${remaining !== 1 ? 's' : ''} remaining)`)
       }
     },
     onError: (e) => toast.error(e?.response?.data?.message || 'Failed to assign'),
@@ -307,7 +302,12 @@ export default function ProjectEngagementsTab({ projectId, vc = {}, stepInstance
                   ['PENDING', 'IN_PROGRESS'].includes(t.status)
                 )
                 if (task?.id && task?.stepInstanceId) {
+                  // Engagement has its own task (Steps 5-9)
                   navigate(`/module/audit_engagement/${eng.id}?taskId=${task.id}&stepInstanceId=${task.stepInstanceId}`)
+                } else if (taskId && stepInstanceId) {
+                  // Project-level task (Steps 2-4) — pass the project task context
+                  // so the engagement page knows which task to mark section items on.
+                  navigate(`/module/audit_engagement/${eng.id}?taskId=${taskId}&stepInstanceId=${stepInstanceId}`)
                 } else {
                   navigate(`/module/audit_engagement/${eng.id}`)
                 }

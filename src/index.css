@@ -83,3 +83,7 @@
     pointer-events: none;
   }
 }
+/* Hide scrollbar while keeping scroll functionality */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
