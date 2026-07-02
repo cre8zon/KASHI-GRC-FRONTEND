@@ -360,14 +360,20 @@ function SectionNode({
   const { mutate: doAssignAuditor, isPending: assigningAuditor } = useMutation({
     mutationFn: ({ userId, cascade }) =>
       assignAuditor(engagementId, node.id, { auditorId: userId, cascadeToChildren: cascade }),
-    onSuccess: () => { toast.success('Auditor assigned'); invalidate() },
+    onSuccess: (_, { userId }) => {
+      toast[userId ? 'success' : 'info'](userId ? 'Auditor assigned' : 'Auditor removed')
+      invalidate()
+    },
     onError:   (e) => toast.error(e?.response?.data?.message || 'Assignment failed'),
   })
 
   const { mutate: doAssignAuditee, isPending: assigningAuditee } = useMutation({
     mutationFn: ({ userId, cascade }) =>
       assignSectionAuditee(engagementId, node.id, { auditeeUserId: userId, cascadeToChildren: cascade }),
-    onSuccess: () => { toast.success('Auditee assigned'); invalidate() },
+    onSuccess: (_, { userId }) => {
+      toast[userId ? 'success' : 'info'](userId ? 'Auditee assigned' : 'Auditee removed')
+      invalidate()
+    },
     onError:   (e) => toast.error(e?.response?.data?.message || 'Assignment failed'),
   })
 

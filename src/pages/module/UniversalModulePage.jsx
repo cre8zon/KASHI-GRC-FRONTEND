@@ -37,31 +37,29 @@ import { WorkflowTimeline }       from '../../components/workflow/WorkflowTimeli
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import {
+import * as LucideIcons from 'lucide-react'
+// Destructure commonly used icons for direct JSX use
+const {
   Plus, ArrowLeft, RefreshCw, Search, GitBranch, CheckCircle2,
   Upload, MessageSquare, FileText, Activity, AlertTriangle, Eye,
   ChevronRight, Pencil, Trash2, ExternalLink, Info, Lock, X, CheckSquare,
   Hash, ServerCrash, BarChart2, Play, PlayCircle, XCircle, CheckCircle,
-  Shield, Tag, UserPlus, Send, Archive, RotateCcw, PauseCircle,
+  Shield, ShieldCheck, Tag, UserPlus, Send, Archive, RotateCcw, PauseCircle,
   ShieldOff, Layers, Globe, FolderKanban, CornerDownLeft, Clipboard,
   Settings, Users, Bell, Star, Zap, Flag, BookOpen, List, LayoutGrid,
   Calendar, Clock, TrendingUp, Target, Award, Briefcase,
-} from 'lucide-react'
+} = LucideIcons
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Button } from '../../components/ui/Button'
 
 // Resolves a string icon name from the DB (e.g. "BarChart2") to a Lucide component.
 // Falls back to null when the name is unknown — callers fall back to Hash or nothing.
-const ICON_MAP = {
-  BarChart2, FileText, Play, PlayCircle, XCircle, CheckCircle, CheckCircle2,
-  Shield, Tag, UserPlus, Send, Link, Archive, RotateCcw, PauseCircle,
-  ShieldOff, Layers, Globe, FolderKanban, CornerDownLeft, Upload, Plus,
-  RefreshCw, Search, GitBranch, AlertTriangle, Eye, Pencil, Trash2,
-  Lock, Activity, Info, MessageSquare, ExternalLink, Clipboard, Settings,
-  Users, Bell, Star, Zap, Flag, BookOpen, List, LayoutGrid, Calendar, Clock,
-  TrendingUp, Target, Award, Briefcase, Hash, CheckSquare,
+// Dynamic icon resolver — looks up any Lucide icon by name.
+// No static map needed; LucideIcons contains every icon from the package.
+const resolveIcon = (name) => {
+  if (!name) return null
+  return LucideIcons[name] || LucideIcons[name + 'Icon'] || null
 }
-const resolveIcon = (name) => (name && ICON_MAP[name]) || null
 import { Badge, DynamicBadge } from '../../components/ui/Badge'
 import { COLOR_MAP } from '../../config/constants'
 import { Modal, ConfirmDialog } from '../../components/ui/Modal'
@@ -75,7 +73,8 @@ import toast from 'react-hot-toast'
 import api from '../../config/axios.config'
 import { uiConfigApi } from '../../api/uiConfig.api'
 import { commentsApi } from '../../api/comments.api'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
+import { selectActiveTabId, saveSubTab, selectActiveSubTab } from '../../store/slices/tabsSlice'
 import { selectAuth, selectRoleSides } from '../../store/slices/authSlice'
 import { parseRoleAccessJson, isTabAllowed, isActionAllowed } from '../../components/screen-designer/roleAccessJson'
 // ── v2 additions ─────────────────────────────────────────────────────────────
@@ -201,7 +200,7 @@ function ModuleListView({ bp }) {
   const [createOpen, setCreateOpen] = useState(false)
   const [importOpen,  setImportOpen]  = useState(false)
   const [sortBy,       setSortBy]       = useState(null)
-  const [sortDir,      setSortDir]      = useState('asc')
+  const [sortDir,      setSortDir]      = useState('desc')
   const [selectedIds,  setSelectedIds]  = useState([])
 
   const { data: vcRes, isLoading: vcLoading } = useViewContext(bp.entityType, null)
@@ -570,7 +569,7 @@ function ModuleDetailView({ bp, id }) {
   // ASSIGN step → sections tab (Lead Auditor assigning sections)
   // REVIEW/EVALUATE → controls tab (Auditor reviewing test results)
   // FILL/APPROVE/ACKNOWLEDGE → overview (default)
-  const [tab, setTab] = useState('overview')
+  // Tab state is URL-driven — declared after searchParams below.
   const [editOpen, setEditOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
 
@@ -600,6 +599,16 @@ function ModuleDetailView({ bp, id }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const stepInstanceId = searchParams.get('stepInstanceId') || undefined
   const taskId         = searchParams.get('taskId') || undefined
+
+  // Tab state persisted in Redux app tab store so switching app tabs restores it.
+  // Falls back to URL param then 'overview'.
+  const dispatch       = useDispatch()
+  const activeAppTabId = useSelector(selectActiveTabId)
+  const savedSubTab    = useSelector(selectActiveSubTab)
+  const tab = savedSubTab || searchParams.get('tab') || 'overview'
+  const setTab = (key) => {
+    dispatch(saveSubTab({ tabId: activeAppTabId, subTab: key }))
+  }
 
   // ── Seamless task transition via WebSocket ─────────────────────────────────
   // When the backend assigns a new task to this user on this same entity
@@ -633,40 +642,37 @@ function ModuleDetailView({ bp, id }) {
   }, [setSearchParams, taskId, navigate, bp?.navKey])
 
 
-  // ── transitionToNextTask — now just clears task context after completion ───
-  // The WebSocket handles automatic transition to the NEXT task.
-  // This function is called after action buttons fire — it clears the current
-  // task params if no new task arrived yet (e.g. last step, workflow complete).
+  // ── transitionToNextTask ─────────────────────────────────────────────────
+  // The WebSocket TASK_ASSIGNED event (handleTaskAssigned above) is the primary
+  // mechanism for transitioning to the next task. This function is called from
+  // action buttons as a fallback — it waits briefly to let the WS event fire
+  // first, then only clears task context if no new task arrived via WS.
+  // Do NOT call any API here — the 404 on my-next was clearing taskId before
+  // the WS event could fire, breaking the seamless transition.
   const transitionToNextTask = useCallback(async (entityType, entityId) => {
-    try {
-      const next = await moduleApi.nextTask(entityType, entityId)
-      if (next?.taskId && next?.stepInstanceId) {
-        // Backend already assigned next task — WebSocket may have beaten us here.
-        // Only update if taskId in URL hasn't changed yet (WS didn't fire first).
-        setSearchParams(prev => {
-          const p = new URLSearchParams(prev)
-          if (p.get('taskId') !== String(next.taskId)) {
-            p.set('taskId',         String(next.taskId))
-            p.set('stepInstanceId', String(next.stepInstanceId))
-          }
-          return p
-        })
-        return true
-      } else {
-        // No next task — clear task context, go to view mode
-        setSearchParams(prev => {
-          const p = new URLSearchParams(prev)
-          p.delete('taskId')
-          p.delete('stepInstanceId')
-          return p
-        })
-        return false
-      }
-    } catch (err) {
-      console.warn('[transitionToNextTask] failed:', err)
-      return false
+    // Give the WebSocket 2 seconds to fire TASK_ASSIGNED before doing anything.
+    // If it fires, handleTaskAssigned updates the URL — we do nothing here.
+    // If it doesn't fire (last step, workflow done), we clear task context.
+    await new Promise(resolve => setTimeout(resolve, 2000))
+
+    // Check if a new taskId arrived via WS during the wait
+    const currentParams = new URLSearchParams(window.location.search)
+    const currentTaskId = currentParams.get('taskId')
+
+    if (currentTaskId && currentTaskId !== String(taskId)) {
+      // WS already updated the taskId — nothing to do
+      return true
     }
-  }, [setSearchParams])
+
+    // No new task arrived — clear task context (last step or workflow complete)
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev)
+      p.delete('taskId')
+      p.delete('stepInstanceId')
+      return p
+    })
+    return false
+  }, [taskId, setSearchParams])
 
   // ── Parallel fetch optimisation ───────────────────────────────────────────
   // Blueprint, entity, and view-context are independent — start all three
@@ -705,12 +711,30 @@ function ModuleDetailView({ bp, id }) {
     const backendStepId = vc.stepInstanceId ? String(vc.stepInstanceId) : null
     const backendTaskId = vc.taskId         ? String(vc.taskId)         : null
     const urlStepId     = stepInstanceId    ? String(stepInstanceId)    : null
-    if (backendStepId && urlStepId && backendStepId !== urlStepId) {
+    const urlTaskId     = taskId            ? String(taskId)            : null
+
+    if (!backendStepId) return // vc not loaded or no active task
+
+    // Case 1: URL has wrong stepInstanceId (stale after WS-driven step advance)
+    if (urlStepId && backendStepId !== urlStepId) {
       setSearchParams(prev => {
         const p = new URLSearchParams(prev)
         p.set('stepInstanceId', backendStepId)
         if (backendTaskId) p.set('taskId', backendTaskId)
         else p.delete('taskId')
+        return p
+      })
+      return
+    }
+
+    // Case 2: URL has no task context at all but user has an active task
+    // (e.g. opened page from sidebar instead of task inbox)
+    // Only inject if vc explicitly has a taskId (user is assigned to this step)
+    if (!urlStepId && !urlTaskId && backendTaskId && backendStepId) {
+      setSearchParams(prev => {
+        const p = new URLSearchParams(prev)
+        p.set('taskId',         backendTaskId)
+        p.set('stepInstanceId', backendStepId)
         return p
       })
     }
@@ -723,19 +747,70 @@ function ModuleDetailView({ bp, id }) {
   const auth         = useSelector(selectAuth)
   const currentUserId = auth?.userId
 
+  // ── Generic parent breadcrumb resolution ────────────────────────────────────
+  // Resolves from blueprint parentContextJson + entity fields.
+  // Works for ANY module hierarchy: Control → Engagement, Test → Engagement,
+  // Policy → Engagement, Engagement → Project, etc.
+  const parentCtxJson = (() => {
+    try { return bp.parentContextJson ? JSON.parse(bp.parentContextJson) : null }
+    catch { return null }
+  })()
+
+  // The parent entity ID: blueprint tells us which field on the entity holds it
+  // e.g. parentContextJson.parentIdField = "engagementId" → entity.engagementId
+  const parentIdField  = parentCtxJson?.parentIdField  || null
+  const parentNavKey   = parentCtxJson?.parentNavKey   || null
+  const parentEntityType = parentCtxJson?.parentEntityType || null
+
+  // Generic parent ID from entity using the configured field name
+  const genericParentId = parentIdField ? (entity?.[parentIdField] ?? null) : null
+
+  // Special case: AUDIT_ENGAGEMENT → AUDIT_PROJECT (uses projectInstanceId)
+  const parentProjectInstanceId = bp.entityType === 'AUDIT_ENGAGEMENT'
+    ? (entity?.projectInstanceId ?? entity?.projectSnapshot?.id ?? null)
+    : null
+
+  // The breadcrumb parent: prefer generic (blueprint-driven), fall back to project special case
+  const breadcrumbParentId     = genericParentId ?? parentProjectInstanceId
+  const breadcrumbParentNavKey = parentNavKey ?? (parentProjectInstanceId ? 'audit_project' : null)
+
+  // Parent label: use entity's snapshot of parent name if available,
+  // otherwise fall back to "EntityType #id"
+  const parentNameField = parentCtxJson?.parentNameField || null  // e.g. "engagementName"
+  const parentProjectLabel = entity?.projectSnapshot?.name
+    || entity?.projectSnapshot?.projectName
+    || (parentProjectInstanceId ? `Project #${parentProjectInstanceId}` : null)
+  const genericParentLabel = parentNameField ? (entity?.[parentNameField] ?? null) : null
+  const breadcrumbParentLabel = genericParentLabel
+    ?? parentProjectLabel
+    ?? (breadcrumbParentId && parentEntityType
+        ? `${parentEntityType.replace(/_/g, ' ')} #${breadcrumbParentId}`
+        : null)
+
+  // List page breadcrumb — navigate to the entity's list using its navKey.
+  // bp.navKey matches ui_navigation.nav_key which has the correct route.
+  // We navigate to /module/{navKey} which resolves to the list view.
+  // Suppress when entity has a parent (scoped entity — list would be misleading).
+  const listNavKey = !breadcrumbParentId
+    ? (bp.listNavKey || bp.navKey || null)
+    : null
+  const listLabel  = listNavKey ? (bp.displayNamePlural || bp.displayName) : null
+
   useUserTaskSocket(currentUserId, {
-    watchEntityType: bp?.entityType,
-    watchEntityId:   id,
-    onTaskAssigned:  handleTaskAssigned,
+    watchEntityType:      bp?.entityType,
+    watchEntityId:        id,
+    watchParentProjectId: parentProjectInstanceId, // for engagement pages — catch project-level tasks
+    onTaskAssigned:       handleTaskAssigned,
   })
   const userSides     = useSelector(selectRoleSides)
   const currentSide    = userSides?.[0] || null
   const currentRoleIds = (auth?.roles || []).map(r => r.id ?? r.roleId).filter(Boolean)
 
   // Reset to overview whenever the entity ID changes (navigating between records).
-  // Without this, navigating from one detail page to another keeps the previous tab
-  // selected, and the content area can appear blank if that tab's data isn't loaded yet.
-  useEffect(() => { setTab('overview') }, [id])
+  // Clear saved sub-tab in Redux so the new entity starts on its default tab.
+  useEffect(() => {
+    dispatch(saveSubTab({ tabId: activeAppTabId, subTab: null }))
+  }, [id]) // eslint-disable-line
 
   // Auto-select tab based on workflow step action when coming from a task.
   // Only fires once when vc.stepAction first resolves — doesn't override
@@ -1159,16 +1234,75 @@ function ModuleDetailView({ bp, id }) {
   const canDelete = vc.canDelete && vc.permissions?.includes(`${bp.entityType.toLowerCase()}.delete`)
   const editFormKey = bp.editFormKey || bp.createFormKey
 
+  // Deep-link to parent project for AUDIT_ENGAGEMENT entities. The GET response
+  // returns projectInstanceId (or nested projectSnapshot.id) — when present this
+  // engagement is project-governed (WF16) and should always be able to navigate
+  // back up to the project, not just rely on browser history (navigate(-1) breaks
+  // when the page was opened from a notification, bookmark, or new tab).
+  // NOTE: parentProjectLabel is declared earlier in the breadcrumb resolution block
+
+  // Task params for navigation — ONLY from URL, never from vc.
+  // vc.taskId would inject task context even when user opened the page
+  // without a task (e.g. from sidebar), which is incorrect.
+  const buildTaskParams = () =>
+    (taskId && stepInstanceId)
+      ? `?taskId=${taskId}&stepInstanceId=${stepInstanceId}`
+      : ''
+
+  // Navigate to parent entity preserving task context
+  const navigateToParent = () => {
+    if (breadcrumbParentId && breadcrumbParentNavKey) {
+      navigate(`/module/${breadcrumbParentNavKey}/${breadcrumbParentId}${buildTaskParams()}`)
+    } else {
+      navigate(-1)
+    }
+  }
+
+  // Navigate to this entity's own list page
+  const navigateToList = () => {
+    if (listNavKey) navigate(`/module/${listNavKey}`)
+  }
+
+  // Back button: go to parent or list page
+  const handleBack = () => navigateToParent()
+
+  const entityLabel = entity?.title || entity?.name || entity?.testNameSnapshot
+    || entity?.titleSnapshot || entity?.controlNameSnapshot
+    || entity?.controlCode || entity?.testCode || entity?.policyName
+    || `${bp.displayName} #${id}`
+
   return (
     <PageLayout
       title={
-        <div className="flex items-center gap-2">
-          {/* v2: if this is a child module, back goes to the parent-scoped list */}
-          <button onClick={() => navigate(-1)}
-            className="text-text-muted hover:text-text-primary transition-colors">
+        <div className="flex items-center gap-2 min-w-0">
+          <button onClick={handleBack}
+            className="text-text-muted hover:text-text-primary transition-colors shrink-0">
             <ArrowLeft size={15} />
           </button>
-          <span>{entity?.title || entity?.name || entity?.testNameSnapshot || entity?.titleSnapshot || entity?.controlNameSnapshot || `${bp.displayName} #${id}`}</span>
+
+          {/* Generic breadcrumb: List → Parent → Current */}
+          {listNavKey && listLabel && (
+            <>
+              <button
+                onClick={navigateToList}
+                className="text-xs text-text-muted hover:text-brand-400 transition-colors shrink-0">
+                {listLabel}
+              </button>
+              <span className="text-text-muted/40 shrink-0">/</span>
+            </>
+          )}
+          {breadcrumbParentLabel && breadcrumbParentId && (
+            <>
+              <button
+                onClick={navigateToParent}
+                className="text-xs text-text-muted hover:text-brand-400 transition-colors truncate max-w-[140px]"
+                title={breadcrumbParentLabel}>
+                {breadcrumbParentLabel}
+              </button>
+              <span className="text-text-muted/40 shrink-0">/</span>
+            </>
+          )}
+          <span className="truncate font-medium">{entityLabel}</span>
           {entity?.status && <EntityStatusBadge status={entity.status} />}
         </div>
       }
@@ -1219,6 +1353,13 @@ function ModuleDetailView({ bp, id }) {
               <span className="ml-2 text-text-muted italic">read-only at this step</span>
             )}
           </div>
+          {breadcrumbParentId && breadcrumbParentLabel && (
+            <button
+              onClick={navigateToParent}
+              className="text-[11px] text-text-muted hover:text-text-primary transition-colors shrink-0 flex items-center gap-1">
+              <ArrowLeft size={10} /> {breadcrumbParentLabel}
+            </button>
+          )}
           <button
             onClick={() => navigate('/workflow/inbox')}
             className="text-[11px] text-text-muted hover:text-text-primary transition-colors shrink-0 flex items-center gap-1">
@@ -1231,11 +1372,11 @@ function ModuleDetailView({ bp, id }) {
       {vc.sodViolations?.length > 0 && <SodBanner violations={vc.sodViolations} />}
 
       {/* Tab bar */}
-      <div className="flex items-center gap-1 px-6 border-b border-border">
+      <div className="flex items-center gap-1 px-6 border-b border-border overflow-x-auto scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {visibleTabs.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-md transition-colors border-b-2 -mb-px',
+              'shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-md transition-colors border-b-2 -mb-px',
               tab === t.key
                 ? 'border-brand-500 text-brand-400 bg-brand-500/5'
                 : 'border-transparent text-text-muted hover:text-text-secondary hover:bg-surface-overlay'
@@ -1388,6 +1529,7 @@ function ModuleDetailView({ bp, id }) {
             vc={vc}
             stepInstanceId={stepInstanceId}
             taskId={taskId}
+            onTaskComplete={() => transitionToNextTask(bp?.entityType, id)}
           />
         )}
       </div>
@@ -1621,7 +1763,7 @@ function EvidenceTab({ entityId, entityType, vc }) {
 //   "policies"  → LibraryMappingTab (shows policies linked to this control)
 // All other keys → renders fields from {detailScreenKey}_tab_{tabKey} form key.
 
-function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBasePath, vc, stepInstanceId, taskId }) {
+function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBasePath, vc, stepInstanceId, taskId, onTaskComplete }) {
   // ── ALL HOOKS MUST BE AT TOP — Rules of Hooks ────────────────────────────
   const qc = useQueryClient()
   const [saving,   setSaving]   = useState(false)
@@ -1657,13 +1799,6 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
   const canEdit = tabEditable && (vc?.stepAction ? (vc?.canAct === true) : (vc?.canEdit === true))
   const canAct  = vc?.canAct === true
 
-  // DEBUG — remove after fix confirmed
-  console.log('[TAB-EDIT]', tabKey, {
-    canAct: vc?.canAct, canEdit: vc?.canEdit, taskId: vc?.taskId,
-    stepAction: vc?.stepAction, editableTabs: vc?.editableTabs,
-    hasTask, editableTabsDefined, tabEditable, canEdit
-  })
-
   // Compute whether this tab has meaningful content already saved
   const meaningfulFields = fields.filter(f =>
     f.fieldType !== 'SECTION_HEADER' && f.fieldType !== 'DIVIDER' && f.fieldType !== 'TOGGLE')
@@ -1697,7 +1832,7 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
   // ── Library mapping tabs — rendered by dedicated component ───────────────
   // AUDIT_ENGAGEMENT — sections tree with controls nested + both clickable
   if (tabKey === 'sections' && entityType === 'AUDIT_ENGAGEMENT') {
-    return <EngagementSectionsTab engagementId={entity?.id} vc={vc} stepInstanceId={stepInstanceId} onTaskComplete={() => transitionToNextTask(bp?.entityType, id)} />
+    return <EngagementSectionsTab engagementId={entity?.id} vc={vc} stepInstanceId={stepInstanceId} onTaskComplete={onTaskComplete} />
   }
   // AUDIT_ENGAGEMENT — flat control list with clickable detail
   if (tabKey === 'controls' && entityType === 'AUDIT_ENGAGEMENT') {
@@ -1713,7 +1848,7 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
   }
   // AUDIT_PROJECT — engagements list for this project (click → SOC2 engagement detail)
   if (tabKey === 'engagements' && entityType === 'AUDIT_PROJECT') {
-    return <ProjectEngagementsTab projectId={entity?.id} vc={vc} stepInstanceId={stepInstanceId} taskId={taskId} onTaskComplete={() => transitionToNextTask(bp?.entityType, id)} />
+    return <ProjectEngagementsTab projectId={entity?.id} vc={vc} stepInstanceId={stepInstanceId} taskId={taskId} onTaskComplete={onTaskComplete} />
   }
   // AUDIT_ENGAGEMENT — automated integration check status (EngagementIntegrationSnapshot rows)
   if (tabKey === 'integrations' && entityType === 'AUDIT_ENGAGEMENT') {
