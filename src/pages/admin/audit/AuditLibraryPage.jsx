@@ -418,7 +418,7 @@ function useDeleteSectionFromLibrary(templateId) {
 // ─── Guard tag badge ───────────────────────────────────────────────────────────
 
 const GuardTagBadge = ({ tag }) => tag
-  ? <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[10px] bg-brand-500/10 text-brand-400 border border-brand-500/20">{tag}</span>
+  ? <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[10px] bg-brand-500/10 text-brand-ink border border-brand-500/20">{tag}</span>
   : <span className="text-[10px] text-text-muted italic">—</span>
 
 // ─── Inline row action buttons ─────────────────────────────────────────────────
@@ -597,7 +597,7 @@ function SectionControlsPanel({ sectionId, sectionName }) {
       {/* Controls list */}
       {isLoading ? (
         <div className="flex items-center justify-center py-4">
-          <Loader2 size={16} className="text-brand-400 animate-spin" />
+          <Loader2 size={16} className="text-brand-ink animate-spin" />
         </div>
       ) : controls.length === 0 ? (
         <div className="px-4 py-4 text-center">
@@ -716,7 +716,7 @@ function StandaloneControlPickerModal({ open, sectionId, sectionName, existingCo
         <div className="flex items-center justify-between">
           <p className="text-xs text-text-muted">
             {selected
-              ? <span className="text-brand-400">"{selected.name.slice(0, 50)}{selected.name.length > 50 ? '…' : ''}" selected</span>
+              ? <span className="text-brand-ink">"{selected.name.slice(0, 50)}{selected.name.length > 50 ? '…' : ''}" selected</span>
               : 'No control selected'}
           </p>
           <div className="flex gap-2">
@@ -741,7 +741,7 @@ function StandaloneControlPickerModal({ open, sectionId, sectionName, existingCo
             </select>
           </div>
           <div className="flex-1 overflow-y-auto rounded-card border border-border divide-y divide-border">
-            {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>}
+            {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>}
             {!isLoading && filtered.length === 0 && (
               <div className="flex flex-col items-center justify-center py-10">
                 <Shield size={20} className="text-text-muted mb-2" />
@@ -765,7 +765,7 @@ function StandaloneControlPickerModal({ open, sectionId, sectionName, existingCo
                     {c.controlTag && <GuardTagBadge tag={c.controlTag} />}
                   </div>
                 </div>
-                {selected?.id === c.id && <CheckCircle2 size={14} className="text-brand-400 shrink-0 mt-0.5" />}
+                {selected?.id === c.id && <CheckCircle2 size={14} className="text-brand-ink shrink-0 mt-0.5" />}
               </button>
             ))}
           </div>
@@ -888,7 +888,7 @@ function SectionToTemplateModal({ section, onClose }) {
             <div className="max-h-64 overflow-y-auto rounded-card border border-border divide-y divide-border">
               {isLoading && (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 size={18} className="text-brand-400 animate-spin" />
+                  <Loader2 size={18} className="text-brand-ink animate-spin" />
                 </div>
               )}
               {!isLoading && filtered.length === 0 && (
@@ -910,7 +910,7 @@ function SectionToTemplateModal({ section, onClose }) {
                       <p className="text-[10px] text-text-muted mt-0.5">{t.frameworkRef}</p>
                     )}
                   </div>
-                  {selected?.id === t.id && <CheckCircle2 size={14} className="text-brand-400 shrink-0" />}
+                  {selected?.id === t.id && <CheckCircle2 size={14} className="text-brand-ink shrink-0" />}
                 </button>
               ))}
             </div>
@@ -965,8 +965,8 @@ function SectionTreeRow({ section, depth, onEdit, onDelete, onAddChild }) {
               className={cn(
                 'h-6 w-6 flex items-center justify-center rounded transition-colors',
                 showControls
-                  ? 'text-brand-400 bg-brand-500/10'
-                  : 'text-text-muted hover:text-brand-400 hover:bg-brand-500/10'
+                  ? 'text-brand-ink bg-brand-500/10'
+                  : 'text-text-muted hover:text-brand-ink hover:bg-brand-500/10'
               )}>
               <Shield size={12} />
             </button>
@@ -978,13 +978,13 @@ function SectionTreeRow({ section, depth, onEdit, onDelete, onAddChild }) {
               className={cn(
                 'h-6 w-6 flex items-center justify-center rounded transition-colors',
                 isRoot
-                  ? 'text-text-muted hover:text-brand-400 hover:bg-brand-500/10'
+                  ? 'text-text-muted hover:text-brand-ink hover:bg-brand-500/10'
                   : 'text-text-muted/30 cursor-not-allowed'
               )}>
               <Link2 size={12} />
             </button>
             <button onClick={() => onAddChild(section)} title="Add child section"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
               <Plus size={12} />
             </button>
             <button onClick={() => onEdit(section)} title="Edit"
@@ -1132,7 +1132,7 @@ SECTION  1      "A.6 — Org…"       A.6           ← back to level 1`}
       {stage === 'importing' && (
         <div className="flex flex-col items-center gap-6 py-8">
           <div className="w-16 h-16 rounded-modal bg-brand-500/10 flex items-center justify-center">
-            <Loader2 size={28} className="text-brand-400 animate-spin" />
+            <Loader2 size={28} className="text-brand-ink animate-spin" />
           </div>
           <div className="text-center">
             <p className="text-sm font-semibold text-text-primary">Importing on server…</p>
@@ -1179,7 +1179,7 @@ SECTION  1      "A.6 — Org…"       A.6           ← back to level 1`}
                   entry.status === 'SUCCESS' && 'text-text-secondary',
                   entry.status === 'ERROR'   && 'text-status-fail-fg',
                   entry.status === 'WARNING' && 'text-status-warn-fg',
-                  entry.status === 'INFO'    && 'text-brand-400')}>
+                  entry.status === 'INFO'    && 'text-brand-ink')}>
                   {entry.status === 'SUCCESS' && <CheckCircle2 size={11} className="mt-0.5 shrink-0" />}
                   {entry.status === 'ERROR'   && <XCircle      size={11} className="mt-0.5 shrink-0" />}
                   {entry.status === 'WARNING' && <AlertCircle  size={11} className="mt-0.5 shrink-0" />}
@@ -1293,7 +1293,7 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
               className="h-8 pl-8 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div className="max-h-72 overflow-y-auto rounded-card border border-border divide-y divide-border">
-            {isLoading && <div className="flex items-center justify-center py-10"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>}
+            {isLoading && <div className="flex items-center justify-center py-10"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>}
             {!isLoading && filtered.length === 0 && (
               <div className="flex flex-col items-center justify-center py-10">
                 <BookOpen size={20} className="text-text-muted mb-2" />
@@ -1312,7 +1312,7 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
                   </div>
                   {s.frameworkRef && <p className="text-[10px] text-text-muted mt-0.5">{s.frameworkRef}</p>}
                 </div>
-                {selected?.id === s.id && <CheckCircle2 size={14} className="text-brand-400 shrink-0" />}
+                {selected?.id === s.id && <CheckCircle2 size={14} className="text-brand-ink shrink-0" />}
               </button>
             ))}
           </div>
@@ -1339,8 +1339,8 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
             </div>
           </div>
           <div className="flex items-start gap-2 p-3 bg-brand-500/5 border border-brand-500/20 rounded-card">
-            <AlertCircle size={12} className="text-brand-400 mt-0.5 shrink-0" />
-            <p className="text-[11px] text-brand-400/80 leading-relaxed">Creates a new root section in the library and maps it to this template immediately.</p>
+            <AlertCircle size={12} className="text-brand-ink mt-0.5 shrink-0" />
+            <p className="text-[11px] text-brand-ink/80 leading-relaxed">Creates a new root section in the library and maps it to this template immediately.</p>
           </div>
         </div>
       )}
@@ -1484,14 +1484,14 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
   const testLinkPanelJsx = (
     <div className="flex flex-col gap-2">
       <div className="rounded-card border border-border divide-y divide-border">
-        {loadingLinkedTests && <div className="flex justify-center py-3"><Loader2 size={13} className="text-brand-400 animate-spin" /></div>}
+        {loadingLinkedTests && <div className="flex justify-center py-3"><Loader2 size={13} className="text-brand-ink animate-spin" /></div>}
         {!loadingLinkedTests && linkedTests.length === 0 && <p className="text-[11px] text-text-muted px-3 py-3">No tests linked yet.</p>}
         {!loadingLinkedTests && linkedTests.map(t => {
           const id = t.id ?? t.testId
           return (
             <div key={id} className="flex items-center gap-2 px-2 py-1.5 group">
               <div className="flex-1 min-w-0">
-                {t.testRef && <span className="font-mono text-[9px] text-brand-400 mr-1">{t.testRef}</span>}
+                {t.testRef && <span className="font-mono text-[9px] text-brand-ink mr-1">{t.testRef}</span>}
                 <span className="text-[11px] text-text-primary line-clamp-1">{t.testName ?? t.name}</span>
               </div>
               <button onClick={() => unlinkTest(id)} disabled={unlinkingTest}
@@ -1504,7 +1504,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
       </div>
       {/* Link existing */}
       <button onClick={() => { setShowTestPicker(v => !v); setShowCreateTestStep2(false) }}
-        className="flex items-center gap-1 text-[11px] text-brand-400 hover:text-brand-300">
+        className="flex items-center gap-1 text-[11px] text-brand-ink hover:text-brand-ink">
         <Plus size={10} /> {showTestPicker ? 'Hide' : 'Link existing test'}
       </button>
       {showTestPicker && (
@@ -1515,7 +1515,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
               className="h-6 pl-5 pr-2 w-full rounded border border-border bg-surface-raised text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div className="max-h-32 overflow-y-auto rounded-card border border-border divide-y divide-border">
-            {loadingAllTests && <div className="flex justify-center py-3"><Loader2 size={12} className="text-brand-400 animate-spin" /></div>}
+            {loadingAllTests && <div className="flex justify-center py-3"><Loader2 size={12} className="text-brand-ink animate-spin" /></div>}
             {!loadingAllTests && availableTests.length === 0 && <p className="text-[11px] text-text-muted px-2 py-2">No available tests.</p>}
             {!loadingAllTests && availableTests.map(t => {
               const id = t.id ?? t.testId
@@ -1523,7 +1523,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                 <button key={id} onClick={() => linkTest(id)} disabled={linkingTest}
                   className="w-full text-left flex items-center gap-2 px-2 py-1.5 hover:bg-surface-overlay transition-colors">
                   <div className="flex-1 min-w-0">
-                    {t.testRef && <span className="font-mono text-[9px] text-brand-400 mr-1">{t.testRef}</span>}
+                    {t.testRef && <span className="font-mono text-[9px] text-brand-ink mr-1">{t.testRef}</span>}
                     <span className="text-[11px] text-text-primary line-clamp-1">{t.testName ?? t.name}</span>
                   </div>
                   <Plus size={9} className="text-text-muted shrink-0" />
@@ -1535,7 +1535,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
       )}
       {/* Create new test */}
       <button onClick={() => { setShowCreateTestStep2(v => !v); setShowTestPicker(false) }}
-        className="flex items-center gap-1 text-[11px] text-brand-400 hover:text-brand-300">
+        className="flex items-center gap-1 text-[11px] text-brand-ink hover:text-brand-ink">
         <Plus size={10} /> {showCreateTestStep2 ? 'Hide' : 'Create new test'}
       </button>
       {showCreateTestStep2 && (
@@ -1570,14 +1570,14 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
   const policyLinkPanelJsx = (
     <div className="flex flex-col gap-2">
       <div className="rounded-card border border-border divide-y divide-border">
-        {loadingLinkedPolicies && <div className="flex justify-center py-3"><Loader2 size={13} className="text-brand-400 animate-spin" /></div>}
+        {loadingLinkedPolicies && <div className="flex justify-center py-3"><Loader2 size={13} className="text-brand-ink animate-spin" /></div>}
         {!loadingLinkedPolicies && linkedPolicies.length === 0 && <p className="text-[11px] text-text-muted px-3 py-3">No policies linked yet.</p>}
         {!loadingLinkedPolicies && linkedPolicies.map(p => {
           const id = p.id ?? p.policyId
           return (
             <div key={id} className="flex items-center gap-2 px-2 py-1.5 group">
               <div className="flex-1 min-w-0">
-                {p.policyRef && <span className="font-mono text-[9px] text-brand-400 mr-1">{p.policyRef}</span>}
+                {p.policyRef && <span className="font-mono text-[9px] text-brand-ink mr-1">{p.policyRef}</span>}
                 <span className="text-[11px] text-text-primary line-clamp-1">{p.title}</span>
               </div>
               <button onClick={() => unlinkPolicy(id)} disabled={unlinkingPolicy}
@@ -1589,7 +1589,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
         })}
       </div>
       <button onClick={() => setShowPolPicker(v => !v)}
-        className="flex items-center gap-1 text-[11px] text-brand-400 hover:text-brand-300">
+        className="flex items-center gap-1 text-[11px] text-brand-ink hover:text-brand-ink">
         <Plus size={10} /> {showPolPicker ? 'Hide' : 'Link a policy'}
       </button>
       {showPolPicker && (
@@ -1600,7 +1600,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
               className="h-6 pl-5 pr-2 w-full rounded border border-border bg-surface-raised text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div className="max-h-32 overflow-y-auto rounded-card border border-border divide-y divide-border">
-            {loadingAllPolicies && <div className="flex justify-center py-3"><Loader2 size={12} className="text-brand-400 animate-spin" /></div>}
+            {loadingAllPolicies && <div className="flex justify-center py-3"><Loader2 size={12} className="text-brand-ink animate-spin" /></div>}
             {!loadingAllPolicies && availablePolicies.length === 0 && <p className="text-[11px] text-text-muted px-2 py-2">No available policies.</p>}
             {!loadingAllPolicies && availablePolicies.map(p => {
               const id = p.id ?? p.policyId
@@ -1608,7 +1608,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                 <button key={id} onClick={() => linkPolicy(id)} disabled={linkingPolicy}
                   className="w-full text-left flex items-center gap-2 px-2 py-1.5 hover:bg-surface-overlay transition-colors">
                   <div className="flex-1 min-w-0">
-                    {p.policyRef && <span className="font-mono text-[9px] text-brand-400 mr-1">{p.policyRef}</span>}
+                    {p.policyRef && <span className="font-mono text-[9px] text-brand-ink mr-1">{p.policyRef}</span>}
                     <span className="text-[11px] text-text-primary line-clamp-1">{p.title}</span>
                   </div>
                   <Plus size={9} className="text-text-muted shrink-0" />
@@ -1702,9 +1702,9 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
               ? <span className="text-status-pass-fg">✓ "{createdControl.name}" created and mapped</span>
               : mode === 'pick'
                 ? selected
-                  ? <span className="text-brand-400">"{selected.name.slice(0, 50)}{selected.name.length > 50 ? '…' : ''}" selected</span>
+                  ? <span className="text-brand-ink">"{selected.name.slice(0, 50)}{selected.name.length > 50 ? '…' : ''}" selected</span>
                   : 'No control selected'
-                : <span className="text-brand-400">New control will be created and mapped</span>}
+                : <span className="text-brand-ink">New control will be created and mapped</span>}
           </p>
           <div className="flex gap-2">
             {createdControl
@@ -1790,7 +1790,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                   </select>
                 </div>
                 <div className="flex-1 overflow-y-auto rounded-card border border-border divide-y divide-border">
-                  {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>}
+                  {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>}
                   {!isLoading && filtered.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-10">
                       <Shield size={20} className="text-text-muted mb-2" />
@@ -1815,7 +1815,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                           {c.controlTag && <GuardTagBadge tag={c.controlTag} />}
                         </div>
                       </div>
-                      {selected?.id === c.id && <CheckCircle2 size={14} className="text-brand-400 shrink-0 mt-0.5" />}
+                      {selected?.id === c.id && <CheckCircle2 size={14} className="text-brand-ink shrink-0 mt-0.5" />}
                     </button>
                   ))}
                 </div>
@@ -1864,8 +1864,8 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                     className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <div className="flex items-start gap-2 p-3 bg-brand-500/5 border border-brand-500/20 rounded-card">
-                  <AlertCircle size={12} className="text-brand-400 mt-0.5 shrink-0" />
-                  <p className="text-[11px] text-brand-400/80 leading-relaxed">Control will be added to the library and immediately mapped into this section. You can link tests and policies on the next step.</p>
+                  <AlertCircle size={12} className="text-brand-ink mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-brand-ink/80 leading-relaxed">Control will be added to the library and immediately mapped into this section. You can link tests and policies on the next step.</p>
                 </div>
               </div>
               <div className="w-56 shrink-0">
@@ -2368,7 +2368,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
           <div className="flex flex-col gap-3">
             {/* Linked tests list */}
             {loadingLT ? (
-              <div className="flex justify-center py-6"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>
+              <div className="flex justify-center py-6"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>
             ) : (
               <div className="rounded-card border border-border divide-y divide-border">
                 {linkedTests.length === 0 && (
@@ -2382,11 +2382,11 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                       {!isEditing ? (
                         <div className="flex items-center gap-3 px-4 py-2.5 group hover:bg-surface-overlay transition-colors">
                           <div className="flex-1 min-w-0">
-                            {t.testRef && <span className="font-mono text-[10px] text-brand-400 mr-1.5">{t.testRef}</span>}
+                            {t.testRef && <span className="font-mono text-[10px] text-brand-ink mr-1.5">{t.testRef}</span>}
                             <span className="text-sm text-text-primary">{t.testName ?? t.name}</span>
                             {t.frequency && <span className="text-[10px] text-text-muted ml-2">{t.frequency}</span>}
                             {t.automationType && t.automationType !== 'MANUAL' && (
-                              <span className="text-[10px] text-brand-400 ml-1.5">{t.automationType}</span>
+                              <span className="text-[10px] text-brand-ink ml-1.5">{t.automationType}</span>
                             )}
                           </div>
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
@@ -2443,7 +2443,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
             {/* Link existing test */}
             <div className="border-t border-border pt-3 flex flex-col gap-2">
               <button onClick={() => { setShowTestPicker(v => !v); setShowCreateTest(false) }}
-                className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-medium">
+                className="flex items-center gap-1.5 text-xs text-brand-ink hover:text-brand-ink font-medium">
                 <Plus size={12} /> {showTestPicker ? 'Hide picker' : 'Link existing test'}
               </button>
               {showTestPicker && (
@@ -2454,7 +2454,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                       className="h-7 pl-7 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
                   <div className="max-h-40 overflow-y-auto rounded-card border border-border divide-y divide-border">
-                    {loadingAT && <div className="flex justify-center py-4"><Loader2 size={14} className="text-brand-400 animate-spin" /></div>}
+                    {loadingAT && <div className="flex justify-center py-4"><Loader2 size={14} className="text-brand-ink animate-spin" /></div>}
                     {!loadingAT && availableTests.length === 0 && <p className="text-xs text-text-muted px-3 py-3">No available tests.</p>}
                     {!loadingAT && availableTests.map(t => {
                       const id = t.id ?? t.testId
@@ -2462,7 +2462,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                         <button key={id} onClick={() => linkTest(id)} disabled={linkingTest}
                           className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-surface-overlay transition-colors">
                           <div className="flex-1 min-w-0">
-                            {t.testRef && <span className="font-mono text-[10px] text-brand-400 mr-1.5">{t.testRef}</span>}
+                            {t.testRef && <span className="font-mono text-[10px] text-brand-ink mr-1.5">{t.testRef}</span>}
                             <span className="text-xs text-text-primary line-clamp-1">{t.testName ?? t.name}</span>
                           </div>
                           <Plus size={10} className="text-text-muted shrink-0" />
@@ -2477,7 +2477,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
             {/* Create new test */}
             <div className="border-t border-border pt-3 flex flex-col gap-2">
               <button onClick={() => { setShowCreateTest(v => !v); setShowTestPicker(false) }}
-                className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-medium">
+                className="flex items-center gap-1.5 text-xs text-brand-ink hover:text-brand-ink font-medium">
                 <Plus size={12} /> {showCreateTest ? 'Hide' : 'Create new test and link'}
               </button>
               {showCreateTest && (
@@ -2524,7 +2524,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
         {editTab === 'policies' && (
           <div className="flex flex-col gap-3">
             {loadingLP ? (
-              <div className="flex justify-center py-6"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>
+              <div className="flex justify-center py-6"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>
             ) : (
               <div className="rounded-card border border-border divide-y divide-border">
                 {linkedPolicies.length === 0 && (
@@ -2535,7 +2535,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                   return (
                     <div key={id} className="flex items-center gap-3 px-4 py-2.5 group hover:bg-surface-overlay transition-colors">
                       <div className="flex-1 min-w-0">
-                        {p.policyRef && <span className="font-mono text-[10px] text-brand-400 mr-1.5">{p.policyRef}</span>}
+                        {p.policyRef && <span className="font-mono text-[10px] text-brand-ink mr-1.5">{p.policyRef}</span>}
                         <span className="text-sm text-text-primary">{p.title}</span>
                         {p.status && <span className="text-[10px] text-text-muted ml-2">{p.status}</span>}
                       </div>
@@ -2551,7 +2551,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
 
             <div className="border-t border-border pt-3 flex flex-col gap-2">
               <button onClick={() => setShowPolPicker(v => !v)}
-                className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-medium">
+                className="flex items-center gap-1.5 text-xs text-brand-ink hover:text-brand-ink font-medium">
                 <Plus size={12} /> {showPolPicker ? 'Hide picker' : 'Link a policy'}
               </button>
               {showPolPicker && (
@@ -2562,7 +2562,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                       className="h-7 pl-7 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
                   <div className="max-h-48 overflow-y-auto rounded-card border border-border divide-y divide-border">
-                    {loadingAP && <div className="flex justify-center py-4"><Loader2 size={14} className="text-brand-400 animate-spin" /></div>}
+                    {loadingAP && <div className="flex justify-center py-4"><Loader2 size={14} className="text-brand-ink animate-spin" /></div>}
                     {!loadingAP && availablePolicies.length === 0 && <p className="text-xs text-text-muted px-3 py-3">No available policies.</p>}
                     {!loadingAP && availablePolicies.map(p => {
                       const id = p.id ?? p.policyId
@@ -2570,7 +2570,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                         <button key={id} onClick={() => linkPolicy(id)} disabled={linkingPolicy}
                           className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-surface-overlay transition-colors">
                           <div className="flex-1 min-w-0">
-                            {p.policyRef && <span className="font-mono text-[10px] text-brand-400 mr-1.5">{p.policyRef}</span>}
+                            {p.policyRef && <span className="font-mono text-[10px] text-brand-ink mr-1.5">{p.policyRef}</span>}
                             <span className="text-xs text-text-primary line-clamp-1">{p.title}</span>
                           </div>
                           <Plus size={10} className="text-text-muted shrink-0" />
@@ -2661,7 +2661,7 @@ function InteractiveChildSection({ node, depth, templateId, isPublished }) {
             <button
               onClick={() => setShowAddChild(true)}
               title="Add child section"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors"
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors"
             >
               <Plus size={11} />
             </button>
@@ -2673,7 +2673,7 @@ function InteractiveChildSection({ node, depth, templateId, isPublished }) {
                 nextOrder:   controls.length + 1,
               })}
               title="Add control"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors"
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors"
             >
               <Shield size={11} />
             </button>
@@ -2812,7 +2812,7 @@ function SectionBlock({ node, index, templateId, isPublished, expanded, onToggle
         <button onClick={onToggle}
           className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-surface-overlay transition-colors text-left">
           <div className="w-6 h-6 rounded-ctl bg-brand-500/10 flex items-center justify-center shrink-0">
-            <span className="text-xs font-bold text-brand-400">{index + 1}</span>
+            <span className="text-xs font-bold text-brand-ink">{index + 1}</span>
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -2836,7 +2836,7 @@ function SectionBlock({ node, index, templateId, isPublished, expanded, onToggle
             </button>
             {/* NEW: Add child section directly from root section header */}
             <button onClick={() => setShowAddChild(true)} title="Add child section"
-              className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+              className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
               <Plus size={13} />
             </button>
             <button onClick={onRemove} title="Remove from template"
@@ -2953,7 +2953,7 @@ function AuditTemplateBuilder({ templateId, onBack }) {
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-full">
-      <Loader2 size={24} className="text-brand-400 animate-spin" />
+      <Loader2 size={24} className="text-brand-ink animate-spin" />
     </div>
   )
 
@@ -3355,13 +3355,13 @@ function AuditProjectBuilder({ projectId, onBack }) {
 
   const VISIBILITY_OPTIONS = [
     { key: 'GLOBAL',   label: 'Global',   desc: 'All organisations',   color: 'text-status-pass-fg border-status-pass-bd bg-status-pass-bg' },
-    { key: 'SPECIFIC', label: 'Specific', desc: 'Named tenants only',  color: 'text-brand-400 border-brand-500/30 bg-brand-500/10' },
+    { key: 'SPECIFIC', label: 'Specific', desc: 'Named tenants only',  color: 'text-brand-ink border-brand-500/30 bg-brand-500/10' },
     { key: 'PLATFORM', label: 'Platform', desc: 'Platform admin only', color: 'text-status-warn-fg border-status-warn-bd bg-status-warn-bg' },
   ]
 
   if (projLoading) return (
     <div className="flex items-center justify-center h-full">
-      <Loader2 size={24} className="text-brand-400 animate-spin" />
+      <Loader2 size={24} className="text-brand-ink animate-spin" />
     </div>
   )
 
@@ -3432,7 +3432,7 @@ function AuditProjectBuilder({ projectId, onBack }) {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wide">Visibility</h3>
             {visibility === 'SPECIFIC' && (
-              <button onClick={() => setShowTenants(t => !t)} className="text-xs text-brand-400 hover:text-brand-300 transition-colors">
+              <button onClick={() => setShowTenants(t => !t)} className="text-xs text-brand-ink hover:text-brand-ink transition-colors">
                 {showTenants ? 'Hide tenants' : `Manage tenants (${accessList.length})`}
               </button>
             )}
@@ -3621,7 +3621,7 @@ function AuditProjectsLibraryTab({ onOpen }) {
             <button key={p.id} onClick={() => onOpen(p.id)}
               className="w-full text-left rounded-card border border-border bg-surface-raised hover:bg-surface-overlay transition-colors px-4 py-3 flex items-center justify-between gap-3">
               <div className="flex items-start gap-3 min-w-0">
-                <FolderKanban size={16} className="text-brand-400 mt-0.5 shrink-0" />
+                <FolderKanban size={16} className="text-brand-ink mt-0.5 shrink-0" />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium text-text-primary">{p.name}</span>
@@ -3633,7 +3633,7 @@ function AuditProjectsLibraryTab({ onOpen }) {
                     {/* Visibility */}
                     {p.visibility === 'GLOBAL'    && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-status-info-bg text-status-info-fg"><Globe size={9} />Global</span>}
                     {p.visibility === 'PLATFORM'  && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-status-warn-bg text-status-warn-fg">Platform only</span>}
-                    {p.visibility === 'SPECIFIC'  && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400">Selected tenants</span>}
+                    {p.visibility === 'SPECIFIC'  && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-ink">Selected tenants</span>}
                     {/* Fallback for projects without new fields (legacy) */}
                     {!p.visibility && (p.global
                       ? <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-status-info-bg text-status-info-fg"><Globe size={9} />Global</span>
@@ -3827,7 +3827,7 @@ export default function AuditLibraryPage({ defaultTab = 'projects' }) {
           </button>
           {row.status === 'DRAFT'
             ? <button onClick={() => TM.publish.mutate(row.id)} title="Publish"
-                className="h-6 px-2 text-[10px] rounded text-brand-400 hover:bg-brand-500/10 transition-colors">Publish</button>
+                className="h-6 px-2 text-[10px] rounded text-brand-ink hover:bg-brand-500/10 transition-colors">Publish</button>
             : <button onClick={() => TM.unpublish.mutate(row.id)} title="Unpublish"
                 className="h-6 px-2 text-[10px] rounded text-status-warn-fg hover:bg-status-warn-bg transition-colors">Unpublish</button>
           }
@@ -3852,7 +3852,7 @@ export default function AuditLibraryPage({ defaultTab = 'projects' }) {
   const BulkBar = ({ count, label, loading, onDelete, onClear }) =>
     count === 0 ? null : (
       <div className="flex items-center gap-3 px-6 py-2.5 bg-brand-500/5 border-b border-brand-500/20">
-        <span className="text-xs font-medium text-brand-400">{count} {label} selected</span>
+        <span className="text-xs font-medium text-brand-ink">{count} {label} selected</span>
         <Button variant="ghost" size="xs" icon={Trash2}
           className="text-status-fail-fg hover:bg-status-fail-bg" loading={loading} onClick={onDelete}>
           Delete selected
@@ -3937,12 +3937,12 @@ export default function AuditLibraryPage({ defaultTab = 'projects' }) {
           return (
             <button key={key} onClick={() => handleTabChange(key)}
               className={cn('flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
-                tab === key ? 'border-brand-500 text-brand-400' : 'border-transparent text-text-muted hover:text-text-secondary')}>
+                tab === key ? 'border-brand-500 text-brand-ink' : 'border-transparent text-text-muted hover:text-text-secondary')}>
               <Icon size={14} />
               {label}
               {count != null && (
                 <span className={cn('ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono',
-                  tab === key ? 'bg-brand-500/15 text-brand-400' : 'bg-surface-overlay text-text-muted')}>
+                  tab === key ? 'bg-brand-500/15 text-brand-ink' : 'bg-surface-overlay text-text-muted')}>
                   {count}
                 </span>
               )}

@@ -269,7 +269,7 @@ export default function QuestionLibraryPage() {
     },
     { key: 'questionTag',   label: 'Guard Tag', sortable: true, width: 110, type: 'custom',
       render: (row) => row.questionTag
-        ? <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[10px] bg-brand-500/10 text-brand-400">{row.questionTag}</span>
+        ? <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[10px] bg-brand-500/10 text-brand-ink">{row.questionTag}</span>
         : <span className="text-[10px] text-text-muted italic">—</span>,
     },
     { key: 'optionsLinked', label: 'Options',  sortable: false, width: 70,  type: 'number' },
@@ -353,7 +353,7 @@ export default function QuestionLibraryPage() {
     count === 0 ? null : (
       <div className="flex flex-col border-b border-brand-500/20">
         <div className="flex items-center gap-3 px-6 py-2.5 bg-brand-500/5">
-          <span className="text-xs font-medium text-brand-400">
+          <span className="text-xs font-medium text-brand-ink">
             {selectAll ? `All ${totalCount} ${label} selected` : `${count} ${label} selected`}
           </span>
           <Button variant="ghost" size="xs" icon={Trash2}
@@ -371,7 +371,7 @@ export default function QuestionLibraryPage() {
         {!selectAll && count > 0 && totalCount > count && (
           <div className="px-6 py-2 bg-brand-500/5 border-t border-brand-500/10">
             <button onClick={onSelectAll}
-              className="text-xs text-brand-400 hover:text-brand-300 underline underline-offset-2">
+              className="text-xs text-brand-ink hover:text-brand-ink underline underline-offset-2">
               Select all {totalCount} {label} matching current filter
             </button>
             <span className="text-xs text-text-muted ml-2">
@@ -434,13 +434,13 @@ export default function QuestionLibraryPage() {
             <button key={key} onClick={() => handleTabChange(key)}
               className={cn(
                 'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
-                tab === key ? 'border-brand-500 text-brand-400' : 'border-transparent text-text-muted hover:text-text-secondary'
+                tab === key ? 'border-brand-500 text-brand-ink' : 'border-transparent text-text-muted hover:text-text-secondary'
               )}>
               <Icon size={14} />
               {label}
               {count != null && (
                 <span className={cn('ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono',
-                  tab === key ? 'bg-brand-500/15 text-brand-400' : 'bg-surface-overlay text-text-muted')}>
+                  tab === key ? 'bg-brand-500/15 text-brand-ink' : 'bg-surface-overlay text-text-muted')}>
                   {count}
                 </span>
               )}
@@ -1032,7 +1032,7 @@ function LibraryCsvImportModal({ open, onClose }) {
       {stage === 'importing' && (
         <div className="flex flex-col items-center gap-6 py-8">
           <div className="w-16 h-16 rounded-modal bg-brand-500/10 flex items-center justify-center">
-            <Loader2 size={28} className="text-brand-400 animate-spin" />
+            <Loader2 size={28} className="text-brand-ink animate-spin" />
           </div>
           <div className="text-center">
             <p className="text-sm font-semibold text-text-primary">Importing on server…</p>
@@ -1088,7 +1088,7 @@ function LibraryCsvImportModal({ open, onClose }) {
                   entry.status === 'SUCCESS' && 'text-text-secondary',
                   entry.status === 'ERROR'   && 'text-status-fail-fg',
                   entry.status === 'WARNING' && 'text-status-warn-fg',
-                  entry.status === 'INFO'    && 'text-brand-400'
+                  entry.status === 'INFO'    && 'text-brand-ink'
                 )}>
                   {entry.status === 'SUCCESS' && <CheckCircle2 size={11} className="mt-0.5 shrink-0" />}
                   {entry.status === 'ERROR'   && <XCircle size={11} className="mt-0.5 shrink-0" />}

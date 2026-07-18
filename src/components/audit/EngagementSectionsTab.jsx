@@ -143,13 +143,13 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
         className={cn(
           'flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-ctl border transition-all',
           selected
-            ? 'border-brand-500/40 bg-brand-500/10 text-brand-300 hover:bg-brand-500/15'
+            ? 'border-brand-500/40 bg-brand-500/10 text-brand-ink hover:bg-brand-500/15'
             : 'border-border bg-surface-overlay text-text-muted hover:text-text-secondary hover:border-border-strong'
         )}
       >
         {selected ? (
           <>
-            <div className="h-3.5 w-3.5 rounded-full bg-brand-500/30 flex items-center justify-center text-[7px] font-bold text-brand-300 shrink-0">
+            <div className="h-3.5 w-3.5 rounded-full bg-brand-500/30 flex items-center justify-center text-[7px] font-bold text-brand-ink shrink-0">
               {userInitials(selected)}
             </div>
             <span className="max-w-[100px] truncate">{userName(selected)}</span>
@@ -202,7 +202,7 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
                 onClick={(e) => { e.stopPropagation(); onChange(uid(u)); setOpen(false); setQuery('') }}
                 className={cn(
                   'w-full flex items-center gap-2 px-3 py-1.5 text-[11px] transition-colors hover:bg-surface-overlay text-left',
-                  uid(u) === value ? 'bg-brand-500/10 text-brand-300' : 'text-text-secondary'
+                  uid(u) === value ? 'bg-brand-500/10 text-brand-ink' : 'text-text-secondary'
                 )}
               >
                 <div className="h-4 w-4 rounded-full bg-surface-overlay border border-border flex items-center justify-center text-[8px] font-bold shrink-0">
@@ -212,7 +212,7 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
                   <div className="truncate font-medium">{userName(u)}</div>
                   {u.roleName && <div className="text-[9px] text-text-muted truncate">{u.roleName.replace(/_/g, ' ')}</div>}
                 </div>
-                {uid(u) === value && <CheckCircle2 size={10} className="text-brand-400 shrink-0" />}
+                {uid(u) === value && <CheckCircle2 size={10} className="text-brand-ink shrink-0" />}
               </button>
             ))}
           </div>
@@ -287,7 +287,7 @@ function DetailPanel({ item, type, onClose, auditorUsers, auditeeUsers }) {
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-            {code && <span className="font-mono text-[10px] text-brand-400">{code}</span>}
+            {code && <span className="font-mono text-[10px] text-brand-ink">{code}</span>}
             {tag  && <span className="text-[9px] px-1 rounded bg-surface-overlay text-text-muted">{tag}</span>}
             {!isSection && <ResultBadge result={item.testResult} />}
             {isSection && item.submittedAt && (
@@ -410,9 +410,9 @@ function SectionNode({
           onClick={() => onSelectSection(node)}
           className="flex items-center gap-1.5 flex-1 min-w-0 cursor-pointer"
         >
-          <Layers size={10} className={cn('shrink-0', isSubmitted ? 'text-status-pass-fg' : isMySection ? 'text-brand-400' : 'text-text-muted')} />
+          <Layers size={10} className={cn('shrink-0', isSubmitted ? 'text-status-pass-fg' : isMySection ? 'text-brand-ink' : 'text-text-muted')} />
           {node.sectionCodeSnapshot && (
-            <span className="font-mono text-[10px] text-brand-400 shrink-0">{node.sectionCodeSnapshot}</span>
+            <span className="font-mono text-[10px] text-brand-ink shrink-0">{node.sectionCodeSnapshot}</span>
           )}
           <span className="text-[11px] text-text-primary truncate group-hover:underline underline-offset-2">
             {node.sectionNameSnapshot}
@@ -545,7 +545,7 @@ function ControlRow({ ctrl, engagementId, depth, onSelect, canAssignAuditee,
       className={cn('flex items-center gap-1.5 py-1 pr-3 hover:bg-surface-overlay/30 group cursor-pointer', isMyControl && 'bg-brand-500/5 border-l-2 border-brand-400/30')}
       onClick={() => onSelect(ctrl)}
     >
-      <CheckSquare size={9} className={cn('shrink-0', isMyControl ? 'text-brand-400' : 'text-text-muted')} />
+      <CheckSquare size={9} className={cn('shrink-0', isMyControl ? 'text-brand-ink' : 'text-text-muted')} />
       {ctrl.controlCodeSnapshot && (
         <span className="font-mono text-[9px] text-text-muted shrink-0">{ctrl.controlCodeSnapshot}</span>
       )}
@@ -749,7 +749,7 @@ export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, o
 
       <div className="px-3 py-2 border-b border-border/40 flex items-center gap-3 text-[10px] text-text-muted shrink-0 flex-wrap">
         {effectiveMyView ? (
-          <span className="text-brand-300">
+          <span className="text-brand-ink">
             {displayTree.length} section{displayTree.length !== 1 ? 's' : ''} ·{' '}
             {Object.values(displayControlsBySection).reduce((n,a)=>n+a.length,0)} controls
             {hasAuditeeAssignments ? ' — my evidence assignments' : ' — my assignments'}
@@ -781,14 +781,14 @@ export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, o
               onClick={() => setMyView(v => !v)}
               className={cn(
                 'flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-ctl border transition-all',
-                myView ? 'border-brand-500/40 bg-brand-500/10 text-brand-300' : 'border-border text-text-muted hover:text-text-secondary'
+                myView ? 'border-brand-500/40 bg-brand-500/10 text-brand-ink' : 'border-border text-text-muted hover:text-text-secondary'
               )}
             >
               {myView ? <Eye size={9} /> : <EyeOff size={9} />} My view
             </button>
           )}
           {!(canAssignAuditor || canAssignAuditee || canAssignCtrlAuditee) && effectiveMyView && (
-            <span className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-ctl bg-brand-500/10 text-brand-300 border border-brand-500/30">
+            <span className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-ctl bg-brand-500/10 text-brand-ink border border-brand-500/30">
               <Eye size={9} /> My assignments
             </span>
           )}
@@ -801,7 +801,7 @@ export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, o
           <span className="text-[9px] text-text-muted font-medium uppercase tracking-wide shrink-0">Filter assignable:</span>
           {canAssignAuditor && auditorRoles.length > 0 && (
             <div className="flex items-center gap-1.5">
-              <UserCheck size={9} className="text-brand-400 shrink-0"/>
+              <UserCheck size={9} className="text-brand-ink shrink-0"/>
               <select
                 value={auditorRoleFilter ?? ''}
                 onChange={e => setAuditorRoleFilter(e.target.value ? Number(e.target.value) : null)}

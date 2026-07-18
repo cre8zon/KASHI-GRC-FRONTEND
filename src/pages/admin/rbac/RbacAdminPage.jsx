@@ -99,7 +99,7 @@ export default function RbacAdminPage() {
             className={cn(
               'flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-md transition-colors border-b-2 -mb-px',
               tab === t.key
-                ? 'border-brand-500 text-brand-400 bg-brand-500/5'
+                ? 'border-brand-500 text-brand-ink bg-brand-500/5'
                 : 'border-transparent text-text-muted hover:text-text-secondary hover:bg-surface-overlay'
             )}
           >
@@ -108,7 +108,7 @@ export default function RbacAdminPage() {
             {counts[t.key] != null && (
               <span className={cn(
                 'ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold tabular-nums',
-                tab === t.key ? 'bg-brand-500/20 text-brand-300' : 'bg-surface-overlay text-text-muted'
+                tab === t.key ? 'bg-brand-500/20 text-brand-ink' : 'bg-surface-overlay text-text-muted'
               )}>
                 {counts[t.key]}
               </span>
@@ -230,7 +230,7 @@ function PermissionsTab() {
               className="w-full flex items-center justify-between px-4 py-3 bg-surface-overlay hover:bg-surface-raised transition-colors"
             >
               <div className="flex items-center gap-2">
-                <Layers size={13} className="text-brand-400" />
+                <Layers size={13} className="text-brand-ink" />
                 <span className="text-xs font-semibold text-text-primary">{module}</span>
                 <Badge variant="gray" size="xs">{perms.length}</Badge>
               </div>
@@ -241,7 +241,7 @@ function PermissionsTab() {
                 {perms.map(p => (
                   <div key={p.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-surface-overlay/50 group">
                     <div className="flex items-center gap-3 min-w-0">
-                      <code className="text-xs font-mono text-brand-400 shrink-0">{p.code}</code>
+                      <code className="text-xs font-mono text-brand-ink shrink-0">{p.code}</code>
                       <span className="text-xs text-text-secondary truncate">{p.name}</span>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -414,7 +414,7 @@ function GrantsTab({ tenantId }) {
                 className={cn(
                   'px-2.5 py-1 text-[10px] font-medium rounded-ctl whitespace-nowrap transition-colors',
                   activeSide === s
-                    ? 'bg-brand-500/15 text-brand-400 border border-brand-500/30'
+                    ? 'bg-brand-500/15 text-brand-ink border border-brand-500/30'
                     : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay border border-transparent'
                 )}>
                 {s.charAt(0) + s.slice(1).toLowerCase()}
@@ -437,7 +437,7 @@ function GrantsTab({ tenantId }) {
                 className={cn(
                   'w-full text-left px-3 py-2.5 text-xs transition-colors border-b border-border last:border-0',
                   selectedRole?.id === r.id
-                    ? 'bg-brand-500/10 text-brand-400 font-medium'
+                    ? 'bg-brand-500/10 text-brand-ink font-medium'
                     : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
                 )}
               >
@@ -475,7 +475,7 @@ function GrantsTab({ tenantId }) {
               {Object.entries(grouped).map(([module, perms]) => (
                 <div key={module} className="border border-border rounded-card overflow-hidden">
                   <div className="flex items-center gap-2 px-4 py-2 bg-surface-overlay border-b border-border">
-                    <Layers size={12} className="text-brand-400" />
+                    <Layers size={12} className="text-brand-ink" />
                     <span className="text-xs font-semibold text-text-primary">{module}</span>
                     <span className="text-xs text-text-muted ml-auto">
                       {perms.filter(p => grantedIds.has(p.id)).length}/{perms.length}
@@ -498,7 +498,7 @@ function GrantsTab({ tenantId }) {
                             {granted && <CheckCircle2 size={10} className="text-status-pass-fg" />}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-xs font-mono text-brand-400 truncate">{p.code}</div>
+                            <div className="text-xs font-mono text-brand-ink truncate">{p.code}</div>
                             <div className="text-[10px] text-text-muted truncate">{p.name}</div>
                           </div>
                         </button>
@@ -581,7 +581,7 @@ function OverridesTab() {
                       <div className="font-medium text-text-primary">{o.userName || o.userId}</div>
                       <div className="text-text-muted">{o.userEmail}</div>
                     </td>
-                    <td className="px-4 py-2.5 font-mono text-brand-400">{o.permissionCode}</td>
+                    <td className="px-4 py-2.5 font-mono text-brand-ink">{o.permissionCode}</td>
                     <td className="px-4 py-2.5">
                       {o.granted
                         ? <span className="inline-flex items-center gap-1 text-status-pass-fg"><Unlock size={11} /> Grant</span>
@@ -748,9 +748,9 @@ function SodTab({ tenantId }) {
                     )}
                   </div>
                   <div className="flex items-center gap-2 text-xs">
-                    <code className="font-mono text-brand-400 bg-brand-500/10 px-1.5 py-0.5 rounded">{rule.permissionA}</code>
+                    <code className="font-mono text-brand-ink bg-brand-500/10 px-1.5 py-0.5 rounded">{rule.permissionA}</code>
                     <span className="text-text-muted">conflicts with</span>
-                    <code className="font-mono text-brand-400 bg-brand-500/10 px-1.5 py-0.5 rounded">{rule.permissionB}</code>
+                    <code className="font-mono text-brand-ink bg-brand-500/10 px-1.5 py-0.5 rounded">{rule.permissionB}</code>
                   </div>
                   {rule.description && <p className="text-xs text-text-muted mt-1">{rule.description}</p>}
                   <div className="flex items-center gap-3 mt-1.5 text-[10px] text-text-muted">
@@ -840,7 +840,7 @@ function SodRuleModal({ open, onClose, initial, onSave, loading, allRoles }) {
                 className={cn(
                   'flex-1 py-2 text-xs rounded-ctl border transition-colors',
                   form.ruleType === opt.v
-                    ? 'border-brand-500 bg-brand-500/10 text-brand-400 font-medium'
+                    ? 'border-brand-500 bg-brand-500/10 text-brand-ink font-medium'
                     : 'border-border text-text-muted hover:border-border-strong'
                 )}>
                 {opt.label}

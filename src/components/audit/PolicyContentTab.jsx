@@ -149,7 +149,7 @@ export function PolicyContentTab({ entity }) {
           <div className="px-4 py-4">
             <div className="flex items-start gap-3 p-3 bg-surface-overlay rounded-card
                             border border-border mb-4">
-              <Globe size={14} className="text-brand-400 shrink-0 mt-0.5"/>
+              <Globe size={14} className="text-brand-ink shrink-0 mt-0.5"/>
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-medium text-text-primary mb-1">
                   External Policy Document
@@ -158,7 +158,7 @@ export function PolicyContentTab({ entity }) {
               </div>
               <a href={externalUrl} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1 text-[10px] px-2.5 py-1 rounded
-                           bg-brand-500/10 text-brand-400 border border-brand-500/20
+                           bg-brand-500/10 text-brand-ink border border-brand-500/20
                            hover:bg-brand-500/20 shrink-0">
                 <ExternalLink size={10}/> Open
               </a>
@@ -179,7 +179,7 @@ export function PolicyContentTab({ entity }) {
           <div className="px-4 py-4">
             <div className="flex items-center gap-3 p-3 bg-surface-overlay
                             rounded-card border border-border">
-              <FileText size={14} className="text-brand-400 shrink-0"/>
+              <FileText size={14} className="text-brand-ink shrink-0"/>
               <div className="flex-1">
                 <p className="text-[11px] font-medium text-text-primary">
                   Policy Document
@@ -191,7 +191,7 @@ export function PolicyContentTab({ entity }) {
               <a href={`/v1/evidence/${entity.evidenceRecordIdSnapshot}`}
                 target="_blank"
                 className="flex items-center gap-1 text-[10px] px-2.5 py-1 rounded
-                           bg-brand-500/10 text-brand-400 border border-brand-500/20
+                           bg-brand-500/10 text-brand-ink border border-brand-500/20
                            hover:bg-brand-500/20">
                 <ExternalLink size={10}/> View
               </a>

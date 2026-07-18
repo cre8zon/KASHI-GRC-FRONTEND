@@ -60,7 +60,7 @@ function Section({ icon: Icon, label, accent, badge, locked, children }) {
       )}>
         <div className={cn(
           'flex items-center justify-center w-5 h-5 rounded',
-          accent ? 'bg-brand-500/15 text-brand-400'
+          accent ? 'bg-brand-500/15 text-brand-ink'
                  : locked ? 'bg-surface-overlay text-text-muted border border-border/50'
                  : 'bg-surface text-text-secondary border border-border'
         )}>
@@ -68,7 +68,7 @@ function Section({ icon: Icon, label, accent, badge, locked, children }) {
         </div>
         <span className={cn(
           'text-[11px] font-semibold',
-          accent ? 'text-brand-400' : locked ? 'text-text-muted' : 'text-text-secondary'
+          accent ? 'text-brand-ink' : locked ? 'text-text-muted' : 'text-text-secondary'
         )}>
           {label}
         </span>
@@ -78,7 +78,7 @@ function Section({ icon: Icon, label, accent, badge, locked, children }) {
         {badge != null && (
           <span className={cn(
             'ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-medium',
-            accent ? 'bg-brand-500/15 text-brand-400' : 'bg-surface-overlay text-text-muted'
+            accent ? 'bg-brand-500/15 text-brand-ink' : 'bg-surface-overlay text-text-muted'
           )}>
             {badge}
           </span>
@@ -94,7 +94,7 @@ function AutomatedRow({ link, onAccept, onReject, canReview }) {
   const record = link.record || {}
   return (
     <div className="flex items-start gap-3 py-2.5 border-b border-border/20 last:border-0">
-      <Zap size={12} className="shrink-0 mt-0.5 text-brand-400" />
+      <Zap size={12} className="shrink-0 mt-0.5 text-brand-ink" />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium text-text-primary truncate">
           {record.title || `Integration check #${link.evidenceRecordId}`}
@@ -134,7 +134,7 @@ function AuditeeGuide() {
   return (
     <div className="rounded-card border border-brand-500/20 bg-brand-500/5 p-3.5 mb-4">
       <div className="flex items-start gap-2.5">
-        <Info size={13} className="shrink-0 text-brand-400 mt-0.5" />
+        <Info size={13} className="shrink-0 text-brand-ink mt-0.5" />
         <div className="space-y-2 text-[11px] text-text-secondary leading-relaxed">
           <p className="font-medium text-text-primary">How to submit evidence for this control</p>
           <div className="space-y-1.5">
@@ -144,7 +144,7 @@ function AuditeeGuide() {
               ['3', 'Automated checks', 'If integrations are configured, real-time evidence may also appear below automatically.'],
             ].map(([n, title, desc]) => (
               <div key={n} className="flex items-start gap-2">
-                <span className="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-brand-500/15 text-brand-400 text-[8px] font-bold flex items-center justify-center">{n}</span>
+                <span className="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-brand-500/15 text-brand-ink text-[8px] font-bold flex items-center justify-center">{n}</span>
                 <span><span className="font-medium text-text-primary">{title}</span> — {desc}</span>
               </div>
             ))}

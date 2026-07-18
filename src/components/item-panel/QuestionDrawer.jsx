@@ -130,7 +130,7 @@ function DrawerAnswerInput({ question, assessmentId }) {
             <p className="text-xs text-text-secondary leading-relaxed pr-12 whitespace-pre-wrap">{resp.responseText}</p>
             <button
               onClick={() => { setLocalText(resp.responseText); setDirty(true) }}
-              className="absolute right-2 top-2 text-[10px] text-text-muted hover:text-brand-400 border border-border rounded px-1.5 py-0.5 transition-colors">
+              className="absolute right-2 top-2 text-[10px] text-text-muted hover:text-brand-ink border border-border rounded px-1.5 py-0.5 transition-colors">
               Edit
             </button>
           </div>
@@ -148,7 +148,7 @@ function DrawerAnswerInput({ question, assessmentId }) {
               <button
                 disabled={!localText.trim() || isPending}
                 onClick={saveText}
-                className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded bg-brand-500/20 text-brand-300 border border-brand-500/30 hover:bg-brand-500/30 disabled:opacity-40 transition-colors">
+                className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded bg-brand-500/20 text-brand-ink border border-brand-500/30 hover:bg-brand-500/30 disabled:opacity-40 transition-colors">
                 {isPending ? <Loader2 size={10} className="animate-spin"/> : <Save size={10}/>}
                 {hasSaved ? 'Update' : 'Save'}
               </button>
@@ -196,16 +196,16 @@ function DrawerAnswerInput({ question, assessmentId }) {
                 className={cn(
                   'text-xs px-2.5 py-1.5 rounded border transition-all flex items-center gap-1',
                   selected
-                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
+                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-ink font-medium'
                     : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary'
                 )}>
                 {opt.optionValue}
                 {opt.score != null && (
-                  <span className={cn('text-[10px]', selected ? 'text-brand-400/70' : 'opacity-40')}>
+                  <span className={cn('text-[10px]', selected ? 'text-brand-ink/70' : 'opacity-40')}>
                     {opt.score}pts
                   </span>
                 )}
-                {selected && <CheckCircle2 size={10} className="text-brand-400"/>}
+                {selected && <CheckCircle2 size={10} className="text-brand-ink"/>}
               </button>
             )
           })}
@@ -260,7 +260,7 @@ function DrawerAnswerInput({ question, assessmentId }) {
                 className={cn(
                   'text-xs px-2.5 py-1.5 rounded border transition-all flex items-center gap-1.5',
                   selected
-                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
+                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-ink font-medium'
                     : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary',
                   thisOptPending && 'opacity-60'
                 )}>
@@ -272,7 +272,7 @@ function DrawerAnswerInput({ question, assessmentId }) {
                 </span>
                 {opt.optionValue}
                 {opt.score != null && (
-                  <span className={cn('text-[10px]', selected ? 'text-brand-400/70' : 'opacity-40')}>
+                  <span className={cn('text-[10px]', selected ? 'text-brand-ink/70' : 'opacity-40')}>
                     {opt.score}pts
                   </span>
                 )}
@@ -523,7 +523,7 @@ export function QuestionDrawer({
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-2.5 text-[11px] font-medium border-b-2 -mb-px whitespace-nowrap transition-colors',
                     activeTab === id
-                      ? 'border-brand-500 text-brand-400'
+                      ? 'border-brand-500 text-brand-ink'
                       : 'border-transparent text-text-muted hover:text-text-secondary'
                   )}>
                   <Icon size={12} />
@@ -644,7 +644,7 @@ function AnswerPreview({ question, resp }) {
                 className={cn(
                   'text-xs px-2 py-0.5 rounded border',
                   sel
-                    ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
+                    ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink font-medium'
                     : 'border-border text-text-muted opacity-40'
                 )}>
                 {opt.optionValue}
@@ -726,7 +726,7 @@ function InternalTab({ qiId, assessmentId, canComment, userSide, userRole }) {
   return (
     <div className="space-y-3">
       <ChannelLabel
-        color={isVendorSide ? 'text-brand-400' : 'text-status-tag-fg'}
+        color={isVendorSide ? 'text-brand-ink' : 'text-status-tag-fg'}
         label={isVendorSide ? 'Vendor-only · never visible to org reviewer' : 'Org-only · never visible to vendor'}
         description={isVendorSide
           ? 'Responder ↔ contributor internal notes. Org reviewers cannot see this.'

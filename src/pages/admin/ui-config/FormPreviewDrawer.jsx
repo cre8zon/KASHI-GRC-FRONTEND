@@ -98,11 +98,11 @@ export function FormPreviewDrawer({ form, onClose }) {
         <div className="flex items-start justify-between px-5 py-4 border-b border-border shrink-0">
           <div>
             <div className="flex items-center gap-2">
-              <Eye size={14} className="text-brand-400" />
+              <Eye size={14} className="text-brand-ink" />
               <h2 className="text-sm font-semibold text-text-primary">Form preview</h2>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <code className="text-[11px] font-mono text-brand-400">{form.formKey}</code>
+              <code className="text-[11px] font-mono text-brand-ink">{form.formKey}</code>
               <Badge value={form.httpMethod} label={form.httpMethod} colorTag="blue" />
               {form.title && <span className="text-xs text-text-muted">{form.title}</span>}
             </div>
@@ -126,7 +126,7 @@ export function FormPreviewDrawer({ form, onClose }) {
                 className={cn(
                   'flex items-center gap-1.5 px-2.5 py-1.5 text-xs transition-colors',
                   view === v.key
-                    ? 'bg-brand-500/15 text-brand-400'
+                    ? 'bg-brand-500/15 text-brand-ink'
                     : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay'
                 )}>
                 <v.icon size={11} /> {v.label}
@@ -142,7 +142,7 @@ export function FormPreviewDrawer({ form, onClose }) {
                   className={cn(
                     'px-2.5 py-1.5 transition-colors',
                     device === key
-                      ? 'bg-brand-500/15 text-brand-400'
+                      ? 'bg-brand-500/15 text-brand-ink'
                       : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay'
                   )}>
                   <Icon size={13} />
@@ -234,7 +234,7 @@ function FieldsView({ formId }) {
   return (
     <div className="p-6">
       <div className="flex items-center gap-2 mb-4">
-        <Layers size={13} className="text-brand-400" />
+        <Layers size={13} className="text-brand-ink" />
         <span className="text-xs font-semibold text-text-primary">{fields.length} fields</span>
       </div>
       <div className="border border-border rounded-card overflow-hidden">
@@ -262,7 +262,7 @@ function FieldsView({ formId }) {
                   isSeparator && 'opacity-60'
                 )}>
                   <td className="px-3 py-2 text-text-muted">{f.sortOrder ?? i + 1}</td>
-                  <td className="px-3 py-2 font-mono text-brand-400">{f.fieldKey}</td>
+                  <td className="px-3 py-2 font-mono text-brand-ink">{f.fieldKey}</td>
                   <td className="px-3 py-2 text-text-primary">{f.label}</td>
                   <td className="px-3 py-2">
                     <Badge
@@ -298,7 +298,7 @@ function FieldsView({ formId }) {
               try { rules = JSON.parse(f.validationRulesJson) } catch {}
               return (
                 <div key={f.id} className="flex items-start gap-3 text-[11px]">
-                  <code className="font-mono text-brand-400 shrink-0 w-36">{f.fieldKey}</code>
+                  <code className="font-mono text-brand-ink shrink-0 w-36">{f.fieldKey}</code>
                   <div className="flex flex-wrap gap-1">
                     {Object.entries(rules).map(([k, v]) => (
                       <span key={k} className="px-1.5 py-0.5 rounded bg-surface-overlay border border-border text-text-muted">
@@ -353,7 +353,7 @@ function JsonView({ form }) {
         <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Form config as JSON</p>
         <button
           onClick={() => navigator.clipboard.writeText(JSON.stringify(output, null, 2))}
-          className="text-[10px] text-text-muted hover:text-brand-400 transition-colors"
+          className="text-[10px] text-text-muted hover:text-brand-ink transition-colors"
         >
           Copy
         </button>

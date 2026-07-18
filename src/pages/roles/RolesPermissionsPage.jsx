@@ -233,7 +233,7 @@ function RoleForm({ side: defaultSide, onSubmit, isPending, onClose }) {
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">
             Permissions
             {form.permissionIds.length > 0 && (
-              <span className="ml-2 px-1.5 py-0.5 rounded bg-brand-500/15 text-brand-400 text-[10px]">
+              <span className="ml-2 px-1.5 py-0.5 rounded bg-brand-500/15 text-brand-ink text-[10px]">
                 {form.permissionIds.length} selected
               </span>
             )}
@@ -263,13 +263,13 @@ function RoleForm({ side: defaultSide, onSubmit, isPending, onClose }) {
                   <button key={p.id} onClick={() => togglePerm(p.id)} type="button"
                     className={cn(
                       'w-full flex items-center justify-between px-3 py-2 text-left border-b border-border/30 transition-colors',
-                      selected ? 'bg-brand-500/8 text-brand-400' : 'hover:bg-surface-overlay text-text-secondary'
+                      selected ? 'bg-brand-500/8 text-brand-ink' : 'hover:bg-surface-overlay text-text-secondary'
                     )}>
                     <div>
                       <span className="text-xs font-mono">{p.code}</span>
                       <span className="text-[10px] text-text-muted ml-2">{p.name}</span>
                     </div>
-                    {selected && <Check size={11} className="shrink-0 text-brand-400" />}
+                    {selected && <Check size={11} className="shrink-0 text-brand-ink" />}
                   </button>
                 )
               })}
@@ -338,7 +338,7 @@ function RolePermissionEditor({ role, onClose }) {
       {/* Role info */}
       <div className="flex items-center gap-3 p-3 bg-surface-overlay rounded-card border border-border">
         <div className="w-8 h-8 rounded-card bg-brand-500/20 flex items-center justify-center shrink-0">
-          <Shield size={14} className="text-brand-400" />
+          <Shield size={14} className="text-brand-ink" />
         </div>
         <div>
           <p className="text-sm font-medium text-text-primary">{role.name || role.roleName}</p>
@@ -348,7 +348,7 @@ function RolePermissionEditor({ role, onClose }) {
           </div>
         </div>
         <div className="ml-auto text-right">
-          <p className="text-xs font-semibold text-brand-400">{selected.size}</p>
+          <p className="text-xs font-semibold text-brand-ink">{selected.size}</p>
           <p className="text-[10px] text-text-muted">selected</p>
         </div>
       </div>
@@ -373,7 +373,7 @@ function RolePermissionEditor({ role, onClose }) {
                   ids.forEach(id => allSel ? next.delete(id) : next.add(id))
                   return next
                 })
-              }} className="text-[10px] text-text-muted hover:text-brand-400 transition-colors">
+              }} className="text-[10px] text-text-muted hover:text-brand-ink transition-colors">
                 {perms.every(p => selected.has(p.id)) ? 'Deselect all' : 'Select all'}
               </button>
             </div>
@@ -383,13 +383,13 @@ function RolePermissionEditor({ role, onClose }) {
                 <button key={p.id} onClick={() => toggle(p.id)} type="button"
                   className={cn(
                     'w-full flex items-center justify-between px-3 py-2 text-left border-b border-border/30 transition-colors',
-                    sel ? 'bg-brand-500/8 text-brand-400' : 'hover:bg-surface-overlay text-text-secondary'
+                    sel ? 'bg-brand-500/8 text-brand-ink' : 'hover:bg-surface-overlay text-text-secondary'
                   )}>
                   <div>
                     <span className="text-xs font-mono">{p.code}</span>
                     <span className="text-[10px] text-text-muted ml-2">{p.name}</span>
                   </div>
-                  {sel && <Check size={11} className="shrink-0 text-brand-400" />}
+                  {sel && <Check size={11} className="shrink-0 text-brand-ink" />}
                 </button>
               )
             })}
@@ -462,7 +462,7 @@ function RolesPanel({ tenantId, side, canManage }) {
                 )}>
                   {isSystem
                     ? <Lock size={12} className="text-status-warn-fg" />
-                    : <Shield size={12} className="text-brand-400" />}
+                    : <Shield size={12} className="text-brand-ink" />}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -489,7 +489,7 @@ function RolesPanel({ tenantId, side, canManage }) {
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 {canManage && (
                   <button onClick={() => setEditPerms(role)} title="Edit permissions"
-                    className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+                    className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
                     <Key size={11} />
                   </button>
                 )}
@@ -716,7 +716,7 @@ export default function RolesPermissionsPage({ side = 'ORGANIZATION' }) {
                     className={cn(
                       'px-3 py-2 text-xs font-medium border-b-2 transition-colors -mb-px',
                       activeSide === s
-                        ? 'border-brand-500 text-brand-400'
+                        ? 'border-brand-500 text-brand-ink'
                         : 'border-transparent text-text-muted hover:text-text-secondary'
                     )}>
                     {s}

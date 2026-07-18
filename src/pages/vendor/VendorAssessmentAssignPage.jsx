@@ -95,7 +95,7 @@ function UserPicker({ label, value, onChange, filterRole }) {
       {value ? (
         <div className="flex items-center gap-2 p-2 rounded-ctl border border-brand-500/30 bg-brand-500/5">
           <div className="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0">
-            <span className="text-[10px] font-bold text-brand-400">{initials(value.fullName || value.email)}</span>
+            <span className="text-[10px] font-bold text-brand-ink">{initials(value.fullName || value.email)}</span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-text-primary truncate">{value.fullName || '—'}</p>
@@ -173,7 +173,7 @@ function VRMAssignView({ taskId, stepInstanceId, onDone }) {
             <p className="text-sm font-medium text-text-primary">{delegated.fullName || delegated.email}</p>
           </div>
           <button onClick={() => setEditing(true)}
-            className="text-xs text-text-muted hover:text-brand-400 px-2 py-1 rounded border border-border hover:border-brand-500/30 transition-colors">
+            className="text-xs text-text-muted hover:text-brand-ink px-2 py-1 rounded border border-border hover:border-brand-500/30 transition-colors">
             Change
           </button>
         </div>
@@ -275,7 +275,7 @@ function CISOAssignView({ assessment, taskId, stepInstanceId, onDone }) {
                   <span className="text-xs text-text-primary truncate">{assigned.fullName || assigned.email}</span>
                 </div>
                 <button onClick={() => { setEditingSection(sid); setAssignments(a => ({ ...a, [sid]: assigned })) }}
-                  className="text-xs text-text-muted hover:text-brand-400 px-2 py-1 rounded border border-border hover:border-brand-500/30 flex-shrink-0 transition-colors">
+                  className="text-xs text-text-muted hover:text-brand-ink px-2 py-1 rounded border border-border hover:border-brand-500/30 flex-shrink-0 transition-colors">
                   Change
                 </button>
               </div>

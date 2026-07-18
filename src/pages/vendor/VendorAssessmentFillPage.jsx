@@ -618,7 +618,7 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
                 <span key={o.optionInstanceId}
                   className={cn('text-xs px-2.5 py-1 rounded border',
                     isSelected
-                      ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
+                      ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink font-medium'
                       : 'bg-surface-overlay border-border text-text-muted opacity-40'
                   )}>
                   {o.optionValue}
@@ -691,11 +691,11 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
                   className={cn(
                     'text-xs px-2.5 py-1.5 rounded border select-none',
                     sel
-                      ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
+                      ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink font-medium'
                       : 'bg-surface-overlay border-border text-text-muted opacity-40'
                   )}>
                   {opt.optionValue}
-                  {sel && <CheckCircle2 size={10} className="inline ml-1 text-brand-400" />}
+                  {sel && <CheckCircle2 size={10} className="inline ml-1 text-brand-ink" />}
                 </span>
               )
             })}
@@ -726,7 +726,7 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
             <p className="text-xs text-text-secondary leading-relaxed pr-12">{resp.responseText}</p>
             <button
               onClick={() => { setLocalText(resp.responseText); setDirty(true) }}
-              className="absolute right-2 top-2 text-[10px] text-text-muted hover:text-brand-400 transition-colors px-1.5 py-0.5 rounded border border-border hover:border-brand-500/30">
+              className="absolute right-2 top-2 text-[10px] text-text-muted hover:text-brand-ink transition-colors px-1.5 py-0.5 rounded border border-border hover:border-brand-500/30">
               Edit
             </button>
           </div>
@@ -776,11 +776,11 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
                   onClick={() => saveSingle(opt.optionInstanceId)}
                   className={cn('text-xs px-2.5 py-1.5 rounded border transition-all',
                     selected
-                      ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
+                      ? 'bg-brand-500/20 border-brand-500/50 text-brand-ink font-medium'
                       : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary'
                   )}>
                   {opt.optionValue}
-                  {selected && <CheckCircle2 size={10} className="inline ml-1.5 text-brand-400" />}
+                  {selected && <CheckCircle2 size={10} className="inline ml-1.5 text-brand-ink" />}
                 </button>
               )
             })}
@@ -833,7 +833,7 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
                 onClick={() => toggleMulti(opt.optionInstanceId)}
                 className={cn('text-xs px-2.5 py-1.5 rounded border transition-all flex items-center gap-1.5',
                   selected
-                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
+                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-ink font-medium'
                     : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary'
                 )}>
                 <span className={cn('w-3 h-3 rounded-ctl border flex-shrink-0 flex items-center justify-center',
@@ -1241,7 +1241,7 @@ export default function VendorAssessmentFillPage() {
                                 onClick={() => drawerQuestion?.questionInstanceId === q.questionInstanceId
                                   ? setDrawerQuestion(null)
                                   : setDrawerQuestion(q)}
-                                className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-400 transition-colors ml-auto">
+                                className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-ink transition-colors ml-auto">
                                 <MessageSquare size={10} />
                                 {drawerQuestion?.questionInstanceId === q.questionInstanceId
                                   ? 'Close panel'
@@ -1442,7 +1442,7 @@ export default function VendorAssessmentFillPage() {
                               onClick={() => drawerQuestion?.questionInstanceId === q.questionInstanceId
                                 ? setDrawerQuestion(null)
                                 : setDrawerQuestion(q)}
-                              className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-400 transition-colors shrink-0">
+                              className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-ink transition-colors shrink-0">
                               <MessageSquare size={10} />
                               {drawerQuestion?.questionInstanceId === q.questionInstanceId
                                 ? 'Close panel'

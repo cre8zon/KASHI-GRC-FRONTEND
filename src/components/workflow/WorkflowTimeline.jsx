@@ -30,7 +30,7 @@ function duration(mins) {
 const STEP_STATUS = {
   APPROVED:            { icon: Check,        color: 'text-status-pass-fg',  ring: 'border-status-pass-bd  bg-status-pass-bg'  },
   REJECTED:            { icon: X,            color: 'text-status-fail-fg',    ring: 'border-status-fail-bd    bg-status-fail-bg'    },
-  IN_PROGRESS:         { icon: Clock,        color: 'text-brand-400',  ring: 'border-brand-500/40  bg-brand-500/10'  },
+  IN_PROGRESS:         { icon: Clock,        color: 'text-brand-ink',  ring: 'border-brand-500/40  bg-brand-500/10'  },
   AWAITING_ASSIGNMENT: { icon: Users,        color: 'text-status-warn-fg',  ring: 'border-status-warn-bd  bg-status-warn-bg'  },
   REASSIGNED:          { icon: RotateCcw,    color: 'text-status-tag-fg', ring: 'border-status-tag-bd bg-status-tag-bg' },
   PENDING:             { icon: Circle,       color: 'text-text-muted', ring: 'border-border        bg-surface-overlay'},
@@ -155,7 +155,7 @@ function TaskRow({ task, isAssigner, stepInstanceId, workflowInstanceId, isAdmin
               <button
                 onClick={() => reEvaluate()}
                 disabled={reEvaluating || resetting}
-                className="flex items-center gap-1 text-[10px] font-medium text-brand-400 hover:text-brand-300 border border-brand-500/30 hover:bg-brand-500/10 px-2 py-0.5 rounded transition-colors disabled:opacity-50"
+                className="flex items-center gap-1 text-[10px] font-medium text-brand-ink hover:text-brand-ink border border-brand-500/30 hover:bg-brand-500/10 px-2 py-0.5 rounded transition-colors disabled:opacity-50"
               >
                 <RefreshCw size={9} className={reEvaluating ? 'animate-spin' : ''}/>
                 {reEvaluating ? 'Checking…' : 'Re-evaluate'}
@@ -196,9 +196,9 @@ function TaskRow({ task, isAssigner, stepInstanceId, workflowInstanceId, isAdmin
                 ) : (
                   <div className="rounded-ctl border border-brand-500/30 bg-brand-500/5 p-2.5 space-y-2">
                     <div className="flex items-start gap-1.5">
-                      <AlertCircle size={11} className="text-brand-400 shrink-0 mt-0.5" />
+                      <AlertCircle size={11} className="text-brand-ink shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-[10px] font-bold text-brand-400">Confirm: reopen this task only</p>
+                        <p className="text-[10px] font-bold text-brand-ink">Confirm: reopen this task only</p>
                         <p className="text-[10px] text-text-muted mt-0.5">
                           {name}'s task will return to In Progress. All other tasks and downstream steps remain untouched.
                         </p>
@@ -336,7 +336,7 @@ function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
                 {step.stepOrder}. {step.stepName}
               </span>
               {isSystem && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 font-mono">
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-ink font-mono">
                   auto
                 </span>
               )}
@@ -381,8 +381,8 @@ function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
             {isSystem && step.automatedAction && (
               <div className="px-3 py-2 space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <Zap size={10} className="text-brand-400 shrink-0" />
-                  <span className="text-[10px] text-brand-400 font-mono">{step.automatedAction}</span>
+                  <Zap size={10} className="text-brand-ink shrink-0" />
+                  <span className="text-[10px] text-brand-ink font-mono">{step.automatedAction}</span>
                   <span className="text-[10px] text-text-muted">fires automatically</span>
                 </div>
                 {status === 'IN_PROGRESS' && isAdmin && (
@@ -457,7 +457,7 @@ export function WorkflowTimeline({ progress, workflowInstanceId, isAdmin = false
       {/* Workflow name + instance ID */}
       {workflowName && (
         <div className="flex items-center gap-1.5 text-xs text-text-muted">
-          <GitBranch size={11} className="text-brand-400 shrink-0" />
+          <GitBranch size={11} className="text-brand-ink shrink-0" />
           <span className="font-medium text-text-secondary">{workflowName}</span>
           {workflowInstanceId && (
             <span className="text-text-muted/50">· Instance #{workflowInstanceId}</span>

@@ -63,7 +63,7 @@ function HeaderZoneInspector({ screenKey, onSelectElement }) {
           Fields that appear above the tabs — always visible to all roles.
           Typical: title, status badge, owner, created date, ID number.
           Stored as <code className="font-mono">UiFormField</code> rows under key{' '}
-          <code className="font-mono text-brand-400">{formKey}</code>.
+          <code className="font-mono text-brand-ink">{formKey}</code>.
         </p>
 
         {/* Field list */}
@@ -89,7 +89,7 @@ function HeaderZoneInspector({ screenKey, onSelectElement }) {
         <button
           onClick={() => onSelectElement({ type: 'new_form_field', screenKey: formKey, formId,
             onSaved: () => qc.invalidateQueries({ queryKey: ['sd-form-fields', formId] }) })}
-          className="w-full flex items-center justify-center gap-1.5 py-2 mt-1 border-2 border-dashed border-brand-500/25 hover:border-brand-500/50 rounded-card text-xs text-brand-400 hover:text-brand-300 font-medium transition-colors bg-brand-500/3">
+          className="w-full flex items-center justify-center gap-1.5 py-2 mt-1 border-2 border-dashed border-brand-500/25 hover:border-brand-500/50 rounded-card text-xs text-brand-ink hover:text-brand-ink font-medium transition-colors bg-brand-500/3">
           <Plus size={12} /> Add header field
         </button>
       </InspectorSection>
@@ -118,7 +118,7 @@ function HeaderZoneInspector({ screenKey, onSelectElement }) {
                   toast.success(`Added "${preset.label}" field`)
                 } catch (e) { toast.error(e?.response?.data?.message || 'Failed') }
               }}
-              className="px-2 py-0.5 rounded text-[9px] border border-border bg-surface-overlay text-text-muted hover:border-brand-500/40 hover:text-brand-400 transition-colors disabled:opacity-40">
+              className="px-2 py-0.5 rounded text-[9px] border border-border bg-surface-overlay text-text-muted hover:border-brand-500/40 hover:text-brand-ink transition-colors disabled:opacity-40">
               + {preset.label}
             </button>
           ))}

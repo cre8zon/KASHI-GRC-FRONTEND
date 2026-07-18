@@ -102,7 +102,7 @@ function ActionInspector({ initial, screenKey, onSave }) {
           </p>
         </IField>
         {formKey && (
-          <div className="px-2 py-1.5 rounded bg-brand-500/5 border border-brand-500/20 text-[9px] text-brand-400 font-mono">
+          <div className="px-2 py-1.5 rounded bg-brand-500/5 border border-brand-500/20 text-[9px] text-brand-ink font-mono">
             {"{"}&quot;__formKey&quot;:&quot;{formKey}&quot;{"}"} → stored in payloadTemplateJson
           </div>
         )}
@@ -137,7 +137,7 @@ function ActionInspector({ initial, screenKey, onSave }) {
               return (
                 <button key={s} onClick={() => set('allowedSides', (active ? sides.filter(x=>x!==s) : [...sides,s]).join(','))}
                   className={cn('px-1.5 py-0.5 rounded text-[8px] border transition-colors',
-                    active ? 'border-brand-500 bg-brand-500/15 text-brand-400' : 'border-border text-text-muted hover:border-border-strong')}>
+                    active ? 'border-brand-500 bg-brand-500/15 text-brand-ink' : 'border-border text-text-muted hover:border-border-strong')}>
                   {s}
                 </button>
               )

@@ -157,7 +157,7 @@ function FormCanvas({ screen, selectedElement, onSelectElement, actions }) {
       case 'MULTILINE_LIST': return (
         <div className="border border-border rounded p-2 space-y-1">
           <div className="h-6 bg-background border border-border/50 rounded text-[10px] text-text-muted flex items-center px-2">Item 1</div>
-          <button className="text-[10px] text-brand-400">+ Add item</button>
+          <button className="text-[10px] text-brand-ink">+ Add item</button>
         </div>
       )
       default: return (
@@ -216,7 +216,7 @@ function FormCanvas({ screen, selectedElement, onSelectElement, actions }) {
 
           <button
             onClick={() => onSelectElement({ type: 'new_form_field', screenKey: screen.key, formId, label: 'New field', onSaved: () => { qc.invalidateQueries({ queryKey: ['sd-form-fields', formId] }) } })}
-            className="w-full flex items-center justify-center gap-1.5 py-2.5 mt-2 border-2 border-dashed border-brand-500/30 hover:border-brand-500/60 rounded-card text-xs text-brand-400 hover:text-brand-300 font-medium transition-colors bg-brand-500/3 hover:bg-brand-500/6">
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 mt-2 border-2 border-dashed border-brand-500/30 hover:border-brand-500/60 rounded-card text-xs text-brand-ink hover:text-brand-ink font-medium transition-colors bg-brand-500/3 hover:bg-brand-500/6">
             <Plus size={13} /> Add field
           </button>
         </div>
@@ -250,7 +250,7 @@ function FormCanvas({ screen, selectedElement, onSelectElement, actions }) {
                 'flex items-center gap-2 px-3 py-2 rounded-ctl text-xs font-medium border transition-all hover:scale-105',
                 selectedElement?.id === action.id ? 'ring-2 ring-brand-500/60' : '',
                 {
-                  primary:   'bg-brand-500/10 border-brand-500/40 text-brand-400',
+                  primary:   'bg-brand-500/10 border-brand-500/40 text-brand-ink',
                   secondary: 'bg-surface-overlay border-border text-text-secondary',
                   danger:    'bg-status-fail-bg border-status-fail-bd text-status-fail-fg',
                   warning:   'bg-status-warn-bg border-status-warn-bd text-status-warn-fg',
@@ -262,7 +262,7 @@ function FormCanvas({ screen, selectedElement, onSelectElement, actions }) {
           ))}
           <button
             onClick={e => { e.stopPropagation(); onSelectElement({ type: 'new_action', screenKey: screen.key }) }}
-            className="px-3 py-2 rounded-ctl text-xs text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 transition-colors">
+            className="px-3 py-2 rounded-ctl text-xs text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-ink transition-colors">
             + Add button
           </button>
         </div>
@@ -272,13 +272,13 @@ function FormCanvas({ screen, selectedElement, onSelectElement, actions }) {
       <CanvasCard label="Form info">
         <div className="px-4 py-3 space-y-1 text-[10px] text-text-muted">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-brand-400">{screen.key}</span>
+            <span className="font-mono text-brand-ink">{screen.key}</span>
             <span>→</span>
             <span>GET /v1/ui-config/form/{screen.key}</span>
           </div>
           <p>Referenced as <code className="font-mono">createFormKey</code> in ModuleBlueprint. DynamicForm renders this at runtime.</p>
           {formId && (
-            <p className="text-brand-400 font-mono">formId: {formId} · {fields.length} field{fields.length !== 1 ? 's' : ''}</p>
+            <p className="text-brand-ink font-mono">formId: {formId} · {fields.length} field{fields.length !== 1 ? 's' : ''}</p>
           )}
           {!formId && !formLoading && (
             <p className="text-status-warn-fg">No UiForm row found — click any field type in Inspector to auto-create</p>

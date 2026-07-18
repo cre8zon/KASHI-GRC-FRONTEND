@@ -23,7 +23,7 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
             <button
               onClick={() => onSelectElement({ type: 'new_form_field', screenKey: screen.key, formId,
                 onSaved: () => qc.invalidateQueries({ queryKey: ['sd-form-fields', formId] }) })}
-              className="flex items-center gap-1 text-[10px] text-brand-400 hover:text-brand-300 border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
+              className="flex items-center gap-1 text-[10px] text-brand-ink hover:text-brand-ink border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
               <Plus size={10} /> Add field
             </button>
           </div>
@@ -92,12 +92,12 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
                     {/* Options linked */}
                     {f.optionsComponentKey && (
                       <span title={`Options: ${f.optionsComponentKey}`}
-                        className="text-[9px] text-brand-400 shrink-0 font-mono truncate max-w-20">{f.optionsComponentKey}</span>
+                        className="text-[9px] text-brand-ink shrink-0 font-mono truncate max-w-20">{f.optionsComponentKey}</span>
                     )}
 
                     {/* FIX: Visibility indicator — click field to open inspector where RoleVisibilityEditor lives */}
                     <span title="Click to configure role visibility for this field"
-                      className="text-[9px] px-1 py-0.5 rounded border border-border text-text-muted hover:border-brand-500/30 hover:text-brand-400 transition-colors shrink-0">
+                      className="text-[9px] px-1 py-0.5 rounded border border-border text-text-muted hover:border-brand-500/30 hover:text-brand-ink transition-colors shrink-0">
                       <Eye size={9} />
                     </span>
                   </button>
@@ -115,7 +115,7 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
             </p>
             <button
               onClick={() => onSelectElement({ type: 'new_action', screenKey: screen.key })}
-              className="flex items-center gap-1 text-[10px] text-brand-400 hover:text-brand-300 border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
+              className="flex items-center gap-1 text-[10px] text-brand-ink hover:text-brand-ink border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
               <Plus size={10} /> Add button
             </button>
           </div>
@@ -164,7 +164,7 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
                   <span className="text-[9px] font-mono text-text-muted ml-2">{action.httpMethod} {action.apiEndpoint}</span>
                 </div>
                 <span className={cn('text-[9px] px-1.5 py-0.5 rounded border',
-                  { primary: 'text-brand-400 bg-brand-500/10 border-brand-500/20',
+                  { primary: 'text-brand-ink bg-brand-500/10 border-brand-500/20',
                     danger: 'text-status-fail-fg bg-status-fail-bg border-status-fail-bd',
                     secondary: 'text-text-secondary bg-surface-overlay border-border',
                   }[action.variant] || 'text-text-muted bg-surface-overlay border-border')}>
@@ -177,7 +177,7 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
 
         {/* Form metadata summary */}
         <div className="p-3 rounded-card bg-surface border border-border text-[10px] text-text-muted space-y-1">
-          <p><span className="text-text-secondary font-medium">Form key:</span> <code className="font-mono text-brand-400">{screen.key}</code></p>
+          <p><span className="text-text-secondary font-medium">Form key:</span> <code className="font-mono text-brand-ink">{screen.key}</code></p>
           <p><span className="text-text-secondary font-medium">Endpoint:</span> <code className="font-mono">GET /v1/ui-config/form/{screen.key}</code></p>
           <p className="text-text-muted">DynamicForm renders this at runtime. Submit posts to the form's configured endpoint.</p>
         </div>
@@ -272,7 +272,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
               </p>
               <button
                 onClick={() => onSelectElement({ type: 'new_column', screenKey: screen.key })}
-                className="flex items-center gap-1 text-[10px] text-brand-400 hover:text-brand-300 border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
+                className="flex items-center gap-1 text-[10px] text-brand-ink hover:text-brand-ink border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
                 <Plus size={10} /> Add column
               </button>
             </div>
@@ -338,7 +338,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
                         <span className="text-xs text-text-primary font-medium">{comp.label || comp.componentKey}</span>
                         <span className="text-[9px] font-mono text-text-muted ml-2">{comp.componentKey}</span>
                       </div>
-                      <span className="text-[8px] px-1.5 py-0.5 rounded border bg-brand-500/10 border-brand-500/20 text-brand-400 font-mono">{comp.componentType}</span>
+                      <span className="text-[8px] px-1.5 py-0.5 rounded border bg-brand-500/10 border-brand-500/20 text-brand-ink font-mono">{comp.componentType}</span>
                     </button>
                   )
                 })}
@@ -355,7 +355,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
               {screen.type === 'DETAIL' && (
                 <button
                   onClick={() => onSelectElement({ type: 'new_detail_tab', screenKey: screen.key, layout })}
-                  className="flex items-center gap-1 text-[10px] text-brand-400 hover:text-brand-300 border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
+                  className="flex items-center gap-1 text-[10px] text-brand-ink hover:text-brand-ink border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
                   <Plus size={10} /> Add tab
                 </button>
               )}
@@ -458,7 +458,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
             </p>
             <button
               onClick={() => onSelectElement({ type: 'new_action', screenKey: screen.key })}
-              className="flex items-center gap-1 text-[10px] text-brand-400 hover:text-brand-300 border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
+              className="flex items-center gap-1 text-[10px] text-brand-ink hover:text-brand-ink border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
               <Plus size={10} /> Add button
             </button>
           </div>
@@ -467,7 +467,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
               NOT a bug. Switch role to ORGANIZATION or AUDITOR to see those actions as "visible". */}
           {actions.length > 0 && roleProfile && (
             <p className="text-[9px] text-text-muted mb-2 px-1">
-              Previewing as <span className="text-brand-400 font-medium">{roleProfile.label}</span>
+              Previewing as <span className="text-brand-ink font-medium">{roleProfile.label}</span>
               {' '}({roleProfile.side}) — change role in top bar to see different visibility.
             </p>
           )}

@@ -47,7 +47,7 @@ function LookupCell({ id }) {
   const initials = display.split(' ').map(p => p[0]).filter(Boolean).join('').toUpperCase().slice(0, 2)
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 text-[9px] font-semibold flex items-center justify-center shrink-0">
+      <span className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-ink text-[9px] font-semibold flex items-center justify-center shrink-0">
         {initials}
       </span>
       <span className={cn('text-xs truncate max-w-24', label ? 'text-text-primary' : 'text-text-muted')}>{display}</span>
@@ -123,7 +123,7 @@ export function DataTable({
           const initials = String(companion).split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
           return (
             <span className="inline-flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 text-[9px] font-semibold flex items-center justify-center shrink-0">
+              <span className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-ink text-[9px] font-semibold flex items-center justify-center shrink-0">
                 {initials}
               </span>
               <span className="text-xs text-text-primary truncate max-w-24">{companion}</span>
@@ -142,15 +142,15 @@ export function DataTable({
     if (!col.sortable) return null
     if (sortBy !== col.key) return <ChevronsUpDown size={11} className="text-text-muted" />
     return sortDir === 'asc'
-      ? <ChevronUp size={11} className="text-brand-400" />
-      : <ChevronDown size={11} className="text-brand-400" />
+      ? <ChevronUp size={11} className="text-brand-ink" />
+      : <ChevronDown size={11} className="text-brand-ink" />
   }
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-auto">
         <table className="w-full text-sm border-collapse">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface-raised">
             <tr className="border-b border-border">
               {selectable && (
                 <th className="w-10 px-3 py-2">

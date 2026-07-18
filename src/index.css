@@ -39,6 +39,21 @@
   backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
 }
+.glass-field {
+  background: var(--field-bg);
+  border: 1px solid var(--field-bd);
+  backdrop-filter: blur(var(--field-blur)) saturate(1.3);
+  -webkit-backdrop-filter: blur(var(--field-blur)) saturate(1.3);
+}
+.glass-field:focus, .glass-field:focus-within {
+  background: var(--field-bg-focus);
+}
+.glass-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-bd);
+  backdrop-filter: blur(var(--card-blur)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--card-blur)) saturate(1.5);
+}
 .glass-overlay {
   background: var(--glass-bg-hi);
   border: 1px solid var(--glass-bd);
@@ -46,11 +61,29 @@
   -webkit-backdrop-filter: blur(22px) saturate(1.5);
 }
 @supports not (backdrop-filter: blur(1px)) {
-  .glass-chrome, .glass-overlay { background: rgb(var(--color-surface-raised)); }
+  .glass-chrome, .glass-overlay, .glass-field {
+  background: var(--field-bg);
+  border: 1px solid var(--field-bd);
+  backdrop-filter: blur(var(--field-blur)) saturate(1.3);
+  -webkit-backdrop-filter: blur(var(--field-blur)) saturate(1.3);
+}
+.glass-field:focus, .glass-field:focus-within {
+  background: var(--field-bg-focus);
+}
+.glass-card { background: rgb(var(--color-surface-raised)); }
 }
 @media print {
   body { background: #fff !important; }
-  .glass-chrome, .glass-overlay {
+  .glass-chrome, .glass-overlay, .glass-field {
+  background: var(--field-bg);
+  border: 1px solid var(--field-bd);
+  backdrop-filter: blur(var(--field-blur)) saturate(1.3);
+  -webkit-backdrop-filter: blur(var(--field-blur)) saturate(1.3);
+}
+.glass-field:focus, .glass-field:focus-within {
+  background: var(--field-bg-focus);
+}
+.glass-card {
     background: #fff !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;

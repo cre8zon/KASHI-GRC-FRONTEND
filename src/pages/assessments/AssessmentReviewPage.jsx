@@ -709,7 +709,7 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
                     return (
                       <span key={o.optionInstanceId}
                         className={cn('text-xs px-2.5 py-1 rounded border transition-colors',
-                          sel ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
+                          sel ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink font-medium'
                               : 'border-border text-text-muted opacity-40')}>
                         {o.optionValue}
                       </span>
@@ -800,7 +800,7 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
               {/* Full context drawer — notes, evidence, activity */}
               {onOpenDrawer && (
                 <button onClick={() => onOpenDrawer(question)}
-                  className="flex items-center gap-1 text-[11px] text-text-muted hover:text-brand-400 transition-colors ml-auto">
+                  className="flex items-center gap-1 text-[11px] text-text-muted hover:text-brand-ink transition-colors ml-auto">
                   <MessageSquare size={10}/> Notes &amp; context
                 </button>
               )}
@@ -808,7 +808,7 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
           )}
           {!canAct && onOpenDrawer && (
             <button onClick={() => onOpenDrawer(question)}
-              className="flex items-center gap-1 text-[11px] text-text-muted/60 hover:text-brand-400 transition-colors mt-1.5">
+              className="flex items-center gap-1 text-[11px] text-text-muted/60 hover:text-brand-ink transition-colors mt-1.5">
               <MessageSquare size={10}/> Notes &amp; context
             </button>
           )}
@@ -869,7 +869,7 @@ function ReviewerSectionAccordion({ section, assessmentId, taskId, evaluations, 
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-fail-bg text-status-fail-fg border border-status-fail-bd">{unanswered} auto-FAIL</span>
           )}
           {evaluated > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">{evaluated}/{questions.length} evaluated</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-ink border border-brand-500/20">{evaluated}/{questions.length} evaluated</span>
           )}
           {isSubmitted && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-pass-bg text-status-pass-fg border border-status-pass-bd flex items-center gap-1">
@@ -991,7 +991,7 @@ function AssignReviewersPanel({ assessment, taskId, onDone }) {
                       assignSection({ sectionInstanceId: sec.sectionInstanceId, userId: uid })
                     }}
                     className={cn('text-xs px-2.5 py-1 rounded-ctl border transition-colors',
-                      selected ? 'bg-brand-500/15 border-brand-500/40 text-brand-400' : 'border-border text-text-secondary hover:border-brand-500/30')}>
+                      selected ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink' : 'border-border text-text-secondary hover:border-brand-500/30')}>
                     {u.fullName || u.email}
                   </button>
                 )
@@ -1432,7 +1432,7 @@ function AssignOrgCisoPanel({ assessment, taskId, onDone }) {
           return (
             <button key={uid} type="button" onClick={() => setSelected({ id: uid, name })}
               className={cn('text-xs px-3 py-1.5 rounded-ctl border transition-colors',
-                selected?.id === uid ? 'bg-brand-500/15 border-brand-500/40 text-brand-400 font-medium' : 'border-border text-text-secondary hover:border-brand-500/30')}>
+                selected?.id === uid ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink font-medium' : 'border-border text-text-secondary hover:border-brand-500/30')}>
               {name}
             </button>
           )
@@ -1766,7 +1766,7 @@ export default function AssessmentReviewPage() {
                                       return (
                                         <span key={o.optionInstanceId}
                                           className={cn('text-xs px-2.5 py-1 rounded border',
-                                            sel ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
+                                            sel ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink font-medium'
                                                 : 'border-border text-text-muted opacity-40')}>
                                           {o.optionValue}
                                         </span>

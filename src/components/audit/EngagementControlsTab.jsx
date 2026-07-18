@@ -159,7 +159,7 @@ function TestResultPicker({ currentResult, onSelect, saving }) {
           {RESULTS.map(r=>{ const RIcon=r.icon; return (
             <button key={r.value} onClick={(e)=>{e.stopPropagation();onSelect(r.value);setOpen(false)}}
               className={cn('w-full flex items-center gap-2 px-3 py-1.5 text-[11px] hover:bg-surface-overlay', r.value===currentResult?`${r.color} ${r.bg}`:'text-text-secondary')}>
-              <RIcon size={10} className={r.color}/>{r.label}{r.value===currentResult&&<CheckCircle2 size={9} className="ml-auto text-brand-400"/>}
+              <RIcon size={10} className={r.color}/>{r.label}{r.value===currentResult&&<CheckCircle2 size={9} className="ml-auto text-brand-ink"/>}
             </button>
           )})}
           {currentResult&&currentResult!=='NOT_TESTED'&&(
@@ -190,7 +190,7 @@ function ControlDetailPanel({ ctrl, onClose, auditorUsers, auditeeUsers,
         <button onClick={onClose} className="text-text-muted hover:text-text-primary"><ChevronRight size={14} className="rotate-180"/></button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-            <span className="font-mono text-[10px] text-brand-400">{ctrl.controlCodeSnapshot}</span>
+            <span className="font-mono text-[10px] text-brand-ink">{ctrl.controlCodeSnapshot}</span>
             {ctrl.controlTagSnapshot&&<span className="text-[9px] px-1 rounded bg-surface-overlay text-text-muted">{ctrl.controlTagSnapshot}</span>}
             <ResultBadge result={ctrl.testResult} compact/>
           </div>
@@ -294,10 +294,10 @@ function ControlRow({ ctrl, engagementId, auditorUsers, auditeeUsers, auditeeUse
             className="w-3 h-3 accent-brand-500 cursor-pointer"/>
         </div>
       )}
-      <CheckSquare size={10} className={cn('shrink-0 mt-0.5',evidenceSubmitted?'text-status-pass-fg':ctrl.assignedAuditorId===currentUserId?'text-brand-400':'text-text-muted')}/>
+      <CheckSquare size={10} className={cn('shrink-0 mt-0.5',evidenceSubmitted?'text-status-pass-fg':ctrl.assignedAuditorId===currentUserId?'text-brand-ink':'text-text-muted')}/>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5">
-          {ctrl.controlCodeSnapshot&&<span className="font-mono text-[9px] text-brand-400 shrink-0">{ctrl.controlCodeSnapshot}</span>}
+          {ctrl.controlCodeSnapshot&&<span className="font-mono text-[9px] text-brand-ink shrink-0">{ctrl.controlCodeSnapshot}</span>}
           {ctrl.controlTagSnapshot&&<span className="text-[9px] px-1 rounded bg-surface-overlay text-text-muted shrink-0">{ctrl.controlTagSnapshot}</span>}
           {evidenceSubmitted&&<span className="text-[8px] text-status-pass-fg flex items-center gap-0.5 shrink-0"><CheckCheck size={8}/> evidence</span>}
         </div>
@@ -306,7 +306,7 @@ function ControlRow({ ctrl, engagementId, auditorUsers, auditeeUsers, auditeeUse
         <div className="flex items-center gap-2 mt-0.5">
           {ctrl.assignedAuditorId
             ? <span className="text-[9px] text-text-muted flex items-center gap-0.5">
-                <UserCheck size={8} className="text-brand-400"/>
+                <UserCheck size={8} className="text-brand-ink"/>
                 {auditor?userName(auditor):`#${ctrl.assignedAuditorId}`}
               </span>
             : <span className="text-[9px] text-text-muted/40 flex items-center gap-0.5 italic">
@@ -550,15 +550,15 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
             </select>
             {/* My view / My sections toggle — inline in the stats row */}
             {(canAssignAuditor || canAssignAuditee) ? (
-              <button onClick={()=>setMyView(v=>!v)} className={cn('flex items-center gap-1 px-2 py-0.5 rounded-ctl border transition-all',myView?'border-brand-500/40 bg-brand-500/10 text-brand-300':'border-border text-text-muted hover:text-text-secondary')}>
+              <button onClick={()=>setMyView(v=>!v)} className={cn('flex items-center gap-1 px-2 py-0.5 rounded-ctl border transition-all',myView?'border-brand-500/40 bg-brand-500/10 text-brand-ink':'border-border text-text-muted hover:text-text-secondary')}>
                 {myView?<Eye size={9}/>:<EyeOff size={9}/>} My view
               </button>
             ) : hasAnySectionAssignment ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-ctl bg-brand-500/10 text-brand-300 border border-brand-500/30">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-ctl bg-brand-500/10 text-brand-ink border border-brand-500/30">
                 <Eye size={9}/> My sections
               </span>
             ) : displayControls.length < filtered.length && displayControls.length > 0 ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-ctl bg-brand-500/10 text-brand-300 border border-brand-500/30">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-ctl bg-brand-500/10 text-brand-ink border border-brand-500/30">
                 <Eye size={9}/> My controls ({displayControls.length})
               </span>
             ) : null}
@@ -597,7 +597,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
           <span className="text-[9px] text-text-muted font-medium uppercase tracking-wide shrink-0">Filter assignable:</span>
           {canAssignAuditor && auditorRoles.length > 0 && (
             <div className="flex items-center gap-1.5">
-              <UserCheck size={9} className="text-brand-400 shrink-0"/>
+              <UserCheck size={9} className="text-brand-ink shrink-0"/>
               <select
                 value={auditorRoleFilter ?? ''}
                 onChange={e => setAuditorRoleFilter(e.target.value ? Number(e.target.value) : null)}
@@ -638,7 +638,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
                 onChange={toggleSelectAll}
                 className="w-3 h-3 accent-brand-500 cursor-pointer"/>
               {selectedControlIds.size > 0 && (
-                <span className="text-[9px] text-brand-400 font-medium whitespace-nowrap">
+                <span className="text-[9px] text-brand-ink font-medium whitespace-nowrap">
                   {selectedControlIds.size} selected
                 </span>
               )}
@@ -651,7 +651,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
           </div>
           {selectedControlIds.size > 0 && (
             <button onClick={()=>setShowBulkPanel(p=>!p)}
-              className="shrink-0 text-[10px] px-2 py-1 rounded bg-brand-500/15 text-brand-400 border border-brand-500/30 hover:bg-brand-500/25 whitespace-nowrap">
+              className="shrink-0 text-[10px] px-2 py-1 rounded bg-brand-500/15 text-brand-ink border border-brand-500/30 hover:bg-brand-500/25 whitespace-nowrap">
               Assign {selectedControlIds.size}…
             </button>
           )}
@@ -661,7 +661,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
       {showBulkPanel && selectedControlIds.size > 0 && (
         <div className="px-3 py-2 border-b border-brand-500/30 bg-brand-500/5 shrink-0 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold text-brand-400">
+            <span className="text-[10px] font-semibold text-brand-ink">
               Bulk assign {selectedControlIds.size} control{selectedControlIds.size !== 1 ? 's' : ''}
             </span>
             <button onClick={()=>setShowBulkPanel(false)} className="text-text-muted hover:text-text-primary"><X size={10}/></button>

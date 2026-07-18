@@ -1,11 +1,14 @@
 import { cn } from '../../lib/cn'
 
-/** Card — v3 soft. Floats on shadow; border only in fallback contexts. */
-export function Card({ children, className, onClick, hover = false }) {
+/** Card — v3 frosted (Option B). Translucent so the pastel wash shows through;
+ *  blur keeps text readable. Solid fallback + print-safe via .glass-card.
+ *  For DENSE DATA TABLES use `solid` to opt back into an opaque surface. */
+export function Card({ children, className, onClick, hover = false, solid = false }) {
   return (
     <div
       className={cn(
-        'rounded-card bg-surface-raised shadow-elevated',
+        'rounded-card shadow-elevated',
+        solid ? 'bg-surface-raised' : 'glass-card',
         hover && 'transition-all duration-200 hover:shadow-hover hover:-translate-y-px cursor-pointer',
         onClick && 'cursor-pointer',
         className

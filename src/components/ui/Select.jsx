@@ -38,8 +38,8 @@ export const DynamicSelect = forwardRef(function DynamicSelect(
           ref={ref}
           className={cn(
             'h-9 w-full appearance-none rounded-ctl border border-transparent',
-            'bg-surface-inset px-3 pr-8 text-sm text-text-primary',
-            'focus:outline-none focus:bg-surface-raised focus:ring-2 focus:ring-brand-800/30 focus:border-brand-700/50',
+            'glass-field px-3 pr-8 text-sm text-text-primary',
+            'focus:outline-none focus:ring-2 focus:ring-brand-800/30',
             'disabled:opacity-50 transition-all duration-150',
             error && 'ring-2 ring-status-fail-fg/25',
             className

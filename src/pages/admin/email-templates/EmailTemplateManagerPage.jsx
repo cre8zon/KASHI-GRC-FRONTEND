@@ -171,7 +171,7 @@ function TemplateEditor({ template, onClose, onSaved }) {
                 <div className="space-y-1.5">
                   {variables.map(v => (
                     <div key={v} className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-brand-400 w-28 truncate">{`{{${v}}}`}</span>
+                      <span className="text-xs font-mono text-brand-ink w-28 truncate">{`{{${v}}}`}</span>
                       <input
                         value={previewVars[v] || ''}
                         onChange={e => {
@@ -263,7 +263,7 @@ export default function EmailTemplateManagerPage() {
           <Card key={template.id} className="animate-fade-in">
             <CardBody className="flex items-start gap-4">
               <div className="w-9 h-9 rounded-card bg-brand-500/10 border border-brand-500/20 flex items-center justify-center shrink-0">
-                <Mail size={16} className="text-brand-400" />
+                <Mail size={16} className="text-brand-ink" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -284,7 +284,7 @@ export default function EmailTemplateManagerPage() {
                 {template.variables?.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {template.variables.map(v => (
-                      <span key={v} className="text-[10px] font-mono text-brand-400 bg-brand-500/10 px-1.5 py-0.5 rounded">
+                      <span key={v} className="text-[10px] font-mono text-brand-ink bg-brand-500/10 px-1.5 py-0.5 rounded">
                         {`{{${v}}}`}
                       </span>
                     ))}

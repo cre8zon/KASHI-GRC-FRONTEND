@@ -296,7 +296,7 @@ export default function ActionItemsPage() {
                 className={cn(
                   'text-xs px-3 py-1 rounded-ctl transition-colors',
                   statusFilter === f.key
-                    ? 'bg-brand-500/10 text-brand-400 font-medium'
+                    ? 'bg-brand-500/10 text-brand-ink font-medium'
                     : 'text-text-muted hover:text-text-secondary'
                 )}>
                 {f.label}
@@ -312,7 +312,7 @@ export default function ActionItemsPage() {
                 className={cn(
                   'text-[11px] px-2.5 py-1 rounded-ctl border transition-colors',
                   sourceFilter === f.key
-                    ? 'border-brand-500/40 bg-brand-500/10 text-brand-400'
+                    ? 'border-brand-500/40 bg-brand-500/10 text-brand-ink'
                     : 'border-border text-text-muted hover:text-text-secondary'
                 )}>
                 {f.label}

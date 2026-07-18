@@ -81,7 +81,7 @@ export default function TenantDetailPage() {
             <CardBody>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-card bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
-                  <Building2 size={22} className="text-brand-400" />
+                  <Building2 size={22} className="text-brand-ink" />
                 </div>
                 <div>
                   <p className="font-bold text-text-primary">{tenant.name}</p>
@@ -119,7 +119,7 @@ export default function TenantDetailPage() {
                     Organization Owner
                   </p>
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-brand-500/20 flex items-center justify-center text-xs font-bold text-brand-400 shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-brand-500/20 flex items-center justify-center text-xs font-bold text-brand-ink shrink-0">
                       {(tenantOwner.firstName || tenantOwner.email)[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
@@ -186,8 +186,8 @@ export default function TenantDetailPage() {
                     onClick={item.action}
                     className="text-left p-4 border border-border rounded-card hover:border-brand-500/30 hover:bg-surface-overlay transition-all group"
                   >
-                    <item.icon size={18} className="text-brand-400 mb-2" strokeWidth={1.75} />
-                    <p className="text-sm font-semibold text-text-primary group-hover:text-brand-300 transition-colors">
+                    <item.icon size={18} className="text-brand-ink mb-2" strokeWidth={1.75} />
+                    <p className="text-sm font-semibold text-text-primary group-hover:text-brand-ink transition-colors">
                       {item.label}
                     </p>
                     <p className="text-xs text-text-muted mt-0.5">{item.desc}</p>

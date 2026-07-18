@@ -13,12 +13,12 @@ import toast from 'react-hot-toast'
 // ─── Tier style map (purely visual — no score ranges) ────────────────────────
 
 const TIER_STYLE = {
-  LOW:      { accent: 'text-status-pass-fg',  bg: 'bg-status-pass-bg',  border: 'border-status-pass-bd',  dot: 'bg-status-pass-bg',  badge: 'bg-status-pass-bg text-status-pass-fg border border-status-pass-bd',  bar: 'bg-status-pass-bg',  ring: 'focus:ring-status-pass-bd'  },
-  MEDIUM:   { accent: 'text-status-warn-fg', bg: 'bg-status-warn-bg', border: 'border-status-warn-bd', dot: 'bg-status-warn-bg', badge: 'bg-status-warn-bg text-status-warn-fg border border-status-warn-bd', bar: 'bg-status-warn-bg', ring: 'focus:ring-status-warn-bd' },
-  HIGH:     { accent: 'text-status-warn-fg',  bg: 'bg-status-warn-bg',  border: 'border-status-warn-bd',  dot: 'bg-status-warn-bg',  badge: 'bg-status-warn-bg text-status-warn-fg border border-status-warn-bd',  bar: 'bg-status-warn-bg',  ring: 'focus:ring-status-warn-bd'  },
-  CRITICAL: { accent: 'text-status-fail-fg',    bg: 'bg-status-fail-bg',    border: 'border-status-fail-bd',    dot: 'bg-status-fail-bg',    badge: 'bg-status-fail-bg text-status-fail-fg border border-status-fail-bd',         bar: 'bg-status-fail-bg',    ring: 'focus:ring-status-fail-bd'    },
+  LOW:      { accent: 'text-status-pass-fg',  bg: 'bg-status-pass-bg',  border: 'border-status-pass-bd',  dot: 'bg-status-pass-fg',  badge: 'bg-status-pass-bg text-status-pass-fg border border-status-pass-bd',  bar: 'bg-status-pass-fg',  ring: 'focus:ring-status-pass-bd'  },
+  MEDIUM:   { accent: 'text-status-warn-fg', bg: 'bg-status-warn-bg', border: 'border-status-warn-bd', dot: 'bg-status-warn-fg', badge: 'bg-status-warn-bg text-status-warn-fg border border-status-warn-bd', bar: 'bg-status-warn-fg', ring: 'focus:ring-status-warn-bd' },
+  HIGH:     { accent: 'text-status-warn-fg',  bg: 'bg-status-warn-bg',  border: 'border-status-warn-bd',  dot: 'bg-status-warn-fg',  badge: 'bg-status-warn-bg text-status-warn-fg border border-status-warn-bd',  bar: 'bg-status-fail-fg/75',  ring: 'focus:ring-status-warn-bd'  },
+  CRITICAL: { accent: 'text-status-fail-fg',    bg: 'bg-status-fail-bg',    border: 'border-status-fail-bd',    dot: 'bg-status-fail-fg',    badge: 'bg-status-fail-bg text-status-fail-fg border border-status-fail-bd',         bar: 'bg-status-fail-fg',    ring: 'focus:ring-status-fail-bd'    },
 }
-const DEFAULT_STYLE = { accent: 'text-brand-400', bg: 'bg-brand-500/5', border: 'border-brand-500/20', dot: 'bg-brand-400', badge: 'bg-brand-500/15 text-brand-400 border border-brand-500/25', bar: 'bg-brand-500', ring: 'focus:ring-brand-500/40' }
+const DEFAULT_STYLE = { accent: 'text-brand-ink', bg: 'bg-brand-500/5', border: 'border-brand-500/20', dot: 'bg-brand-400', badge: 'bg-brand-500/15 text-brand-ink border border-brand-500/25', bar: 'bg-brand-500', ring: 'focus:ring-brand-500/40' }
 const tierStyle = (label) => TIER_STYLE[label] || DEFAULT_STYLE
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -294,7 +294,7 @@ export default function RiskMappingPage() {
 
         {/* Explainer */}
         <div className="flex items-start gap-3 p-4 bg-surface-overlay rounded-card border border-border">
-          <Layers size={15} className="text-brand-400 mt-0.5 shrink-0" />
+          <Layers size={15} className="text-brand-ink mt-0.5 shrink-0" />
           <div className="text-xs text-text-muted leading-relaxed space-y-1.5">
             <p>
               <span className="text-text-secondary font-medium">Score-based assignment — </span>
@@ -305,7 +305,7 @@ export default function RiskMappingPage() {
             <p>
               <span className="text-text-secondary font-medium">1 template → </span>auto-assigned.
               &nbsp;<span className="text-text-secondary font-medium">2+ templates → </span>
-              the <span className="text-brand-400 font-medium">Org Owner / Org Admin</span> picks one before the assessment starts.
+              the <span className="text-brand-ink font-medium">Org Owner / Org Admin</span> picks one before the assessment starts.
             </p>
           </div>
         </div>
@@ -419,7 +419,7 @@ export default function RiskMappingPage() {
                         <td className="px-3 py-2">
                           {names.length === 0 ? <span className="text-text-muted">—</span>
                             : names.length === 1 ? <span className="text-text-muted">Auto-assigned</span>
-                            : <span className="text-brand-400 font-medium">Admin selects</span>}
+                            : <span className="text-brand-ink font-medium">Admin selects</span>}
                         </td>
                       </tr>
                     )

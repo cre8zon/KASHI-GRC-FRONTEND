@@ -251,7 +251,7 @@ export function Stepper({ steps = [], current = 0, onChange, className }) {
               disabled={future}
               className={cn(
                 'flex items-center gap-1.5 px-2 py-1 rounded-ctl text-xs font-medium transition-colors',
-                active  ? 'text-brand-400 bg-brand-500/10' : '',
+                active  ? 'text-brand-ink bg-brand-500/10' : '',
                 done    ? 'text-text-secondary hover:text-text-primary cursor-pointer' : '',
                 future  ? 'text-text-muted cursor-default' : '',
               )}
@@ -328,10 +328,10 @@ export function TagInput({ value = [], onChange, placeholder = 'Add…', suggest
         )}
       >
         {value.map(tag => (
-          <span key={tag} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-brand-500/15 border border-brand-500/25 text-brand-400 text-[11px] font-medium">
+          <span key={tag} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-brand-500/15 border border-brand-500/25 text-brand-ink text-[11px] font-medium">
             {tag}
             <button onClick={(e) => { e.stopPropagation(); removeTag(tag) }}
-              className="text-brand-400/60 hover:text-status-fail-fg transition-colors">
+              className="text-brand-ink/60 hover:text-status-fail-fg transition-colors">
               <X size={9} />
             </button>
           </span>
@@ -410,10 +410,10 @@ export function MultiSelect({ options = [], value = [], onChange, placeholder = 
           <span className="text-xs text-text-muted">{placeholder}</span>
         )}
         {selected.slice(0, maxDisplay).map(o => (
-          <span key={o.value} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-brand-500/15 border border-brand-500/25 text-brand-400 text-[11px]">
+          <span key={o.value} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-brand-500/15 border border-brand-500/25 text-brand-ink text-[11px]">
             {o.label}
             <span onMouseDown={(e) => { e.stopPropagation(); toggle(o.value) }}
-              className="text-brand-400/60 hover:text-status-fail-fg cursor-pointer">
+              className="text-brand-ink/60 hover:text-status-fail-fg cursor-pointer">
               <X size={9} />
             </span>
           </span>
@@ -528,7 +528,7 @@ export function AsyncSelect({ value, onChange, loadOptions, placeholder = 'Searc
           {options.map(o => (
             <button key={o.value} onClick={() => select(o)}
               className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-overlay text-left transition-colors">
-              {o.avatar && <span className="w-5 h-5 rounded-full bg-brand-500/20 flex items-center justify-center text-[9px] font-bold text-brand-400 shrink-0">{o.avatar}</span>}
+              {o.avatar && <span className="w-5 h-5 rounded-full bg-brand-500/20 flex items-center justify-center text-[9px] font-bold text-brand-ink shrink-0">{o.avatar}</span>}
               <div className="flex-1 min-w-0">
                 <div className="truncate">{o.label}</div>
                 {o.sublabel && <div className="text-[10px] text-text-muted truncate">{o.sublabel}</div>}
@@ -661,7 +661,7 @@ export function FileDropZone({ onFiles, accept, multiple = false, maxSizeMb = 20
       >
         <input ref={inputRef} type="file" accept={accept} multiple={multiple} className="hidden"
           onChange={e => processFiles(e.target.files)} />
-        <Upload size={20} className={cn('transition-colors', dragging ? 'text-brand-400' : 'text-text-muted')} />
+        <Upload size={20} className={cn('transition-colors', dragging ? 'text-brand-ink' : 'text-text-muted')} />
         <div className="text-center">
           <p className="text-xs font-medium text-text-secondary">
             {dragging ? 'Drop to upload' : 'Drop files or click to browse'}
@@ -676,7 +676,7 @@ export function FileDropZone({ onFiles, accept, multiple = false, maxSizeMb = 20
         <div className="mt-2 space-y-1">
           {files.map(f => (
             <div key={f.name} className="flex items-center gap-2 px-3 py-2 rounded-card bg-surface-overlay border border-border text-xs">
-              <File size={12} className="text-brand-400 shrink-0" />
+              <File size={12} className="text-brand-ink shrink-0" />
               <span className="flex-1 truncate text-text-primary">{f.name}</span>
               <span className="text-text-muted shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
               <button onClick={(e) => { e.stopPropagation(); removeFile(f.name) }}
@@ -781,7 +781,7 @@ export function SliderInput({ label, value, onChange, min = 0, max = 100, step =
       {label && (
         <div className="flex items-center justify-between mb-1">
           <label className="text-xs font-medium text-text-secondary">{label}</label>
-          {showValue && <span className="text-xs font-mono text-brand-400">{value}</span>}
+          {showValue && <span className="text-xs font-mono text-brand-ink">{value}</span>}
         </div>
       )}
       <input type="range" min={min} max={max} step={step} value={value}
@@ -817,7 +817,7 @@ export function JsonEditor({ label, value, onChange, error, rows = 8, placeholde
       {label && (
         <div className="flex items-center justify-between mb-1">
           <label className="text-xs font-medium text-text-secondary">{label}</label>
-          <button type="button" onClick={format} className="text-[10px] text-text-muted hover:text-brand-400 transition-colors">Format</button>
+          <button type="button" onClick={format} className="text-[10px] text-text-muted hover:text-brand-ink transition-colors">Format</button>
         </div>
       )}
       <textarea

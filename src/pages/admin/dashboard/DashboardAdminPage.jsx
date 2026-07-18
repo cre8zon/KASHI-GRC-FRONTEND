@@ -186,7 +186,7 @@ export default function DashboardAdminPage() {
             onClick={() => setPreviewMode(p => !p)}
             className={cn('flex items-center gap-1.5 h-7 px-3 text-xs border rounded transition-colors',
               previewMode
-                ? 'bg-brand-500/10 border-brand-500/30 text-brand-400'
+                ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink'
                 : 'border-border text-text-muted hover:border-border-strong')}>
             <Eye size={12} /> {previewMode ? 'Exit preview' : 'Preview'}
           </button>
@@ -200,7 +200,7 @@ export default function DashboardAdminPage() {
         {/* ── Issue KPI templates banner ──────────────────────────────── */}
         {!hasIssueWidgets && (
           <div className="flex items-center gap-4 px-4 py-3 rounded-card bg-brand-500/5 border border-brand-500/20">
-            <AlertTriangle size={16} className="text-brand-400 shrink-0" />
+            <AlertTriangle size={16} className="text-brand-ink shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium text-text-primary">Issue management KPIs not configured</p>
               <p className="text-xs text-text-muted mt-0.5">Add 6 pre-built widgets for issue tracking: open issues, SLA breaches, severity donut, type bar chart.</p>
@@ -278,14 +278,14 @@ export default function DashboardAdminPage() {
                         </td>
                         <td className="px-3 py-2.5 max-w-48">
                           <code className="text-[9px] text-text-muted truncate block">{w.dataEndpoint || '—'}</code>
-                          {w.dataPath && <code className="text-[9px] text-brand-400">.{w.dataPath}</code>}
+                          {w.dataPath && <code className="text-[9px] text-brand-ink">.{w.dataPath}</code>}
                         </td>
                         <td className="px-3 py-2.5">
                           {sides.length === 0
                             ? <span className="text-text-muted">All</span>
                             : <div className="flex flex-wrap gap-0.5">
                                 {sides.map(s => (
-                                  <span key={s} className="text-[8px] px-1 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">{s.slice(0,3)}</span>
+                                  <span key={s} className="text-[8px] px-1 py-0.5 rounded bg-brand-500/10 text-brand-ink border border-brand-500/20">{s.slice(0,3)}</span>
                                 ))}
                               </div>
                           }
@@ -296,7 +296,7 @@ export default function DashboardAdminPage() {
                         <td className="px-3 py-2.5">
                           <div className="flex items-center gap-1">
                             <button onClick={() => setEditWidget(w)}
-                              className="p-1 text-text-muted hover:text-brand-400 transition-colors">
+                              className="p-1 text-text-muted hover:text-brand-ink transition-colors">
                               <Pencil size={12} />
                             </button>
                             <button
@@ -402,7 +402,7 @@ function WidgetEditorModal({ widget, onClose }) {
                 className={cn(
                   'flex flex-col items-center gap-1 py-2 px-1.5 rounded-card border text-center transition-colors',
                   form.widgetType === t.value
-                    ? 'bg-brand-500/10 border-brand-500/30 text-brand-400'
+                    ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink'
                     : 'border-border text-text-muted hover:border-border-strong hover:text-text-secondary'
                 )}>
                 <t.icon size={14} />
@@ -453,7 +453,7 @@ function WidgetEditorModal({ widget, onClose }) {
             <button
               onClick={() => testFetch()}
               disabled={!form.dataEndpoint || testing}
-              className="flex items-center gap-1.5 text-xs text-brand-400 border border-brand-500/25 bg-brand-500/5 hover:bg-brand-500/10 rounded px-2.5 py-1 transition-colors disabled:opacity-40">
+              className="flex items-center gap-1.5 text-xs text-brand-ink border border-brand-500/25 bg-brand-500/5 hover:bg-brand-500/10 rounded px-2.5 py-1 transition-colors disabled:opacity-40">
               {testing ? 'Testing…' : 'Test endpoint'}
             </button>
             {testData && (
@@ -487,7 +487,7 @@ function WidgetEditorModal({ widget, onClose }) {
                   onClick={() => set('gridCols', g.value)}
                   className={cn('px-2 py-1 text-[10px] rounded border transition-colors',
                     form.gridCols === g.value
-                      ? 'bg-brand-500/15 border-brand-500/40 text-brand-400 font-medium'
+                      ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink font-medium'
                       : 'border-border text-text-muted hover:border-border-strong')}>
                   {g.label}
                 </button>
@@ -509,7 +509,7 @@ function WidgetEditorModal({ widget, onClose }) {
                 onClick={() => toggleSide(s)}
                 className={cn('px-2.5 py-1 text-[10px] rounded border font-medium transition-colors',
                   sides.includes(s)
-                    ? 'bg-brand-500/10 border-brand-500/30 text-brand-400'
+                    ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink'
                     : 'border-border text-text-muted hover:border-border-strong')}>
                 {s}
               </button>
@@ -571,7 +571,7 @@ function WidgetPreviewCard({ widget }) {
       {isLoading ? (
         <div className="flex-1 bg-surface-overlay rounded animate-pulse" />
       ) : widget.widgetType === 'KPI_CARD' ? (
-        <p className="text-2xl font-semibold text-brand-400 tabular-nums">
+        <p className="text-2xl font-semibold text-brand-ink tabular-nums">
           {cfg.prefix}{data ?? 0}{cfg.suffix}
         </p>
       ) : (

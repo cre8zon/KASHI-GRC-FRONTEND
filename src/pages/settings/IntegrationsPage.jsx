@@ -174,13 +174,13 @@ function CheckRow({ check, integrationKey }) {
       <div
         className="flex items-center gap-3 px-4 py-3 hover:bg-surface-overlay/40 transition-colors group"
       >
-        <Zap size={12} className="text-brand-400 shrink-0" />
+        <Zap size={12} className="text-brand-ink shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
             <span className="text-[11px] text-text-primary font-medium">{check.displayName}</span>
             <span className="font-mono text-[9px] text-text-muted">{check.checkKey}</span>
             {check.hasCustomConfig && (
-              <span className="text-[8px] text-brand-400 bg-brand-500/10 px-1 rounded">custom config</span>
+              <span className="text-[8px] text-brand-ink bg-brand-500/10 px-1 rounded">custom config</span>
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap text-[9px] text-text-muted">

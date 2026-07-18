@@ -58,6 +58,11 @@
       /* ── LIGHT theme (default) ── */
       :root,
       [data-theme="light"] {
+        /* Brand INK — brand-coloured text/icons. Flips per theme so the same
+           class reads on white cards AND on dark surfaces. Never use a raw
+           light shade (brand-300/400) as text: on a pastel scale it is
+           invisible on light backgrounds. */
+        --color-brand-ink: var(--color-brand-800);
         --color-surface:         247 249 251;
         --color-surface-raised:  255 255 255;
         --color-surface-overlay: 241 244 248;
@@ -88,12 +93,22 @@
         --glass-bg-hi: rgb(255 255 255 / .82);
         --glass-bd:    rgb(255 255 255 / .75);
         --glass-blur:  18px;
-
-        --wash-a:#EAF4EC; --wash-b:#F2F7EE; --wash-c:#FDF4E7;
+        /* Frosted content cards (Option B) — translucent so the wash shows
+           through, but opaque enough to keep dense text readable. */
+        --card-bg:     rgb(255 255 255 / .48);
+        --card-bd:     rgb(255 255 255 / .65);
+        --card-blur:   18px;
+        /* Frosted form fields — translucent so they sit ON the glass card
+           instead of punching an opaque white hole in it. */
+        --field-bg:      rgb(255 255 255 / .45);
+        --field-bd:      rgb(255 255 255 / .55);
+        --field-bg-focus:rgb(255 255 255 / .80);
+        --field-blur:    12px;
       }
 
       /* ── DARK theme ── */
       [data-theme="dark"] {
+        --color-brand-ink: var(--color-brand-300);
         --color-surface:          15  27  41;
         --color-surface-raised:   21  36  53;
         --color-surface-overlay:  28  46  66;
@@ -123,13 +138,21 @@
         --glass-bg:    rgb(16 30 46 / .62);
         --glass-bg-hi: rgb(16 30 46 / .82);
         --glass-bd:    rgb(255 255 255 / .08);
+        --card-bg:     rgb(21 36 53 / .55);
+        --card-bd:     rgb(255 255 255 / .07);
+        --card-blur:   16px;
+        --field-bg:      rgb(12 20 32 / .45);
+        --field-bd:      rgb(255 255 255 / .08);
+        --field-bg-focus:rgb(12 20 32 / .80);
+        --field-blur:    12px;
 
-        --wash-a:#12251E; --wash-b:#101E2E; --wash-c:#22201A;
+        --mesh-1:#12211F; --mesh-2:#111A26; --mesh-3:#141E2C; --mesh-4:#181826;
       }
 
       /* ── System theme follows OS ── */
       @media (prefers-color-scheme: dark) {
         [data-theme="system"] {
+          --color-brand-ink: var(--color-brand-300);
           --color-surface:15 27 41; --color-surface-raised:21 36 53;
           --color-surface-overlay:28 46 66; --color-surface-inset:18 32 49;
           --color-border:36 55 76; --color-border-subtle:26 42 60; --color-border-strong:53 80 107;
@@ -146,11 +169,14 @@
           --shadow-hover:0 2px 4px rgb(0 0 0 / .3),0 10px 24px rgb(0 0 0 / .35);
           --shadow-overlay:0 16px 44px rgb(0 0 0 / .5);
           --glass-bg:rgb(16 30 46 / .62); --glass-bg-hi:rgb(16 30 46 / .82); --glass-bd:rgb(255 255 255 / .08);
-          --wash-a:#12251E; --wash-b:#101E2E; --wash-c:#22201A;
+          --card-bg:rgb(21 36 53 / .55); --card-bd:rgb(255 255 255 / .07); --card-blur:16px;
+          --field-bg:rgb(12 20 32 / .45); --field-bd:rgb(255 255 255 / .08); --field-bg-focus:rgb(12 20 32 / .80); --field-blur:12px;
+          --mesh-1:#12211F; --mesh-2:#111A26; --mesh-3:#141E2C; --mesh-4:#181826;
         }
       }
       @media (prefers-color-scheme: light) {
         [data-theme="system"] {
+          --color-brand-ink: var(--color-brand-800);
           --color-surface:247 249 251; --color-surface-raised:255 255 255;
           --color-surface-overlay:241 244 248; --color-surface-inset:237 241 245;
           --color-border:232 237 242; --color-border-subtle:239 242 246; --color-border-strong:198 208 220;
@@ -167,23 +193,24 @@
           --shadow-hover:0 2px 4px rgb(14 31 51 / .06),0 10px 24px rgb(14 31 51 / .09);
           --shadow-overlay:0 12px 40px rgb(14 31 51 / .16);
           --glass-bg:rgb(255 255 255 / .66); --glass-bg-hi:rgb(255 255 255 / .82); --glass-bd:rgb(255 255 255 / .75);
-          --wash-a:#EAF4EC; --wash-b:#F2F7EE; --wash-c:#FDF4E7;
+          --card-bg:rgb(255 255 255 / .55); --card-bd:rgb(255 255 255 / .70); --card-blur:16px;
+          --field-bg:rgb(255 255 255 / .45); --field-bd:rgb(255 255 255 / .55); --field-bg-focus:rgb(255 255 255 / .80); --field-blur:12px;
+          --mesh-1:#9BD3B8; --mesh-2:#C5E4D2; --mesh-3:#DCEBF4; --mesh-4:#E8E4F5;
         }
       }
 
-      /* ── Brand-preset washes (data-brand set by applyBrandPreset) ── */
-      [data-brand='sage']       { --wash-a:#EAF4EC; --wash-b:#F2F7EE; --wash-c:#FDF4E7; }
-      [data-brand='mint']       { --wash-a:#D4F1E9; --wash-b:#E5F7F2; --wash-c:#D2EEF0; }
-      [data-brand='seafoam']    { --wash-a:#D2EEF0; --wash-b:#E4F5F6; --wash-c:#DCEAF8; }
-      [data-brand='sky']        { --wash-a:#DCEAF8; --wash-b:#E8F1FA; --wash-c:#E0E4F9; }
-      [data-brand='periwinkle'] { --wash-a:#E0E4F9; --wash-b:#ECEEFB; --wash-c:#E9E4F8; }
-      [data-brand='lilac']      { --wash-a:#E9E4F8; --wash-b:#F1EEFA; --wash-c:#F1E2F3; }
-      [data-brand='mauve']      { --wash-a:#F1E2F3; --wash-b:#F6EDF7; --wash-c:#F9E1E9; }
-      [data-brand='blush']      { --wash-a:#F9E1E9; --wash-b:#FBEDF1; --wash-c:#F9E0DC; }
-      [data-brand='coral']      { --wash-a:#F9E0DC; --wash-b:#FBECE9; --wash-c:#FAE7D4; }
-      [data-brand='peach']      { --wash-a:#FAE7D4; --wash-b:#FCF1E5; --wash-c:#F8EFD4; }
-      [data-brand='butter']     { --wash-a:#F8EFD4; --wash-b:#FAF4E5; --wash-c:#E7F1D4; }
-      [data-brand='pistachio']  { --wash-a:#E7F1D4; --wash-b:#F0F6E5; --wash-c:#EAF4EC; }
+      /* ── Mesh wash colours ──────────────────────────────────────────
+         DEDICATED colours, deeper than the button pastel. Glassmorphism
+         needs real depth behind it (2026 best practice); the button scale
+         is too near-white to register. A 4-blob mesh covers the whole
+         viewport, so there is no white centre on wide screens.
+         mesh-1 leans brand, the rest are harmonised neighbours. */
+      :root, [data-theme="light"], [data-theme="system"] {
+        --mesh-1: #9BD3B8;  /* brand-leaning green */
+        --mesh-2: #C5E4D2;  /* soft mint           */
+        --mesh-3: #DCEBF4;  /* cool blue tint      */
+        --mesh-4: #E8E4F5;  /* faint lilac         */
+      }
 
       /* ── Alias layer: short names used by policy styles, reports,
             charts, and inline style props ── */
@@ -217,14 +244,37 @@
       body {
         font-family: 'Albert Sans', system-ui, sans-serif;
         background:
-          radial-gradient(900px 500px at 8% -10%, var(--wash-a), transparent 60%),
-          radial-gradient(800px 520px at 100% 0%, var(--wash-c), transparent 55%),
-          radial-gradient(700px 600px at 50% 115%, var(--wash-b), transparent 60%),
+          radial-gradient(50% 55% at 12% 8%,  var(--mesh-1), transparent 70%),
+          radial-gradient(45% 50% at 88% 15%, var(--mesh-3), transparent 68%),
+          radial-gradient(55% 60% at 70% 95%, var(--mesh-2), transparent 70%),
+          radial-gradient(40% 45% at 30% 80%, var(--mesh-4), transparent 65%),
           rgb(var(--color-surface));
         background-attachment: fixed;
         color: rgb(var(--color-text-primary));
         -webkit-font-smoothing: antialiased;
         font-feature-settings: 'tnum' 1;
+      }
+
+      /* Dark theme: tighter, dimmer mesh so text-bearing centre stays dark.
+         Corner blobs only, fading fast, low spread. */
+      [data-theme="dark"] body,
+      html[data-theme="dark"] body {
+        background:
+          radial-gradient(38% 42% at 8% 4%,   var(--mesh-1), transparent 55%),
+          radial-gradient(34% 38% at 94% 10%, var(--mesh-3), transparent 52%),
+          radial-gradient(42% 46% at 78% 98%, var(--mesh-2), transparent 55%),
+          rgb(var(--color-surface));
+        background-attachment: fixed;
+      }
+      @media (prefers-color-scheme: dark) {
+        [data-theme="system"] body {
+          background:
+            radial-gradient(38% 42% at 8% 4%,   var(--mesh-1), transparent 55%),
+            radial-gradient(34% 38% at 94% 10%, var(--mesh-3), transparent 52%),
+            radial-gradient(42% 46% at 78% 98%, var(--mesh-2), transparent 55%),
+            rgb(var(--color-surface));
+          background-attachment: fixed;
+        }
       }
 
       /* Scrollbar adapts to theme */
@@ -244,15 +294,45 @@
           if (localStorage.getItem(KEY) !== VERSION) {
             ['kashi_theme', 'kashi_sidebar_theme',
              'kashi_brand_preset'].forEach(function (k) { localStorage.removeItem(k) });
-            /* Establish pastel Sage as this user's personal brand colour.
-               Merely clearing it would leave "no personal choice", and the
-               tenant's stored primaryColor (the old red) would win instead. */
-            localStorage.setItem('kashi_sidebar_color', '#AFD8C0');
             localStorage.setItem(KEY, VERSION);
             /* Clearing localStorage is not enough: the DB holds pre-v3 prefs
                (ui_app_theme etc.) and bootstrap would restore them ~300ms in.
                This flag tells useUIConfig to PUSH the new defaults up once. */
             localStorage.setItem('kashi_theme_reset_pending', '1');
+          }
+        } catch (e) {}
+
+        /* Paint the saved brand preset BEFORE React renders, to stop a flash of
+           the default sage/white sidebar + mesh on reload. Mirrors
+           scaleFromHex() + applyBrandPreset() in brandPresets.js. The bundle
+           re-applies the same values a moment later (idempotent). */
+        try {
+          var PRESETS = {
+            sage:'#AFD8C0', mint:'#A9E2D2', seafoam:'#A5DDE0', sky:'#B9D4F0',
+            periwinkle:'#C0C8F2', lilac:'#D3C8F0', mauve:'#E2C4E6', blush:'#F2C3D2',
+            coral:'#F3C1B8', peach:'#F5CFA9', butter:'#F0DFA8', pistachio:'#CFE3A9'
+          };
+          var key = localStorage.getItem('kashi_brand_preset');
+          var hex = (key && PRESETS[key]) || localStorage.getItem('kashi_sidebar_color');
+          if (hex && /^#?[0-9a-fA-F]{6}$/.test(hex)) {
+            hex = hex.replace('#','');
+            var base = { r:parseInt(hex.slice(0,2),16), g:parseInt(hex.slice(2,4),16), b:parseInt(hex.slice(4,6),16) };
+            var white = { r:255,g:255,b:255 }, dark = { r:10,g:15,b:30 };
+            var lerp = function(a,b,t){ return Math.round(a+(b-a)*t) };
+            var mix = function(c1,c2,t){ return lerp(c1.r,c2.r,t)+' '+lerp(c1.g,c2.g,t)+' '+lerp(c1.b,c2.b,t) };
+            var scale = {
+              50:mix(base,white,0.92),100:mix(base,white,0.80),200:mix(base,white,0.65),
+              300:mix(base,white,0.45),400:mix(base,white,0.22),500:base.r+' '+base.g+' '+base.b,
+              600:mix(base,dark,0.18),700:mix(base,dark,0.36),800:mix(base,dark,0.54),900:mix(base,dark,0.70)
+            };
+            var root = document.documentElement;
+            for (var sh in scale) root.style.setProperty('--color-brand-'+sh, scale[sh]);
+            if (key) root.setAttribute('data-brand', key);
+            /* Light mesh follows the brand (same shades as applyBranding). */
+            root.style.setProperty('--mesh-1','rgb('+scale[400]+')');
+            root.style.setProperty('--mesh-2','rgb('+scale[200]+')');
+            root.style.setProperty('--mesh-3','rgb('+scale[300]+')');
+            root.style.setProperty('--mesh-4','rgb('+scale[100]+')');
           }
         } catch (e) {}
       })();

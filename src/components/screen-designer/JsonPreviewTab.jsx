@@ -38,18 +38,18 @@ function JsonPreviewTab({ screen }) {
         {isForm ? (
           <div className="p-3 rounded-card bg-brand-500/5 border border-brand-500/20 text-[11px] text-text-secondary space-y-1">
             <p className="font-medium text-text-primary">How to link this form to a module blueprint</p>
-            <p>1. Open <span className="font-mono text-brand-400">/admin/modules</span> → select your module blueprint → click Edit</p>
-            <p>2. Set <span className="font-mono text-brand-400">createFormKey = {screen.key}</span></p>
+            <p>1. Open <span className="font-mono text-brand-ink">/admin/modules</span> → select your module blueprint → click Edit</p>
+            <p>2. Set <span className="font-mono text-brand-ink">createFormKey = {screen.key}</span></p>
             <p>3. The blueprint will show a &quot;New [entity]&quot; button that opens this form at runtime.</p>
             <p className="text-text-muted">DynamicForm fetches this endpoint at render time. Add fields in Preview or Elements tab.</p>
           </div>
         ) : (
           <div className="p-3 rounded-card bg-brand-500/5 border border-brand-500/20 text-[11px] text-text-secondary space-y-1">
             <p className="font-medium text-text-primary">How to link this key to a blueprint section</p>
-            <p>1. Open <span className="font-mono text-brand-400">/admin/workflows</span> → select your workflow → click a step</p>
-            <p>2. In the section editor, set <span className="font-mono text-brand-400">itemScreenKey = {template?.itemKey || screen.key}</span></p>
+            <p>1. Open <span className="font-mono text-brand-ink">/admin/workflows</span> → select your workflow → click a step</p>
+            <p>2. In the section editor, set <span className="font-mono text-brand-ink">itemScreenKey = {template?.itemKey || screen.key}</span></p>
             {template?.sectionKey && (
-              <p>3. Set <span className="font-mono text-brand-400">sectionScreenKey = {template.sectionKey}</span></p>
+              <p>3. Set <span className="font-mono text-brand-ink">sectionScreenKey = {template.sectionKey}</span></p>
             )}
             <p className="text-text-muted">The engine snapshots these keys at task activation — running instances are never affected by changes here.</p>
           </div>
@@ -68,12 +68,12 @@ function JsonPreviewTab({ screen }) {
             {json && (
               <button
                 onClick={() => { navigator.clipboard.writeText(JSON.stringify(json, null, 2)); toast.success('JSON copied') }}
-                className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-400 transition-colors">
+                className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-ink transition-colors">
                 <Copy size={11} /> Copy
               </button>
             )}
             <a href={endpoint} target="_blank" rel="noreferrer"
-              className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-400 transition-colors">
+              className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-ink transition-colors">
               <ExternalLink size={11} /> Open
             </a>
           </div>
@@ -93,7 +93,7 @@ function JsonPreviewTab({ screen }) {
             {isForm ? 'Generate seed SQL for this form' : 'Generate seed SQL for this screen config'}
           </p>
           <p>Run in your MySQL / Postgres instance to pre-populate these {isForm ? 'form fields' : 'screen keys'} for new tenants:</p>
-          <code className="block mt-2 font-mono text-[10px] text-brand-400">
+          <code className="block mt-2 font-mono text-[10px] text-brand-ink">
             {isForm
               ? `INSERT INTO ui_form_fields (form_id, field_key, field_type, label, …) VALUES …`
               : `INSERT INTO ui_actions (screen_key, action_key, label, …) VALUES …`}

@@ -39,7 +39,7 @@ function Canvas({ screen, screenType, selectedElement, onSelectElement, roleProf
         <div className="flex items-center gap-2">
           <span className="text-[9px] text-text-muted">{screenType?.fieldName}</span>
           <a href={`/v1/ui-config/screen/${screen.key}`} target="_blank" rel="noreferrer"
-            className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-400 transition-colors">
+            className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-ink transition-colors">
             <ExternalLink size={11} /> Preview JSON
           </a>
         </div>

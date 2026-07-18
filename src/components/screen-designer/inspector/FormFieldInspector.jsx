@@ -84,7 +84,7 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
       {/* Field type — grouped */}
       <InspectorSection title="Field type">
         {!initial && !form.fieldType && (
-          <p className="text-[10px] text-brand-400 font-medium mb-2">← Pick a type to start</p>
+          <p className="text-[10px] text-brand-ink font-medium mb-2">← Pick a type to start</p>
         )}
         <div className="space-y-2">
           {FIELD_TYPE_GROUPS.map(group => (
@@ -97,7 +97,7 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
                     className={cn(
                       'px-1.5 py-0.5 rounded text-[9px] border transition-colors',
                       form.fieldType === t.value
-                        ? 'bg-brand-500/15 border-brand-500/40 text-brand-400 font-medium'
+                        ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink font-medium'
                         : 'border-border text-text-muted hover:border-border-strong hover:text-text-secondary'
                     )}>
                     {t.label}
@@ -146,7 +146,7 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
                 onClick={() => set('gridCols', n)}
                 className={cn('px-2 py-0.5 rounded text-[9px] border transition-colors',
                   form.gridCols === n
-                    ? 'bg-brand-500/15 border-brand-500/40 text-brand-400 font-medium'
+                    ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink font-medium'
                     : 'border-border text-text-muted hover:border-border-strong')}>
                 {n === 3 ? '¼' : n === 4 ? '⅓' : n === 6 ? '½' : n === 8 ? '⅔' : 'Full'} ({n})
               </button>

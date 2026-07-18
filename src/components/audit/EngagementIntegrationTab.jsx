@@ -112,13 +112,13 @@ function SnapshotRow({ snap, engagementId }) {
       {/* Main content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5">
-          <Zap size={9} className="text-brand-400 shrink-0" />
+          <Zap size={9} className="text-brand-ink shrink-0" />
           <span className="text-[11px] text-text-primary truncate group-hover:underline">
             {snap.displayNameSnapshot || snap.checkKey}
           </span>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-mono text-[9px] text-brand-400">{snap.checkKey}</span>
+          <span className="font-mono text-[9px] text-brand-ink">{snap.checkKey}</span>
           <span className="text-[9px] text-text-muted">tag: {snap.controlTagSnapshot}</span>
           {snap.lastRunAt && (
             <span className="text-[9px] text-text-muted flex items-center gap-0.5">

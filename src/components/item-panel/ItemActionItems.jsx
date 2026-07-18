@@ -145,7 +145,7 @@ function ActionItemThread({ entityId, item, visibility = 'ALL' }) {
             <button type="button"
               disabled={!draft.trim() || isPending}
               onClick={() => post()}
-              className="text-[11px] font-medium px-2.5 py-1 rounded bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 transition-colors disabled:opacity-40">
+              className="text-[11px] font-medium px-2.5 py-1 rounded bg-brand-500/20 text-brand-ink hover:bg-brand-500/30 transition-colors disabled:opacity-40">
               {isPending ? 'Sending…' : 'Send'}
             </button>
           </div>

@@ -96,7 +96,7 @@ export const SCREEN_TYPES = {
   },
   FORM: {
     key: 'FORM', label: 'Form / modal', icon: FileEdit,
-    color: 'text-brand-400 bg-brand-500/10 border-brand-500/25',
+    color: 'text-brand-ink bg-brand-500/10 border-brand-500/25',
     desc: 'Create/edit form fields and layout',
     fieldName: 'createFormKey / editFormKey',
     hint: 'Used in ModuleBlueprint.createFormKey',
@@ -479,7 +479,7 @@ export default function ScreenDesignerPage() {
       {/* ══ TOPBAR ══════════════════════════════════════════════════════════ */}
       <div className="flex items-center gap-3 px-4 border-b border-border bg-surface shrink-0" style={{ height: 48 }}>
         <div className="flex items-center gap-2">
-          <Layers size={16} className="text-brand-400" />
+          <Layers size={16} className="text-brand-ink" />
           <span className="text-sm font-semibold text-text-primary">Screen designer</span>
         </div>
 
@@ -497,7 +497,7 @@ export default function ScreenDesignerPage() {
             title={navOpen ? 'Hide navigator' : 'Show navigator'}
             className={cn('flex items-center gap-1 h-7 px-2.5 text-[11px] rounded border transition-colors',
               navOpen
-                ? 'bg-brand-500/10 border-brand-500/25 text-brand-400'
+                ? 'bg-brand-500/10 border-brand-500/25 text-brand-ink'
                 : 'border-border text-text-muted hover:border-border-strong hover:text-text-secondary')}>
             <PanelLeft size={13} />
           </button>
@@ -506,7 +506,7 @@ export default function ScreenDesignerPage() {
             title={inspOpen ? 'Hide inspector' : 'Show inspector'}
             className={cn('flex items-center gap-1 h-7 px-2.5 text-[11px] rounded border transition-colors',
               inspOpen
-                ? 'bg-brand-500/10 border-brand-500/25 text-brand-400'
+                ? 'bg-brand-500/10 border-brand-500/25 text-brand-ink'
                 : 'border-border text-text-muted hover:border-border-strong hover:text-text-secondary')}>
             <PanelRight size={13} />
           </button>
@@ -547,7 +547,7 @@ export default function ScreenDesignerPage() {
 
         <Button size="sm" icon={Plus} onClick={() => setCreateOpen(true)}>New screen</Button>
         <button onClick={() => setTemplatePanelOpen(true)}
-          className="flex items-center gap-1.5 h-7 px-3 text-[11px] font-medium text-brand-400 bg-brand-500/8 hover:bg-brand-500/15 border border-brand-500/25 hover:border-brand-500/50 rounded transition-colors">
+          className="flex items-center gap-1.5 h-7 px-3 text-[11px] font-medium text-brand-ink bg-brand-500/8 hover:bg-brand-500/15 border border-brand-500/25 hover:border-brand-500/50 rounded transition-colors">
           <Layers size={12} /> Templates
         </button>
       </div>
@@ -594,7 +594,7 @@ export default function ScreenDesignerPage() {
                     className={cn(
                       'flex items-center gap-1.5 px-3 py-2.5 text-[11px] font-medium border-b-2 -mb-px transition-colors',
                       activeTab === key
-                        ? 'border-brand-400 text-brand-400'
+                        ? 'border-brand-400 text-brand-ink'
                         : 'border-transparent text-text-muted hover:text-text-secondary'
                     )}>
                     <Icon size={11} />{label}
@@ -603,7 +603,7 @@ export default function ScreenDesignerPage() {
                 {/* role note */}
                 <div className="ml-auto flex items-center gap-2 pr-3 text-[10px] text-text-muted">
                   {roleProfile?.sod && <span className="text-status-fail-fg font-medium">⚠ SoD active</span>}
-                  Previewing as <span className="text-brand-400 font-medium">{roleProfile?.label}</span>
+                  Previewing as <span className="text-brand-ink font-medium">{roleProfile?.label}</span>
                   <span className="opacity-40">·</span>
                   <span>{roleProfile?.stepAction}</span>
                 </div>
@@ -678,7 +678,7 @@ function Navigator({ screens, selectedKey, search, setSearch, typeFilter, setTyp
           <button
             onClick={() => setTypeFilter(null)}
             className={cn('px-2 py-0.5 rounded text-[9px] font-medium border transition-colors',
-              !typeFilter ? 'border-brand-500 bg-brand-500/15 text-brand-400' : 'border-border text-text-muted hover:border-border-strong')}>
+              !typeFilter ? 'border-brand-500 bg-brand-500/15 text-brand-ink' : 'border-border text-text-muted hover:border-border-strong')}>
             All
           </button>
           {Object.values(SCREEN_TYPES).map(t => (
@@ -722,7 +722,7 @@ function Navigator({ screens, selectedKey, search, setSearch, typeFilter, setTyp
                   className={cn(
                     'w-full flex items-center gap-2 px-3 py-2 text-left border-l-2 transition-colors text-[10px]',
                     selectedKey === screen.key
-                      ? 'bg-brand-500/8 border-l-brand-500 text-brand-400'
+                      ? 'bg-brand-500/8 border-l-brand-500 text-brand-ink'
                       : 'border-l-transparent hover:bg-surface-overlay text-text-secondary hover:text-text-primary'
                   )}>
                   <code className="font-mono truncate">{screen.key}</code>
@@ -730,7 +730,7 @@ function Navigator({ screens, selectedKey, search, setSearch, typeFilter, setTyp
               ))}
               {typeScreens.length === 0 && (
                 <button onClick={onNew}
-                  className="w-full flex items-center gap-1.5 px-3 py-2 text-[10px] text-text-muted hover:text-brand-400 transition-colors">
+                  className="w-full flex items-center gap-1.5 px-3 py-2 text-[10px] text-text-muted hover:text-brand-ink transition-colors">
                   <Plus size={10} /> Add first {type.label.toLowerCase()}
                 </button>
               )}
@@ -741,11 +741,11 @@ function Navigator({ screens, selectedKey, search, setSearch, typeFilter, setTyp
 
       <div className="p-2 border-t border-border space-y-1">
         <button onClick={onOpenTemplates}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] text-brand-400 hover:text-brand-300 bg-brand-500/8 hover:bg-brand-500/12 border border-brand-500/20 hover:border-brand-500/40 rounded transition-colors font-medium">
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] text-brand-ink hover:text-brand-ink bg-brand-500/8 hover:bg-brand-500/12 border border-brand-500/20 hover:border-brand-500/40 rounded transition-colors font-medium">
           <Layers size={10} /> Templates
         </button>
         <button onClick={onNew}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] text-text-muted hover:text-brand-400 border border-dashed border-border hover:border-brand-500/40 rounded transition-colors">
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] text-text-muted hover:text-brand-ink border border-dashed border-border hover:border-brand-500/40 rounded transition-colors">
           <Plus size={10} /> Blank screen
         </button>
       </div>
@@ -782,7 +782,7 @@ function Canvas({ screen, screenType, selectedElement, onSelectElement, roleProf
         <div className="flex items-center gap-2">
           <span className="text-[9px] text-text-muted">{screenType?.fieldName}</span>
           <a href={`/v1/ui-config/screen/${screen.key}`} target="_blank" rel="noreferrer"
-            className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-400 transition-colors">
+            className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-ink transition-colors">
             <ExternalLink size={11} /> Preview JSON
           </a>
         </div>
@@ -882,7 +882,7 @@ function SectionCanvas({ screen, selectedElement, onSelectElement, actions, layo
               {item.assignedToUserName && <span className="text-[9px] text-text-muted">{item.assignedToUserName}</span>}
             </div>
           ))}
-          <div className="flex items-center gap-1.5 px-3 py-1 text-[9px] text-brand-400 hover:text-brand-300 cursor-pointer">
+          <div className="flex items-center gap-1.5 px-3 py-1 text-[9px] text-brand-ink hover:text-brand-ink cursor-pointer">
             <ArrowRight size={10} /> Configure item card in itemScreenKey →
           </div>
         </div>
@@ -905,7 +905,7 @@ function SectionCanvas({ screen, selectedElement, onSelectElement, actions, layo
                   ? 'ring-2 ring-brand-500/60 scale-105'
                   : 'hover:scale-105',
                 {
-                  primary:   'bg-brand-500/10 border-brand-500/40 text-brand-400',
+                  primary:   'bg-brand-500/10 border-brand-500/40 text-brand-ink',
                   secondary: 'bg-surface-overlay border-border text-text-secondary',
                   danger:    'bg-status-fail-bg border-status-fail-bd text-status-fail-fg',
                   warning:   'bg-status-warn-bg border-status-warn-bd text-status-warn-fg',
@@ -917,7 +917,7 @@ function SectionCanvas({ screen, selectedElement, onSelectElement, actions, layo
           ))}
           <button
             onClick={e => { e.stopPropagation(); onSelectElement({ type: 'new_action', screenKey: screen.key }) }}
-            className="px-3 py-1.5 rounded-ctl text-xs text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 transition-colors">
+            className="px-3 py-1.5 rounded-ctl text-xs text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-ink transition-colors">
             + Add action
           </button>
         </div>
@@ -979,13 +979,13 @@ function ItemCardCanvas({ screen, selectedElement, onSelectElement, actions }) {
                 className={cn(
                   'px-3 py-1.5 rounded text-xs font-medium border transition-all hover:scale-105',
                   selectedElement?.id === action.id ? 'ring-2 ring-brand-500/60' : '',
-                  { primary: 'bg-brand-500/10 border-brand-500/40 text-brand-400', secondary: 'bg-surface-overlay border-border text-text-secondary', danger: 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg' }[action.variant] || 'bg-surface-overlay border-border text-text-secondary'
+                  { primary: 'bg-brand-500/10 border-brand-500/40 text-brand-ink', secondary: 'bg-surface-overlay border-border text-text-secondary', danger: 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg' }[action.variant] || 'bg-surface-overlay border-border text-text-secondary'
                 )}>
                 {action.label}
               </button>
             ))}
             <button onClick={() => onSelectElement({ type: 'new_action', screenKey: screen.key })}
-              className="px-2.5 py-1 rounded text-[10px] text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 transition-colors">
+              className="px-2.5 py-1 rounded text-[10px] text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-ink transition-colors">
               + Action
             </button>
           </div>
@@ -1001,7 +1001,7 @@ function ItemCardCanvas({ screen, selectedElement, onSelectElement, actions }) {
             <button key={tab}
               onClick={e => { e.stopPropagation(); onSelectElement({ type: 'side_tab', tab, screenKey: screen.key }) }}
               className={cn('px-3 py-1.5 text-[10px] border-b-2 transition-colors -mb-px',
-                i === 0 ? 'border-brand-500 text-brand-400' : 'border-transparent text-text-muted hover:text-text-secondary',
+                i === 0 ? 'border-brand-500 text-brand-ink' : 'border-transparent text-text-muted hover:text-text-secondary',
                 selectedElement?.type === 'side_tab' && selectedElement?.tab === tab ? 'ring-1 ring-brand-500/40 bg-brand-500/5 rounded-t' : '')}>
               {tab}
             </button>
@@ -1032,7 +1032,7 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
                   <th key={col.key}
                     onClick={() => onSelectElement({ type: 'column', data: col, screenKey: screen.key })}
                     className={cn('text-left px-3 py-2.5 text-xs font-semibold text-text-secondary cursor-pointer hover:text-text-primary hover:bg-brand-500/5 transition-colors',
-                      selectedElement?.type === 'column' && selectedElement?.data?.key === col.key ? 'bg-brand-500/10 text-brand-400' : '')}>
+                      selectedElement?.type === 'column' && selectedElement?.data?.key === col.key ? 'bg-brand-500/10 text-brand-ink' : '')}>
                     <div className="flex items-center gap-1">
                       {/* Primary columns render bolder in the header too */}
                       <span className={cn(col.isPrimary && 'font-bold text-text-primary', col.monoFont && 'font-mono')}>
@@ -1047,7 +1047,7 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
                     </div>
                   </th>
                 ))}
-                <th className="px-3 py-2 cursor-pointer text-text-muted hover:text-brand-400"
+                <th className="px-3 py-2 cursor-pointer text-text-muted hover:text-brand-ink"
                   onClick={() => onSelectElement({ type: 'new_column', screenKey: screen.key })}>
                   <Plus size={11} />
                 </th>
@@ -1105,7 +1105,7 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
           ))}
           <button
             onClick={() => onSelectElement({ type: 'new_action', screenKey: screen.key })}
-            className="flex items-center gap-1.5 h-7 px-3 border border-dashed border-border text-text-muted hover:border-brand-500/40 hover:text-brand-400 rounded-ctl text-[10px] transition-colors">
+            className="flex items-center gap-1.5 h-7 px-3 border border-dashed border-border text-text-muted hover:border-brand-500/40 hover:text-brand-ink rounded-ctl text-[10px] transition-colors">
             <Plus size={11} /> Add button
           </button>
         </div>
@@ -1124,7 +1124,7 @@ const CAPABILITY_TABS = {
     color: 'text-status-info-fg bg-status-info-bg border-status-info-bd' },
   comments: { label: 'Comments', icon: Activity,
     desc: 'Comment thread — all sides communicate via CommentFeed.',
-    color: 'text-brand-400 bg-brand-500/10 border-brand-500/20' },
+    color: 'text-brand-ink bg-brand-500/10 border-brand-500/20' },
   history: { label: 'History', icon: Flag,
     desc: 'Audit trail — all status changes and actions with timestamps.',
     color: 'text-text-muted bg-surface-inset border-border' },
@@ -1221,7 +1221,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
   const lmc = {
     FULL_PAGE:  { ring: 'border-status-info-bd   bg-status-info-bg',   chromeBg: 'bg-status-info-bg',   chromeBorder: 'border-status-info-bd',   chromeText: 'text-status-info-fg',   label: 'Full page — navigates to a dedicated route' },
     DRAWER:     { ring: 'border-status-tag-bd bg-status-tag-bg', chromeBg: 'bg-status-tag-bg', chromeBorder: 'border-status-tag-bd', chromeText: 'text-status-tag-fg', label: 'Drawer — ~480px · slides from right' },
-    SIDE_PANEL: { ring: 'border-brand-500/20   bg-brand-500/3',   chromeBg: 'bg-brand-500/8',   chromeBorder: 'border-brand-500/15',   chromeText: 'text-brand-400',   label: 'Side panel — permanent · 33vw' },
+    SIDE_PANEL: { ring: 'border-brand-500/20   bg-brand-500/3',   chromeBg: 'bg-brand-500/8',   chromeBorder: 'border-brand-500/15',   chromeText: 'text-brand-ink',   label: 'Side panel — permanent · 33vw' },
   }[layoutMode] || { ring: 'border-status-info-bd bg-status-info-bg', chromeBg: 'bg-status-info-bg', chromeBorder: 'border-status-info-bd', chromeText: 'text-status-info-fg', label: '' }
 
   // ── Shared inner content ────────────────────────────────────────────────────
@@ -1248,12 +1248,12 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
                 <button key={a.id}
                   onClick={e => { e.stopPropagation(); onSelectElement({ type: 'action', id: a.id, data: a, screenKey: screen.key }) }}
                   className={cn('px-2 py-1 rounded-ctl text-[10px] font-medium border hover:scale-105 transition-all',
-                    { primary: 'bg-brand-500/10 border-brand-500/40 text-brand-400', secondary: 'bg-surface-overlay border-border text-text-secondary', danger: 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg' }[a.variant] || 'bg-surface-overlay border-border text-text-secondary')}>
+                    { primary: 'bg-brand-500/10 border-brand-500/40 text-brand-ink', secondary: 'bg-surface-overlay border-border text-text-secondary', danger: 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg' }[a.variant] || 'bg-surface-overlay border-border text-text-secondary')}>
                   {a.label}
                 </button>
               ))}
               <button onClick={() => onSelectElement({ type: 'new_action', screenKey: screen.key })}
-                className="px-2 py-1 rounded-ctl text-[10px] text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 transition-colors">
+                className="px-2 py-1 rounded-ctl text-[10px] text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-ink transition-colors">
                 + Action
               </button>
             </div>
@@ -1266,7 +1266,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
                 <div key={f.id}
                   style={{ gridColumn: `span ${Math.max(3, Math.min(f.gridCols || 6, 12))}` }}
                   className="p-1.5 rounded border border-brand-500/20 bg-brand-500/5">
-                  <div className="text-brand-400 mb-0.5 font-medium">{f.label}</div>
+                  <div className="text-brand-ink mb-0.5 font-medium">{f.label}</div>
                   <div className={cn('h-2.5 rounded w-3/4',
                     f.fieldType === 'SELECT' ? 'bg-status-info-bg'
                     : f.fieldType === 'DATE'   ? 'bg-status-info-bg'
@@ -1304,7 +1304,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
                   onSelectElement({ type: 'tab', tab: tabDef.label, tabKey: tabDef.key, screenKey: screen.key, layout })
                 }}
                 className={cn('flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors',
-                  activeTab === tabDef.label ? 'border-brand-500 text-brand-400' : 'border-transparent text-text-muted',
+                  activeTab === tabDef.label ? 'border-brand-500 text-brand-ink' : 'border-transparent text-text-muted',
                   selectedElement?.type === 'tab' && selectedElement?.tab === tabDef.label ? 'bg-brand-500/5 rounded-t' : '')}>
                 {tabDef.label}
                 {isCap
@@ -1316,7 +1316,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
           })}
           <button
             onClick={() => onSelectElement({ type: 'new_detail_tab', screenKey: screen.key, layout })}
-            className="ml-1 flex items-center gap-1 px-2.5 py-1.5 -mb-px text-[10px] text-text-muted hover:text-brand-400 border border-dashed border-border/60 hover:border-brand-500/50 rounded-t transition-colors">
+            className="ml-1 flex items-center gap-1 px-2.5 py-1.5 -mb-px text-[10px] text-text-muted hover:text-brand-ink border border-dashed border-border/60 hover:border-brand-500/50 rounded-t transition-colors">
             <Plus size={10} /> Tab
           </button>
         </div>
@@ -1330,7 +1330,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
             <div className="flex-1">
               <p className="text-xs font-medium text-text-primary mb-1">{capInfo.label} — capability tab</p>
               <p className="text-[10px] text-text-muted leading-relaxed">{capInfo.desc}</p>
-              <p className="text-[9px] text-brand-400 mt-2">
+              <p className="text-[9px] text-brand-ink mt-2">
                 No field configuration needed — fixed React component. Configure visibility per role in the Inspector.
               </p>
             </div>
@@ -1360,7 +1360,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
                   <div key={f.id}
                     style={{ gridColumn: `span ${f.gridCols || 12}` }}
                     className="flex flex-col gap-1 p-1.5 rounded border border-brand-500/20 bg-brand-500/5">
-                    <div className="text-brand-400 font-medium">{f.label}</div>
+                    <div className="text-brand-ink font-medium">{f.label}</div>
                     <div className={cn('h-5 rounded border',
                       f.fieldType === 'SELECT'  ? 'bg-status-info-bg border-status-info-bd'
                       : f.fieldType === 'DATE'    ? 'bg-status-info-bg border-status-info-bd'
@@ -1370,7 +1370,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
                 )
               ))}
             </div>
-            <p className="text-[9px] text-brand-400 mt-3">
+            <p className="text-[9px] text-brand-ink mt-3">
               {tabFields.length} field{tabFields.length !== 1 ? 's' : ''} configured · click to edit in Inspector
             </p>
           </div>
@@ -1408,7 +1408,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
           className={cn('flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-semibold transition-all hover:opacity-80',
             { FULL_PAGE:  'border-status-info-bd   bg-status-info-bg   text-status-info-fg',
               DRAWER:     'border-status-tag-bd bg-status-tag-bg text-status-tag-fg',
-              SIDE_PANEL: 'border-brand-500/40   bg-brand-500/8   text-brand-400', }[layoutMode]
+              SIDE_PANEL: 'border-brand-500/40   bg-brand-500/8   text-brand-ink', }[layoutMode]
           )}>
           {layoutMode === 'FULL_PAGE'  && <Layout     size={10} />}
           {layoutMode === 'DRAWER'     && <PanelRight size={10} />}
@@ -1417,7 +1417,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
         </button>
         <button
           onClick={() => onSelectElement({ type: 'screen_layout_mode', screenKey: screen.key })}
-          className="ml-auto text-[9px] text-brand-400 border border-brand-500/25 rounded px-2 py-0.5 hover:bg-brand-500/5 transition-colors">
+          className="ml-auto text-[9px] text-brand-ink border border-brand-500/25 rounded px-2 py-0.5 hover:bg-brand-500/5 transition-colors">
           Change mode →
         </button>
       </div>
@@ -1583,7 +1583,7 @@ function FormCanvas({ screen, selectedElement, onSelectElement, actions }) {
       case 'MULTILINE_LIST': return (
         <div className="border border-border rounded p-2 space-y-1">
           <div className="h-6 bg-background border border-border/50 rounded text-[10px] text-text-muted flex items-center px-2">Item 1</div>
-          <button className="text-[10px] text-brand-400">+ Add item</button>
+          <button className="text-[10px] text-brand-ink">+ Add item</button>
         </div>
       )
       default: return (
@@ -1634,7 +1634,7 @@ function FormCanvas({ screen, selectedElement, onSelectElement, actions }) {
 
           <button
             onClick={() => onSelectElement({ type: 'new_form_field', screenKey: screen.key, formId, label: 'New field', onSaved: () => { qc.invalidateQueries({ queryKey: ['sd-form-fields', formId] }) } })}
-            className="w-full flex items-center justify-center gap-1.5 py-2.5 mt-2 border-2 border-dashed border-brand-500/30 hover:border-brand-500/60 rounded-card text-xs text-brand-400 hover:text-brand-300 font-medium transition-colors bg-brand-500/3 hover:bg-brand-500/6">
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 mt-2 border-2 border-dashed border-brand-500/30 hover:border-brand-500/60 rounded-card text-xs text-brand-ink hover:text-brand-ink font-medium transition-colors bg-brand-500/3 hover:bg-brand-500/6">
             <Plus size={13} /> Add field
           </button>
         </div>
@@ -1668,7 +1668,7 @@ function FormCanvas({ screen, selectedElement, onSelectElement, actions }) {
                 'flex items-center gap-2 px-3 py-2 rounded-ctl text-xs font-medium border transition-all hover:scale-105',
                 selectedElement?.id === action.id ? 'ring-2 ring-brand-500/60' : '',
                 {
-                  primary:   'bg-brand-500/10 border-brand-500/40 text-brand-400',
+                  primary:   'bg-brand-500/10 border-brand-500/40 text-brand-ink',
                   secondary: 'bg-surface-overlay border-border text-text-secondary',
                   danger:    'bg-status-fail-bg border-status-fail-bd text-status-fail-fg',
                   warning:   'bg-status-warn-bg border-status-warn-bd text-status-warn-fg',
@@ -1680,7 +1680,7 @@ function FormCanvas({ screen, selectedElement, onSelectElement, actions }) {
           ))}
           <button
             onClick={e => { e.stopPropagation(); onSelectElement({ type: 'new_action', screenKey: screen.key }) }}
-            className="px-3 py-2 rounded-ctl text-xs text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 transition-colors">
+            className="px-3 py-2 rounded-ctl text-xs text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-ink transition-colors">
             + Add button
           </button>
         </div>
@@ -1690,13 +1690,13 @@ function FormCanvas({ screen, selectedElement, onSelectElement, actions }) {
       <CanvasCard label="Form info">
         <div className="px-4 py-3 space-y-1 text-[10px] text-text-muted">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-brand-400">{screen.key}</span>
+            <span className="font-mono text-brand-ink">{screen.key}</span>
             <span>→</span>
             <span>GET /v1/ui-config/form/{screen.key}</span>
           </div>
           <p>Referenced as <code className="font-mono">createFormKey</code> in ModuleBlueprint. DynamicForm renders this at runtime.</p>
           {formId && (
-            <p className="text-brand-400 font-mono">formId: {formId} · {fields.length} field{fields.length !== 1 ? 's' : ''}</p>
+            <p className="text-brand-ink font-mono">formId: {formId} · {fields.length} field{fields.length !== 1 ? 's' : ''}</p>
           )}
           {!formId && !formLoading && (
             <p className="text-status-warn-fg">No UiForm row found — click any field type in Inspector to auto-create</p>
@@ -1715,11 +1715,11 @@ function PageCanvas({ screen, selectedElement, onSelectElement, actions }) {
       </div>
       <CanvasCard label="Page layout" hint="configure the primary content area">
         <div className="flex gap-3 p-3 min-h-40">
-          <div className="flex-1 border border-dashed border-border rounded-card p-3 flex items-center justify-center text-[10px] text-text-muted cursor-pointer hover:border-brand-500/40 hover:text-brand-400 transition-colors"
+          <div className="flex-1 border border-dashed border-border rounded-card p-3 flex items-center justify-center text-[10px] text-text-muted cursor-pointer hover:border-brand-500/40 hover:text-brand-ink transition-colors"
             onClick={() => onSelectElement({ type: 'page_main', screenKey: screen.key })}>
             Primary content area
           </div>
-          <div className="w-44 border border-dashed border-border rounded-card p-3 flex items-center justify-center text-[10px] text-text-muted cursor-pointer hover:border-brand-500/40 hover:text-brand-400 transition-colors"
+          <div className="w-44 border border-dashed border-border rounded-card p-3 flex items-center justify-center text-[10px] text-text-muted cursor-pointer hover:border-brand-500/40 hover:text-brand-ink transition-colors"
             onClick={() => onSelectElement({ type: 'page_sidebar', screenKey: screen.key })}>
             Sidebar
           </div>
@@ -1913,7 +1913,7 @@ function ScreenLevelInspector({ screen, screenType, onSelectScreen }) {
       {/* Type + key */}
       <InspectorSection title="Identity">
         <Row label="Screen key">
-          <code className="text-[10px] font-mono text-brand-400">{screen.key}</code>
+          <code className="text-[10px] font-mono text-brand-ink">{screen.key}</code>
         </Row>
         <Row label="Type">
           {screenType && (
@@ -1941,7 +1941,7 @@ function ScreenLevelInspector({ screen, screenType, onSelectScreen }) {
           <p className="text-[10px] text-text-muted mb-2">Items in this section render with:</p>
           <button
             onClick={() => onSelectScreen({ key: screen.key.replace('_section', '_item').replace('section_', 'item_'), type: 'ITEM_CARD' })}
-            className="w-full flex items-center gap-2 p-2 rounded border border-brand-500/20 bg-brand-500/5 text-[10px] text-brand-400 hover:bg-brand-500/10 transition-colors">
+            className="w-full flex items-center gap-2 p-2 rounded border border-brand-500/20 bg-brand-500/5 text-[10px] text-brand-ink hover:bg-brand-500/10 transition-colors">
             <ArrowRight size={11} />
             <span>itemScreenKey →</span>
             <code className="font-mono ml-auto">{screen.key.replace('_section', '_item').replace('section_', 'item_')}</code>
@@ -1954,7 +1954,7 @@ function ScreenLevelInspector({ screen, screenType, onSelectScreen }) {
         <div className="flex items-center gap-2 p-2 rounded bg-surface-overlay border border-border">
           <code className="text-[9px] font-mono text-text-muted flex-1 truncate">GET /v1/ui-config/screen/{screen.key}</code>
           <a href={`/v1/ui-config/screen/${screen.key}`} target="_blank" rel="noreferrer">
-            <ExternalLink size={11} className="text-text-muted hover:text-brand-400 transition-colors" />
+            <ExternalLink size={11} className="text-text-muted hover:text-brand-ink transition-colors" />
           </a>
         </div>
       </InspectorSection>
@@ -2050,7 +2050,7 @@ function ActionInspector({ initial, screenKey, onSave }) {
           </p>
         </IField>
         {formKey && (
-          <div className="px-2 py-1.5 rounded bg-brand-500/5 border border-brand-500/20 text-[9px] text-brand-400 font-mono">
+          <div className="px-2 py-1.5 rounded bg-brand-500/5 border border-brand-500/20 text-[9px] text-brand-ink font-mono">
             {"{"}&quot;__formKey&quot;:&quot;{formKey}&quot;{"}"} → stored in payloadTemplateJson
           </div>
         )}
@@ -2085,7 +2085,7 @@ function ActionInspector({ initial, screenKey, onSave }) {
               return (
                 <button key={s} onClick={() => set('allowedSides', (active ? sides.filter(x=>x!==s) : [...sides,s]).join(','))}
                   className={cn('px-1.5 py-0.5 rounded text-[8px] border transition-colors',
-                    active ? 'border-brand-500 bg-brand-500/15 text-brand-400' : 'border-border text-text-muted hover:border-border-strong')}>
+                    active ? 'border-brand-500 bg-brand-500/15 text-brand-ink' : 'border-border text-text-muted hover:border-border-strong')}>
                   {s}
                 </button>
               )
@@ -2191,7 +2191,7 @@ function HeaderZoneInspector({ screenKey, onSelectElement }) {
           Fields that appear above the tabs — always visible to all roles.
           Typical: title, status badge, owner, created date, ID number.
           Stored as <code className="font-mono">UiFormField</code> rows under key{' '}
-          <code className="font-mono text-brand-400">{formKey}</code>.
+          <code className="font-mono text-brand-ink">{formKey}</code>.
         </p>
 
         {/* Field list */}
@@ -2217,7 +2217,7 @@ function HeaderZoneInspector({ screenKey, onSelectElement }) {
         <button
           onClick={() => onSelectElement({ type: 'new_form_field', screenKey: formKey, formId,
             onSaved: () => qc.invalidateQueries({ queryKey: ['sd-form-fields', formId] }) })}
-          className="w-full flex items-center justify-center gap-1.5 py-2 mt-1 border-2 border-dashed border-brand-500/25 hover:border-brand-500/50 rounded-card text-xs text-brand-400 hover:text-brand-300 font-medium transition-colors bg-brand-500/3">
+          className="w-full flex items-center justify-center gap-1.5 py-2 mt-1 border-2 border-dashed border-brand-500/25 hover:border-brand-500/50 rounded-card text-xs text-brand-ink hover:text-brand-ink font-medium transition-colors bg-brand-500/3">
           <Plus size={12} /> Add header field
         </button>
       </InspectorSection>
@@ -2246,7 +2246,7 @@ function HeaderZoneInspector({ screenKey, onSelectElement }) {
                   toast.success(`Added "${preset.label}" field`)
                 } catch (e) { toast.error(e?.response?.data?.message || 'Failed') }
               }}
-              className="px-2 py-0.5 rounded text-[9px] border border-border bg-surface-overlay text-text-muted hover:border-brand-500/40 hover:text-brand-400 transition-colors disabled:opacity-40">
+              className="px-2 py-0.5 rounded text-[9px] border border-border bg-surface-overlay text-text-muted hover:border-brand-500/40 hover:text-brand-ink transition-colors disabled:opacity-40">
               + {preset.label}
             </button>
           ))}
@@ -2311,7 +2311,7 @@ function TabContentInspector({ tab, tabKey, screenKey, onSelectElement }) {
           Fields rendered inside the <strong className="font-medium text-text-secondary">{tab}</strong> tab.
           Each field is role/step aware — configure visibility per role in the field inspector.
           Stored under form key{' '}
-          <code className="font-mono text-brand-400 text-[9px]">{formKey}</code>.
+          <code className="font-mono text-brand-ink text-[9px]">{formKey}</code>.
         </p>
 
         {fields.length === 0 ? (
@@ -2336,7 +2336,7 @@ function TabContentInspector({ tab, tabKey, screenKey, onSelectElement }) {
         <button
           onClick={() => onSelectElement({ type: 'new_form_field', screenKey: formKey, formId,
             onSaved: () => qc.invalidateQueries({ queryKey: ['sd-form-fields', formId] }) })}
-          className="w-full flex items-center justify-center gap-1.5 py-2 mt-1 border-2 border-dashed border-brand-500/25 hover:border-brand-500/50 rounded-card text-xs text-brand-400 font-medium transition-colors bg-brand-500/3">
+          className="w-full flex items-center justify-center gap-1.5 py-2 mt-1 border-2 border-dashed border-brand-500/25 hover:border-brand-500/50 rounded-card text-xs text-brand-ink font-medium transition-colors bg-brand-500/3">
           <Plus size={12} /> Add field to {tab} tab
         </button>
       </InspectorSection>
@@ -2455,7 +2455,7 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
       {/* Field type — grouped */}
       <InspectorSection title="Field type">
         {!initial && !form.fieldType && (
-          <p className="text-[10px] text-brand-400 font-medium mb-2">← Pick a type to start</p>
+          <p className="text-[10px] text-brand-ink font-medium mb-2">← Pick a type to start</p>
         )}
         <div className="space-y-2">
           {FIELD_TYPE_GROUPS.map(group => (
@@ -2468,7 +2468,7 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
                     className={cn(
                       'px-1.5 py-0.5 rounded text-[9px] border transition-colors',
                       form.fieldType === t.value
-                        ? 'bg-brand-500/15 border-brand-500/40 text-brand-400 font-medium'
+                        ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink font-medium'
                         : 'border-border text-text-muted hover:border-border-strong hover:text-text-secondary'
                     )}>
                     {t.label}
@@ -2517,7 +2517,7 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
                 onClick={() => set('gridCols', n)}
                 className={cn('px-2 py-0.5 rounded text-[9px] border transition-colors',
                   form.gridCols === n
-                    ? 'bg-brand-500/15 border-brand-500/40 text-brand-400 font-medium'
+                    ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink font-medium'
                     : 'border-border text-text-muted hover:border-border-strong')}>
                 {n === 3 ? '¼' : n === 4 ? '⅓' : n === 6 ? '½' : n === 8 ? '⅔' : 'Full'} ({n})
               </button>
@@ -2898,7 +2898,7 @@ function RoleVisibilityEditor({ screenKey }) {
       )}
 
       <button onClick={() => saveMut.mutate()}
-        className="mt-3 w-full text-[10px] font-medium text-brand-400 hover:text-brand-300 border border-brand-500/25 hover:border-brand-500/50 bg-brand-500/5 hover:bg-brand-500/8 rounded-ctl py-1.5 transition-colors">
+        className="mt-3 w-full text-[10px] font-medium text-brand-ink hover:text-brand-ink border border-brand-500/25 hover:border-brand-500/50 bg-brand-500/5 hover:bg-brand-500/8 rounded-ctl py-1.5 transition-colors">
         {saveMut.isPending ? 'Saving…' : 'Save visibility'}
       </button>
     </InspectorSection>
@@ -2947,7 +2947,7 @@ function ItemListInspector({ screenKey, onNavigate }) {
       <InspectorSection title="Item list">
         <p className="text-[10px] text-text-muted">Items in this section are rendered using the itemScreenKey below. Click to configure the item card.</p>
         <button onClick={() => onNavigate(linkedItemKey)}
-          className="w-full flex items-center gap-2 p-2.5 rounded-card border border-brand-500/25 bg-brand-500/5 text-[10px] text-brand-400 hover:bg-brand-500/10 transition-colors mt-2">
+          className="w-full flex items-center gap-2 p-2.5 rounded-card border border-brand-500/25 bg-brand-500/5 text-[10px] text-brand-ink hover:bg-brand-500/10 transition-colors mt-2">
           <ArrowRight size={12} />
           <div className="flex-1 text-left">
             <div className="font-medium">Item card screen</div>
@@ -3154,7 +3154,7 @@ function TabInspector({ tab, tabKey, screenKey, layout }) {
             <button
               onClick={handleRename}
               disabled={!labelEdit.trim() || labelEdit === tab || saveTabsMut.isPending}
-              className="shrink-0 h-7 px-2 text-[10px] font-medium text-brand-400 bg-brand-500/10 border border-brand-500/20 rounded hover:bg-brand-500/20 transition-colors disabled:opacity-40">
+              className="shrink-0 h-7 px-2 text-[10px] font-medium text-brand-ink bg-brand-500/10 border border-brand-500/20 rounded hover:bg-brand-500/20 transition-colors disabled:opacity-40">
               Rename
             </button>
           </div>
@@ -3351,7 +3351,7 @@ const LAYOUT_MODES = [
     value: 'SIDE_PANEL',
     label: 'Side panel',
     Icon: Columns2,
-    color: 'border-brand-500/40   bg-brand-500/8   text-brand-400',
+    color: 'border-brand-500/40   bg-brand-500/8   text-brand-ink',
     dimColor: 'border-border bg-surface-overlay text-text-muted',
     desc: 'Persistent panel alongside list (33 vw). Best for step-through workflows (questionnaire review, finding triage).',
   },
@@ -3490,7 +3490,7 @@ function ComponentQuickAdd({ screenKey }) {
           {['DROPDOWN','BADGE','RADIO','MULTI_SELECT'].map(t => <option key={t} value={t}>{t}</option>)}
         </select>
         <button onClick={() => { if (!key) return; createMut.mutate() }}
-          className="h-7 px-2 bg-brand-500/20 text-brand-400 rounded border border-brand-500/30 text-[10px] hover:bg-brand-500/30 transition-colors">
+          className="h-7 px-2 bg-brand-500/20 text-brand-ink rounded border border-brand-500/30 text-[10px] hover:bg-brand-500/30 transition-colors">
           Add
         </button>
       </div>
@@ -3617,7 +3617,7 @@ function TemplateGallery({ onSelect, onBlank }) {
                         {/* Key pills */}
                         <div className="flex flex-wrap gap-1">
                           {tmpl.itemKey && (
-                            <code className="text-[9px] bg-brand-500/10 border border-brand-500/20 text-brand-400 px-1.5 py-0.5 rounded">
+                            <code className="text-[9px] bg-brand-500/10 border border-brand-500/20 text-brand-ink px-1.5 py-0.5 rounded">
                               item: {tmpl.itemKey}
                             </code>
                           )}
@@ -3633,7 +3633,7 @@ function TemplateGallery({ onSelect, onBlank }) {
                           )}
                         </div>
                       </div>
-                      <ArrowRight size={13} className="text-text-muted group-hover:text-brand-400 transition-colors shrink-0 mt-1" />
+                      <ArrowRight size={13} className="text-text-muted group-hover:text-brand-ink transition-colors shrink-0 mt-1" />
                     </button>
                   )
                 })}
@@ -3644,7 +3644,7 @@ function TemplateGallery({ onSelect, onBlank }) {
         {/* Blank screen option */}
         <div className="mt-2 pt-4 border-t border-border/50">
           <button onClick={onBlank}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-card border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 text-text-muted text-[11px] transition-colors">
+            className="flex items-center gap-2 px-4 py-2.5 rounded-card border border-dashed border-border hover:border-brand-500/40 hover:text-brand-ink text-text-muted text-[11px] transition-colors">
             <Plus size={13} /> Start with a blank screen
           </button>
         </div>
@@ -3688,7 +3688,7 @@ function IField({ label, children }) {
 function IInp({ value, onChange, placeholder, mono, accent }) {
   return (
     <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      className={cn('w-full h-7 px-2 bg-surface-overlay border border-border rounded text-[10px] focus:outline-none focus:ring-1 focus:ring-brand-500', mono && 'font-mono', accent ? 'text-brand-400' : 'text-text-primary')} />
+      className={cn('w-full h-7 px-2 bg-surface-overlay border border-border rounded text-[10px] focus:outline-none focus:ring-1 focus:ring-brand-500', mono && 'font-mono', accent ? 'text-brand-ink' : 'text-text-primary')} />
   )
 }
 function ISel({ value, onChange, options }) {
@@ -3720,7 +3720,7 @@ function KeyDifferentiatorBar({ screen, inline = false }) {
       ? "flex items-center gap-0 text-[10px]"
       : "flex items-center gap-0 px-4 py-1.5 border-b border-border/30 bg-surface-secondary shrink-0 text-[10px] flex-wrap gap-y-1"}>
       {[
-        { label: 'itemScreenKey',    value: itemKey,    color: 'text-brand-400 bg-brand-500/10 border-brand-500/20' },
+        { label: 'itemScreenKey',    value: itemKey,    color: 'text-brand-ink bg-brand-500/10 border-brand-500/20' },
         { label: 'sectionScreenKey', value: sectionKey, color: 'text-status-tag-fg bg-status-tag-bg border-status-tag-bd' },
         { label: 'formKey',          value: formKey,    color: 'text-status-warn-fg bg-status-warn-bg border-status-warn-bd' },
       ].map(({ label, value, color }) => (
@@ -3773,11 +3773,11 @@ const FIELD_TYPE_COLOR = {
   RICH_TEXT: 'text-status-tag-fg bg-status-tag-bg border-status-tag-bd',
   DATE: 'text-status-info-fg bg-status-info-bg border-status-info-bd',
   DATE_RANGE: 'text-status-info-fg bg-status-info-bg border-status-info-bd',
-  SELECT: 'text-brand-400 bg-brand-500/10 border-brand-500/20',
-  MULTI_SELECT: 'text-brand-400 bg-brand-500/10 border-brand-500/20',
-  RADIO: 'text-brand-400 bg-brand-500/10 border-brand-500/20',
-  CHECKBOX: 'text-brand-400 bg-brand-500/10 border-brand-500/20',
-  TOGGLE: 'text-brand-400 bg-brand-500/10 border-brand-500/20',
+  SELECT: 'text-brand-ink bg-brand-500/10 border-brand-500/20',
+  MULTI_SELECT: 'text-brand-ink bg-brand-500/10 border-brand-500/20',
+  RADIO: 'text-brand-ink bg-brand-500/10 border-brand-500/20',
+  CHECKBOX: 'text-brand-ink bg-brand-500/10 border-brand-500/20',
+  TOGGLE: 'text-brand-ink bg-brand-500/10 border-brand-500/20',
   RATING: 'text-status-warn-fg bg-status-warn-bg border-status-warn-bd',
   SLIDER: 'text-status-warn-fg bg-status-warn-bg border-status-warn-bd',
   LOOKUP: 'text-status-tag-fg bg-status-tag-bg border-status-tag-bd',
@@ -3810,7 +3810,7 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
             <button
               onClick={() => onSelectElement({ type: 'new_form_field', screenKey: screen.key, formId,
                 onSaved: () => qc.invalidateQueries({ queryKey: ['sd-form-fields', formId] }) })}
-              className="flex items-center gap-1 text-[10px] text-brand-400 hover:text-brand-300 border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
+              className="flex items-center gap-1 text-[10px] text-brand-ink hover:text-brand-ink border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
               <Plus size={10} /> Add field
             </button>
           </div>
@@ -3879,12 +3879,12 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
                     {/* Options linked */}
                     {f.optionsComponentKey && (
                       <span title={`Options: ${f.optionsComponentKey}`}
-                        className="text-[9px] text-brand-400 shrink-0 font-mono truncate max-w-20">{f.optionsComponentKey}</span>
+                        className="text-[9px] text-brand-ink shrink-0 font-mono truncate max-w-20">{f.optionsComponentKey}</span>
                     )}
 
                     {/* FIX: Visibility indicator — click field to open inspector where RoleVisibilityEditor lives */}
                     <span title="Click to configure role visibility for this field"
-                      className="text-[9px] px-1 py-0.5 rounded border border-border text-text-muted hover:border-brand-500/30 hover:text-brand-400 transition-colors shrink-0">
+                      className="text-[9px] px-1 py-0.5 rounded border border-border text-text-muted hover:border-brand-500/30 hover:text-brand-ink transition-colors shrink-0">
                       <Eye size={9} />
                     </span>
                   </button>
@@ -3902,7 +3902,7 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
             </p>
             <button
               onClick={() => onSelectElement({ type: 'new_action', screenKey: screen.key })}
-              className="flex items-center gap-1 text-[10px] text-brand-400 hover:text-brand-300 border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
+              className="flex items-center gap-1 text-[10px] text-brand-ink hover:text-brand-ink border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
               <Plus size={10} /> Add button
             </button>
           </div>
@@ -3951,7 +3951,7 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
                   <span className="text-[9px] font-mono text-text-muted ml-2">{action.httpMethod} {action.apiEndpoint}</span>
                 </div>
                 <span className={cn('text-[9px] px-1.5 py-0.5 rounded border',
-                  { primary: 'text-brand-400 bg-brand-500/10 border-brand-500/20',
+                  { primary: 'text-brand-ink bg-brand-500/10 border-brand-500/20',
                     danger: 'text-status-fail-fg bg-status-fail-bg border-status-fail-bd',
                     secondary: 'text-text-secondary bg-surface-overlay border-border',
                   }[action.variant] || 'text-text-muted bg-surface-overlay border-border')}>
@@ -3964,7 +3964,7 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
 
         {/* Form metadata summary */}
         <div className="p-3 rounded-card bg-surface border border-border text-[10px] text-text-muted space-y-1">
-          <p><span className="text-text-secondary font-medium">Form key:</span> <code className="font-mono text-brand-400">{screen.key}</code></p>
+          <p><span className="text-text-secondary font-medium">Form key:</span> <code className="font-mono text-brand-ink">{screen.key}</code></p>
           <p><span className="text-text-secondary font-medium">Endpoint:</span> <code className="font-mono">GET /v1/ui-config/form/{screen.key}</code></p>
           <p className="text-text-muted">DynamicForm renders this at runtime. Submit posts to the form's configured endpoint.</p>
         </div>
@@ -4058,7 +4058,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
               </p>
               <button
                 onClick={() => onSelectElement({ type: 'new_column', screenKey: screen.key })}
-                className="flex items-center gap-1 text-[10px] text-brand-400 hover:text-brand-300 border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
+                className="flex items-center gap-1 text-[10px] text-brand-ink hover:text-brand-ink border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
                 <Plus size={10} /> Add column
               </button>
             </div>
@@ -4124,7 +4124,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
                         <span className="text-xs text-text-primary font-medium">{comp.label || comp.componentKey}</span>
                         <span className="text-[9px] font-mono text-text-muted ml-2">{comp.componentKey}</span>
                       </div>
-                      <span className="text-[8px] px-1.5 py-0.5 rounded border bg-brand-500/10 border-brand-500/20 text-brand-400 font-mono">{comp.componentType}</span>
+                      <span className="text-[8px] px-1.5 py-0.5 rounded border bg-brand-500/10 border-brand-500/20 text-brand-ink font-mono">{comp.componentType}</span>
                     </button>
                   )
                 })}
@@ -4141,7 +4141,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
               {screen.type === 'DETAIL' && (
                 <button
                   onClick={() => onSelectElement({ type: 'new_detail_tab', screenKey: screen.key, layout })}
-                  className="flex items-center gap-1 text-[10px] text-brand-400 hover:text-brand-300 border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
+                  className="flex items-center gap-1 text-[10px] text-brand-ink hover:text-brand-ink border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
                   <Plus size={10} /> Add tab
                 </button>
               )}
@@ -4244,7 +4244,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
             </p>
             <button
               onClick={() => onSelectElement({ type: 'new_action', screenKey: screen.key })}
-              className="flex items-center gap-1 text-[10px] text-brand-400 hover:text-brand-300 border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
+              className="flex items-center gap-1 text-[10px] text-brand-ink hover:text-brand-ink border border-brand-500/25 hover:border-brand-500/50 rounded px-2 py-0.5 transition-colors">
               <Plus size={10} /> Add button
             </button>
           </div>
@@ -4330,18 +4330,18 @@ function JsonPreviewTab({ screen }) {
         {isForm ? (
           <div className="p-3 rounded-card bg-brand-500/5 border border-brand-500/20 text-[11px] text-text-secondary space-y-1">
             <p className="font-medium text-text-primary">How to link this form to a module blueprint</p>
-            <p>1. Open <span className="font-mono text-brand-400">/admin/modules</span> → select your module blueprint → click Edit</p>
-            <p>2. Set <span className="font-mono text-brand-400">createFormKey = {screen.key}</span></p>
+            <p>1. Open <span className="font-mono text-brand-ink">/admin/modules</span> → select your module blueprint → click Edit</p>
+            <p>2. Set <span className="font-mono text-brand-ink">createFormKey = {screen.key}</span></p>
             <p>3. The blueprint will show a &quot;New [entity]&quot; button that opens this form at runtime.</p>
             <p className="text-text-muted">DynamicForm fetches this endpoint at render time. Add fields in Preview or Elements tab.</p>
           </div>
         ) : (
           <div className="p-3 rounded-card bg-brand-500/5 border border-brand-500/20 text-[11px] text-text-secondary space-y-1">
             <p className="font-medium text-text-primary">How to link this key to a blueprint section</p>
-            <p>1. Open <span className="font-mono text-brand-400">/admin/workflows</span> → select your workflow → click a step</p>
-            <p>2. In the section editor, set <span className="font-mono text-brand-400">itemScreenKey = {template?.itemKey || screen.key}</span></p>
+            <p>1. Open <span className="font-mono text-brand-ink">/admin/workflows</span> → select your workflow → click a step</p>
+            <p>2. In the section editor, set <span className="font-mono text-brand-ink">itemScreenKey = {template?.itemKey || screen.key}</span></p>
             {template?.sectionKey && (
-              <p>3. Set <span className="font-mono text-brand-400">sectionScreenKey = {template.sectionKey}</span></p>
+              <p>3. Set <span className="font-mono text-brand-ink">sectionScreenKey = {template.sectionKey}</span></p>
             )}
             <p className="text-text-muted">The engine snapshots these keys at task activation — running instances are never affected by changes here.</p>
           </div>
@@ -4360,12 +4360,12 @@ function JsonPreviewTab({ screen }) {
             {json && (
               <button
                 onClick={() => { navigator.clipboard.writeText(JSON.stringify(json, null, 2)); toast.success('JSON copied') }}
-                className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-400 transition-colors">
+                className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-ink transition-colors">
                 <Copy size={11} /> Copy
               </button>
             )}
             <a href={endpoint} target="_blank" rel="noreferrer"
-              className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-400 transition-colors">
+              className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-ink transition-colors">
               <ExternalLink size={11} /> Open
             </a>
           </div>
@@ -4385,7 +4385,7 @@ function JsonPreviewTab({ screen }) {
             {isForm ? 'Generate seed SQL for this form' : 'Generate seed SQL for this screen config'}
           </p>
           <p>Run in your MySQL / Postgres instance to pre-populate these {isForm ? 'form fields' : 'screen keys'} for new tenants:</p>
-          <code className="block mt-2 font-mono text-[10px] text-brand-400">
+          <code className="block mt-2 font-mono text-[10px] text-brand-ink">
             {isForm
               ? `INSERT INTO ui_form_fields (form_id, field_key, field_type, label, …) VALUES …`
               : `INSERT INTO ui_actions (screen_key, action_key, label, …) VALUES …`}
@@ -4439,7 +4439,7 @@ function TemplatePicker({ onClose, onApply }) {
                           <p className="text-[10px] text-text-muted mt-0.5">{tmpl.desc}</p>
                           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                             {tmpl.itemKey && (
-                              <code className="text-[9px] font-mono bg-brand-500/10 border border-brand-500/20 text-brand-400 px-1.5 py-0.5 rounded">
+                              <code className="text-[9px] font-mono bg-brand-500/10 border border-brand-500/20 text-brand-ink px-1.5 py-0.5 rounded">
                                 item: {tmpl.itemKey}
                               </code>
                             )}
@@ -4455,7 +4455,7 @@ function TemplatePicker({ onClose, onApply }) {
                             )}
                           </div>
                         </div>
-                        <ArrowRight size={13} className="text-text-muted group-hover:text-brand-400 transition-colors shrink-0 mt-1" />
+                        <ArrowRight size={13} className="text-text-muted group-hover:text-brand-ink transition-colors shrink-0 mt-1" />
                       </button>
                     )
                   })}

@@ -247,7 +247,7 @@ export function StepUiOverrideModal({ open, onClose, value, onChange, entityType
               className={cn(
                 'w-full flex items-center gap-2 px-3 py-2 text-xs rounded-card text-left transition-colors',
                 section === s.key
-                  ? 'bg-brand-500/15 text-brand-400 font-medium'
+                  ? 'bg-brand-500/15 text-brand-ink font-medium'
                   : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay'
               )}>
               <s.icon size={12} />
@@ -423,7 +423,7 @@ export function StepUiOverrideModal({ open, onClose, value, onChange, entityType
               {hasOverride && (
                 <div className="space-y-1.5 text-xs">
                   {state.visibleTabs?.length > 0 && (
-                    <div className="flex gap-2"><span className="text-text-muted w-28">Visible tabs only</span><span className="text-brand-400 font-mono">{state.visibleTabs.join(', ')}</span></div>
+                    <div className="flex gap-2"><span className="text-text-muted w-28">Visible tabs only</span><span className="text-brand-ink font-mono">{state.visibleTabs.join(', ')}</span></div>
                   )}
                   {state.hiddenTabs?.length > 0 && (
                     <div className="flex gap-2"><span className="text-text-muted w-28">Hidden tabs</span><span className="text-status-fail-fg font-mono">{state.hiddenTabs.join(', ')}</span></div>

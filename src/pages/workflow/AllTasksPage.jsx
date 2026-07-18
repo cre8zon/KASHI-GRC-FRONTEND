@@ -36,7 +36,7 @@ const TASK_STATUS_CONFIG = {
 }
 
 const ROLE_CONFIG = {
-  ACTOR:    { label: 'Actor',       icon: Users,     color: 'text-brand-400 bg-brand-500/10' },
+  ACTOR:    { label: 'Actor',       icon: Users,     color: 'text-brand-ink bg-brand-500/10' },
   ASSIGNER: { label: 'Coordinator', icon: UserCheck, color: 'text-status-tag-fg bg-status-tag-bg' },
 }
 
@@ -149,7 +149,7 @@ function TaskDetailDrawer({ task, onClose }) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-xs text-text-primary">{entry.stepName || 'Workflow'}</p>
-                        <span className="text-[10px] font-mono text-brand-400">{action}</span>
+                        <span className="text-[10px] font-mono text-brand-ink">{action}</span>
                       </div>
                       {entry.performedByName && (
                         <p className="text-[10px] text-text-muted">by {entry.performedByName}</p>
@@ -255,7 +255,7 @@ export default function AllTasksPage() {
                 <button key={s} onClick={() => setStatus(s)}
                   className={cn('text-xs px-2.5 py-1 rounded-full border transition-colors',
                     statusFilter === s
-                      ? 'border-brand-500 bg-brand-500/10 text-brand-400'
+                      ? 'border-brand-500 bg-brand-500/10 text-brand-ink'
                       : 'border-border text-text-muted hover:text-text-secondary')}>
                   {s === 'ALL' ? 'All' : TASK_STATUS_CONFIG[s]?.label || s}
                   {s !== 'ALL' && counts[s] ? ` (${counts[s]})` : ''}
@@ -268,7 +268,7 @@ export default function AllTasksPage() {
                 <button key={r} onClick={() => setRole(r)}
                   className={cn('text-xs px-2.5 py-1 rounded-full border transition-colors',
                     roleFilter === r
-                      ? 'border-brand-500 bg-brand-500/10 text-brand-400'
+                      ? 'border-brand-500 bg-brand-500/10 text-brand-ink'
                       : 'border-border text-text-muted hover:text-text-secondary')}>
                   {r === 'ALL' ? 'All' : ROLE_CONFIG[r]?.label || r}
                 </button>

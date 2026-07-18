@@ -234,7 +234,7 @@ export function AuditCsvImportModal({ open, onClose, onImported }) {
                 <button
                   onMouseDown={(e) => { e.stopPropagation(); downloadExample() }}
                   className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px]
-                             text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors"
+                             text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors"
                 >
                   <Download size={11} /> Example CSV
                 </button>
@@ -263,7 +263,7 @@ export function AuditCsvImportModal({ open, onClose, onImported }) {
 
                 {/* Import order hint */}
                 <div className="px-4 py-2.5 bg-brand-500/3">
-                  <p className="text-[10px] text-brand-400 font-medium">
+                  <p className="text-[10px] text-brand-ink font-medium">
                     Import order: TEMPLATE → SECTION → CONTROL → TEST →
                     CONTROL_TEST_MAPPING → POLICY → POLICY_CONTROL_MAPPING
                   </p>
@@ -338,7 +338,7 @@ export function AuditCsvImportModal({ open, onClose, onImported }) {
       {stage === 'importing' && (
         <div className="flex flex-col items-center gap-6 py-10">
           <div className="w-16 h-16 rounded-modal bg-brand-500/10 flex items-center justify-center">
-            <Loader2 size={28} className="text-brand-400 animate-spin" />
+            <Loader2 size={28} className="text-brand-ink animate-spin" />
           </div>
           <div className="text-center">
             <p className="text-sm font-semibold text-text-primary">Importing on server…</p>
@@ -410,7 +410,7 @@ export function AuditCsvImportModal({ open, onClose, onImported }) {
                   entry.status === 'SUCCESS' && 'text-text-secondary',
                   entry.status === 'ERROR'   && 'text-status-fail-fg',
                   entry.status === 'WARNING' && 'text-status-warn-fg',
-                  entry.status === 'INFO'    && 'text-brand-400',
+                  entry.status === 'INFO'    && 'text-brand-ink',
                 )}>
                   {entry.status === 'SUCCESS' && <CheckCircle2 size={11} className="mt-0.5 shrink-0" />}
                   {entry.status === 'ERROR'   && <XCircle      size={11} className="mt-0.5 shrink-0" />}

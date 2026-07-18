@@ -25,7 +25,7 @@ const ALL_SIDES_VAL = 'ORGANIZATION,SYSTEM,AUDITOR,AUDITEE,VENDOR'
 const SIDE_STYLE = {
   ORGANIZATION: 'bg-status-info-bg text-status-info-fg',
   SYSTEM:       'bg-status-tag-bg text-status-tag-fg',
-  AUDITOR:      'bg-brand-500/15 text-brand-400',
+  AUDITOR:      'bg-brand-500/15 text-brand-ink',
   AUDITEE:      'bg-status-pass-bg text-status-pass-fg',
   VENDOR:       'bg-status-warn-bg text-status-warn-fg',
 }
@@ -39,7 +39,7 @@ const METHOD_STYLE = {
 }
 
 const VARIANT_STYLE = {
-  primary:   'bg-brand-500/15 text-brand-400 border-brand-500/20',
+  primary:   'bg-brand-500/15 text-brand-ink border-brand-500/20',
   secondary: 'bg-surface-overlay text-text-secondary border-border',
   danger:    'bg-status-fail-bg text-status-fail-fg border-status-fail-bd',
   warning:   'bg-status-warn-bg text-status-warn-fg border-status-warn-bd',
@@ -105,7 +105,7 @@ function SideSelector({ value, onChange }) {
         </label>
         <button
           onClick={() => onChange(allSelected ? '' : ALL_SIDES_VAL)}
-          className="text-[10px] text-text-muted hover:text-brand-400 transition-colors"
+          className="text-[10px] text-text-muted hover:text-brand-ink transition-colors"
         >
           {allSelected ? 'Clear all' : 'Select all'}
         </button>
@@ -177,7 +177,7 @@ function PermissionSelect({ value, onChange }) {
           className="w-full h-8 flex items-center justify-between gap-2 px-3 rounded-ctl border border-border bg-surface-raised text-sm hover:border-brand-500/50 focus:outline-none focus:ring-1 focus:ring-brand-500"
         >
           <span className={cn('flex items-center gap-1.5 text-xs', !value && 'text-text-muted')}>
-            <Shield size={11} className={value ? 'text-brand-400' : 'text-text-muted'} />
+            <Shield size={11} className={value ? 'text-brand-ink' : 'text-text-muted'} />
             <span className="font-mono">{value || 'None — side-gated only'}</span>
           </span>
           <div className="flex items-center gap-1">
@@ -217,7 +217,7 @@ function PermissionSelect({ value, onChange }) {
                         'w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-overlay transition-colors',
                         value === p.code ? 'bg-brand-500/10' : ''
                       )}>
-                      <span className={cn('font-mono text-[11px]', value === p.code ? 'text-brand-400' : 'text-text-primary')}>
+                      <span className={cn('font-mono text-[11px]', value === p.code ? 'text-brand-ink' : 'text-text-primary')}>
                         {p.code}
                       </span>
                       <span className="text-[10px] text-text-muted truncate">{p.name}</span>
@@ -354,7 +354,7 @@ function ActionForm({ item, allActions, onSubmit, isPending, onClose }) {
                 className={cn(
                   'px-2.5 py-1 rounded-ctl border text-[11px] font-medium transition-colors',
                   form.variant === v
-                    ? VARIANT_STYLE[v] || 'bg-brand-500/15 text-brand-400 border-brand-500/20'
+                    ? VARIANT_STYLE[v] || 'bg-brand-500/15 text-brand-ink border-brand-500/20'
                     : 'border-border text-text-muted hover:text-text-secondary'
                 )}>
                 {v}
@@ -589,7 +589,7 @@ export default function UiActionsAdminPage() {
       render: (r) => (
         <button onClick={e => { e.stopPropagation(); toggleSelect(r.id) }}
           className="text-text-muted hover:text-text-primary">
-          {selected.has(r.id) ? <CheckSquare size={13} className="text-brand-400" /> : <Square size={13} />}
+          {selected.has(r.id) ? <CheckSquare size={13} className="text-brand-ink" /> : <Square size={13} />}
         </button>
       ),
     },
@@ -641,7 +641,7 @@ export default function UiActionsAdminPage() {
     {
       key: 'requiredPermission', label: 'Permission', width: 160, type: 'custom',
       render: (r) => r.requiredPermission
-        ? <span className="text-[10px] font-mono text-brand-400">{r.requiredPermission}</span>
+        ? <span className="text-[10px] font-mono text-brand-ink">{r.requiredPermission}</span>
         : <span className="text-[10px] text-text-muted">—</span>,
     },
     // Sides
@@ -714,7 +714,7 @@ export default function UiActionsAdminPage() {
       render: (r) => (
         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
           <button onClick={() => setEditTarget(r)}
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
             <Pencil size={11} />
           </button>
           <button onClick={() => setDeleteTarget(r)}

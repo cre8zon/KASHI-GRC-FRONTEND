@@ -52,7 +52,7 @@ const MIME_LABELS = {
   'image/gif':                        { label: 'GIF',   color: 'text-status-tag-fg' },
   'image/tiff':                       { label: 'TIFF',  color: 'text-status-tag-fg' },
   'image/heic':                       { label: 'HEIC',  color: 'text-status-tag-fg' },
-  'image/webp':                       { label: 'WebP',  color: 'text-brand-400'   },
+  'image/webp':                       { label: 'WebP',  color: 'text-brand-ink'   },
   'text/csv':                         { label: 'CSV',   color: 'text-status-pass-fg'  },
   'application/vnd.ms-excel':         { label: 'XLS',   color: 'text-status-pass-fg'  },
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
@@ -101,7 +101,7 @@ function DocumentRow({ doc, entityType, entityId, linkType, canRemove, compact, 
             {doc.title || doc.fileName}
           </span>
           {doc.version > 1 && (
-            <span className="text-[9px] px-1 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">
+            <span className="text-[9px] px-1 py-0.5 rounded bg-brand-500/10 text-brand-ink border border-brand-500/20">
               v{doc.version}
             </span>
           )}
@@ -140,7 +140,7 @@ function DocumentRow({ doc, entityType, entityId, linkType, canRemove, compact, 
       <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
         {/* Preview hint — subtle eye icon always visible */}
         {doc.documentId && onPreview && (
-          <span className="p-1 text-text-muted/40 group-hover:text-brand-400 transition-colors" title="Click row to preview">
+          <span className="p-1 text-text-muted/40 group-hover:text-brand-ink transition-colors" title="Click row to preview">
             <Eye size={12} />
           </span>
         )}
@@ -205,7 +205,7 @@ function DropZone({ onFiles, disabled }) {
         'flex flex-col items-center gap-1.5 px-4 py-4 rounded-card border-2 border-dashed',
         'text-center cursor-pointer transition-colors select-none',
         dragging
-          ? 'border-brand-500 bg-brand-500/5 text-brand-400'
+          ? 'border-brand-500 bg-brand-500/5 text-brand-ink'
           : 'border-border hover:border-brand-500/40 hover:bg-surface-overlay/50 text-text-muted',
         disabled && 'opacity-50 pointer-events-none'
       )}
@@ -331,7 +331,7 @@ export default function EvidenceUploader({
       {canUpload && compact && (
         <label className={cn(
           'inline-flex items-center gap-1.5 text-xs text-text-muted',
-          'hover:text-brand-400 cursor-pointer transition-colors',
+          'hover:text-brand-ink cursor-pointer transition-colors',
           isUploading && 'opacity-50 pointer-events-none'
         )}>
           <Upload size={11}/>

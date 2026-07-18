@@ -61,7 +61,7 @@ function TabContentInspector({ tab, tabKey, screenKey, onSelectElement }) {
           Fields rendered inside the <strong className="font-medium text-text-secondary">{tab}</strong> tab.
           Each field is role/step aware — configure visibility per role in the field inspector.
           Stored under form key{' '}
-          <code className="font-mono text-brand-400 text-[9px]">{formKey}</code>.
+          <code className="font-mono text-brand-ink text-[9px]">{formKey}</code>.
         </p>
 
         {fields.length === 0 ? (
@@ -86,7 +86,7 @@ function TabContentInspector({ tab, tabKey, screenKey, onSelectElement }) {
         <button
           onClick={() => onSelectElement({ type: 'new_form_field', screenKey: formKey, formId,
             onSaved: () => qc.invalidateQueries({ queryKey: ['sd-form-fields', formId] }) })}
-          className="w-full flex items-center justify-center gap-1.5 py-2 mt-1 border-2 border-dashed border-brand-500/25 hover:border-brand-500/50 rounded-card text-xs text-brand-400 font-medium transition-colors bg-brand-500/3">
+          className="w-full flex items-center justify-center gap-1.5 py-2 mt-1 border-2 border-dashed border-brand-500/25 hover:border-brand-500/50 rounded-card text-xs text-brand-ink font-medium transition-colors bg-brand-500/3">
           <Plus size={12} /> Add field to {tab} tab
         </button>
       </InspectorSection>

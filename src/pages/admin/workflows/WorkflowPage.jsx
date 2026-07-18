@@ -302,7 +302,7 @@ export default function WorkflowPage({ isPlatformAdmin = false, defaultTab }) {
             {systemSteps.map(s => (
               <span key={s.id}
                 title={`Step ${s.stepOrder}: ${s.name}`}
-                className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 border border-brand-500/20 text-brand-400 font-mono cursor-default">
+                className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 border border-brand-500/20 text-brand-ink font-mono cursor-default">
                 <Zap size={8} />
                 {s.automatedAction}
               </span>
@@ -327,12 +327,12 @@ export default function WorkflowPage({ isPlatformAdmin = false, defaultTab }) {
             <>
               {!row.isActive && (
                 <button onClick={() => setEditTarget(row)} title="Edit blueprint"
-                  className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+                  className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
                   <Pencil size={12} />
                 </button>
               )}
               <button onClick={() => createVersion(row.id)} title="Create new version"
-                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
                 <GitBranch size={12} />
               </button>
               <button onClick={() => setDeleteTarget(row)} title="Delete"
@@ -407,7 +407,7 @@ export default function WorkflowPage({ isPlatformAdmin = false, defaultTab }) {
             <button
               onClick={() => setRestartTarget(row)}
               title="Cancel this instance and start a fresh one for the same entity"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors"
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors"
             >
               <RotateCcw size={12} />
             </button>
@@ -447,7 +447,7 @@ export default function WorkflowPage({ isPlatformAdmin = false, defaultTab }) {
         ].map(({ key, label, icon: Icon }) => (
           <button key={key} onClick={() => { setTab(key); setPage(1); setSearch('') }}
             className={cn('flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
-              tab === key ? 'border-brand-500 text-brand-400' : 'border-transparent text-text-muted hover:text-text-secondary')}>
+              tab === key ? 'border-brand-500 text-brand-ink' : 'border-transparent text-text-muted hover:text-text-secondary')}>
             <Icon size={14} />{label}
           </button>
         ))}
@@ -618,7 +618,7 @@ function InstanceDetail({ instanceId, onBack, isPlatformAdmin }) {
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-full">
-      <Loader2 size={24} className="text-brand-400 animate-spin" />
+      <Loader2 size={24} className="text-brand-ink animate-spin" />
     </div>
   )
   if (!instance) return null
@@ -735,7 +735,7 @@ function StepCard({ stepInstance, index, isCurrentStep, onAction }) {
         <div className={cn('w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold',
           stepInstance.status === 'APPROVED' ? 'bg-status-pass-bg text-status-pass-fg' :
           stepInstance.status === 'REJECTED' ? 'bg-status-fail-bg text-status-fail-fg' :
-          isCurrentStep ? 'bg-brand-500/20 text-brand-400' : 'bg-surface-overlay text-text-muted')}>
+          isCurrentStep ? 'bg-brand-500/20 text-brand-ink' : 'bg-surface-overlay text-text-muted')}>
           {stepInstance.status === 'APPROVED' ? <CheckCircle2 size={14} /> :
            stepInstance.status === 'REJECTED' ? <XCircle size={14} /> : index + 1}
         </div>
@@ -833,7 +833,7 @@ function TaskActionModal({ taskId, stepInstance, onClose, onSubmit, isPending })
             {ACTION_TYPES.map(a => (
               <button key={a} onClick={() => setActionType(a)}
                 className={cn('px-3 py-2 rounded-ctl border text-xs font-medium text-left transition-colors',
-                  actionType === a ? 'border-brand-500 bg-brand-500/10 text-brand-400'
+                  actionType === a ? 'border-brand-500 bg-brand-500/10 text-brand-ink'
                     : 'border-border text-text-muted hover:text-text-primary hover:bg-surface-overlay',
                   ACTION_COLOR[a])}>
                 {a.replace(/_/g, ' ')}

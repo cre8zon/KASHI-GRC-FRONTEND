@@ -116,7 +116,7 @@ function RolesCell({ roles = [] }) {
     <div className="flex flex-wrap items-center gap-1">
       {visible.map(r => (
         <span key={r.id || r.roleId}
-          className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20 font-mono">
+          className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-ink border border-brand-500/20 font-mono">
           {r.roleName || r.name}
         </span>
       ))}
@@ -226,7 +226,7 @@ function RoleAssignPanel({ user, tenantId, side }) {
       {/* User pill */}
       <div className="flex items-center gap-3 p-3 bg-surface-overlay rounded-card border border-border">
         <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0">
-          <span className="text-xs font-bold text-brand-400">{initials(user.fullName || user.email)}</span>
+          <span className="text-xs font-bold text-brand-ink">{initials(user.fullName || user.email)}</span>
         </div>
         <div className="min-w-0">
           <p className="text-sm font-medium text-text-primary truncate">{user.fullName || '—'}</p>
@@ -250,7 +250,7 @@ function RoleAssignPanel({ user, tenantId, side }) {
               const id = r.id || r.roleId
               return (
                 <span key={id}
-                  className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-ctl bg-brand-500/10 border border-brand-500/20 text-brand-400 font-mono">
+                  className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-ctl bg-brand-500/10 border border-brand-500/20 text-brand-ink font-mono">
                   {r.roleName || r.name}
                   <button
                     onClick={() => toggleRole(id)}
@@ -278,7 +278,7 @@ function RoleAssignPanel({ user, tenantId, side }) {
               className={cn(
                 'px-2 py-0.5 rounded text-[10px] font-medium border transition-colors',
                 selectedSide === s
-                  ? 'bg-brand-500/15 border-brand-500/40 text-brand-400'
+                  ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
                   : 'border-border text-text-muted hover:text-text-secondary'
               )}>
               {s}
@@ -289,7 +289,7 @@ function RoleAssignPanel({ user, tenantId, side }) {
 
       {isLoading && (
         <div className="flex items-center gap-2 py-2">
-          <Loader2 size={13} className="text-brand-400 animate-spin" />
+          <Loader2 size={13} className="text-brand-ink animate-spin" />
           <span className="text-xs text-text-muted">Loading {selectedSide} roles…</span>
         </div>
       )}
@@ -310,7 +310,7 @@ function RoleAssignPanel({ user, tenantId, side }) {
               className={cn(
                 'flex items-center justify-between px-3 py-2 rounded-ctl border text-left transition-colors',
                 assigned
-                  ? 'bg-brand-500/10 border-brand-500/30 text-brand-400'
+                  ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink'
                   : 'bg-surface-raised border-border text-text-secondary hover:bg-surface-overlay',
                 busy && 'opacity-50 cursor-not-allowed'
               )}>
@@ -425,7 +425,7 @@ function InviteUserModal({ open, onClose, side, tenantId, vendorId }) {
                       className={cn(
                         'flex items-center gap-1 px-2.5 py-1 rounded-ctl border text-xs font-medium transition-colors',
                         sel
-                          ? 'bg-brand-500/15 border-brand-500/40 text-brand-400'
+                          ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
                           : 'border-border text-text-muted hover:text-text-primary hover:bg-surface-overlay'
                       )}>
                       {sel && <Check size={10} />}
@@ -504,7 +504,7 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
       key: '__avatar', label: '', width: 36, type: 'custom',
       render: (row) => (
         <div className="w-7 h-7 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0">
-          <span className="text-[10px] font-bold text-brand-400">
+          <span className="text-[10px] font-bold text-brand-ink">
             {initials(row.fullName || row.email)}
           </span>
         </div>
@@ -537,13 +537,13 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
                 'h-6 w-6 flex items-center justify-center rounded transition-colors',
                 (!row.roles || row.roles.length === 0)
                   ? 'text-status-warn-fg bg-status-warn-bg hover:bg-status-warn-bg'
-                  : 'text-text-muted hover:text-brand-400 hover:bg-brand-500/10'
+                  : 'text-text-muted hover:text-brand-ink hover:bg-brand-500/10'
               )}>
               <Shield size={12} />
             </button>
           )}
           <button onClick={() => setResendTarget(row)} title="Resend invitation"
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
             <Send size={12} />
           </button>
           {canEdit && row.status === 'ACTIVE' && (

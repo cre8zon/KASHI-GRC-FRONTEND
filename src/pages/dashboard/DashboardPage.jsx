@@ -35,7 +35,7 @@ export default function DashboardPage() {
       {/* Greeting */}
       <div>
         <h1 className="text-xl font-semibold text-text-primary">
-          Good {getGreeting()}, <span className="text-brand-400">{fullName?.split(' ')[0]}</span>
+          Good {getGreeting()}, <span className="text-brand-ink">{fullName?.split(' ')[0]}</span>
         </h1>
         <p className="text-sm text-text-muted mt-0.5">
           {pendingCount > 0
@@ -62,7 +62,7 @@ export default function DashboardPage() {
           subtitle="Pending approvals and actions assigned to you"
           actions={
             pendingCount > 0 && (
-              <span className="flex items-center gap-1.5 text-xs font-mono text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded-full">
+              <span className="flex items-center gap-1.5 text-xs font-mono text-brand-ink bg-brand-500/10 px-2 py-0.5 rounded-full">
                 <ListTodo size={11} /> {pendingCount}
               </span>
             )
@@ -128,7 +128,7 @@ function ActionItemsWidget() {
       {items.filter(i => i.status === 'OPEN' || i.status === 'IN_PROGRESS').length > 5 && (
         <div className="px-4 py-2.5">
           <button onClick={() => navigate('/action-items')}
-            className="text-xs text-brand-400 hover:text-brand-300 transition-colors">
+            className="text-xs text-brand-ink hover:text-brand-ink transition-colors">
             View all {items.filter(i => i.status === 'OPEN' || i.status === 'IN_PROGRESS').length} items →
           </button>
         </div>

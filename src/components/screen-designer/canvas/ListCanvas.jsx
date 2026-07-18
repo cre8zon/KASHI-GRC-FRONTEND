@@ -33,7 +33,7 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
                   <th key={col.key}
                     onClick={() => onSelectElement({ type: 'column', data: col, screenKey: screen.key })}
                     className={cn('text-left px-3 py-2.5 text-xs font-semibold text-text-secondary cursor-pointer hover:text-text-primary hover:bg-brand-500/5 transition-colors',
-                      selectedElement?.type === 'column' && selectedElement?.data?.key === col.key ? 'bg-brand-500/10 text-brand-400' : '')}>
+                      selectedElement?.type === 'column' && selectedElement?.data?.key === col.key ? 'bg-brand-500/10 text-brand-ink' : '')}>
                     <div className="flex items-center gap-1">
                       {/* Primary columns render bolder in the header too */}
                       <span className={cn(col.isPrimary && 'font-bold text-text-primary', col.monoFont && 'font-mono')}>
@@ -48,7 +48,7 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
                     </div>
                   </th>
                 ))}
-                <th className="px-3 py-2 cursor-pointer text-text-muted hover:text-brand-400"
+                <th className="px-3 py-2 cursor-pointer text-text-muted hover:text-brand-ink"
                   onClick={() => onSelectElement({ type: 'new_column', screenKey: screen.key })}>
                   <Plus size={11} />
                 </th>
@@ -109,7 +109,7 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
           ))}
           <button
             onClick={() => onSelectElement({ type: 'new_action', screenKey: screen.key })}
-            className="flex items-center gap-1.5 h-7 px-3 border border-dashed border-border text-text-muted hover:border-brand-500/40 hover:text-brand-400 rounded-ctl text-[10px] transition-colors">
+            className="flex items-center gap-1.5 h-7 px-3 border border-dashed border-border text-text-muted hover:border-brand-500/40 hover:text-brand-ink rounded-ctl text-[10px] transition-colors">
             <Plus size={11} /> Add button
           </button>
         </div>

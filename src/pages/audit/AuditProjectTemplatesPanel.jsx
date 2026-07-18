@@ -125,7 +125,7 @@ function TreeNode({ node, depth = 0 }) {
                 )}
                 <span className="text-xs text-text-secondary">{ctrl.name}</span>
                 {ctrl.controlTag && (
-                  <span className="font-mono text-[10px] bg-brand-500/10 text-brand-400 px-1.5 py-0.5 rounded">
+                  <span className="font-mono text-[10px] bg-brand-500/10 text-brand-ink px-1.5 py-0.5 rounded">
                     {ctrl.controlTag}
                   </span>
                 )}

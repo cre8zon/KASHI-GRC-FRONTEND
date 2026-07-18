@@ -82,7 +82,7 @@ function LayoutModeInspector({ screenKey }) {
         Saved to <code className="font-mono">ui_layouts.layout_mode</code>.
       </p>
       <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-card border border-brand-500/15 bg-brand-500/5 mb-3">
-        <span className="text-brand-400 text-[11px] shrink-0">💡</span>
+        <span className="text-brand-ink text-[11px] shrink-0">💡</span>
         <p className="text-[9px] text-text-muted leading-relaxed">
           Capability tabs (Workflow, Evidence, Comments) only appear if enabled in
           Blueprint Settings → Capabilities. Configure tabs shown using the
@@ -134,7 +134,7 @@ function LayoutModeInspector({ screenKey }) {
             <button key={s.value} onClick={() => { setScope(s.value); if (s.value !== 'TENANT') setTargetTenantId(null) }}
               className={`w-full text-left flex items-start gap-2 px-3 py-2 rounded-card border text-[10px] transition-all ${
                 scope === s.value
-                  ? 'border-brand-500/40 bg-brand-500/10 text-brand-300'
+                  ? 'border-brand-500/40 bg-brand-500/10 text-brand-ink'
                   : 'border-border text-text-muted hover:border-border-strong'
               }`}>
               <span className={`mt-0.5 w-3 h-3 rounded-full border shrink-0 flex items-center justify-center ${

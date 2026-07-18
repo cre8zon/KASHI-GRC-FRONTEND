@@ -13,7 +13,7 @@ import { Button } from '../../../components/ui/Button'
 function VarChip({ label, onInsert }) {
   return (
     <div className="flex items-center justify-between p-2 bg-surface-overlay rounded-card border border-border">
-      <span className="text-xs font-mono text-brand-400">{`{{${label}}}`}</span>
+      <span className="text-xs font-mono text-brand-ink">{`{{${label}}}`}</span>
       <button
         onClick={() => onInsert(label)}
         className="text-[10px] text-text-muted hover:text-text-primary px-1.5 py-0.5 rounded hover:bg-surface-raised transition-colors"
@@ -160,7 +160,7 @@ export default function SendWelcomeEmailPage() {
           <h1 className="text-2xl font-bold text-text-primary mb-2">Email Sent Successfully!</h1>
           <p className="text-sm text-text-secondary mb-8">
             Welcome email delivered to{' '}
-            <span className="text-brand-400 font-medium">{recipientEmail}</span>
+            <span className="text-brand-ink font-medium">{recipientEmail}</span>
           </p>
           <div className="flex gap-3 justify-center">
             <button
@@ -188,7 +188,7 @@ export default function SendWelcomeEmailPage() {
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-card bg-brand-500/10 flex items-center justify-center">
-            <Mail size={18} className="text-brand-400" />
+            <Mail size={18} className="text-brand-ink" />
           </div>
           <div>
             <h1 className="text-base font-bold text-text-primary">Send Welcome Email</h1>
@@ -337,7 +337,7 @@ export default function SendWelcomeEmailPage() {
                   To change the email content, go to{' '}
                   <button
                     onClick={() => navigate('/admin/email-templates')}
-                    className="text-brand-400 hover:text-brand-300 underline"
+                    className="text-brand-ink hover:text-brand-ink underline"
                   >
                     Email Templates
                   </button>

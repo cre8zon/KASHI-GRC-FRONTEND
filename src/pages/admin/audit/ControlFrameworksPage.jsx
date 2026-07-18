@@ -141,7 +141,7 @@ export default function ControlFrameworksPage() {
     { key: 'websiteUrl',   label: 'Reference',   sortable: false, width: 80,  type: 'custom',
       render: (row) => row.websiteUrl
         ? <a href={row.websiteUrl} target="_blank" rel="noopener noreferrer"
-            className="text-xs text-brand-400 hover:underline" onClick={e => e.stopPropagation()}>
+            className="text-xs text-brand-ink hover:underline" onClick={e => e.stopPropagation()}>
             Link
           </a>
         : <span className="text-xs text-text-muted">—</span>,

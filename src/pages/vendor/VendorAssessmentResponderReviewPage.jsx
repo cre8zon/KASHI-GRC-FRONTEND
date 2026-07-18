@@ -166,7 +166,7 @@ function AnswerCard({ question, assessmentId, canAct, onOpenDrawer, drawerOpenId
                 return (
                   <span key={o.optionInstanceId}
                     className={cn('text-xs px-2 py-0.5 rounded border',
-                      sel ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
+                      sel ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink font-medium'
                           : 'border-border text-text-muted opacity-40')}>
                     {o.optionValue}
                     {o.score != null && <span className="ml-1 opacity-60">({o.score})</span>}
@@ -192,7 +192,7 @@ function AnswerCard({ question, assessmentId, canAct, onOpenDrawer, drawerOpenId
             {!resp?.reviewerStatus || resp.reviewerStatus === 'PENDING' ? <span /> : null}
             <button
               onClick={() => onOpenDrawer(isDrawerOpen ? null : question)}
-              className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-400 transition-colors ml-auto">
+              className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-ink transition-colors ml-auto">
               <MessageSquare size={10} />
               {isDrawerOpen ? 'Close panel' : 'Notes & discussion'}
             </button>

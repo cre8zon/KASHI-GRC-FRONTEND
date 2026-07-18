@@ -20,7 +20,7 @@ function ScreenLevelInspector({ screen, screenType, onSelectScreen }) {
       {/* Type + key */}
       <InspectorSection title="Identity">
         <Row label="Screen key">
-          <code className="text-[10px] font-mono text-brand-400">{screen.key}</code>
+          <code className="text-[10px] font-mono text-brand-ink">{screen.key}</code>
         </Row>
         <Row label="Type">
           {screenType && (
@@ -48,7 +48,7 @@ function ScreenLevelInspector({ screen, screenType, onSelectScreen }) {
           <p className="text-[10px] text-text-muted mb-2">Items in this section render with:</p>
           <button
             onClick={() => onSelectScreen({ key: screen.key.replace('_section', '_item').replace('section_', 'item_'), type: 'ITEM_CARD' })}
-            className="w-full flex items-center gap-2 p-2 rounded border border-brand-500/20 bg-brand-500/5 text-[10px] text-brand-400 hover:bg-brand-500/10 transition-colors">
+            className="w-full flex items-center gap-2 p-2 rounded border border-brand-500/20 bg-brand-500/5 text-[10px] text-brand-ink hover:bg-brand-500/10 transition-colors">
             <ArrowRight size={11} />
             <span>itemScreenKey →</span>
             <code className="font-mono ml-auto">{screen.key.replace('_section', '_item').replace('section_', 'item_')}</code>
@@ -61,7 +61,7 @@ function ScreenLevelInspector({ screen, screenType, onSelectScreen }) {
         <div className="flex items-center gap-2 p-2 rounded bg-surface-overlay border border-border">
           <code className="text-[9px] font-mono text-text-muted flex-1 truncate">GET /v1/ui-config/screen/{screen.key}</code>
           <a href={`/v1/ui-config/screen/${screen.key}`} target="_blank" rel="noreferrer">
-            <ExternalLink size={11} className="text-text-muted hover:text-brand-400 transition-colors" />
+            <ExternalLink size={11} className="text-text-muted hover:text-brand-ink transition-colors" />
           </a>
         </div>
       </InspectorSection>

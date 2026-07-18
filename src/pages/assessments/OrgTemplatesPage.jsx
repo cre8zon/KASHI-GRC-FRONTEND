@@ -114,7 +114,7 @@ function TemplateCard({ template, onPreview }) {
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-9 h-9 rounded-card bg-brand-500/10 flex items-center justify-center shrink-0">
-            <LayoutTemplate size={16} className="text-brand-400" />
+            <LayoutTemplate size={16} className="text-brand-ink" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text-primary truncate">{template.name}</p>
@@ -174,7 +174,7 @@ function TemplatePreviewModal({ templateId, onClose }) {
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-overlay transition-colors text-left"
               >
                 <div className="w-6 h-6 rounded-ctl bg-brand-500/10 flex items-center justify-center shrink-0">
-                  <span className="text-xs font-bold text-brand-400">{sIdx + 1}</span>
+                  <span className="text-xs font-bold text-brand-ink">{sIdx + 1}</span>
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-text-primary">{section.name}</p>

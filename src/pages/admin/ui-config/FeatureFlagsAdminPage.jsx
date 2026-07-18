@@ -100,7 +100,7 @@ export default function FeatureFlagsAdminPage() {
 
               {/* Edit */}
               <button onClick={() => setEditTarget(flag)}
-                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors shrink-0"
+                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors shrink-0"
                 title="Edit flag">
                 <Pencil size={12} />
               </button>
@@ -169,7 +169,7 @@ function FlagForm({ onSubmit, isPending, onClose }) {
           {SIDES.map(s => (
             <button key={s} type="button"
               onClick={() => set('allowedSidesJson', `["${s}"]`)}
-              className="px-2 py-0.5 rounded border border-border text-[10px] text-text-muted hover:text-brand-400 hover:border-brand-500/40 transition-colors">
+              className="px-2 py-0.5 rounded border border-border text-[10px] text-text-muted hover:text-brand-ink hover:border-brand-500/40 transition-colors">
               {s}
             </button>
           ))}
@@ -212,7 +212,7 @@ function EditFlagForm({ flag, onSubmit, isPending, onClose }) {
       {/* Read-only key display */}
       <div className="p-2 rounded-ctl bg-surface-overlay border border-border">
         <p className="text-[10px] text-text-muted uppercase tracking-wide mb-0.5">Flag Key (immutable)</p>
-        <p className="text-sm font-mono text-brand-400">{flag.flagKey}</p>
+        <p className="text-sm font-mono text-brand-ink">{flag.flagKey}</p>
       </div>
 
       <Input label="Description" value={form.description}
@@ -231,7 +231,7 @@ function EditFlagForm({ flag, onSubmit, isPending, onClose }) {
           {SIDES.map(s => (
             <button key={s} type="button"
               onClick={() => set('allowedSidesJson', `["${s}"]`)}
-              className="px-2 py-0.5 rounded border border-border text-[10px] text-text-muted hover:text-brand-400 hover:border-brand-500/40 transition-colors">
+              className="px-2 py-0.5 rounded border border-border text-[10px] text-text-muted hover:text-brand-ink hover:border-brand-500/40 transition-colors">
               {s}
             </button>
           ))}

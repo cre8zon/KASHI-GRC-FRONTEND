@@ -32,7 +32,7 @@ function IconPicker({ value, onChange }) {
             className={cn(
               'px-2 py-0.5 rounded text-[10px] font-mono border transition-colors',
               value === name
-                ? 'bg-brand-500/20 border-brand-500/40 text-brand-400'
+                ? 'bg-brand-500/20 border-brand-500/40 text-brand-ink'
                 : 'bg-surface-overlay border-border text-text-muted hover:text-text-secondary hover:border-border/80'
             )}>
             {name}
@@ -171,7 +171,7 @@ function TabInspector({ tab, tabKey, screenKey, layout }) {
             <button
               onClick={handleRename}
               disabled={!labelEdit.trim() || labelEdit === tab || saveTabsMut.isPending}
-              className="shrink-0 h-7 px-2 text-[10px] font-medium text-brand-400 bg-brand-500/10 border border-brand-500/20 rounded hover:bg-brand-500/20 transition-colors disabled:opacity-40">
+              className="shrink-0 h-7 px-2 text-[10px] font-medium text-brand-ink bg-brand-500/10 border border-brand-500/20 rounded hover:bg-brand-500/20 transition-colors disabled:opacity-40">
               Rename
             </button>
           </div>
@@ -186,7 +186,7 @@ function TabInspector({ tab, tabKey, screenKey, layout }) {
           <button
             onClick={handleSaveIcon}
             disabled={saveTabsMut.isPending}
-            className="mt-1.5 h-7 px-3 text-[10px] font-medium text-brand-400 bg-brand-500/10 border border-brand-500/20 rounded hover:bg-brand-500/20 transition-colors disabled:opacity-40">
+            className="mt-1.5 h-7 px-3 text-[10px] font-medium text-brand-ink bg-brand-500/10 border border-brand-500/20 rounded hover:bg-brand-500/20 transition-colors disabled:opacity-40">
             Save icon
           </button>
         </IField>

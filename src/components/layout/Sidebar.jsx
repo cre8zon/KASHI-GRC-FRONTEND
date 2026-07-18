@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
-  ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen,
+  ChevronDown, ChevronRight, PanelLeft, PanelRight,
   LogOut, Settings, User, ShieldCheck, WifiOff, RefreshCw,
 } from 'lucide-react'
 import * as Icons from 'lucide-react'
@@ -44,60 +44,57 @@ function useBadgeCount(endpoint) {
 
 // ── Fixed color tokens per sidebar theme ─────────────────────────────────────
 // Completely independent of app theme CSS vars so they never clash.
-function getSidebarTokens(theme, lightBrand = false) {
+function getSidebarTokens(theme) {
+  // ── Two-tone panel design ──────────────────────────────────────────────
+  // panelBg = the muted nav backdrop (recessed). cardBg = the top zone
+  // (workspace + search) and footer, which float above it. Active item is a
+  // PILL in the brand colour in every theme.
+
   if (theme === 'light') return {
-    textBase:  'text-text-muted',   textActive: 'text-text-faint',
-    textHover: 'text-text-faint',   bgActive:   'bg-surface-overlay',
-    bgHover:   'hover:bg-surface-overlay', iconBase:  'text-text-muted',
-    iconActive:'text-brand-600',  indicator:  'bg-brand-600',
-    badge:     'bg-surface-inset text-text-faint',
-    section:   'text-text-muted',   divider:    'border-border-subtle',
-    toggle:    'text-text-muted hover:text-text-faint hover:bg-surface-overlay',
-    name:      'text-text-faint',   subtext:    'text-text-muted',
-    userBg:    'bg-surface-overlay border-t border-border-subtle',
-    userHover: 'hover:bg-surface-overlay',
+    // Nav panel carries a faint brand wash so the whole light sidebar hints the
+    // selected preset (not just the active pill).
+    panelBg:   'bg-brand-500/8',
+    cardBg:    'bg-surface-raised',
+    textBase:  'text-text-secondary', textActive: 'text-brand-900',
+    textHover: 'text-text-primary',   bgActive:   'bg-brand-500',
+    bgHover:   'hover:bg-surface-raised', iconBase: 'text-text-muted',
+    iconActive:'text-brand-900',      indicator:  'bg-brand-900',
+    badge:     'bg-brand-500/30 text-brand-900',
+    section:   'text-text-muted',     divider:    'border-border-subtle',
+    toggle:    'text-text-muted hover:text-text-primary hover:bg-surface-raised',
+    name:      'text-text-primary',   subtext:    'text-text-muted',
+    searchBg:  'bg-surface-overlay',
+    wsCard:    'bg-brand-500/15 border-brand-500/25',
     border:    'border-border-subtle',
   }
-  // Brand sidebar. The bar is painted with the user's brand colour itself
-  // (see brandBg). Pastel presets need DARK ink; a saturated/dark custom hex
-  // still needs white. `lightBrand` is computed from luminance at the call site.
-  if (theme === 'brand') return lightBrand ? {
-    textBase:  'text-brand-900/70', textActive: 'text-brand-900',
-    textHover: 'text-brand-900',    bgActive:   'bg-on-dark/60',
-    bgHover:   'hover:bg-on-dark/35', iconBase:  'text-brand-900/60',
-    iconActive:'text-brand-900',    indicator:  'bg-brand-900',
-    badge:     'bg-on-dark/60 text-brand-900',
-    section:   'text-brand-900/50', divider:    'border-brand-900/10',
-    toggle:    'text-brand-900/60 hover:text-brand-900 hover:bg-on-dark/35',
-    name:      'text-brand-900',    subtext:    'text-brand-900/60',
-    userBg:    'bg-on-dark/40 border-t border-brand-900/10',
-    userHover: 'hover:bg-on-dark/35',
+  if (theme === 'brand') return {
+    panelBg:   '',
+    cardBg:    'bg-on-dark/20',
+    textBase:  'text-brand-900/70',   textActive: 'text-brand-900',
+    textHover: 'text-brand-900',      bgActive:   'bg-on-dark/80',
+    bgHover:   'hover:bg-on-dark/30',  iconBase:  'text-brand-900/60',
+    iconActive:'text-brand-900',      indicator:  'bg-brand-900',
+    badge:     'bg-on-dark/70 text-brand-900',
+    section:   'text-brand-900/55',   divider:    'border-brand-900/10',
+    toggle:    'text-brand-900/60 hover:text-brand-900 hover:bg-on-dark/30',
+    name:      'text-brand-900',      subtext:    'text-brand-900/60',
+    searchBg:  'bg-on-dark/25',
+    wsCard:    'bg-on-dark/25 border-on-dark/20',
     border:    'border-brand-900/10',
-  } : {
-    textBase:  'text-on-dark/70',   textActive: 'text-on-dark',
-    textHover: 'text-on-dark',      bgActive:   'bg-on-dark/20',
-    bgHover:   'hover:bg-on-dark/10', iconBase:  'text-on-dark/50',
-    iconActive:'text-on-dark',      indicator:  'bg-surface-raised',
-    badge:     'bg-on-dark/20 text-on-dark',
-    section:   'text-on-dark/40',   divider:    'border-on-dark/15',
-    toggle:    'text-on-dark/60 hover:text-on-dark hover:bg-on-dark/10',
-    name:      'text-on-dark',      subtext:    'text-on-dark/60',
-    userBg:    'bg-on-dark-inv/20 border-t border-on-dark/10',
-    userHover: 'hover:bg-on-dark/10',
-    border:    'border-on-dark/10',
   }
-  // dark (default)
   return {
-    textBase:  'text-text-muted',  textActive: 'text-text-primary',
-    textHover: 'text-text-primary',  bgActive:   'bg-on-dark/10',
-    bgHover:   'hover:bg-on-dark/5', iconBase:  'text-text-muted',
-    iconActive:'text-brand-400',  indicator:  'bg-brand-400',
+    panelBg:   'bg-[var(--sidebar-dark)]',
+    cardBg:    'bg-on-dark/5',
+    textBase:  'text-text-muted',     textActive: 'text-brand-900',
+    textHover: 'text-text-primary',   bgActive:   'bg-brand-500',
+    bgHover:   'hover:bg-on-dark/8',   iconBase:  'text-text-muted',
+    iconActive:'text-brand-900',      indicator:  'bg-brand-900',
     badge:     'bg-status-warn-bg text-status-warn-fg',
-    section:   'text-text-faint',  divider:    'border-on-dark/8',
-    toggle:    'text-text-muted hover:text-text-primary hover:bg-on-dark/5',
-    name:      'text-text-primary',  subtext:    'text-text-muted',
-    userBg:    'bg-on-dark-inv/20 border-t border-on-dark/8',
-    userHover: 'hover:bg-on-dark/5',
+    section:   'text-text-faint',     divider:    'border-on-dark/8',
+    toggle:    'text-text-muted hover:text-text-primary hover:bg-on-dark/8',
+    name:      'text-text-primary',   subtext:    'text-text-muted',
+    searchBg:  'bg-on-dark/8',
+    wsCard:    'bg-brand-500/15 border-brand-500/25',
     border:    'border-on-dark/8',
   }
 }
@@ -107,7 +104,7 @@ function KashiLogo({ size = 28, className }) {
   return (
     <div className={cn(
       'flex items-center justify-center rounded-card shrink-0',
-      'bg-brand-500 text-brand-900 font-black',
+      'bg-brand-500 text-brand-900 font-black ring-1 ring-brand-700/25 shadow-elevated',
       className
     )} style={{ width: size, height: size, fontSize: size * 0.45 }}>
       K
@@ -133,7 +130,7 @@ function NavItem({ item, depth = 0, collapsed = false, t }) {
       <div>
         <div className={cn(
           'w-full flex items-center gap-2.5 px-3 py-2 rounded-card text-sm transition-all group',
-          isActive ? t.textActive : cn(t.textBase, t.bgHover),
+          isActive ? cn(t.bgActive, t.textActive, 'font-semibold shadow-elevated') : cn(t.textBase, t.bgHover),
           depth > 0 && 'pl-8'
         )}>
           {item.icon && <NavIcon name={item.icon} className={isActive ? t.iconActive : t.iconBase} />}
@@ -179,13 +176,10 @@ function NavItem({ item, depth = 0, collapsed = false, t }) {
       className={({ isActive }) => cn(
         'flex items-center rounded-card text-sm transition-all group relative',
         collapsed ? 'justify-center w-9 h-9 mx-auto p-0' : 'gap-2.5 px-3 py-2',
-        isActive ? cn(t.bgActive, t.textActive, 'font-medium') : cn(t.textBase, t.bgHover),
+        isActive ? cn(t.bgActive, t.textActive, 'font-semibold shadow-elevated') : cn(t.textBase, t.bgHover),
         depth > 0 && !collapsed && 'pl-6'
       )}>
       {({ isActive }) => <>
-        {isActive && !collapsed && (
-          <span className={cn('absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r', t.indicator)} />
-        )}
         {item.icon && (
           <NavIcon name={item.icon} size={collapsed ? 18 : 15}
             className={isActive ? t.iconActive : t.iconBase} />
@@ -253,7 +247,7 @@ function SidebarUserPanel({ collapsed, t, auth, branding }) {
         )}>
         {/* Avatar */}
         <div className={cn(
-          'rounded-card flex items-center justify-center text-xs font-bold shrink-0 bg-brand-500/20 text-brand-300',
+          'rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-brand-500 text-brand-900 ring-1 ring-brand-700/20',
           collapsed ? 'w-8 h-8' : 'w-7 h-7'
         )}>
           {initials(fullName)}
@@ -361,34 +355,24 @@ export function Sidebar({ collapsed, onToggle }) {
   const effectiveTheme = (!branding && sidebarPref === 'brand' && !hasSavedColor)
     ? 'dark'
     : (sidebarPref || branding?.sidebarTheme || 'brand')
-  // The brand sidebar is painted with the brand colour ITSELF. The old code
-  // multiplied it by 0.55 to force a dark bar — that turns a pastel into mud
-  // and never matches the Settings preview swatch. Ink colour adapts instead.
-  const brandInfo = (() => {
-    if (effectiveTheme !== 'brand') return { style: undefined, light: false }
-    // User's saved color takes priority over org branding
-    const userColor = (() => { try { return localStorage.getItem('kashi_sidebar_color') } catch { return null } })()
-    const hex = (userColor || branding?.primaryColor || '').replace('#', '')
-    if (hex.length !== 6) return { style: { backgroundColor: 'rgb(var(--color-surface))' }, light: true }
-    const r = parseInt(hex.slice(0,2), 16)
-    const g = parseInt(hex.slice(2,4), 16)
-    const b = parseInt(hex.slice(4,6), 16)
-    // Perceived luminance -> decide dark ink vs white ink (WCAG-ish split).
-    const light = (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6
-    return { style: { backgroundColor: `rgb(${r} ${g} ${b})` }, light }
-  })()
-  const brandBg = brandInfo.style
-  const t              = getSidebarTokens(effectiveTheme, brandInfo.light)
+  // The brand sidebar paints itself from the LIVE brand scale via CSS vars,
+  // not from a localStorage hex. That means it follows presets, tenant
+  // branding and Settings live-preview automatically — previously the colour
+  // only appeared after Save, because localStorage updated only on save.
+  //
+  // Ink is brand-900: the deep end of whatever scale is loaded. Same hue,
+  // far apart in lightness, so it stays readable for any pastel preset.
+  const brandBg = effectiveTheme === 'brand'
+    ? { backgroundColor: 'rgb(var(--color-brand-500))' }
+    : undefined
+  const t              = getSidebarTokens(effectiveTheme)
   const grouped        = groupByModule(navItems)
   const displayName    = branding?.companyName || 'KashiGRC'
 
   // Glass applies ONLY to the light sidebar: over the pastel wash it reads as
-  // premium chrome. Dark/brand sidebars stay solid (glass over an already-dark
-  // surface just looks muddy), and both keep full text contrast.
-  const sidebarBg =
-    effectiveTheme === 'light' ? 'glass-chrome border-y-0 border-l-0'
-    : effectiveTheme !== 'brand' ? 'bg-[var(--sidebar-dark)]'
-    : ''
+  // Two-tone: the nav area sits on the recessed panel colour; the top zone and
+  // footer float on t.cardBg above it. Brand mode paints via brandBg instead.
+  const sidebarBg = t.panelBg
 
   // Brand bg — use user's saved color first, fallback to org branding
   // This ensures user's choice persists regardless of org branding changes
@@ -417,31 +401,36 @@ export function Sidebar({ collapsed, onToggle }) {
       style={brandBg}
     >
 
-      {/* Header — KashiGRC logo + toggle */}
-      <div className={cn(
-        'h-13 flex items-center border-b shrink-0',
-        t.border,
-        collapsed ? 'justify-center px-2 py-3' : 'px-3 py-3 gap-2.5'
-      )}>
-        {/* Always show icon */}
-        <KashiLogo size={28} className="shrink-0" />
-
-        {/* Name — hidden when collapsed */}
-        {!collapsed && (
-          branding?.logoUrl
-            ? <img src={branding.logoUrl} alt={displayName}
-                className="h-5 object-contain flex-1 min-w-0" />
-            : <span className={cn('text-sm font-bold tracking-tight flex-1 min-w-0 truncate', t.name)}>
+      {/* Header — H3 workspace card: frosted, brand-tinted, with the collapse
+          toggle inside the same container (one unified block). */}
+      <div className={cn('shrink-0', collapsed ? 'px-2 py-2' : 'p-2.5')}>
+        {collapsed ? (
+          <KashiLogo size={30} className="mx-auto" />
+        ) : (
+          <div
+            className={cn(
+              'flex items-center gap-2.5 p-1.5 rounded-card border glass-chrome',
+              t.wsCard
+            )}
+            title={`${displayName} · ${auth?.tenantName || 'Workspace'}`}
+          >
+            {branding?.logoUrl
+              ? <img src={branding.logoUrl} alt={displayName}
+                  className="w-7 h-7 rounded-ctl object-contain shrink-0" />
+              : <KashiLogo size={28} className="shrink-0" />}
+            <div className="flex-1 min-w-0 text-left">
+              <div className={cn('text-[12.5px] font-bold leading-tight truncate', t.name)}>
                 {displayName}
-              </span>
-        )}
-
-        {/* Toggle */}
-        {!collapsed && (
-          <button onClick={onToggle} title="Collapse sidebar"
-            className={cn('h-6 w-6 flex items-center justify-center rounded-ctl transition-colors ml-auto shrink-0', t.toggle)}>
-            <PanelLeftClose size={14} />
-          </button>
+              </div>
+              <div className={cn('text-[9.5px] leading-tight truncate', t.subtext)}>
+                {auth?.tenantName || 'Workspace'}
+              </div>
+            </div>
+            <button onClick={onToggle} title="Collapse sidebar"
+              className={cn('h-7 w-7 flex items-center justify-center rounded-ctl transition-colors shrink-0', t.toggle)}>
+              <PanelLeft size={15} />
+            </button>
+          </div>
         )}
       </div>
 
@@ -449,7 +438,7 @@ export function Sidebar({ collapsed, onToggle }) {
       {collapsed && (
         <button onClick={onToggle} title="Expand sidebar"
           className={cn('mx-auto mt-1 h-7 w-7 flex items-center justify-center rounded-ctl transition-colors', t.toggle)}>
-          <PanelLeftOpen size={14} />
+          <PanelRight size={15} />
         </button>
       )}
 

@@ -68,7 +68,7 @@ export function TopNav({ onMenuToggle }) {
   const sideLabel    = { ORGANIZATION: 'Organization', VENDOR: 'Vendor', AUDITOR: 'Auditor', AUDITEE: 'Auditee', SYSTEM: 'System' }[primarySide] ?? 'Organization'
 
   return (
-    <header className="h-12 flex items-center justify-between px-4 glass-chrome rounded-card shadow-elevated mt-2 mr-2 shrink-0 gap-4">
+    <header className="h-12 flex items-center justify-between px-4 glass-chrome rounded-card shadow-elevated mt-2 mx-2 shrink-0 gap-4">
 
       {/* Left — org/vendor context where page title used to be */}
       <div className="flex items-center gap-2 min-w-0">
@@ -116,7 +116,7 @@ export function TopNav({ onMenuToggle }) {
           <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-surface-overlay">
             <span className={cn(
               'w-1.5 h-1.5 rounded-full shrink-0',
-              { VENDOR: 'bg-status-warn-bg', AUDITOR: 'bg-status-pass-bg', AUDITEE: 'bg-status-tag-bg', SYSTEM: 'bg-status-fail-bg' }[primarySide] ?? 'bg-brand-400'
+              { VENDOR: 'bg-status-warn-fg', AUDITOR: 'bg-status-pass-fg', AUDITEE: 'bg-status-tag-fg', SYSTEM: 'bg-status-info-fg' }[primarySide] ?? 'bg-brand-600'
             )} />
             <span className="text-[11px] font-medium text-text-muted">{sideLabel}</span>
             <ChevronRight size={10} className="text-border" />
@@ -146,7 +146,7 @@ export function TopNav({ onMenuToggle }) {
             onClick={() => setShowUser(o => !o)}
             className="flex items-center gap-2 h-8 px-2 rounded-ctl hover:bg-surface-overlay transition-colors"
           >
-            <div className="h-6 w-6 rounded-full bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-[10px] font-bold text-brand-300">
+            <div className="h-6 w-6 rounded-full bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-[10px] font-bold text-brand-ink">
               {initials(fullName)}
             </div>
             <span className="text-xs text-text-secondary hidden sm:block">{fullName}</span>
@@ -159,7 +159,7 @@ export function TopNav({ onMenuToggle }) {
                 <p className="text-xs font-semibold text-text-primary truncate">{fullName}</p>
                 <p className="text-[11px] text-text-muted truncate">{email}</p>
                 {(tenantName || vendorName) && (
-                  <p className="text-[10px] text-brand-400 mt-1 font-medium truncate">
+                  <p className="text-[10px] text-brand-ink mt-1 font-medium truncate">
                     {tenantName}{vendorName ? ` · ${vendorName}` : ''}
                   </p>
                 )}

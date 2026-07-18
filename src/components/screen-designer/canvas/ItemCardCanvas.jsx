@@ -64,13 +64,13 @@ function ItemCardCanvas({ screen, selectedElement, onSelectElement, actions }) {
                 className={cn(
                   'px-3 py-1.5 rounded text-xs font-medium border transition-all hover:scale-105',
                   selectedElement?.id === action.id ? 'ring-2 ring-brand-500/60' : '',
-                  { primary: 'bg-brand-500/10 border-brand-500/40 text-brand-400', secondary: 'bg-surface-overlay border-border text-text-secondary', danger: 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg' }[action.variant] || 'bg-surface-overlay border-border text-text-secondary'
+                  { primary: 'bg-brand-500/10 border-brand-500/40 text-brand-ink', secondary: 'bg-surface-overlay border-border text-text-secondary', danger: 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg' }[action.variant] || 'bg-surface-overlay border-border text-text-secondary'
                 )}>
                 {action.label}
               </button>
             ))}
             <button onClick={() => onSelectElement({ type: 'new_action', screenKey: screen.key })}
-              className="px-2.5 py-1 rounded text-[10px] text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 transition-colors">
+              className="px-2.5 py-1 rounded text-[10px] text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-ink transition-colors">
               + Action
             </button>
           </div>
@@ -86,7 +86,7 @@ function ItemCardCanvas({ screen, selectedElement, onSelectElement, actions }) {
             <button key={tab}
               onClick={e => { e.stopPropagation(); onSelectElement({ type: 'side_tab', tab, screenKey: screen.key }) }}
               className={cn('px-3 py-1.5 text-[10px] border-b-2 transition-colors -mb-px',
-                i === 0 ? 'border-brand-500 text-brand-400' : 'border-transparent text-text-muted hover:text-text-secondary',
+                i === 0 ? 'border-brand-500 text-brand-ink' : 'border-transparent text-text-muted hover:text-text-secondary',
                 selectedElement?.type === 'side_tab' && selectedElement?.tab === tab ? 'ring-1 ring-brand-500/40 bg-brand-500/5 rounded-t' : '')}>
               {tab}
             </button>

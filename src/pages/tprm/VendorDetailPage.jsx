@@ -157,7 +157,7 @@ function SetupStep({ done, label }) {
 
 function StatCard({ icon: Icon, label, value, sub, accent = 'brand' }) {
   const accentClasses = {
-    brand:  'text-brand-400 bg-brand-500/10',
+    brand:  'text-brand-ink bg-brand-500/10',
     red:    'text-status-fail-fg bg-status-fail-bg',
     green:  'text-status-pass-fg bg-status-pass-bg',
     amber:  'text-status-warn-fg bg-status-warn-bg',
@@ -362,8 +362,8 @@ function VendorSetupBanner({ vendor, onRefresh }) {
     return (
       <div className="rounded-card border border-brand-500/30 bg-brand-500/5 overflow-hidden">
         <div className="px-4 py-3 flex items-center gap-2 border-b border-brand-500/20">
-          <FileText size={14} className="text-brand-400 shrink-0" />
-          <span className="text-xs font-semibold text-brand-400 uppercase tracking-wide">
+          <FileText size={14} className="text-brand-ink shrink-0" />
+          <span className="text-xs font-semibold text-brand-ink uppercase tracking-wide">
             Assessment Template Selection Required
           </span>
           <span className={cn('ml-1 text-[10px] font-semibold uppercase', TIER_COLOR[pendingSelection.riskTierLabel] || 'text-text-muted')}>
@@ -471,7 +471,7 @@ function VendorSetupBanner({ vendor, onRefresh }) {
             <div className="flex items-start justify-between py-3 gap-4">
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
-                  <UserPlus size={12} className="text-brand-400 shrink-0" />
+                  <UserPlus size={12} className="text-brand-ink shrink-0" />
                   {hasVrm ? 'VRM User Created' : 'Create VRM User'}
                   {hasVrm && <span className="text-[10px] text-status-pass-fg font-normal">✓ User #{vendor.vrmUserId}</span>}
                 </p>
@@ -489,7 +489,7 @@ function VendorSetupBanner({ vendor, onRefresh }) {
             <div className="flex items-start justify-between py-3 gap-4 border-t border-status-warn-bd">
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
-                  <RefreshCw size={12} className="text-brand-400 shrink-0" />
+                  <RefreshCw size={12} className="text-brand-ink shrink-0" />
                   {hasWorkflow ? 'Workflow Running' : 'Start Workflow'}
                   {hasWorkflow && <span className="text-[10px] text-status-pass-fg font-normal">✓ Instance #{vendor.activeWorkflowInstanceId}</span>}
                 </p>
@@ -559,7 +559,7 @@ function OverviewTab({ vendor, screenConfig, assessments, actionItems }) {
                 <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">{label}</p>
                 {isLink && value
                   ? <a href={value} target="_blank" rel="noopener noreferrer"
-                      className="text-sm text-brand-400 hover:underline flex items-center gap-1 truncate">
+                      className="text-sm text-brand-ink hover:underline flex items-center gap-1 truncate">
                       {value} <ExternalLink size={10} className="shrink-0" />
                     </a>
                   : <p className="text-sm text-text-primary truncate">{value || '—'}</p>
@@ -587,7 +587,7 @@ const TASK_STATUS_STYLE = {
   DELEGATED:  { label: 'Delegated',  cls: 'bg-status-tag-bg text-status-tag-fg border-status-tag-bd' },
   REASSIGNED: { label: 'Reassigned', cls: 'bg-status-info-bg text-status-info-fg border-status-info-bd' },
   EXPIRED:    { label: 'Expired',    cls: 'bg-surface-overlay text-text-muted border-border' },
-  IN_PROGRESS:{ label: 'In Progress',cls: 'bg-brand-500/10 text-brand-400 border-brand-500/20' },
+  IN_PROGRESS:{ label: 'In Progress',cls: 'bg-brand-500/10 text-brand-ink border-brand-500/20' },
 }
 
 // ─── Assessment Phase definitions ────────────────────────────────────────────
@@ -707,7 +707,7 @@ function AssessmentPhaseTracker({ assessmentStatus, currentStepOrder }) {
                 </div>
                 <span className={cn(
                   'text-[9px] font-semibold uppercase tracking-wide leading-tight',
-                  isActive ? 'text-brand-400'
+                  isActive ? 'text-brand-ink'
                     : isDone  ? 'text-status-pass-fg'
                     : 'text-text-muted'
                 )}>
@@ -785,7 +785,7 @@ function AssessmentSectionAccordion({ sections = [] }) {
                     submitted ? 'bg-status-pass-bg' : 'bg-brand-500'
                   )} style={{ width: `${pct}%` }} />
                 </div>
-                <span className="text-[10px] font-mono text-brand-400">{pct}%</span>
+                <span className="text-[10px] font-mono text-brand-ink">{pct}%</span>
                 {isOpen ? <ChevronDown size={11} className="text-text-muted" /> : <ChevronRight size={11} className="text-text-muted" />}
               </div>
             </button>
@@ -901,7 +901,7 @@ function AssessmentDetailCard({ assessment, riskMappings, onCancel, workflowProg
               <div className="h-full rounded-full bg-brand-500 transition-all duration-500"
                 style={{ width: `${pct}%` }} />
             </div>
-            <span className="text-[10px] font-mono text-brand-400 shrink-0">{pct}%</span>
+            <span className="text-[10px] font-mono text-brand-ink shrink-0">{pct}%</span>
             <span className="text-[10px] text-text-muted shrink-0">
               {assessment.progress?.answered ?? 0}/{assessment.progress?.totalQuestions ?? 0} answered
             </span>
@@ -998,7 +998,7 @@ function AssessmentsTab({ vendorId, vendorRiskScore, workflowProgress }) {
       {/* Risk tier banner */}
       {matchingMapping && (
         <div className="mb-4 px-3 py-2.5 rounded-card border border-border bg-surface-raised flex items-center gap-3">
-          <Shield size={13} className="text-brand-400 shrink-0" />
+          <Shield size={13} className="text-brand-ink shrink-0" />
           <p className="text-xs text-text-muted">
             Risk score{' '}
             <span className="font-mono text-text-primary">{vendorRiskScore}</span>
@@ -1086,7 +1086,7 @@ function SectionsStatusPanel({ assessmentId }) {
                 Submitted
               </span>
               <button onClick={() => reopen(s.sectionInstanceId)} disabled={reopening}
-                className="text-[10px] text-text-muted hover:text-brand-400 px-1.5 py-0.5 rounded border border-border hover:border-brand-500/30 transition-colors">
+                className="text-[10px] text-text-muted hover:text-brand-ink px-1.5 py-0.5 rounded border border-border hover:border-brand-500/30 transition-colors">
                 Reopen
               </button>
             </div>
@@ -1159,7 +1159,7 @@ function WorkflowTab({ vendor, activeAssessmentId, progressData }) {
               className={cn(
                 'text-xs px-3 py-2 border-b-2 -mb-px transition-colors',
                 subTab === t.id
-                  ? 'border-brand-500 text-brand-400 font-medium'
+                  ? 'border-brand-500 text-brand-ink font-medium'
                   : 'border-transparent text-text-muted hover:text-text-secondary'
               )}>
               {t.label}
@@ -1292,7 +1292,7 @@ function TeamTab({ vendorId, vendor }) {
         <p className="text-sm text-text-muted">{users.length} team member{users.length !== 1 ? 's' : ''}</p>
         <Link
           to={`/vendor/users?vendorId=${vendorId}`}
-          className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 transition-colors">
+          className="flex items-center gap-1.5 text-xs text-brand-ink hover:text-brand-ink transition-colors">
           Manage Team <ExternalLink size={11} />
         </Link>
       </div>
@@ -1306,7 +1306,7 @@ function TeamTab({ vendorId, vendor }) {
           <Users size={24} className="text-text-muted" />
           <p className="text-sm text-text-muted">No vendor team members yet.</p>
           <Link to={`/vendor/users?vendorId=${vendorId}`}
-            className="text-xs text-brand-400 hover:underline mt-1">
+            className="text-xs text-brand-ink hover:underline mt-1">
             Invite vendor users →
           </Link>
         </div>
@@ -1316,7 +1316,7 @@ function TeamTab({ vendorId, vendor }) {
             <div key={u.userId || u.id}
               className="flex items-center gap-3 px-3 py-2.5 rounded-card border border-border bg-surface-raised">
               <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0">
-                <span className="text-[10px] font-bold text-brand-400">
+                <span className="text-[10px] font-bold text-brand-ink">
                   {(u.fullName || u.email || '?').slice(0, 2).toUpperCase()}
                 </span>
               </div>
@@ -1327,7 +1327,7 @@ function TeamTab({ vendorId, vendor }) {
               <div className="flex items-center gap-1.5 shrink-0">
                 {(u.roles || []).slice(0, 2).map(r => (
                   <span key={r.id || r.roleId}
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20 font-mono">
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-ink border border-brand-500/20 font-mono">
                     {r.roleName || r.name}
                   </span>
                 ))}
@@ -1552,7 +1552,7 @@ export default function VendorDetailPage() {
                 className={cn(
                   'flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors relative',
                   activeTab === tab.id
-                    ? 'border-brand-500 text-brand-400'
+                    ? 'border-brand-500 text-brand-ink'
                     : 'border-transparent text-text-muted hover:text-text-secondary hover:border-border'
                 )}>
                 <tab.icon size={12} />

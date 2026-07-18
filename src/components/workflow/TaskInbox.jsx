@@ -109,7 +109,7 @@ const priorityConfig = {
 
 const TASK_ROLE_CONFIG = {
   ASSIGNER: { label: 'Coordinator', icon: UserCheck, color: 'text-status-tag-fg bg-status-tag-bg' },
-  ACTOR:    { label: 'Actor',       icon: Users,     color: 'text-brand-400 bg-brand-500/10'   },
+  ACTOR:    { label: 'Actor',       icon: Users,     color: 'text-brand-ink bg-brand-500/10'   },
 }
 
 export function TaskInbox({ filterFn } = {}) {

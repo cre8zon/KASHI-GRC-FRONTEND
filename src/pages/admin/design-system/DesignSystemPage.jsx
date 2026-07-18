@@ -57,7 +57,7 @@ function Section({ id, title, children }) {
       <div className="flex items-center gap-3 mb-6">
         <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
         <div className="flex-1 h-px bg-border" />
-        <a href={`#${id}`} className="text-[10px] font-mono text-text-muted hover:text-brand-400 transition-colors">#{id}</a>
+        <a href={`#${id}`} className="text-[10px] font-mono text-text-muted hover:text-brand-ink transition-colors">#{id}</a>
       </div>
       {children}
     </section>
@@ -130,7 +130,7 @@ export default function DesignSystemPage() {
         <nav className="w-44 shrink-0 border-r border-border overflow-y-auto py-4">
           {SECTIONS.map(s => (
             <a key={s.id} href={`#${s.id}`}
-              className="flex items-center px-4 py-1.5 text-xs text-text-muted hover:text-brand-400 hover:bg-brand-500/5 transition-colors rounded-ctl mx-2">
+              className="flex items-center px-4 py-1.5 text-xs text-text-muted hover:text-brand-ink hover:bg-brand-500/5 transition-colors rounded-ctl mx-2">
               {s.label}
             </a>
           ))}
@@ -151,7 +151,7 @@ export default function DesignSystemPage() {
                   ['text-xs text-text-secondary', 'xs — Secondary body, labels'],
                   ['text-[11px] text-text-muted', '11px — Captions, hints'],
                   ['text-[10px] font-semibold uppercase tracking-widest text-text-muted', '10px · uppercase — Section labels'],
-                  ['text-xs font-mono text-brand-400', 'xs · mono — Code, keys, IDs'],
+                  ['text-xs font-mono text-brand-ink', 'xs · mono — Code, keys, IDs'],
                 ].map(([cls, label]) => (
                   <div key={label} className={cls}>{label}</div>
                 ))}
@@ -476,7 +476,7 @@ export default function DesignSystemPage() {
           {/* ── FORM FIELD TYPES ─────────────────────────────────────── */}
           <Section id="formfields" title="Form field types">
             <p className="text-xs text-text-muted mb-4">
-              Every <code className="font-mono text-brand-400 bg-brand-500/10 px-1 rounded">UiFormField.FieldType</code> rendered.
+              Every <code className="font-mono text-brand-ink bg-brand-500/10 px-1 rounded">UiFormField.FieldType</code> rendered.
               These are what DynamicForm renders for each field type from the DB.
             </p>
             <div className="grid grid-cols-2 gap-6">
@@ -544,7 +544,7 @@ export default function DesignSystemPage() {
             >
               <div className="space-y-3">
                 <p className="text-sm text-text-secondary">
-                  Modal content area. This is a <code className="font-mono text-brand-400 text-xs">{modalSize}</code> sized modal.
+                  Modal content area. This is a <code className="font-mono text-brand-ink text-xs">{modalSize}</code> sized modal.
                   The max heights for each size:
                 </p>
                 <div className="grid grid-cols-2 gap-2">

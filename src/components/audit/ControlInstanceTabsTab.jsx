@@ -49,7 +49,7 @@ function DetailPanel({ item, type, onClose }) {
           {type === 'test' ? (
             <>
               <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="font-mono text-[10px] text-brand-400">{item.testRefSnapshot}</span>
+                <span className="font-mono text-[10px] text-brand-ink">{item.testRefSnapshot}</span>
                 <ResultBadge result={item.testResult} />
                 {item.isRequired && (
                   <span className="text-[9px] text-status-fail-fg bg-status-fail-bg px-1 rounded">Required</span>
@@ -60,7 +60,7 @@ function DetailPanel({ item, type, onClose }) {
           ) : (
             <>
               <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="font-mono text-[10px] text-brand-400">{item.policyRefSnapshot}</span>
+                <span className="font-mono text-[10px] text-brand-ink">{item.policyRefSnapshot}</span>
                 {item.reviewContribution && (
                   <span className={cn('text-[9px] px-1.5 py-0.5 rounded',
                     item.reviewContribution === 'SATISFIES' ? 'text-status-pass-fg bg-status-pass-bg' :
@@ -149,7 +149,7 @@ export function ControlInstanceTestsTab({ engagementId, controlInstanceId }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-0.5">
                 {item.testRefSnapshot && (
-                  <span className="font-mono text-[9px] text-brand-400">{item.testRefSnapshot}</span>
+                  <span className="font-mono text-[9px] text-brand-ink">{item.testRefSnapshot}</span>
                 )}
                 {item.isRequired && (
                   <span className="text-[9px] text-status-fail-fg">Required</span>
@@ -209,7 +209,7 @@ export function ControlInstancePoliciesTab({ engagementId, controlInstanceId }) 
             <FileText size={10} className="text-text-muted shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               {item.policyRefSnapshot && (
-                <span className="font-mono text-[9px] text-brand-400 block mb-0.5">{item.policyRefSnapshot}</span>
+                <span className="font-mono text-[9px] text-brand-ink block mb-0.5">{item.policyRefSnapshot}</span>
               )}
               <p className="text-[11px] text-text-primary leading-snug truncate">{item.policyTitleSnapshot}</p>
               {item.mappingType && (

@@ -176,7 +176,7 @@ function RoleVisibilityEditor({ screenKey }) {
                   allowed ? 'border-status-pass-bd bg-status-pass-bg' : 'border-border opacity-40 hover:opacity-60'
                 )}>
                 <div className="flex items-center gap-2">
-                  <div className={cn('w-1.5 h-1.5 rounded-full', allowed ? 'bg-status-pass-bg' : 'bg-border')} />
+                  <div className={cn('w-1.5 h-1.5 rounded-full', allowed ? 'bg-status-pass-fg' : 'bg-border')} />
                   <span className={allowed ? 'text-text-primary font-medium' : 'text-text-muted'}>{s}</span>
                   {!allowed && <span className="text-[9px] text-text-muted italic">hidden</span>}
                 </div>
@@ -237,7 +237,7 @@ function RoleVisibilityEditor({ screenKey }) {
                               <span className={cn('truncate', allowed && sideAllowed ? 'text-text-primary' : 'text-text-muted')}>{role.name}</span>
                               {role.level && <span className="text-[8px] text-text-muted border border-border rounded px-1 shrink-0">{role.level}</span>}
                               {hasOverrides && (
-                                <span className="text-[8px] text-brand-400 border border-brand-500/30 bg-brand-500/10 rounded px-1 shrink-0">
+                                <span className="text-[8px] text-brand-ink border border-brand-500/30 bg-brand-500/10 rounded px-1 shrink-0">
                                   {tabOverrides + actionOverrides} override{tabOverrides + actionOverrides !== 1 ? 's' : ''}
                                 </span>
                               )}
@@ -313,7 +313,7 @@ function RoleVisibilityEditor({ screenKey }) {
       )}
 
       <button onClick={() => saveMut.mutate()}
-        className="mt-3 w-full text-[10px] font-medium text-brand-400 hover:text-brand-300 border border-brand-500/25 hover:border-brand-500/50 bg-brand-500/5 hover:bg-brand-500/8 rounded-ctl py-1.5 transition-colors">
+        className="mt-3 w-full text-[10px] font-medium text-brand-ink hover:text-brand-ink border border-brand-500/25 hover:border-brand-500/50 bg-brand-500/5 hover:bg-brand-500/8 rounded-ctl py-1.5 transition-colors">
         {saveMut.isPending ? 'Saving…' : 'Save visibility'}
       </button>
     </InspectorSection>

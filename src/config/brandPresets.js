@@ -56,6 +56,16 @@ export function applyBrandPreset(key, { persist = true } = {}) {
   Object.entries(scale).forEach(([shade, v]) =>
     root.style.setProperty(`--color-brand-${shade}`, v))
   root.setAttribute('data-brand', preset.key)
+
+  // Derive the LIGHT mesh wash from the brand scale so the background follows
+  // the chosen preset. mesh-1 leans full brand; the others are lighter tints
+  // of the same hue plus one neutral cool note, kept subtle. Dark theme has
+  // its own fixed dim mesh (see [data-theme="dark"] body in index.html), so we
+  // only set these — the dark body rule ignores them.
+  root.style.setProperty('--mesh-1', `rgb(${scale[400]})`)
+  root.style.setProperty('--mesh-2', `rgb(${scale[200]})`)
+  root.style.setProperty('--mesh-3', `rgb(${scale[300]})`)
+  root.style.setProperty('--mesh-4', `rgb(${scale[100]})`)
   // Persist ONLY on an explicit user choice. Defaulting must stay silent, or
   // tenant white-label branding can never apply (it checks for a chosen preset).
   if (persist) {

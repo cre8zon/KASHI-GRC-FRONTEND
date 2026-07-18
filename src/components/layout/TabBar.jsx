@@ -113,7 +113,7 @@ export function TabBar() {
 
   return (
     <>
-      <div className="flex items-stretch h-9 bg-surface shrink-0 select-none border-b border-border">
+      <div className="flex items-stretch h-9 shrink-0 select-none px-2 gap-1 mt-1">
         {/* Scrollable tab list */}
         <div ref={scrollRef}
           className="flex items-stretch flex-1 min-w-0 overflow-x-auto overflow-y-hidden"
@@ -131,15 +131,18 @@ export function TabBar() {
                 onContextMenu={(e) => handleContextMenu(e, tab)}
                 className={cn(
                   'group relative flex items-center gap-1.5 px-3 h-full min-w-0 max-w-[180px] shrink-0',
-                  'cursor-pointer border-b-2 transition-colors text-xs font-medium',
-                  'border-r border-border/50 last:border-r-0',
+                  'cursor-pointer transition-all duration-150 text-xs font-medium',
+                  'rounded-t-card',
                   isActive
-                    ? 'bg-surface border-b-brand-400 text-text-primary'
-                    : 'bg-surface-raised border-b-transparent text-text-muted hover:text-text-secondary hover:bg-surface'
+                    // Active tab is frosted glass to match the content card
+                    // below it — a solid tab on a translucent card looked
+                    // disconnected. Now they read as one continuous surface.
+                    ? 'glass-card text-text-primary shadow-elevated'
+                    : 'text-text-muted hover:text-text-secondary hover:bg-surface-raised/40'
                 )}
               >
                 {/* Tab icon */}
-                <span className={cn('shrink-0', isActive ? 'text-brand-400' : 'text-text-muted')}>
+                <span className={cn('shrink-0', isActive ? 'text-brand-ink' : 'text-text-muted')}>
                   <TabIcon name={tab.icon} size={12} />
                 </span>
 

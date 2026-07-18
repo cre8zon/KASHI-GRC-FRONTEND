@@ -51,7 +51,7 @@ function ResultPicker({ current, onSelect, saving }) {
               className={cn('w-full flex items-center gap-2 px-3 py-1.5 text-[11px] hover:bg-surface-overlay',
                 opt.value===current ? `${opt.color} ${opt.bg}` : 'text-text-secondary')}>
               <opt.icon size={10} className={opt.color}/>{opt.label}
-              {opt.value===current && <CheckCircle2 size={9} className="ml-auto text-brand-400"/>}
+              {opt.value===current && <CheckCircle2 size={9} className="ml-auto text-brand-ink"/>}
             </button>
           ))}
         </div>
@@ -103,11 +103,11 @@ export function ControlInstanceTestsTab({ controlInstanceId, vc = {} }) {
             onClick={() => navigate(`/module/audit_test_instance/${t.testInstanceId}`)}>
             {/* Automation badge */}
             {t.automationTypeSnapshot === 'AUTOMATED' && (
-              <Zap size={10} className="text-brand-400 shrink-0" title="Automated test"/>
+              <Zap size={10} className="text-brand-ink shrink-0" title="Automated test"/>
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="font-mono text-[9px] text-brand-400 shrink-0">{t.testRefSnapshot}</span>
+                <span className="font-mono text-[9px] text-brand-ink shrink-0">{t.testRefSnapshot}</span>
                 {t.isRequired
                   ? <span className="text-[8px] text-status-fail-fg shrink-0">required</span>
                   : <span className="text-[8px] text-text-muted shrink-0">advisory</span>}

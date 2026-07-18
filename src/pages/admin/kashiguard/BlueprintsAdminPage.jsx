@@ -251,7 +251,7 @@ export default function BlueprintsAdminPage() {
                 return (
                   <tr key={bp.id} className="hover:bg-surface-overlay/40 transition-colors">
                     <td className="px-4 py-3">
-                      <span className="font-mono text-[11px] text-brand-400 bg-brand-500/10 px-1.5 py-0.5 rounded">
+                      <span className="font-mono text-[11px] text-brand-ink bg-brand-500/10 px-1.5 py-0.5 rounded">
                         {bp.blueprintCode}
                       </span>
                     </td>
@@ -286,7 +286,7 @@ export default function BlueprintsAdminPage() {
                         {canEdit && (
                           <>
                             <button onClick={() => setEditTarget(bp)}
-                              className="p-1.5 rounded hover:bg-surface-overlay text-text-muted hover:text-brand-400 transition-colors">
+                              className="p-1.5 rounded hover:bg-surface-overlay text-text-muted hover:text-brand-ink transition-colors">
                               <Pencil size={12} />
                             </button>
                             {!isGlobal && (

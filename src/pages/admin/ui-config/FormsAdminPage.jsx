@@ -96,7 +96,7 @@ function FieldRow({ field, formId, onDelete }) {
       </span>
       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button onClick={() => setEditing(true)}
-          className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-brand-400 transition-colors">
+          className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-brand-ink transition-colors">
           <Pencil size={10} />
         </button>
         <button onClick={() => onDelete(field.id)}
@@ -129,7 +129,7 @@ function FieldRow({ field, formId, onDelete }) {
               <button key={n} onClick={() => setForm(f => ({ ...f, gridCols: n }))} type="button"
                 className={cn('flex-1 h-7 rounded text-[10px] font-mono border transition-colors',
                   form.gridCols === n
-                    ? 'bg-brand-500/15 border-brand-500/40 text-brand-400'
+                    ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
                     : 'border-border text-text-muted hover:bg-surface-raised')}>
                 {n}
               </button>
@@ -194,7 +194,7 @@ function FieldsPanel({ form }) {
       {/* Form summary */}
       <div className="p-3 bg-surface-overlay rounded-card border border-border">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-mono text-brand-400">{form.formKey}</p>
+          <p className="text-xs font-mono text-brand-ink">{form.formKey}</p>
           <Badge value={form.httpMethod} label={form.httpMethod} colorTag="blue" />
         </div>
         <p className="text-xs text-text-muted mt-0.5">→ {form.submitUrl}</p>
@@ -288,7 +288,7 @@ export default function FormsAdminPage() {
           <Button size="xs" variant="ghost" icon={ChevronRight}
             onClick={() => setFieldsTarget(r)}>Fields</Button>
           <button onClick={() => setEditTarget(r)}
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
             <Pencil size={12} />
           </button>
           <button onClick={() => setDeleteTarget(r)}

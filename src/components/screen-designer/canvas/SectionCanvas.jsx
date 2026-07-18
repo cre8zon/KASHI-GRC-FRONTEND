@@ -57,7 +57,7 @@ function SectionCanvas({ screen, selectedElement, onSelectElement, actions, layo
               {item.assignedToUserName && <span className="text-[9px] text-text-muted">{item.assignedToUserName}</span>}
             </div>
           ))}
-          <div className="flex items-center gap-1.5 px-3 py-1 text-[9px] text-brand-400 hover:text-brand-300 cursor-pointer">
+          <div className="flex items-center gap-1.5 px-3 py-1 text-[9px] text-brand-ink hover:text-brand-ink cursor-pointer">
             <ArrowRight size={10} /> Configure item card in itemScreenKey →
           </div>
         </div>
@@ -80,7 +80,7 @@ function SectionCanvas({ screen, selectedElement, onSelectElement, actions, layo
                   ? 'ring-2 ring-brand-500/60 scale-105'
                   : 'hover:scale-105',
                 {
-                  primary:   'bg-brand-500/10 border-brand-500/40 text-brand-400',
+                  primary:   'bg-brand-500/10 border-brand-500/40 text-brand-ink',
                   secondary: 'bg-surface-overlay border-border text-text-secondary',
                   danger:    'bg-status-fail-bg border-status-fail-bd text-status-fail-fg',
                   warning:   'bg-status-warn-bg border-status-warn-bd text-status-warn-fg',
@@ -92,7 +92,7 @@ function SectionCanvas({ screen, selectedElement, onSelectElement, actions, layo
           ))}
           <button
             onClick={e => { e.stopPropagation(); onSelectElement({ type: 'new_action', screenKey: screen.key }) }}
-            className="px-3 py-1.5 rounded-ctl text-xs text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 transition-colors">
+            className="px-3 py-1.5 rounded-ctl text-xs text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-ink transition-colors">
             + Add action
           </button>
         </div>

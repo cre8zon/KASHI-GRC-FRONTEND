@@ -101,7 +101,7 @@ export default function ScreenDesignerPage() {
       {/* ══ TOPBAR ══════════════════════════════════════════════════════════ */}
       <div className="flex items-center gap-3 px-4 border-b border-border bg-surface shrink-0" style={{ height: 48 }}>
         <div className="flex items-center gap-2">
-          <Layers size={16} className="text-brand-400" />
+          <Layers size={16} className="text-brand-ink" />
           <span className="text-sm font-semibold text-text-primary">Screen designer</span>
         </div>
 
@@ -119,7 +119,7 @@ export default function ScreenDesignerPage() {
             title={navOpen ? 'Hide navigator' : 'Show navigator'}
             className={cn('flex items-center gap-1 h-7 px-2.5 text-[11px] rounded border transition-colors',
               navOpen
-                ? 'bg-brand-500/10 border-brand-500/25 text-brand-400'
+                ? 'bg-brand-500/10 border-brand-500/25 text-brand-ink'
                 : 'border-border text-text-muted hover:border-border-strong hover:text-text-secondary')}>
             <PanelLeft size={13} />
           </button>
@@ -128,7 +128,7 @@ export default function ScreenDesignerPage() {
             title={inspOpen ? 'Hide inspector' : 'Show inspector'}
             className={cn('flex items-center gap-1 h-7 px-2.5 text-[11px] rounded border transition-colors',
               inspOpen
-                ? 'bg-brand-500/10 border-brand-500/25 text-brand-400'
+                ? 'bg-brand-500/10 border-brand-500/25 text-brand-ink'
                 : 'border-border text-text-muted hover:border-border-strong hover:text-text-secondary')}>
             <PanelRight size={13} />
           </button>
@@ -169,7 +169,7 @@ export default function ScreenDesignerPage() {
 
         <Button size="sm" icon={Plus} onClick={() => setCreateOpen(true)}>New screen</Button>
         <button onClick={() => setTemplatePanelOpen(true)}
-          className="flex items-center gap-1.5 h-7 px-3 text-[11px] font-medium text-brand-400 bg-brand-500/8 hover:bg-brand-500/15 border border-brand-500/25 hover:border-brand-500/50 rounded transition-colors">
+          className="flex items-center gap-1.5 h-7 px-3 text-[11px] font-medium text-brand-ink bg-brand-500/8 hover:bg-brand-500/15 border border-brand-500/25 hover:border-brand-500/50 rounded transition-colors">
           <Layers size={12} /> Templates
         </button>
       </div>
@@ -216,7 +216,7 @@ export default function ScreenDesignerPage() {
                     className={cn(
                       'flex items-center gap-1.5 px-3 py-2.5 text-[11px] font-medium border-b-2 -mb-px transition-colors',
                       activeTab === key
-                        ? 'border-brand-400 text-brand-400'
+                        ? 'border-brand-400 text-brand-ink'
                         : 'border-transparent text-text-muted hover:text-text-secondary'
                     )}>
                     <Icon size={11} />{label}
@@ -225,7 +225,7 @@ export default function ScreenDesignerPage() {
                 {/* role note */}
                 <div className="ml-auto flex items-center gap-2 pr-3 text-[10px] text-text-muted">
                   {roleProfile?.sod && <span className="text-status-fail-fg font-medium">⚠ SoD active</span>}
-                  Previewing as <span className="text-brand-400 font-medium">{roleProfile?.label}</span>
+                  Previewing as <span className="text-brand-ink font-medium">{roleProfile?.label}</span>
                   <span className="opacity-40">·</span>
                   <span>{roleProfile?.stepAction}</span>
                 </div>

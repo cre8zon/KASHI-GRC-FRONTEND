@@ -374,7 +374,7 @@ function TemplateDetail({ template, onEdit, onDelete }) {
             ].map(r => (
               <div key={r.label} className="flex items-start gap-3 text-xs">
                 <span className="text-text-muted w-28 shrink-0 pt-0.5">{r.label}</span>
-                <span className={cn('text-text-primary flex-1', r.mono && 'font-mono text-brand-400')}>
+                <span className={cn('text-text-primary flex-1', r.mono && 'font-mono text-brand-ink')}>
                   {r.value || <span className="text-text-muted italic">not set</span>}
                 </span>
               </div>
@@ -387,7 +387,7 @@ function TemplateDetail({ template, onEdit, onDelete }) {
           <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Available placeholders</h3>
           <div className="flex flex-wrap gap-1.5">
             {AVAILABLE_PLACEHOLDERS.map(p => (
-              <code key={p} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">
+              <code key={p} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-ink border border-brand-500/20">
                 {p}
               </code>
             ))}
@@ -513,7 +513,7 @@ function TemplateFormModal({ open, onClose, initial, onSave, loading }) {
               {AVAILABLE_PLACEHOLDERS.map(p => (
                 <button key={p}
                   onClick={() => set('titleTemplate', (form.titleTemplate || '') + p)}
-                  className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-overlay border border-border text-text-muted hover:text-brand-400 hover:border-brand-500/40 transition-colors">
+                  className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-overlay border border-border text-text-muted hover:text-brand-ink hover:border-brand-500/40 transition-colors">
                   {p}
                 </button>
               ))}
@@ -565,7 +565,7 @@ function TemplateFormModal({ open, onClose, initial, onSave, loading }) {
             <div className="p-3 rounded-card bg-surface-overlay border border-border">
               <p className="text-[10px] font-mono text-text-muted mb-2">Template variables</p>
               <div className="space-y-1 text-[10px] font-mono">
-                <div><span className="text-text-muted">eventKey: </span><span className="text-brand-400">{form.eventKey || '…'}</span></div>
+                <div><span className="text-text-muted">eventKey: </span><span className="text-brand-ink">{form.eventKey || '…'}</span></div>
                 <div><span className="text-text-muted">icon: </span><span className="text-text-secondary">{form.icon}</span></div>
                 <div><span className="text-text-muted">colorTag: </span><span className="text-text-secondary">{form.colorTag}</span></div>
               </div>

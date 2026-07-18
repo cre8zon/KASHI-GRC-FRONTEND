@@ -58,7 +58,7 @@ function OptionRow({ opt, componentId, onDelete }) {
       <span className="text-[10px] text-text-muted ml-auto">#{opt.sortOrder}</span>
       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button onClick={() => setEditing(true)}
-          className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-brand-400 transition-colors">
+          className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-brand-ink transition-colors">
           <Pencil size={10} />
         </button>
         <button onClick={() => onDelete(opt.id)}
@@ -113,7 +113,7 @@ function OptionPanel({ component, onClose }) {
     <div className="flex flex-col gap-4">
       {/* Component info */}
       <div className="p-3 bg-surface-overlay rounded-card border border-border">
-        <p className="text-xs font-mono text-brand-400">{component.componentKey}</p>
+        <p className="text-xs font-mono text-brand-ink">{component.componentKey}</p>
         <p className="text-[10px] text-text-muted mt-0.5">{component.componentType} · {component.screen || 'global'}</p>
       </div>
 
@@ -207,7 +207,7 @@ export default function ComponentsAdminPage() {
             Options
           </Button>
           <button onClick={() => setEditTarget(r)}
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors"
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors"
             title="Edit component">
             <Pencil size={12} />
           </button>

@@ -441,7 +441,7 @@ OPTION,   (empty),            (empty),       (empty), (empty), Option text, 10,`
       {stage === 'importing' && (
         <div className="flex flex-col items-center gap-6 py-8">
           <div className="w-16 h-16 rounded-modal bg-brand-500/10 flex items-center justify-center">
-            <Loader2 size={28} className="text-brand-400 animate-spin" />
+            <Loader2 size={28} className="text-brand-ink animate-spin" />
           </div>
           <div className="text-center">
             <p className="text-sm font-semibold text-text-primary">Importing on server…</p>
@@ -499,7 +499,7 @@ OPTION,   (empty),            (empty),       (empty), (empty), Option text, 10,`
                   entry.status === 'SUCCESS' && 'text-text-secondary',
                   entry.status === 'ERROR'   && 'text-status-fail-fg',
                   entry.status === 'WARNING' && 'text-status-warn-fg',
-                  entry.status === 'INFO'    && 'text-brand-400')}>
+                  entry.status === 'INFO'    && 'text-brand-ink')}>
                   {entry.status === 'SUCCESS' && <CheckCircle2 size={11} className="mt-0.5 shrink-0" />}
                   {entry.status === 'ERROR'   && <XCircle size={11} className="mt-0.5 shrink-0" />}
                   {entry.status === 'WARNING' && <AlertCircle size={11} className="mt-0.5 shrink-0" />}
@@ -612,7 +612,7 @@ function TemplateBuilder({ templateId, onBack }) {
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-full">
-      <Loader2 size={24} className="text-brand-400 animate-spin" />
+      <Loader2 size={24} className="text-brand-ink animate-spin" />
     </div>
   )
 
@@ -740,7 +740,7 @@ function SectionBlock({ section, index, templateId, isPublished, expanded, onTog
         <button onClick={onToggle}
           className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-surface-overlay transition-colors text-left">
           <div className="w-6 h-6 rounded-ctl bg-brand-500/10 flex items-center justify-center shrink-0">
-            <span className="text-xs font-bold text-brand-400">{index + 1}</span>
+            <span className="text-xs font-bold text-brand-ink">{index + 1}</span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-text-primary">{section.name}</p>
@@ -930,12 +930,12 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
             )}
             {question.isMandatory && <span className="text-xs text-status-fail-fg font-medium">Required</span>}
             {question.questionTag && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] bg-brand-500/8 text-brand-400 border border-brand-500/20">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] bg-brand-500/8 text-brand-ink border border-brand-500/20">
                 {question.questionTag}
               </span>
             )}
             {optionCount > 0 && (
-              <button onClick={() => setShowOptions(o => !o)} className="text-xs text-brand-400 hover:text-brand-300">
+              <button onClick={() => setShowOptions(o => !o)} className="text-xs text-brand-ink hover:text-brand-ink">
                 {showOptions ? 'Hide' : 'Show'} {optionCount} options
               </button>
             )}
@@ -1036,7 +1036,7 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
                     Options <span className="text-text-muted font-normal normal-case">(select from library)</span>
                   </label>
                   <button onClick={() => setShowNewOpt(o => !o)}
-                    className="text-xs text-brand-400 hover:text-brand-300 flex items-center gap-1">
+                    className="text-xs text-brand-ink hover:text-brand-ink flex items-center gap-1">
                     <Plus size={11} /> New option
                   </button>
                 </div>
@@ -1103,13 +1103,13 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
                     <div className="flex flex-wrap gap-1.5">
                       {selectedOptDetails.map(opt => (
                         <span key={opt.optionId}
-                          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] bg-brand-500/10 text-brand-ink border border-brand-500/20">
                           {opt.optionValue}
                           {opt.score != null && (
-                            <span className="font-mono text-brand-300">{opt.score}pt</span>
+                            <span className="font-mono text-brand-ink">{opt.score}pt</span>
                           )}
                           <button onClick={() => toggleOpt(opt.optionId)}
-                            className="ml-0.5 text-brand-400/60 hover:text-status-fail-fg transition-colors">
+                            className="ml-0.5 text-brand-ink/60 hover:text-status-fail-fg transition-colors">
                             ×
                           </button>
                         </span>
@@ -1191,7 +1191,7 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
             className="h-8 pl-8 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div className="max-h-72 overflow-y-auto rounded-card border border-border divide-y divide-border">
-          {isLoading && <div className="flex items-center justify-center py-10"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>}
+          {isLoading && <div className="flex items-center justify-center py-10"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>}
           {!isLoading && filtered.length === 0 && (
             <div className="flex flex-col items-center justify-center py-10">
               <BookOpen size={20} className="text-text-muted mb-2" />
@@ -1205,7 +1205,7 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
               <div className="flex-1">
                 <p className="text-sm text-text-primary">{s.name}</p>
               </div>
-              {selected?.sectionId === s.sectionId && <CheckCircle2 size={14} className="text-brand-400 shrink-0" />}
+              {selected?.sectionId === s.sectionId && <CheckCircle2 size={14} className="text-brand-ink shrink-0" />}
             </button>
           ))}
         </div>
@@ -1245,7 +1245,7 @@ function QuestionPickerModal({ open, sectionId, templateId, existingQuestionIds,
       subtitle="Map a library question into this section" size="xl"
       footer={<div className="flex items-center justify-between">
         <p className="text-xs text-text-muted">
-          {selected ? <span className="text-brand-400">"{selected.questionText.slice(0,50)}…" selected</span> : 'No question selected'}
+          {selected ? <span className="text-brand-ink">"{selected.questionText.slice(0,50)}…" selected</span> : 'No question selected'}
         </p>
         <div className="flex gap-2">
           <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
@@ -1267,7 +1267,7 @@ function QuestionPickerModal({ open, sectionId, templateId, existingQuestionIds,
             </select>
           </div>
           <div className="flex-1 overflow-y-auto rounded-card border border-border divide-y divide-border">
-            {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>}
+            {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>}
             {!isLoading && filtered.length === 0 && (
               <div className="flex flex-col items-center justify-center py-10">
                 <BookOpen size={20} className="text-text-muted mb-2" />
@@ -1284,13 +1284,13 @@ function QuestionPickerModal({ open, sectionId, templateId, existingQuestionIds,
                     <Badge value={q.responseType} label={TYPE_LABEL[q.responseType]} colorTag={TYPE_COLOR[q.responseType] || 'gray'} />
                     {q.optionsLinked > 0 && <span className="text-[10px] text-text-muted">{q.optionsLinked} options</span>}
                     {q.questionTag && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] bg-brand-500/8 text-brand-400 border border-brand-500/20">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] bg-brand-500/8 text-brand-ink border border-brand-500/20">
                         {q.questionTag}
                       </span>
                     )}
                   </div>
                 </div>
-                {selected?.questionId === q.questionId && <CheckCircle2 size={14} className="text-brand-400 shrink-0 mt-0.5" />}
+                {selected?.questionId === q.questionId && <CheckCircle2 size={14} className="text-brand-ink shrink-0 mt-0.5" />}
               </button>
             ))}
           </div>

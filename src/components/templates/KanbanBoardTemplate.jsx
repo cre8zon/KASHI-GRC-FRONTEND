@@ -129,7 +129,7 @@ export function KanbanBoardTemplate({
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-48">
-      <Loader2 size={20} className="animate-spin text-brand-400" />
+      <Loader2 size={20} className="animate-spin text-brand-ink" />
     </div>
   )
 
@@ -207,7 +207,7 @@ function KanbanColumn({ col, width, children, isDragOver, canDrop, onDragOver, o
         </div>
         {onCreateClick && (
           <button onClick={onCreateClick}
-            className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+            className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
             <Plus size={12} />
           </button>
         )}

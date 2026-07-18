@@ -205,7 +205,7 @@ export default function VendorAssessmentsPage() {
                 className={cn(
                   'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
                   statusFilter === status
-                    ? 'border-brand-500 bg-brand-500/10 text-brand-400'
+                    ? 'border-brand-500 bg-brand-500/10 text-brand-ink'
                     : 'border-border bg-surface-raised text-text-muted hover:text-text-secondary'
                 )}
               >
@@ -274,7 +274,7 @@ function AssessmentDetailModal({ detail, onClose }) {
     >
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 size={22} className="text-brand-400 animate-spin" />
+          <Loader2 size={22} className="text-brand-ink animate-spin" />
         </div>
       ) : !assessment ? null : (
         <div className="flex flex-col gap-4">
@@ -319,7 +319,7 @@ function AssessmentDetailModal({ detail, onClose }) {
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-overlay transition-colors text-left"
                     >
                       <div className="w-6 h-6 rounded-ctl bg-brand-500/10 flex items-center justify-center shrink-0">
-                        <span className="text-xs font-bold text-brand-400">
+                        <span className="text-xs font-bold text-brand-ink">
                           {section.sectionOrderNo ?? sIdx + 1}
                         </span>
                       </div>
@@ -413,7 +413,7 @@ function QuestionDetailRow({ question }) {
                         className={cn(
                           'text-[11px] px-2 py-0.5 rounded border',
                           isSelected
-                            ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
+                            ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink font-medium'
                             : 'bg-surface-raised border-border text-text-muted'
                         )}
                       >

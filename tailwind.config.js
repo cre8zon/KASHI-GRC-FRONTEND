@@ -21,6 +21,8 @@ export default {
           700: 'rgb(var(--color-brand-700) / <alpha-value>)',
           800: 'rgb(var(--color-brand-800) / <alpha-value>)',
           900: 'rgb(var(--color-brand-900) / <alpha-value>)',
+          // Theme-aware brand text/icon colour — use this, never brand-300/400.
+          ink: 'rgb(var(--color-brand-ink) / <alpha-value>)',
         },
         surface: {
           DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',

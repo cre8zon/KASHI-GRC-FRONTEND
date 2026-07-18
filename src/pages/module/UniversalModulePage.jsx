@@ -436,7 +436,7 @@ function ModuleListView({ bp }) {
                 if (!bulkActions.length) return null
                 return (
                   <div className="flex items-center gap-3 px-4 py-2 mb-3 rounded-card bg-brand-500/8 border border-brand-500/20 text-xs">
-                    <span className="text-brand-400 font-medium">{selectedIds.length} selected</span>
+                    <span className="text-brand-ink font-medium">{selectedIds.length} selected</span>
                     <div className="flex items-center gap-2">
                       {bulkActions.map(a => (
                         <Button key={a.id} size="sm" variant="secondary" onClick={() => handleBulkAction(a)}>{a.label}</Button>
@@ -1285,7 +1285,7 @@ function ModuleDetailView({ bp, id }) {
             <>
               <button
                 onClick={navigateToList}
-                className="text-xs text-text-muted hover:text-brand-400 transition-colors shrink-0">
+                className="text-xs text-text-muted hover:text-brand-ink transition-colors shrink-0">
                 {listLabel}
               </button>
               <span className="text-text-muted/40 shrink-0">/</span>
@@ -1295,7 +1295,7 @@ function ModuleDetailView({ bp, id }) {
             <>
               <button
                 onClick={navigateToParent}
-                className="text-xs text-text-muted hover:text-brand-400 transition-colors truncate max-w-[140px]"
+                className="text-xs text-text-muted hover:text-brand-ink transition-colors truncate max-w-[140px]"
                 title={breadcrumbParentLabel}>
                 {breadcrumbParentLabel}
               </button>
@@ -1343,9 +1343,9 @@ function ModuleDetailView({ bp, id }) {
       {taskId && (
         <div className="mx-6 mt-4 flex items-center gap-3 px-3 py-2.5 rounded-card
                         bg-brand-500/8 border border-brand-500/20 text-xs">
-          <CheckSquare size={13} className="text-brand-400 shrink-0" />
+          <CheckSquare size={13} className="text-brand-ink shrink-0" />
           <div className="flex-1 min-w-0">
-            <span className="text-brand-400 font-medium">Task #{taskId}</span>
+            <span className="text-brand-ink font-medium">Task #{taskId}</span>
             {vc.stepLabel && (
               <span className="text-text-muted ml-1.5">· {vc.stepLabel}</span>
             )}
@@ -1378,7 +1378,7 @@ function ModuleDetailView({ bp, id }) {
             className={cn(
               'shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-md transition-colors border-b-2 -mb-px',
               tab === t.key
-                ? 'border-brand-500 text-brand-400 bg-brand-500/5'
+                ? 'border-brand-500 text-brand-ink bg-brand-500/5'
                 : 'border-transparent text-text-muted hover:text-text-secondary hover:bg-surface-overlay'
             )}>
             <t.icon size={12} /> {t.label}
@@ -2096,7 +2096,7 @@ function IssueFindingsTab({ issueId }) {
                 </span>
               )}
               {f.status && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400">
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-ink">
                   {f.status}
                 </span>
               )}
@@ -2169,7 +2169,7 @@ function HistoryTab({ entityType, entityId, apiBasePath }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-text-primary">{label}</span>
-                  {step && <span className="text-brand-400 text-[10px] bg-brand-500/10 px-1.5 py-0.5 rounded">{step}</span>}
+                  {step && <span className="text-brand-ink text-[10px] bg-brand-500/10 px-1.5 py-0.5 rounded">{step}</span>}
                   {transition && <span className="text-text-muted text-[10px]">{transition}</span>}
                 </div>
                 <div className="flex items-center gap-3 mt-0.5">
@@ -2299,7 +2299,7 @@ function FieldDisplay({ label, value, type, editable, field = {} }) {
       case 'URL':
         return (
           <a href={String(value)} target="_blank" rel="noopener noreferrer"
-            className="text-sm text-brand-400 hover:underline truncate block max-w-full">
+            className="text-sm text-brand-ink hover:underline truncate block max-w-full">
             {String(value)}
           </a>
         )
@@ -2319,7 +2319,7 @@ function FieldDisplay({ label, value, type, editable, field = {} }) {
         return (
           <div className="flex flex-wrap gap-1">
             {items.map(tag => (
-              <span key={tag} className="px-2 py-0.5 rounded bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[11px] font-medium">
+              <span key={tag} className="px-2 py-0.5 rounded bg-brand-500/10 border border-brand-500/20 text-brand-ink text-[11px] font-medium">
                 {tag}
               </span>
             ))}
@@ -2356,7 +2356,7 @@ function FieldDisplay({ label, value, type, editable, field = {} }) {
           <div className="flex flex-col gap-1">
             {files.map((f, i) => (
               <a key={i} href={typeof f === 'string' ? f : f.url} target="_blank" rel="noopener noreferrer"
-                className="text-xs text-brand-400 hover:underline">
+                className="text-xs text-brand-ink hover:underline">
                 {typeof f === 'string' ? f.split('/').pop() : (f.name || f.url || 'File')}
               </a>
             ))}
@@ -2779,7 +2779,7 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
             </div>
             <div className="flex items-center gap-1 shrink-0">
               <button onClick={onOpenFull}
-                className="flex items-center gap-1.5 text-[11px] text-brand-400 hover:text-brand-300
+                className="flex items-center gap-1.5 text-[11px] text-brand-ink hover:text-brand-ink
                            border border-brand-500/25 hover:border-brand-500/50 rounded-ctl
                            px-2.5 py-1.5 transition-colors font-medium">
                 <ExternalLink size={11} /> Full page
@@ -2834,7 +2834,7 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
                 'flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium whitespace-nowrap',
                 'border-b-2 -mb-px transition-colors shrink-0',
                 activeTab === tab.id
-                  ? 'border-brand-400 text-brand-400'
+                  ? 'border-brand-400 text-brand-ink'
                   : 'border-transparent text-text-muted hover:text-text-secondary'
               )}>
               {tab.label}

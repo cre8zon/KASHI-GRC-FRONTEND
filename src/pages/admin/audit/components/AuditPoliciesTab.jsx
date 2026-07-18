@@ -107,14 +107,14 @@ function PolicyContentModal({ policyInstance, engagementId, onClose }) {
         {/* Content */}
         {policyInstance.contentTypeSnapshot === 'EXTERNAL_URL' ? (
           <div className="flex items-center gap-3 p-4 rounded-card border border-border bg-surface-overlay">
-            <ExternalLink size={16} className="text-brand-400 shrink-0" />
+            <ExternalLink size={16} className="text-brand-ink shrink-0" />
             <div>
               <p className="text-sm text-text-primary">External policy document</p>
               <a
                 href={fullPolicy?.externalUrlSnapshot ?? policyInstance.externalUrlSnapshot}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-brand-400 hover:underline break-all"
+                className="text-xs text-brand-ink hover:underline break-all"
               >
                 {fullPolicy?.externalUrlSnapshot ?? policyInstance.externalUrlSnapshot}
               </a>
@@ -122,7 +122,7 @@ function PolicyContentModal({ policyInstance, engagementId, onClose }) {
           </div>
         ) : policyInstance.contentTypeSnapshot === 'PDF_UPLOAD' ? (
           <div className="flex items-center gap-3 p-4 rounded-card border border-border bg-surface-overlay">
-            <FileText size={16} className="text-brand-400 shrink-0" />
+            <FileText size={16} className="text-brand-ink shrink-0" />
             <div>
               <p className="text-sm text-text-primary">PDF policy document</p>
               <p className="text-xs text-text-muted">View via the Evidence tab</p>
@@ -221,7 +221,7 @@ function PolicyRow({ policy, engagementId, access }) {
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={e => { e.stopPropagation(); setViewPolicy(true) }}
-            className="flex items-center gap-1 text-[10px] text-brand-400 border border-brand-500/30 rounded px-2 py-1 hover:bg-brand-500/10 transition-colors"
+            className="flex items-center gap-1 text-[10px] text-brand-ink border border-brand-500/30 rounded px-2 py-1 hover:bg-brand-500/10 transition-colors"
           >
             <Eye size={10} /> View
           </button>
@@ -361,7 +361,7 @@ export default function AuditPoliciesTab({ control, engagementId, access }) {
       {/* Coverage summary */}
       {policyList.length > 0 && (
         <div className="flex items-start gap-2 p-3 rounded-card border border-border bg-surface-overlay text-xs text-text-secondary">
-          <FileText size={14} className="text-brand-400 shrink-0 mt-0.5" />
+          <FileText size={14} className="text-brand-ink shrink-0 mt-0.5" />
           <div>
             <span className="font-medium text-text-primary">{policyList.length} policy{policyList.length !== 1 ? 'ies' : ''}</span>
             {' '}cover this control.{' '}

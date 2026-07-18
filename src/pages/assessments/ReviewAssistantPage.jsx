@@ -246,7 +246,7 @@ function QuestionEvalCard({ question, assessmentId, evaluation, onEvaluate, task
                     <span key={o.optionInstanceId}
                       className={cn('text-xs px-2 py-0.5 rounded border',
                         o.optionInstanceId === resp.selectedOptionInstanceId
-                          ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
+                          ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink font-medium'
                           : 'border-border text-text-muted opacity-40')}>
                       {o.optionValue}
                     </span>

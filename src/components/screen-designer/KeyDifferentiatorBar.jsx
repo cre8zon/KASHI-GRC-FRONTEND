@@ -19,7 +19,7 @@ function KeyDifferentiatorBar({ screen, inline = false }) {
       ? "flex items-center gap-0 text-[10px]"
       : "flex items-center gap-0 px-4 py-1.5 border-b border-border/30 bg-surface-secondary shrink-0 text-[10px] flex-wrap gap-y-1"}>
       {[
-        { label: 'itemScreenKey',    value: itemKey,    color: 'text-brand-400 bg-brand-500/10 border-brand-500/20' },
+        { label: 'itemScreenKey',    value: itemKey,    color: 'text-brand-ink bg-brand-500/10 border-brand-500/20' },
         { label: 'sectionScreenKey', value: sectionKey, color: 'text-status-tag-fg bg-status-tag-bg border-status-tag-bd' },
         { label: 'formKey',          value: formKey,    color: 'text-status-warn-fg bg-status-warn-bg border-status-warn-bd' },
       ].map(({ label, value, color }) => (

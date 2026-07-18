@@ -264,7 +264,7 @@ export default function GuardRulesAdminPage() {
           { label: 'Total Rules',  value: rules.length,  color: 'text-text-primary' },
           { label: 'Active',       value: activeCount,   color: 'text-status-pass-fg' },
           { label: 'Inactive',     value: inactiveCount, color: 'text-text-muted' },
-          { label: 'Unique Tags',  value: new Set(rules.map(r=>r.questionTag)).size, color: 'text-brand-400' },
+          { label: 'Unique Tags',  value: new Set(rules.map(r=>r.questionTag)).size, color: 'text-brand-ink' },
         ].map(s => (
           <div key={s.label} className="p-3 rounded-card border border-border bg-surface-raised text-center">
             <p className={cn('text-2xl font-bold', s.color)}>{s.value}</p>
@@ -285,7 +285,7 @@ export default function GuardRulesAdminPage() {
           {['ALL','ACTIVE','INACTIVE'].map(f => (
             <button key={f} onClick={() => setActiveFilter(f)}
               className={cn('text-xs px-3 py-1 rounded-ctl transition-colors',
-                activeFilter === f ? 'bg-brand-500/10 text-brand-400 font-medium' : 'text-text-muted hover:text-text-secondary')}>
+                activeFilter === f ? 'bg-brand-500/10 text-brand-ink font-medium' : 'text-text-muted hover:text-text-secondary')}>
               {f}
             </button>
           ))}
@@ -319,7 +319,7 @@ export default function GuardRulesAdminPage() {
                 return (
                   <tr key={rule.id} className={cn('hover:bg-surface-overlay/40 transition-colors', !rule.isActive && 'opacity-50')}>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-xs bg-brand-500/10 text-brand-400">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-xs bg-brand-500/10 text-brand-ink">
                         {rule.questionTag}
                       </span>
                     </td>
@@ -338,7 +338,7 @@ export default function GuardRulesAdminPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="font-mono text-[11px] text-brand-400">{rule.blueprintCode}</p>
+                      <p className="font-mono text-[11px] text-brand-ink">{rule.blueprintCode}</p>
                       <p className="text-[10px] text-text-muted truncate max-w-[160px]">{rule.blueprintTitle}</p>
                     </td>
                     <td className="px-4 py-3">
@@ -365,7 +365,7 @@ export default function GuardRulesAdminPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
                         <button onClick={() => setEditTarget(rule)}
-                          className="p-1.5 rounded hover:bg-surface-overlay text-text-muted hover:text-brand-400 transition-colors">
+                          className="p-1.5 rounded hover:bg-surface-overlay text-text-muted hover:text-brand-ink transition-colors">
                           <Pencil size={12} />
                         </button>
                         {!rule.isGlobal && (

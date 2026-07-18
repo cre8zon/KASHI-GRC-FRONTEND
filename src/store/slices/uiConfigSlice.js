@@ -58,15 +58,24 @@ export function applyBranding(branding, { force = false } = {}) {
   if (branding.primaryColor && !skipBrandColor) {
     const rgb = hexToRgb(branding.primaryColor)
     if (rgb) {
+      // Cache the winning colour so the boot-time script in index.html can
+      // paint it before React on the NEXT reload — eliminating the flash of
+      // the default sidebar/mesh. (Previously only cached under a narrow
+      // sidebarTheme condition below, so most users never got the cache.)
+      try { localStorage.setItem('kashi_sidebar_color', branding.primaryColor) } catch {}
       const scale = generateScale(rgb)
       Object.entries(scale).forEach(([shade, value]) => {
         root.style.setProperty(`--color-brand-${shade}`, value)
       })
-      // Keep the pastel wash in step with the brand colour. Without this a
-      // white-labelled tenant gets its own hue on the default sage wash.
-      root.style.setProperty('--wash-a', `rgb(${scale[100]})`)
-      root.style.setProperty('--wash-b', `rgb(${scale[50]})`)
-      root.style.setProperty('--wash-c', `rgb(${scale[200]})`)
+      // Derive the LIGHT mesh from the brand scale so the background follows
+      // whatever colour is applied (preset, tenant branding, live preview).
+      // Previously this set --wash-a/b/c, which no longer exist since the move
+      // to the 4-blob mesh — so the mesh never updated. Dark theme keeps its
+      // own fixed dim mesh via [data-theme="dark"] body in index.html.
+      root.style.setProperty('--mesh-1', `rgb(${scale[400]})`)
+      root.style.setProperty('--mesh-2', `rgb(${scale[200]})`)
+      root.style.setProperty('--mesh-3', `rgb(${scale[300]})`)
+      root.style.setProperty('--mesh-4', `rgb(${scale[100]})`)
     }
   }
 

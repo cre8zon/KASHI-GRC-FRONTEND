@@ -42,7 +42,7 @@ function TemplatePicker({ onClose, onApply }) {
                           <p className="text-[10px] text-text-muted mt-0.5">{tmpl.desc}</p>
                           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                             {tmpl.itemKey && (
-                              <code className="text-[9px] font-mono bg-brand-500/10 border border-brand-500/20 text-brand-400 px-1.5 py-0.5 rounded">
+                              <code className="text-[9px] font-mono bg-brand-500/10 border border-brand-500/20 text-brand-ink px-1.5 py-0.5 rounded">
                                 item: {tmpl.itemKey}
                               </code>
                             )}
@@ -58,7 +58,7 @@ function TemplatePicker({ onClose, onApply }) {
                             )}
                           </div>
                         </div>
-                        <ArrowRight size={13} className="text-text-muted group-hover:text-brand-400 transition-colors shrink-0 mt-1" />
+                        <ArrowRight size={13} className="text-text-muted group-hover:text-brand-ink transition-colors shrink-0 mt-1" />
                       </button>
                     )
                   })}

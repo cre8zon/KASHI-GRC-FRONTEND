@@ -166,7 +166,7 @@ export default function VendorAssessmentAcknowledgePage() {
         <Card>
           <CardBody>
             <div className="flex items-start gap-3">
-              <Users size={16} className="text-brand-400 shrink-0 mt-0.5" />
+              <Users size={16} className="text-brand-ink shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-text-primary">What happens after acknowledgement</p>
                 <p className="text-xs text-text-muted mt-1">

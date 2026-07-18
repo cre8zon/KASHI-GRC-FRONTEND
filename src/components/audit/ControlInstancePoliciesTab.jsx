@@ -96,7 +96,7 @@ export function ControlInstancePoliciesTab({ controlInstanceId, vc = {} }) {
               <FileText size={10} className="text-text-muted shrink-0"/>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="font-mono text-[9px] text-brand-400 shrink-0">{p.policyRefSnapshot}</span>
+                  <span className="font-mono text-[9px] text-brand-ink shrink-0">{p.policyRefSnapshot}</span>
                   <span className="text-[9px] text-text-muted">v{p.versionSnapshot}</span>
                   <span className={cn('text-[8px] px-1 rounded', rv.color, rv.bg)}>{rv.label}</span>
                 </div>

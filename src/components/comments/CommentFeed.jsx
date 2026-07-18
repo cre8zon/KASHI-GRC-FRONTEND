@@ -26,7 +26,7 @@ const TYPE_CONFIG = {
 
 const VISIBILITY_CONFIG = {
   INTERNAL:        { icon: Lock,   color: 'text-status-tag-fg', label: 'Org internal'    },
-  VENDOR_INTERNAL: { icon: Lock,   color: 'text-brand-400',   label: 'Vendor internal' },
+  VENDOR_INTERNAL: { icon: Lock,   color: 'text-brand-ink',   label: 'Vendor internal' },
   CISO_ONLY:       { icon: Shield, color: 'text-status-tag-fg', label: 'CISO only'       },
 }
 
@@ -121,7 +121,7 @@ function RevisionReplyThread({ comment, questionInstanceId }) {
           <div className="flex justify-end">
             <button type="button" disabled={!draft.trim() || isPending}
               onClick={() => post()}
-              className="text-[10px] font-medium px-2 py-1 rounded bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 transition-colors disabled:opacity-40">
+              className="text-[10px] font-medium px-2 py-1 rounded bg-brand-500/20 text-brand-ink hover:bg-brand-500/30 transition-colors disabled:opacity-40">
               {isPending ? 'Sending…' : 'Send'}
             </button>
           </div>
@@ -156,7 +156,7 @@ function CommentBubble({ comment, onResolve, currentUserId, questionInstanceId }
     <div className={cn('rounded-card px-3 py-2.5 space-y-1.5', tc.bg)}>
       <div className="flex items-center gap-2 flex-wrap">
         <div className="w-5 h-5 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-          <span className="text-[9px] font-bold text-brand-400">
+          <span className="text-[9px] font-bold text-brand-ink">
             {(comment.createdByName || '?')[0].toUpperCase()}
           </span>
         </div>

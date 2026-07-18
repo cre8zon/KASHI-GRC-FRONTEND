@@ -229,7 +229,7 @@ function LoadingSpinner({ label }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)]">
       <div className="flex flex-col items-center gap-3">
-        <Loader2 size={28} className="animate-spin text-brand-400" />
+        <Loader2 size={28} className="animate-spin text-brand-ink" />
         <p className="text-xs text-text-muted">{label}</p>
       </div>
     </div>
@@ -307,7 +307,7 @@ export function DocumentPreviewDrawer({ document: doc, open, onClose }) {
             {doc.fileName} cannot be previewed. Download the file to open it.
           </p>
           <DownloadButton documentId={doc.documentId} fileName={doc.fileName}
-            className="flex items-center gap-2 text-xs text-brand-400 hover:text-brand-300 transition-colors mt-1">
+            className="flex items-center gap-2 text-xs text-brand-ink hover:text-brand-ink transition-colors mt-1">
             <Download size={13} />
             Download file
           </DownloadButton>

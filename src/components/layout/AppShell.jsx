@@ -15,10 +15,12 @@ export function AppShell() {
   useNotificationToast()  // Show toast when new notifications arrive
   const { status, retryNow, nextRetryIn, retryCount } = useServerStatus()
 
-  if (isLoading) return <PageSkeleton />
-
   // No background here: the pastel wash lives on <body>. An opaque surface at
   // this level would cover it and leave the glass chrome with nothing to blur.
+  //
+  // The chrome (sidebar + top bar) renders IMMEDIATELY, even while bootstrap is
+  // loading — only the content area shows a skeleton. Previously the whole app
+  // was replaced by a bare skeleton on every reload, which flashed blank.
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       {/* Server status banner — slides in above everything when server is down */}
@@ -34,7 +36,7 @@ export function AppShell() {
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
           <TopNav onMenuToggle={() => setCollapsed(o => !o)} />
           <TabBar />
-          <TabContentRenderer />
+          {isLoading ? <PageSkeleton /> : <TabContentRenderer />}
         </div>
       </div>
     </div>

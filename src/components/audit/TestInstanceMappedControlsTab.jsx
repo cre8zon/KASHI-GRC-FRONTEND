@@ -58,7 +58,7 @@ export function TestInstanceMappedControlsTab({ testInstanceId, testResult, vc =
     <div className="flex flex-col h-full">
       {/* Info banner */}
       <div className="mx-3 mt-3 mb-1 flex items-start gap-2 px-3 py-2 bg-brand-500/5 border border-brand-500/20 rounded-card text-[10px] text-text-secondary">
-        <Info size={12} className="text-brand-400 shrink-0 mt-0.5"/>
+        <Info size={12} className="text-brand-ink shrink-0 mt-0.5"/>
         <span>
           This test covers <strong className="text-text-primary">{controls.length} controls</strong>.
           {testResult === 'PASS'
@@ -84,7 +84,7 @@ export function TestInstanceMappedControlsTab({ testInstanceId, testResult, vc =
             <CheckSquare size={10} className="text-text-muted shrink-0"/>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="font-mono text-[9px] text-brand-400 shrink-0">{c.controlCodeSnapshot}</span>
+                <span className="font-mono text-[9px] text-brand-ink shrink-0">{c.controlCodeSnapshot}</span>
                 {c.isRequired
                   ? <span className="text-[8px] text-status-fail-fg shrink-0">required</span>
                   : <span className="text-[8px] text-text-muted shrink-0">advisory</span>}

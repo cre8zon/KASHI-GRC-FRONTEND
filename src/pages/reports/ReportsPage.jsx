@@ -31,11 +31,11 @@ import { auditApi }    from '../../api/audit.api'
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const STATUS_COLOR = {
   COMPLETED:   'text-status-pass-fg',
-  IN_PROGRESS: 'text-brand-400',
+  IN_PROGRESS: 'text-brand-ink',
   PENDING:     'text-text-muted',
   CANCELLED:   'text-status-fail-fg',
   PLANNING:    'text-text-muted',
-  FIELDWORK:   'text-brand-400',
+  FIELDWORK:   'text-brand-ink',
   CLOSED:      'text-status-pass-fg',
 }
 
@@ -60,7 +60,7 @@ const MODULE_REGISTRY = [
     label:       'Third-Party Risk',
     sublabel:    'Vendor assessments & compliance',
     icon:        Shield,
-    color:       'text-brand-400',
+    color:       'text-brand-ink',
     bg:          'bg-brand-500/10 border-brand-500/20',
     activeBg:    'bg-brand-500/15 border-brand-500/40',
     status:      'live',
@@ -191,11 +191,11 @@ function TPRMStats({ assessments }) {
     : null
 
   const stats = [
-    { label: 'Assessments',     value: total,           color: 'text-brand-400',  icon: FileText },
+    { label: 'Assessments',     value: total,           color: 'text-brand-ink',  icon: FileText },
     { label: 'Critical',        value: byRisk.CRITICAL, color: 'text-status-fail-fg',    icon: XCircle },
     { label: 'High risk',       value: byRisk.HIGH,     color: 'text-status-warn-fg', icon: AlertTriangle },
     { label: 'Low / Medium',    value: (byRisk.LOW||0)+(byRisk.MEDIUM||0), color: 'text-status-pass-fg', icon: CheckCircle2 },
-    { label: 'Avg compliance',  value: avgPct != null ? `${avgPct}%` : '—', color: 'text-brand-400', icon: Activity },
+    { label: 'Avg compliance',  value: avgPct != null ? `${avgPct}%` : '—', color: 'text-brand-ink', icon: Activity },
     { label: 'Open remediations', value: openRem, color: openRem > 0 ? 'text-status-warn-fg' : 'text-status-pass-fg', icon: Clock },
   ]
 
@@ -311,7 +311,7 @@ function TPRMPanel({ module }) {
             <button key={r} onClick={() => setRisk(r)}
               className={cn('text-[10px] font-medium px-2.5 py-1.5 rounded-card border transition-colors capitalize',
                 riskFilter === r
-                  ? 'bg-brand-500/15 border-brand-500/40 text-brand-400'
+                  ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
                   : 'border-border text-text-muted hover:text-text-secondary hover:border-brand-500/20')}>
               {r === 'all' ? 'All' : r.charAt(0) + r.slice(1).toLowerCase()}
             </button>
@@ -360,7 +360,7 @@ function AuditStats({ engagements }) {
 
   const stats = [
     { label: 'Engagements',    value: total,                           color: 'text-status-tag-fg', icon: BookOpen },
-    { label: 'Active',         value: active,                          color: 'text-brand-400',  icon: Activity },
+    { label: 'Active',         value: active,                          color: 'text-brand-ink',  icon: Activity },
     { label: 'Completed',      value: closed,                          color: 'text-status-pass-fg',  icon: CheckCircle2 },
     { label: 'Open findings',  value: findings,                        color: findings > 0 ? 'text-status-warn-fg' : 'text-status-pass-fg', icon: AlertTriangle },
     { label: 'Avg compliance', value: avgPassed != null ? `${avgPassed}%` : '—', color: 'text-status-tag-fg', icon: BarChart2 },
@@ -553,7 +553,7 @@ function ComingSoonPanel({ module }) {
       <p className="text-sm text-text-muted mb-4 max-w-xs">{module.sublabel}</p>
       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
         bg-surface-overlay border border-border text-[11px] text-text-muted">
-        <Sparkles size={10} className="text-brand-400"/>
+        <Sparkles size={10} className="text-brand-ink"/>
         Coming soon — module in development
       </div>
     </div>
@@ -614,7 +614,7 @@ function ProgrammeInstanceCard({ instance, module }) {
   const status   = instance.status ?? 'IN_PROGRESS'
 
   const STATUS_COLOR = {
-    IN_PROGRESS: 'text-brand-400 bg-brand-500/10 border-brand-500/20',
+    IN_PROGRESS: 'text-brand-ink bg-brand-500/10 border-brand-500/20',
     COMPLETED:   'text-status-pass-fg bg-status-pass-bg border-status-pass-bd',
     ON_HOLD:     'text-status-warn-fg bg-status-warn-bg border-status-warn-bd',
     CANCELLED:   'text-status-fail-fg bg-status-fail-bg border-status-fail-bd',
@@ -715,7 +715,7 @@ function ProgrammesPanel({ module }) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
           { label: 'Programmes',   value: instances.length, color: 'text-status-tag-fg', icon: FolderKanban },
-          { label: 'Active',       value: active,           color: 'text-brand-400',  icon: Activity },
+          { label: 'Active',       value: active,           color: 'text-brand-ink',  icon: Activity },
           { label: 'Completed',    value: completed,        color: 'text-status-pass-fg',  icon: CheckCircle2 },
           { label: 'Avg compliance', value: totalCtrl > 0 ? `${Math.round(passedCtrl / totalCtrl * 100)}%` : '—', color: 'text-status-tag-fg', icon: BarChart2 },
         ].map(s => (

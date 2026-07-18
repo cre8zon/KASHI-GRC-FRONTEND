@@ -168,7 +168,7 @@ function makeTemplateMutations() {
 // ─── Guard tag badge (same visual as question library) ────────────────────────
 
 const GuardTagBadge = ({ tag }) => tag
-  ? <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[10px] bg-brand-500/10 text-brand-400 border border-brand-500/20">{tag}</span>
+  ? <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[10px] bg-brand-500/10 text-brand-ink border border-brand-500/20">{tag}</span>
   : <span className="text-[10px] text-text-muted italic">—</span>
 
 // ─── Inline row action buttons ─────────────────────────────────────────────────
@@ -344,7 +344,7 @@ function SectionTreeRow({ section, depth, onEdit, onDelete, onAddChild }) {
         <td className="py-2">
           <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
             <button onClick={() => onAddChild(section)} title="Add child section"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
               <Plus size={12} />
             </button>
             <button onClick={() => onEdit(section)} title="Edit"
@@ -606,7 +606,7 @@ export default function AuditLibraryPage() {
           </button>
           {row.status === 'DRAFT'
             ? <button onClick={() => TM.publish.mutate(row.id)} title="Publish"
-                className="h-6 px-2 text-[10px] rounded text-brand-400 hover:bg-brand-500/10 transition-colors">
+                className="h-6 px-2 text-[10px] rounded text-brand-ink hover:bg-brand-500/10 transition-colors">
                 Publish
               </button>
             : <button onClick={() => TM.unpublish.mutate(row.id)} title="Unpublish"
@@ -628,7 +628,7 @@ export default function AuditLibraryPage() {
   const BulkBar = ({ count, totalCount, label, loading, onDelete, onClear }) =>
     count === 0 ? null : (
       <div className="flex items-center gap-3 px-6 py-2.5 bg-brand-500/5 border-b border-brand-500/20">
-        <span className="text-xs font-medium text-brand-400">{count} {label} selected</span>
+        <span className="text-xs font-medium text-brand-ink">{count} {label} selected</span>
         <Button variant="ghost" size="xs" icon={Trash2}
           className="text-status-fail-fg hover:bg-status-fail-bg" loading={loading} onClick={onDelete}>
           Delete selected
@@ -698,12 +698,12 @@ export default function AuditLibraryPage() {
           return (
             <button key={key} onClick={() => handleTabChange(key)}
               className={cn('flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
-                tab === key ? 'border-brand-500 text-brand-400' : 'border-transparent text-text-muted hover:text-text-secondary')}>
+                tab === key ? 'border-brand-500 text-brand-ink' : 'border-transparent text-text-muted hover:text-text-secondary')}>
               <Icon size={14} />
               {label}
               {count != null && (
                 <span className={cn('ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono',
-                  tab === key ? 'bg-brand-500/15 text-brand-400' : 'bg-surface-overlay text-text-muted')}>
+                  tab === key ? 'bg-brand-500/15 text-brand-ink' : 'bg-surface-overlay text-text-muted')}>
                   {count}
                 </span>
               )}

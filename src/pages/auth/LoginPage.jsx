@@ -43,7 +43,7 @@ export default function LoginPage() {
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-12">
             <div className="w-9 h-9 rounded-card bg-brand-500/20 border border-brand-500/30 flex items-center justify-center">
-              <ShieldCheck size={18} className="text-brand-400" />
+              <ShieldCheck size={18} className="text-brand-ink" />
             </div>
             <span className="text-lg font-bold text-text-primary tracking-tight">KashiGRC</span>
           </div>
@@ -63,7 +63,7 @@ export default function LoginPage() {
               { label: 'Risk Score', value: '99.2%' },
             ].map(stat => (
               <div key={stat.label} className="bg-on-dark/5 rounded-card p-3 border border-border/40">
-                <p className="font-mono text-xl font-bold text-brand-300">{stat.value}</p>
+                <p className="font-mono text-xl font-bold text-brand-ink">{stat.value}</p>
                 <p className="text-xs text-text-muted mt-0.5">{stat.label}</p>
               </div>
             ))}
@@ -76,7 +76,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <ShieldCheck size={20} className="text-brand-400" />
+            <ShieldCheck size={20} className="text-brand-ink" />
             <span className="font-bold text-text-primary">KashiGRC</span>
           </div>
 
@@ -112,7 +112,7 @@ export default function LoginPage() {
                 <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary uppercase tracking-wide">
                   <Lock size={11} /> Password
                 </label>
-                <a href="/auth/forgot-password" className="text-xs text-brand-400 hover:text-brand-300 transition-colors">
+                <a href="/auth/forgot-password" className="text-xs text-brand-ink hover:text-brand-ink transition-colors">
                   Forgot password?
                 </a>
               </div>
@@ -175,10 +175,10 @@ export default function LoginPage() {
           </div>
 
           <p className="text-xs text-text-muted text-center mt-6">
-            Need help? <a href="#" className="text-brand-400 hover:text-brand-300">Contact Support</a>
+            Need help? <a href="#" className="text-brand-ink hover:text-brand-ink">Contact Support</a>
           </p>
           <p className="text-[10px] text-text-muted/50 text-center mt-2">
-            Secured by <span className="text-brand-400/70">KashiGRC</span> · Enterprise GRC Platform
+            Secured by <span className="text-brand-ink/70">KashiGRC</span> · Enterprise GRC Platform
           </p>
         </div>
       </div>

@@ -76,7 +76,7 @@ function Section({ id, title, icon: Icon, children }) {
   return (
     <section id={id} className="bg-surface border border-border rounded-modal overflow-hidden">
       <div className="px-6 py-4 border-b border-border flex items-center gap-2.5">
-        {Icon && <Icon size={15} className="text-brand-400 shrink-0"/>}
+        {Icon && <Icon size={15} className="text-brand-ink shrink-0"/>}
         <h2 className="text-sm font-bold text-text-primary uppercase tracking-wide">{title}</h2>
       </div>
       <div className="px-6 py-5">{children}</div>
@@ -512,7 +512,7 @@ function ReportHeader({ assessment, onDownload, generatingPDF }) {
           </button>
           <div className="flex items-center gap-2 print:hidden">
             <button onClick={onDownload} disabled={generatingPDF}
-              className="flex items-center gap-1.5 text-xs font-medium text-brand-400
+              className="flex items-center gap-1.5 text-xs font-medium text-brand-ink
                 bg-brand-500/10 border border-brand-500/30 hover:bg-brand-500/20
                 px-4 py-2 rounded-card transition-colors disabled:opacity-60">
               <Download size={12} className={generatingPDF ? 'animate-pulse' : ''}/>
@@ -555,7 +555,7 @@ function ReportHeader({ assessment, onDownload, generatingPDF }) {
         </div>
         <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border/60 text-[11px] text-text-muted">
           <span className="flex items-center gap-1">
-            <Circle size={6} className={assessment?.status === 'COMPLETED' ? 'fill-status-pass-fg text-status-pass-fg' : 'fill-brand-400 text-brand-400'}/>
+            <Circle size={6} className={assessment?.status === 'COMPLETED' ? 'fill-status-pass-fg text-status-pass-fg' : 'fill-brand-ink text-brand-ink'}/>
             {assessment?.status}
           </span>
           {(assessment?.completedAt || assessment?.submittedAt) && (
@@ -590,7 +590,7 @@ function ExecutiveSummary({ sections, assessment }) {
 
   const stats = [
     { label: 'Total questions',   value: total,    icon: Hash,          color: 'text-text-secondary' },
-    { label: 'Answered',          value: answered, icon: FileText,      color: 'text-brand-400'      },
+    { label: 'Answered',          value: answered, icon: FileText,      color: 'text-brand-ink'      },
     { label: 'Pass',              value: pass,     icon: CheckCircle2,  color: 'text-status-pass-fg'      },
     { label: 'Partial',           value: partial,  icon: Minus,         color: 'text-status-warn-fg'      },
     { label: 'Fail',              value: fail,     icon: XCircle,       color: 'text-status-fail-fg'        },
@@ -692,7 +692,7 @@ function Findings({ assessment, isAdmin, onUpdate }) {
         </p>
         {isAdmin && (
           <button onClick={handleEdit}
-            className="shrink-0 text-[11px] text-brand-400 border border-brand-500/30 hover:bg-brand-500/10 px-2.5 py-1 rounded-card transition-colors">
+            className="shrink-0 text-[11px] text-brand-ink border border-brand-500/30 hover:bg-brand-500/10 px-2.5 py-1 rounded-card transition-colors">
             + Add findings
           </button>
         )}
@@ -715,7 +715,7 @@ function Findings({ assessment, isAdmin, onUpdate }) {
       {isAdmin && !editing && (
         <div className="flex justify-end mb-3">
           <button onClick={handleEdit}
-            className="text-[11px] text-brand-400 border border-brand-500/30 hover:bg-brand-500/10 px-2.5 py-1 rounded-card transition-colors">
+            className="text-[11px] text-brand-ink border border-brand-500/30 hover:bg-brand-500/10 px-2.5 py-1 rounded-card transition-colors">
             ✏ Edit findings
           </button>
         </div>
@@ -733,7 +733,7 @@ function Findings({ assessment, isAdmin, onUpdate }) {
             <button onClick={() => setEditing(false)}
               className="text-xs text-text-muted hover:text-text-secondary px-3 py-1.5 rounded-card border border-border transition-colors">Cancel</button>
             <button onClick={handleSave} disabled={saving}
-              className="text-xs font-medium text-brand-400 bg-brand-500/10 border border-brand-500/30 hover:bg-brand-500/20 px-3 py-1.5 rounded-card transition-colors disabled:opacity-50">
+              className="text-xs font-medium text-brand-ink bg-brand-500/10 border border-brand-500/30 hover:bg-brand-500/20 px-3 py-1.5 rounded-card transition-colors disabled:opacity-50">
               {saving ? 'Saving…' : 'Save findings'}
             </button>
           </div>
@@ -746,7 +746,7 @@ function Findings({ assessment, isAdmin, onUpdate }) {
             <div key={i} className="border border-border rounded-card overflow-hidden">
               {sec.header && (
                 <div className="px-4 py-2 bg-surface-overlay border-b border-border flex items-center gap-2">
-                  <User size={11} className="text-brand-400 shrink-0"/>
+                  <User size={11} className="text-brand-ink shrink-0"/>
                   <span className="text-xs font-semibold text-text-primary">{sec.header}</span>
                 </div>
               )}
@@ -797,7 +797,7 @@ function QuestionDetail({ sections }) {
                         const opts = (q.options||[]).filter(o=>ids.has(Number(o.optionInstanceId)))
                         answer = opts.length > 0
                           ? <div className="flex flex-wrap gap-1">{opts.map(o=>(
-                              <span key={o.optionInstanceId} className="text-[10px] px-2 py-0.5 rounded bg-brand-500/10 border border-brand-500/20 text-brand-300">
+                              <span key={o.optionInstanceId} className="text-[10px] px-2 py-0.5 rounded bg-brand-500/10 border border-brand-500/20 text-brand-ink">
                                 {o.optionValue}{o.score != null && <span className="opacity-60 ml-1">{o.score}pts</span>}
                               </span>))}</div>
                           : <span className="text-text-muted italic">No option selected</span>
@@ -865,7 +865,7 @@ function ActionItemsSection({ assessmentId, sections }) {
 
   const STATUS_CFG = {
     OPEN:        { color: 'text-status-warn-fg',  label: 'Open'        },
-    IN_PROGRESS: { color: 'text-brand-400',  label: 'In Progress' },
+    IN_PROGRESS: { color: 'text-brand-ink',  label: 'In Progress' },
     RESOLVED:    { color: 'text-status-pass-fg',  label: 'Resolved'    },
     DISMISSED:   { color: 'text-text-muted', label: 'Dismissed'   },
   }
@@ -975,7 +975,7 @@ function SignOffChain({ progress }) {
         {chain.map((entry, i) => (
           <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-card bg-surface-overlay border border-border">
             <div className="w-8 h-8 rounded-full bg-brand-500/20 border border-brand-500/30 flex items-center justify-center shrink-0">
-              <span className="text-xs font-bold text-brand-400">{(entry.name||'?')[0].toUpperCase()}</span>
+              <span className="text-xs font-bold text-brand-ink">{(entry.name||'?')[0].toUpperCase()}</span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-text-primary">{entry.name}</p>
@@ -1016,7 +1016,7 @@ function PageNav() {
         {NAV_SECTIONS.map(s => (
           <button key={s.id} onClick={() => scrollTo(s.id)}
             className={cn('w-full text-left text-[11px] px-3 py-1.5 rounded-card transition-colors',
-              active === s.id ? 'bg-brand-500/15 text-brand-400 font-medium' : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay/50')}>
+              active === s.id ? 'bg-brand-500/15 text-brand-ink font-medium' : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay/50')}>
             {s.label}
           </button>
         ))}

@@ -28,7 +28,7 @@ function RolesCell({ roles = [] }) {
     <div className="flex flex-wrap items-center gap-1">
       {visible.map(r => (
         <span key={r.id || r.roleId}
-          className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20 font-mono">
+          className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-ink border border-brand-500/20 font-mono">
           {r.roleName || r.name}
         </span>
       ))}
@@ -118,7 +118,7 @@ export default function UserListPage() {
       key: '__avatar', label: '', width: 36, type: 'custom',
       render: (row) => (
         <div className="w-7 h-7 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0">
-          <span className="text-[10px] font-bold text-brand-400">
+          <span className="text-[10px] font-bold text-brand-ink">
             {initials(row.fullName || row.email)}
           </span>
         </div>
@@ -142,7 +142,7 @@ export default function UserListPage() {
                 || row.email,
             })}
             title="Resend invitation email"
-            className="flex items-center gap-1 px-2 py-1 text-[11px] text-brand-400 hover:text-brand-300 hover:bg-brand-500/10 rounded-ctl transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-[11px] text-brand-ink hover:text-brand-ink hover:bg-brand-500/10 rounded-ctl transition-colors"
           >
             <Send size={11} /> Resend
           </button>

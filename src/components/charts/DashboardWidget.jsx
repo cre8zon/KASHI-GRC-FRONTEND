@@ -64,7 +64,7 @@ function WidgetContent({ widget, data, config }) {
     case 'KPI_CARD':
       return (
         <div className="flex flex-col justify-between h-full min-h-[80px]">
-          <p className="text-3xl font-semibold text-brand-400 tabular-nums tracking-tight mt-2">
+          <p className="text-3xl font-semibold text-brand-ink tabular-nums tracking-tight mt-2">
             {config.prefix}{data ?? 0}{config.suffix}
           </p>
           {config.description && (

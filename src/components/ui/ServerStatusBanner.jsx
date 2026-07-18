@@ -30,14 +30,14 @@ const CONFIG = {
   server_down: {
     icon:    ServerCrash,
     color:   'bg-status-fail-bg border-status-fail-bd',
-    dot:     'bg-status-fail-bg',
+    dot:     'bg-status-fail-fg',
     title:   'Server unreachable',
     detail:  'The backend is not responding. It may be restarting or deploying.',
   },
   degraded: {
     icon:    AlertTriangle,
     color:   'bg-status-warn-bg border-status-warn-bd',
-    dot:     'bg-status-warn-bg',
+    dot:     'bg-status-warn-fg',
     title:   'Slow connection',
     detail:  'Responses are taking longer than usual. Some actions may be delayed.',
   },

@@ -87,7 +87,7 @@ export default function TenantSuccessPage() {
           <div className="bg-surface-raised rounded-modal border border-border-subtle shadow-sm mb-5">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">
               <h2 className="font-semibold text-text-faint">🔑 Administrator Credentials</h2>
-              <button onClick={() => { navigator.clipboard.writeText(`Name: ${admin.fullName || [admin.firstName, admin.lastName].filter(Boolean).join(' ')}\nEmail: ${admin.email}\nLogin: ${loginUrl}`); toast.success('All credentials copied') }} className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-400 font-medium"><Copy size={12} /> Copy All</button>
+              <button onClick={() => { navigator.clipboard.writeText(`Name: ${admin.fullName || [admin.firstName, admin.lastName].filter(Boolean).join(' ')}\nEmail: ${admin.email}\nLogin: ${loginUrl}`); toast.success('All credentials copied') }} className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-ink font-medium"><Copy size={12} /> Copy All</button>
             </div>
             <div className="p-5 grid grid-cols-2 gap-3">
               <CopyField label="Admin Name"    value={admin.fullName || [admin.firstName, admin.lastName].filter(Boolean).join(' ')} />

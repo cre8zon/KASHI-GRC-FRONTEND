@@ -240,7 +240,7 @@ export default function BrandingAdminPage() {
                       className={cn(
                         'flex-1 flex items-center gap-2 py-2 px-3 rounded-card border text-xs font-medium transition-colors',
                         form.sidebarTheme === t.id
-                          ? 'bg-brand-500/15 border-brand-500/40 text-brand-400'
+                          ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
                           : 'border-border text-text-muted hover:text-text-primary hover:bg-surface-overlay'
                       )}>
                       <span className={cn('w-3 h-3 rounded-ctl shrink-0', t.preview)} />

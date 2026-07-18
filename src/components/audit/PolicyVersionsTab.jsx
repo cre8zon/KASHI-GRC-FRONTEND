@@ -73,7 +73,7 @@ export function PolicyVersionsTab({ entity }) {
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-text-primary truncate">{v.title}</span>
               {i === 0 && (
-                <span className="text-[10px] bg-brand-500/10 text-brand-400 border border-brand-500/20
+                <span className="text-[10px] bg-brand-500/10 text-brand-ink border border-brand-500/20
                                  rounded px-1.5 py-0.5 font-medium shrink-0">
                   Latest
                 </span>
@@ -101,7 +101,7 @@ export function PolicyVersionsTab({ entity }) {
           {(v.status === 'DRAFT' || v.status === 'UNDER_REVIEW') && (
             <button
               onClick={() => navigate(`/audit/policies/${v.id}/edit`)}
-              className="text-[11px] text-brand-400 hover:text-brand-300 border border-brand-500/25
+              className="text-[11px] text-brand-ink hover:text-brand-ink border border-brand-500/25
                          hover:border-brand-500/50 rounded px-2 py-1 transition-colors shrink-0">
               Edit
             </button>

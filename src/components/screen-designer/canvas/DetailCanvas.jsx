@@ -92,7 +92,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
   const lmc = {
     FULL_PAGE:  { ring: 'border-status-info-bd   bg-status-info-bg',   chromeBg: 'bg-status-info-bg',   chromeBorder: 'border-status-info-bd',   chromeText: 'text-status-info-fg',   label: 'Full page — navigates to a dedicated route' },
     DRAWER:     { ring: 'border-status-tag-bd bg-status-tag-bg', chromeBg: 'bg-status-tag-bg', chromeBorder: 'border-status-tag-bd', chromeText: 'text-status-tag-fg', label: 'Drawer — ~480px · slides from right' },
-    SIDE_PANEL: { ring: 'border-brand-500/20   bg-brand-500/3',   chromeBg: 'bg-brand-500/8',   chromeBorder: 'border-brand-500/15',   chromeText: 'text-brand-400',   label: 'Side panel — permanent · 33vw' },
+    SIDE_PANEL: { ring: 'border-brand-500/20   bg-brand-500/3',   chromeBg: 'bg-brand-500/8',   chromeBorder: 'border-brand-500/15',   chromeText: 'text-brand-ink',   label: 'Side panel — permanent · 33vw' },
   }[layoutMode] || { ring: 'border-status-info-bd bg-status-info-bg', chromeBg: 'bg-status-info-bg', chromeBorder: 'border-status-info-bd', chromeText: 'text-status-info-fg', label: '' }
 
   // ── Shared inner content ────────────────────────────────────────────────────
@@ -119,12 +119,12 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
                 <button key={a.id}
                   onClick={e => { e.stopPropagation(); onSelectElement({ type: 'action', id: a.id, data: a, screenKey: screen.key }) }}
                   className={cn('px-2 py-1 rounded-ctl text-[10px] font-medium border hover:scale-105 transition-all',
-                    { primary: 'bg-brand-500/10 border-brand-500/40 text-brand-400', secondary: 'bg-surface-overlay border-border text-text-secondary', danger: 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg' }[a.variant] || 'bg-surface-overlay border-border text-text-secondary')}>
+                    { primary: 'bg-brand-500/10 border-brand-500/40 text-brand-ink', secondary: 'bg-surface-overlay border-border text-text-secondary', danger: 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg' }[a.variant] || 'bg-surface-overlay border-border text-text-secondary')}>
                   {a.label}
                 </button>
               ))}
               <button onClick={e => { e.stopPropagation(); onSelectElement({ type: 'new_action', screenKey: screen.key }) }}
-                className="px-2 py-1 rounded-ctl text-[10px] text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 transition-colors">
+                className="px-2 py-1 rounded-ctl text-[10px] text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-ink transition-colors">
                 + Action
               </button>
             </div>
@@ -137,7 +137,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
                 <div key={f.id}
                   style={{ gridColumn: `span ${Math.max(3, Math.min(f.gridCols || 6, 12))}` }}
                   className="p-1.5 rounded border border-brand-500/20 bg-brand-500/5">
-                  <div className="text-brand-400 mb-0.5 font-medium">{f.label}</div>
+                  <div className="text-brand-ink mb-0.5 font-medium">{f.label}</div>
                   <div className={cn('h-2.5 rounded w-3/4',
                     f.fieldType === 'SELECT' ? 'bg-status-info-bg'
                     : f.fieldType === 'DATE'   ? 'bg-status-info-bg'
@@ -175,7 +175,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
                   onSelectElement({ type: 'tab', tab: tabDef.label, tabKey: tabDef.key, screenKey: screen.key, layout })
                 }}
                 className={cn('flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors',
-                  activeTab === tabDef.label ? 'border-brand-500 text-brand-400' : 'border-transparent text-text-muted',
+                  activeTab === tabDef.label ? 'border-brand-500 text-brand-ink' : 'border-transparent text-text-muted',
                   selectedElement?.type === 'tab' && selectedElement?.tab === tabDef.label ? 'bg-brand-500/5 rounded-t' : '')}>
                 {tabDef.label}
                 {isCap
@@ -187,7 +187,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
           })}
           <button
             onClick={() => onSelectElement({ type: 'new_detail_tab', screenKey: screen.key, layout })}
-            className="ml-1 flex items-center gap-1 px-2.5 py-1.5 -mb-px text-[10px] text-text-muted hover:text-brand-400 border border-dashed border-border/60 hover:border-brand-500/50 rounded-t transition-colors">
+            className="ml-1 flex items-center gap-1 px-2.5 py-1.5 -mb-px text-[10px] text-text-muted hover:text-brand-ink border border-dashed border-border/60 hover:border-brand-500/50 rounded-t transition-colors">
             <Plus size={10} /> Tab
           </button>
         </div>
@@ -201,7 +201,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
             <div className="flex-1">
               <p className="text-xs font-medium text-text-primary mb-1">{capInfo.label} — capability tab</p>
               <p className="text-[10px] text-text-muted leading-relaxed">{capInfo.desc}</p>
-              <p className="text-[9px] text-brand-400 mt-2">
+              <p className="text-[9px] text-brand-ink mt-2">
                 No field configuration needed — fixed React component. Configure visibility per role in the Inspector.
               </p>
             </div>
@@ -231,7 +231,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
                   <div key={f.id}
                     style={{ gridColumn: `span ${f.gridCols || 12}` }}
                     className="flex flex-col gap-1 p-1.5 rounded border border-brand-500/20 bg-brand-500/5">
-                    <div className="text-brand-400 font-medium">{f.label}</div>
+                    <div className="text-brand-ink font-medium">{f.label}</div>
                     <div className={cn('h-5 rounded border',
                       f.fieldType === 'SELECT'  ? 'bg-status-info-bg border-status-info-bd'
                       : f.fieldType === 'DATE'    ? 'bg-status-info-bg border-status-info-bd'
@@ -241,7 +241,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
                 )
               ))}
             </div>
-            <p className="text-[9px] text-brand-400 mt-3">
+            <p className="text-[9px] text-brand-ink mt-3">
               {tabFields.length} field{tabFields.length !== 1 ? 's' : ''} configured · click to edit in Inspector
             </p>
           </div>
@@ -279,7 +279,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
           className={cn('flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-semibold transition-all hover:opacity-80',
             { FULL_PAGE:  'border-status-info-bd   bg-status-info-bg   text-status-info-fg',
               DRAWER:     'border-status-tag-bd bg-status-tag-bg text-status-tag-fg',
-              SIDE_PANEL: 'border-brand-500/40   bg-brand-500/8   text-brand-400', }[layoutMode]
+              SIDE_PANEL: 'border-brand-500/40   bg-brand-500/8   text-brand-ink', }[layoutMode]
           )}>
           {layoutMode === 'FULL_PAGE'  && <Layout     size={10} />}
           {layoutMode === 'DRAWER'     && <PanelRight size={10} />}
@@ -288,7 +288,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
         </button>
         <button
           onClick={() => onSelectElement({ type: 'screen_layout_mode', screenKey: screen.key })}
-          className="ml-auto text-[9px] text-brand-400 border border-brand-500/25 rounded px-2 py-0.5 hover:bg-brand-500/5 transition-colors">
+          className="ml-auto text-[9px] text-brand-ink border border-brand-500/25 rounded px-2 py-0.5 hover:bg-brand-500/5 transition-colors">
           Change mode →
         </button>
       </div>

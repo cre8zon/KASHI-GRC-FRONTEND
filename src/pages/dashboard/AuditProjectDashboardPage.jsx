@@ -37,14 +37,14 @@ const fmt = (dt) => dt
 const pct = (n, d) => d > 0 ? Math.round((n / d) * 100) : 0
 
 const STATUS_CFG = {
-  IN_PROGRESS:  { label: 'In progress', color: 'text-brand-400',  dot: 'bg-brand-400'  },
-  COMPLETED:    { label: 'Completed',   color: 'text-status-pass-fg',  dot: 'bg-status-pass-bg'  },
-  ON_HOLD:      { label: 'On hold',     color: 'text-status-warn-fg',  dot: 'bg-status-warn-bg'  },
+  IN_PROGRESS:  { label: 'In progress', color: 'text-brand-ink',  dot: 'bg-brand-400'  },
+  COMPLETED:    { label: 'Completed',   color: 'text-status-pass-fg',  dot: 'bg-status-pass-fg'  },
+  ON_HOLD:      { label: 'On hold',     color: 'text-status-warn-fg',  dot: 'bg-status-warn-fg'  },
   PLANNING:     { label: 'Planning',    color: 'text-text-muted', dot: 'bg-text-muted/40' },
-  FIELDWORK:    { label: 'Fieldwork',   color: 'text-brand-400',  dot: 'bg-brand-400'  },
-  DRAFT_REPORT: { label: 'Draft',       color: 'text-status-warn-fg',  dot: 'bg-status-warn-bg'  },
-  CLOSED:       { label: 'Closed',      color: 'text-status-pass-fg',  dot: 'bg-status-pass-bg'  },
-  FINAL_REPORT: { label: 'Final report',color: 'text-status-tag-fg', dot: 'bg-status-tag-bg' },
+  FIELDWORK:    { label: 'Fieldwork',   color: 'text-brand-ink',  dot: 'bg-brand-400'  },
+  DRAFT_REPORT: { label: 'Draft',       color: 'text-status-warn-fg',  dot: 'bg-status-warn-fg'  },
+  CLOSED:       { label: 'Closed',      color: 'text-status-pass-fg',  dot: 'bg-status-pass-fg'  },
+  FINAL_REPORT: { label: 'Final report',color: 'text-status-tag-fg', dot: 'bg-status-tag-fg' },
 }
 
 const RESULT_CFG = {
@@ -261,7 +261,7 @@ export default function AuditProjectDashboardPage() {
       <div className="text-center">
         <AlertTriangle size={28} className="text-status-fail-fg mx-auto mb-2" />
         <p className="text-sm text-text-muted">Dashboard data unavailable</p>
-        <button onClick={() => navigate(-1)} className="mt-3 text-xs text-brand-400 underline">Go back</button>
+        <button onClick={() => navigate(-1)} className="mt-3 text-xs text-brand-ink underline">Go back</button>
       </div>
     </div>
   )

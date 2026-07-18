@@ -120,7 +120,7 @@ export function StepSectionEditor({ sections = [], onChange, stepSide }) {
             Compound task sections
           </span>
           {sections.length > 0 ? (
-            <span className="text-[10px] font-mono bg-brand-500/10 text-brand-400 px-1.5 py-0.5 rounded shrink-0">
+            <span className="text-[10px] font-mono bg-brand-500/10 text-brand-ink px-1.5 py-0.5 rounded shrink-0">
               {validCount}/{sections.length} valid · {requiredCount} required
             </span>
           ) : (
@@ -133,7 +133,7 @@ export function StepSectionEditor({ sections = [], onChange, stepSide }) {
           <button
             type="button"
             onClick={e => { e.stopPropagation(); addSection() }}
-            className="flex items-center gap-1 text-[10px] text-brand-400 hover:text-brand-300 px-1.5 py-0.5 rounded hover:bg-brand-500/10 transition-colors"
+            className="flex items-center gap-1 text-[10px] text-brand-ink hover:text-brand-ink px-1.5 py-0.5 rounded hover:bg-brand-500/10 transition-colors"
           >
             <Plus size={10} />
             Add section
@@ -158,7 +158,7 @@ export function StepSectionEditor({ sections = [], onChange, stepSide }) {
               <button
                 type="button"
                 onClick={addSection}
-                className="mt-2 text-xs text-brand-400 hover:text-brand-300 transition-colors"
+                className="mt-2 text-xs text-brand-ink hover:text-brand-ink transition-colors"
               >
                 + Add first section
               </button>
@@ -231,7 +231,7 @@ function SectionRow({ section, index, onUpdate, onRemove }) {
               onChange={e => onUpdate('completionEvent', e.target.value.toUpperCase().replace(/[\s-]+/g, '_'))}
               placeholder="ASSESSMENT_SUBMITTED"
               list={`ce-suggestions-${index}`}
-              className="h-7 w-full rounded border border-border bg-surface-raised px-2 text-xs font-mono text-brand-400 placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="h-7 w-full rounded border border-border bg-surface-raised px-2 text-xs font-mono text-brand-ink placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
             <datalist id={`ce-suggestions-${index}`}>
               {COMPLETION_EVENT_SUGGESTIONS.map(ev => <option key={ev} value={ev} />)}
@@ -375,7 +375,7 @@ function SectionRow({ section, index, onUpdate, onRemove }) {
                   onChange={e => onUpdate('itemRefType', e.target.value.toUpperCase().replace(/\s+/g, '_'))}
                   placeholder="CONTROL"
                   list={`irt-suggestions-${index}`}
-                  className="h-7 w-full rounded border border-border bg-surface-raised px-2 text-xs font-mono text-brand-400 placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="h-7 w-full rounded border border-border bg-surface-raised px-2 text-xs font-mono text-brand-ink placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
                 <datalist id={`irt-suggestions-${index}`}>
                   {ITEM_REF_TYPE_SUGGESTIONS.map(t => <option key={t} value={t} />)}

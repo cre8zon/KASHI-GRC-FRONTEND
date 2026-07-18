@@ -117,7 +117,7 @@ export function ListPageTemplate({
             <button onClick={() => setShowFilters(f => !f)}
               className={cn('h-7 px-2.5 flex items-center gap-1.5 text-xs rounded-ctl border transition-colors',
                 showFilters || Object.keys(activeFilters).length > 0
-                  ? 'border-brand-500 text-brand-400 bg-brand-500/10'
+                  ? 'border-brand-500 text-brand-ink bg-brand-500/10'
                   : 'border-border text-text-muted hover:border-brand-500/40')}>
               <ListFilter size={12} />
               Filters
@@ -178,7 +178,7 @@ export function ListPageTemplate({
                 render: (row) => (
                   <button onClick={(e) => { e.stopPropagation(); toggleSelect(row.id) }}
                     className="text-text-muted hover:text-text-primary transition-colors">
-                    {selectedIds.includes(row.id) ? <CheckSquare size={13} className="text-brand-400" /> : <Square size={13} />}
+                    {selectedIds.includes(row.id) ? <CheckSquare size={13} className="text-brand-ink" /> : <Square size={13} />}
                   </button>
                 )
               }, ...columns]
@@ -240,7 +240,7 @@ function FilterControl({ filter, value, onChange }) {
 export function BulkActionToolbar({ selectedCount, actions = [], onAction, onClear }) {
   return (
     <div className="flex items-center gap-3 px-4 py-2.5 bg-brand-500/10 border-b border-brand-500/20 shrink-0">
-      <span className="text-xs font-medium text-brand-400">{selectedCount} selected</span>
+      <span className="text-xs font-medium text-brand-ink">{selectedCount} selected</span>
       <div className="w-px h-4 bg-brand-500/30" />
       {actions.map(action => (
         <Button key={action.key}

@@ -96,7 +96,7 @@ function EscalateButton({ findingId, linkedIssueId, engagementId }) {
     return (
       <button
         onClick={(e) => { e.stopPropagation(); navigate(`/module/issue/${linkedIssueId}`) }}
-        className="flex items-center gap-1 text-[9px] text-brand-400 hover:underline"
+        className="flex items-center gap-1 text-[9px] text-brand-ink hover:underline"
       >
         <Link size={9} />ISS #{linkedIssueId}
       </button>
@@ -109,7 +109,7 @@ function EscalateButton({ findingId, linkedIssueId, engagementId }) {
       disabled={isPending}
       className={cn(
         'flex items-center gap-1 text-[9px] px-2 py-0.5 rounded border',
-        'border-brand-500/40 text-brand-400 bg-brand-500/5 hover:bg-brand-500/10',
+        'border-brand-500/40 text-brand-ink bg-brand-500/5 hover:bg-brand-500/10',
         'disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
       )}
     >
@@ -218,7 +218,7 @@ export function EngagementFindingsTab({ engagementId, canEscalate = true }) {
         {openCount > 0 && <span className="text-status-warn-fg">{openCount} open</span>}
         {remCount > 0  && <span className="text-status-info-fg">{remCount} in remediation</span>}
         {closedCount > 0 && <span className="text-status-pass-fg">{closedCount} closed</span>}
-        {escalatedCount > 0 && <span className="text-brand-400">{escalatedCount} escalated to issue</span>}
+        {escalatedCount > 0 && <span className="text-brand-ink">{escalatedCount} escalated to issue</span>}
         <button onClick={() => refetch()} className="ml-auto text-text-muted hover:text-text-primary">
           <RefreshCw size={11} />
         </button>
@@ -234,7 +234,7 @@ export function EngagementFindingsTab({ engagementId, canEscalate = true }) {
               className={cn(
                 'text-[10px] px-2 py-0.5 rounded-full border transition-colors whitespace-nowrap',
                 filter === f
-                  ? 'border-brand-500/60 bg-brand-500/10 text-brand-400'
+                  ? 'border-brand-500/60 bg-brand-500/10 text-brand-ink'
                   : 'border-border text-text-muted hover:text-text-primary',
               )}
             >

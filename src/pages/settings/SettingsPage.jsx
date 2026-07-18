@@ -51,7 +51,7 @@ function Tabs({ active, onChange }) {
             className={cn(
               'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors',
               active === t.id
-                ? 'border-brand-500 text-brand-400'
+                ? 'border-brand-500 text-brand-ink'
                 : 'border-transparent text-text-muted hover:text-text-secondary'
             )}>
             <Icon size={14} />
@@ -78,7 +78,7 @@ function ProfileTab({ auth, branding, userColor }) {
           <CardHeader title="Account" icon={User} />
           <CardBody className="flex flex-col gap-4">
             <div className="flex items-center gap-4 pb-4 border-b border-border">
-              <div className="w-16 h-16 rounded-card bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-2xl font-bold text-brand-300 shrink-0">
+              <div className="w-16 h-16 rounded-card bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-2xl font-bold text-brand-ink shrink-0">
                 {initials(fullName)}
               </div>
               <div className="min-w-0 flex-1">
@@ -89,7 +89,7 @@ function ProfileTab({ auth, branding, userColor }) {
                     'text-[10px] px-2 py-0.5 rounded-full font-semibold border',
                     isVendor
                       ? 'bg-status-warn-bg text-status-warn-fg border-status-warn-bd'
-                      : 'bg-brand-500/10 text-brand-400 border-brand-500/20'
+                      : 'bg-brand-500/10 text-brand-ink border-brand-500/20'
                   )}>
                     {roleSide}
                   </span>
@@ -115,7 +115,7 @@ function ProfileTab({ auth, branding, userColor }) {
               </div>
               <div className="rounded-card border border-brand-500/20 bg-brand-500/5 p-4">
                 <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">Platform</p>
-                <p className="text-base font-bold text-brand-300">{branding?.companyName || 'KashiGRC'}</p>
+                <p className="text-base font-bold text-brand-ink">{branding?.companyName || 'KashiGRC'}</p>
                 <p className="text-xs text-text-muted mt-0.5">Powered by KashiGRC</p>
               </div>
             </div>
@@ -133,7 +133,7 @@ function ProfileTab({ auth, branding, userColor }) {
               <div className="flex flex-col items-center gap-1">
                 <div className="w-10 h-10 rounded-card border-2 border-brand-500 shadow-sm"
                   style={{ background: userColor || branding?.primaryColor || DEFAULT_HEX }} />
-                <span className="text-[9px] text-brand-400 font-medium">Applied</span>
+                <span className="text-[9px] text-brand-ink font-medium">Applied</span>
               </div>
               {/* Org workspace color */}
               {userColor && userColor !== branding?.primaryColor && (
@@ -285,10 +285,10 @@ function DisplayTab({ branding }) {
                     'w-8 h-8 rounded-card flex items-center justify-center',
                     selApp === id ? 'bg-brand-500/20' : 'bg-surface-overlay'
                   )}>
-                    <Icon size={16} className={selApp === id ? 'text-brand-400' : 'text-text-muted'} />
+                    <Icon size={16} className={selApp === id ? 'text-brand-ink' : 'text-text-muted'} />
                   </div>
                   <div>
-                    <p className={cn('text-sm font-semibold', selApp === id ? 'text-brand-400' : 'text-text-primary')}>
+                    <p className={cn('text-sm font-semibold', selApp === id ? 'text-brand-ink' : 'text-text-primary')}>
                       {label}
                     </p>
                     <p className="text-[10px] text-text-muted mt-0.5">{desc}</p>
@@ -315,7 +315,7 @@ function DisplayTab({ branding }) {
                   )}>
                   <div className={cn('w-8 h-8 rounded-card shrink-0', preview)} />
                   <div>
-                    <p className={cn('text-sm font-semibold', selSidebar === id ? 'text-brand-400' : 'text-text-primary')}>
+                    <p className={cn('text-sm font-semibold', selSidebar === id ? 'text-brand-ink' : 'text-text-primary')}>
                       {label}
                     </p>
                     <p className="text-[10px] text-text-muted mt-0.5">{desc}</p>

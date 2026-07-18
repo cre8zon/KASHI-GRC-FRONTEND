@@ -27,7 +27,7 @@ function ComponentQuickAdd({ screenKey }) {
           {['DROPDOWN','BADGE','RADIO','MULTI_SELECT'].map(t => <option key={t} value={t}>{t}</option>)}
         </select>
         <button onClick={() => { if (!key) return; createMut.mutate() }}
-          className="h-7 px-2 bg-brand-500/20 text-brand-400 rounded border border-brand-500/30 text-[10px] hover:bg-brand-500/30 transition-colors">
+          className="h-7 px-2 bg-brand-500/20 text-brand-ink rounded border border-brand-500/30 text-[10px] hover:bg-brand-500/30 transition-colors">
           Add
         </button>
       </div>

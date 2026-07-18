@@ -60,9 +60,9 @@ import { formatDate } from '../../utils/format'
 // ─── Priority config ──────────────────────────────────────────────────────────
 
 const PRIORITY_CONFIG = {
-  CRITICAL: { color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg border-status-fail-bd',    dot: 'bg-status-fail-bg' },
-  HIGH:     { color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg border-status-warn-bd', dot: 'bg-status-warn-bg' },
-  MEDIUM:   { color: 'text-status-info-fg',   bg: 'bg-status-info-bg border-status-info-bd',   dot: 'bg-status-info-bg' },
+  CRITICAL: { color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg border-status-fail-bd',    dot: 'bg-status-fail-fg' },
+  HIGH:     { color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg border-status-warn-bd', dot: 'bg-status-warn-fg' },
+  MEDIUM:   { color: 'text-status-info-fg',   bg: 'bg-status-info-bg border-status-info-bd',   dot: 'bg-status-info-fg' },
   LOW:      { color: 'text-text-muted', bg: 'bg-surface-overlay border-border',    dot: 'bg-text-muted' },
 }
 
@@ -244,7 +244,7 @@ export function RecordDetailTemplate({
             className={cn(
               'flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors',
               currentTab === tab.key
-                ? 'border-brand-500 text-brand-400'
+                ? 'border-brand-500 text-brand-ink'
                 : 'border-transparent text-text-muted hover:text-text-secondary'
             )}>
             {tab.icon && <tab.icon size={12} />}
@@ -351,8 +351,8 @@ export function RecordDetailTemplate({
               {metadata.map((m, i) => (
                 <MetaRow key={i} icon={m.icon} label={m.label}>
                   {m.link
-                    ? <a href={m.link} className="text-xs text-brand-400 hover:underline">{m.value}</a>
-                    : <span className={cn('text-xs', m.mono ? 'font-mono text-brand-400' : 'text-text-primary')}>{m.value || '—'}</span>
+                    ? <a href={m.link} className="text-xs text-brand-ink hover:underline">{m.value}</a>
+                    : <span className={cn('text-xs', m.mono ? 'font-mono text-brand-ink' : 'text-text-primary')}>{m.value || '—'}</span>
                   }
                 </MetaRow>
               ))}
@@ -364,7 +364,7 @@ export function RecordDetailTemplate({
             <MetaSection title="Linked to">
               {linkedEntities.map((le, i) => (
                 <a key={i} href={le.route || `/module/${le.entityType?.toLowerCase()}/${le.id}`}
-                  className="flex items-center gap-2 py-1 text-xs text-text-muted hover:text-brand-400 transition-colors group">
+                  className="flex items-center gap-2 py-1 text-xs text-text-muted hover:text-brand-ink transition-colors group">
                   <Link2 size={11} className="shrink-0" />
                   <span className="truncate flex-1">{le.label}</span>
                   <ChevronRight size={11} className="shrink-0 opacity-0 group-hover:opacity-100" />

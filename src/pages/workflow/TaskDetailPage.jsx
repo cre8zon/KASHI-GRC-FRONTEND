@@ -274,7 +274,7 @@ export default function TaskDetailPage() {
             // The user must open the entity page to do actual work — the entity page
             // reads stepInstanceId from the URL and enforces the correct field access.
             <div className="p-4 rounded-card border border-brand-500/20 bg-brand-500/5">
-              <p className="text-sm font-medium text-brand-400 mb-1">Open the entity to complete this task</p>
+              <p className="text-sm font-medium text-brand-ink mb-1">Open the entity to complete this task</p>
               <p className="text-xs text-text-muted mb-3">
                 Your access level for this step ({task.resolvedStepAction}) has been applied.
                 Fields you can edit will be unlocked on the entity page.

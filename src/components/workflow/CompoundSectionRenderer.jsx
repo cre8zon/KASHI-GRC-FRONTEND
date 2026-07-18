@@ -352,7 +352,7 @@ function ItemCard({ item, section, taskInstanceId, viewContext, entityType, canE
           )}
           {canDelegate && !isComplete && !itemConfig.actions?.length && (
             <button onClick={() => setAssignOpen(a => !a)}
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
               <UserPlus size={12} />
             </button>
           )}
@@ -381,7 +381,7 @@ function ItemCard({ item, section, taskInstanceId, viewContext, entityType, canE
                 className={cn(
                   'h-6 px-2 text-[10px] font-medium rounded border transition-colors',
                   {
-                    primary:   'bg-brand-500/10 border-brand-500/30 text-brand-400 hover:bg-brand-500/20',
+                    primary:   'bg-brand-500/10 border-brand-500/30 text-brand-ink hover:bg-brand-500/20',
                     secondary: 'bg-surface-overlay border-border text-text-secondary hover:bg-surface-raised',
                     danger:    'bg-status-fail-bg border-status-fail-bd text-status-fail-fg hover:bg-status-fail-bg',
                   }[action.variant] || 'bg-surface-overlay border-border text-text-secondary'
@@ -532,7 +532,7 @@ function UserSearchInput({ onSelect, loading, onCancel }) {
           onClick={() => { onSelect(u.id); setQuery(''); setResults([]) }}
           disabled={loading}
           className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-ctl text-xs text-left hover:bg-surface-raised transition-colors">
-          <div className="w-5 h-5 rounded-full bg-brand-500/20 flex items-center justify-center text-[9px] font-bold text-brand-400 shrink-0">
+          <div className="w-5 h-5 rounded-full bg-brand-500/20 flex items-center justify-center text-[9px] font-bold text-brand-ink shrink-0">
             {(u.firstName?.[0] || '?').toUpperCase()}
           </div>
           <div>

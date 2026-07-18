@@ -65,7 +65,7 @@ function Stepper({ current }) {
               </div>
               <span className={cn(
                 'text-[11px] font-medium whitespace-nowrap',
-                active ? 'text-brand-400' : done ? 'text-status-pass-fg' : 'text-text-muted'
+                active ? 'text-brand-ink' : done ? 'text-status-pass-fg' : 'text-text-muted'
               )}>
                 {step.label}
               </span>
@@ -89,7 +89,7 @@ function ConfigSummary({ form, step }) {
   return (
     <div className="rounded-card border border-border bg-surface-raised p-4 sticky top-4 flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <CheckCircle2 size={14} className="text-brand-400" />
+        <CheckCircle2 size={14} className="text-brand-ink" />
         <span className="text-xs font-bold text-text-primary">Configuration Summary</span>
       </div>
 
@@ -116,7 +116,7 @@ function ConfigSummary({ form, step }) {
         <SummarySection title="Subscription">
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-text-muted">Plan</span>
-            <span className="px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 text-[10px] font-semibold border border-brand-500/20">
+            <span className="px-2 py-0.5 rounded bg-brand-500/10 text-brand-ink text-[10px] font-semibold border border-brand-500/20">
               {plan?.label}
             </span>
           </div>
@@ -186,7 +186,7 @@ function PlanCard({ plan, selected, onSelect }) {
       )}
       <div className="flex items-start justify-between mb-2">
         <h3 className="font-bold text-sm text-text-primary">{plan.label}</h3>
-        {selected && <CheckCircle2 size={16} className="text-brand-400 shrink-0" />}
+        {selected && <CheckCircle2 size={16} className="text-brand-ink shrink-0" />}
       </div>
       <div className="mb-3">
         <span className="text-2xl font-bold text-text-primary">{plan.price}</span>
@@ -370,7 +370,7 @@ export default function CreateTenantPage() {
                   </div>
                   <div className="mt-4 p-3 rounded-card bg-brand-500/5 border border-brand-500/20">
                     <p className="text-xs text-text-secondary">
-                      <span className="text-brand-400 font-semibold">Note:</span> A temporary password will be auto-generated. The admin will be required to change it on first login.
+                      <span className="text-brand-ink font-semibold">Note:</span> A temporary password will be auto-generated. The admin will be required to change it on first login.
                     </p>
                   </div>
                 </CardBody>
@@ -418,13 +418,13 @@ export default function CreateTenantPage() {
                               'w-8 h-8 rounded-card flex items-center justify-center shrink-0',
                               form[mod.key] ? 'bg-brand-500/15' : 'bg-surface-overlay'
                             )}>
-                              <Icon size={15} className={form[mod.key] ? 'text-brand-400' : 'text-text-muted'} />
+                              <Icon size={15} className={form[mod.key] ? 'text-brand-ink' : 'text-text-muted'} />
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-text-primary">{mod.label}</p>
                               <p className="text-xs text-text-muted mt-0.5">{mod.desc}</p>
                               {mod.required && (
-                                <span className="text-[10px] text-brand-400 font-medium">Required</span>
+                                <span className="text-[10px] text-brand-ink font-medium">Required</span>
                               )}
                             </div>
                           </div>

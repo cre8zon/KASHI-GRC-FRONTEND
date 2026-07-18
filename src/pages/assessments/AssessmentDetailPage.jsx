@@ -248,10 +248,10 @@ const ROLE_BANNER = {
   org_ciso:         { icon: Shield,    color: 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg',  label: 'Org CISO view — full review access with evaluations and scoring' },
   reviewer:         { icon: Eye,       color: 'bg-status-info-bg border-status-info-bd text-status-info-fg',        label: 'Reviewer view — your assigned sections with full evaluations' },
   review_assistant: { icon: Users,     color: 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg', label: 'Review Assistant view — your delegated questions for review' },
-  vendor_ciso:      { icon: Lock,      color: 'bg-brand-500/5 border-brand-500/20 text-brand-300',    label: 'Vendor CISO view — full structure and answered responses (read-only)' },
+  vendor_ciso:      { icon: Lock,      color: 'bg-brand-500/5 border-brand-500/20 text-brand-ink',    label: 'Vendor CISO view — full structure and answered responses (read-only)' },
   vendor_vrm:       { icon: UserCheck, color: 'bg-status-info-bg border-status-info-bd text-status-info-fg',       label: 'VRM view — section structure and assignment status' },
-  responder:        { icon: User,      color: 'bg-brand-500/5 border-brand-500/20 text-brand-300',    label: 'Responder view — your sections + all answered questions (read-only)' },
-  contributor:      { icon: User,      color: 'bg-brand-500/5 border-brand-500/20 text-brand-300',    label: 'Contributor view — your assigned question(s) and activity' },
+  responder:        { icon: User,      color: 'bg-brand-500/5 border-brand-500/20 text-brand-ink',    label: 'Responder view — your sections + all answered questions (read-only)' },
+  contributor:      { icon: User,      color: 'bg-brand-500/5 border-brand-500/20 text-brand-ink',    label: 'Contributor view — your assigned question(s) and activity' },
 }
 
 // ─── Primitives ───────────────────────────────────────────────────────────────
@@ -275,7 +275,7 @@ function SectionLabel({ children }) {
 function Avatar({ name, size = 'sm' }) {
   const sz = size === 'xs' ? 'w-4 h-4 text-[8px]' : 'w-6 h-6 text-[10px]'
   return (
-    <div className={cn('rounded-full bg-brand-500/15 flex items-center justify-center font-bold text-brand-400 shrink-0', sz)}>
+    <div className={cn('rounded-full bg-brand-500/15 flex items-center justify-center font-bold text-brand-ink shrink-0', sz)}>
       {initials(name)}
     </div>
   )
@@ -312,7 +312,7 @@ function ScoreGauge({ pct, size = 84 }) {
 }
 
 function StatCard({ label, value, sub, color = 'default', icon: Icon }) {
-  const num = color==='green'?'text-status-pass-fg':color==='amber'?'text-status-warn-fg':color==='red'?'text-status-fail-fg':'text-brand-400'
+  const num = color==='green'?'text-status-pass-fg':color==='amber'?'text-status-warn-fg':color==='red'?'text-status-fail-fg':'text-brand-ink'
   return (
     <Card className="p-4 flex flex-col gap-1.5 min-h-[88px]">
       <div className="flex items-center justify-between">
@@ -451,7 +451,7 @@ function QuestionComments({ questionInstanceId }) {
           className="flex-1 bg-surface border border-border rounded-card px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted/50 outline-none focus:border-brand-500/60" />
         <button onClick={()=>{ if(text.trim()){ addComment({text:text.trim()}); setText('') }}}
           disabled={!text.trim()||adding}
-          className="text-[10px] px-2.5 py-1.5 rounded-card bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 transition-colors disabled:opacity-40 font-medium">
+          className="text-[10px] px-2.5 py-1.5 rounded-card bg-brand-500/10 text-brand-ink hover:bg-brand-500/20 transition-colors disabled:opacity-40 font-medium">
           {adding?'…':'Send'}
         </button>
       </div>
@@ -531,7 +531,7 @@ function QuestionRow({ q, showScores, showReviewer, showActionItems, showComment
               return null
             })()}
             {resp?.documents?.length>0 && (
-              <span className="text-[9px] text-brand-400 flex items-center gap-0.5">
+              <span className="text-[9px] text-brand-ink flex items-center gap-0.5">
                 <Paperclip size={9}/>{resp.documents.length}
               </span>
             )}
@@ -547,7 +547,7 @@ function QuestionRow({ q, showScores, showReviewer, showActionItems, showComment
           <button
             onClick={(e) => { e.stopPropagation(); onOpenDrawer(q) }}
             title="Open collaboration drawer"
-            className="shrink-0 p-1 rounded hover:bg-surface-overlay text-text-muted/50 hover:text-brand-400 transition-colors ml-1">
+            className="shrink-0 p-1 rounded hover:bg-surface-overlay text-text-muted/50 hover:text-brand-ink transition-colors ml-1">
             <MessageSquare size={12} />
           </button>
         )}
@@ -571,7 +571,7 @@ function QuestionRow({ q, showScores, showReviewer, showActionItems, showComment
                     <div className="flex items-center gap-2">
                       <div className={cn('w-2 h-2 rounded-full shrink-0', isSel?'bg-brand-400':'bg-surface-overlay border border-border')}/>
                       {opt.optionValue}
-                      {isSel && <span className="text-[9px] font-semibold text-brand-400 bg-brand-500/10 px-1 rounded">Selected</span>}
+                      {isSel && <span className="text-[9px] font-semibold text-brand-ink bg-brand-500/10 px-1 rounded">Selected</span>}
                     </div>
                     {showScores && opt.score!=null && (
                       <span className={cn('text-[10px] font-mono font-semibold', isSel?'text-status-pass-fg':'text-text-muted/60')}>
@@ -720,7 +720,7 @@ function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawe
     <Card className="overflow-hidden">
       <button onClick={()=>setOpen(o=>!o)}
         className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-surface-overlay/40 transition-colors text-left bg-surface">
-        <div className="w-7 h-7 rounded-card bg-brand-500/10 flex items-center justify-center shrink-0 text-xs font-bold text-brand-400">
+        <div className="w-7 h-7 rounded-card bg-brand-500/10 flex items-center justify-center shrink-0 text-xs font-bold text-brand-ink">
           {idx+1}
         </div>
         <div className="flex-1 min-w-0">
@@ -829,7 +829,7 @@ function HistoryEntry({ entry }) {
   const color =
     action.includes('APPROVED')||action.includes('COMPLETED') ? 'text-status-pass-fg':
     action.includes('PENDING') ||action.includes('PROGRESS')  ? 'text-status-warn-fg':
-    action.includes('REJECTED')||action.includes('CANCELLED') ? 'text-status-fail-fg'  : 'text-brand-400'
+    action.includes('REJECTED')||action.includes('CANCELLED') ? 'text-status-fail-fg'  : 'text-brand-ink'
   return (
     <div className="flex items-start gap-3 py-2.5 border-b border-border last:border-0">
       <div className={cn('w-1.5 h-1.5 rounded-full mt-2 shrink-0', color.replace('text-','bg-'))}/>
@@ -969,7 +969,7 @@ function ActivityTab({ assessmentId }) {
 // ─── Status styles ────────────────────────────────────────────────────────────
 const TASK_STATUS_STYLE = {
   PENDING:    { label: 'Pending',     cls: 'bg-status-warn-bg text-status-warn-fg border-status-warn-bd' },
-  IN_PROGRESS:{ label: 'In Progress', cls: 'bg-brand-500/10 text-brand-400 border-brand-500/20' },
+  IN_PROGRESS:{ label: 'In Progress', cls: 'bg-brand-500/10 text-brand-ink border-brand-500/20' },
   APPROVED:   { label: 'Approved',    cls: 'bg-status-pass-bg text-status-pass-fg border-status-pass-bd' },
   REJECTED:   { label: 'Rejected',    cls: 'bg-status-fail-bg text-status-fail-fg border-status-fail-bd' },
   DELEGATED:  { label: 'Delegated',   cls: 'bg-status-tag-bg text-status-tag-fg border-status-tag-bd' },
@@ -1057,7 +1057,7 @@ function WorkflowPanel({ progressRaw, progressSummary, workflowInstanceId, asses
           {SUB_TABS.map(t => (
             <button key={t.id} onClick={() => setSubTab(t.id)}
               className={cn('text-xs px-3 py-2 border-b-2 -mb-px transition-colors',
-                subTab === t.id ? 'border-brand-500 text-brand-400 font-medium' : 'border-transparent text-text-muted hover:text-text-secondary')}>
+                subTab === t.id ? 'border-brand-500 text-brand-ink font-medium' : 'border-transparent text-text-muted hover:text-text-secondary')}>
               {t.label}
             </button>
           ))}
@@ -1251,7 +1251,7 @@ export default function AssessmentDetailPage() {
             className={cn(
               'flex items-center gap-1.5 px-4 py-3 text-[11px] font-medium border-b-2 transition-colors -mb-px whitespace-nowrap',
               tab===t.key
-                ? 'border-brand-500 text-brand-400'
+                ? 'border-brand-500 text-brand-ink'
                 : 'border-transparent text-text-muted hover:text-text-secondary'
             )}>
             <t.icon size={12}/>{t.label}

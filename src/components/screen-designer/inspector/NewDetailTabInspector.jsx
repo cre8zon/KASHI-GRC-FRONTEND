@@ -28,7 +28,7 @@ function IconPicker({ value, onChange }) {
             className={cn(
               'px-2 py-0.5 rounded text-[10px] font-mono border transition-colors',
               value === name
-                ? 'bg-brand-500/20 border-brand-500/40 text-brand-400'
+                ? 'bg-brand-500/20 border-brand-500/40 text-brand-ink'
                 : 'bg-surface-overlay border-border text-text-muted hover:text-text-secondary'
             )}>
             {name}

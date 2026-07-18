@@ -131,7 +131,7 @@ const SIDE_COLOR = {
   ORGANIZATION: 'text-status-info-fg bg-status-info-bg border-status-info-bd',
   VENDOR:       'text-status-tag-fg bg-status-tag-bg border-status-tag-bd',
   AUDITOR:      'text-status-warn-fg bg-status-warn-bg border-status-warn-bd',
-  AUDITEE:      'text-brand-400 bg-brand-500/10 border-brand-500/25',
+  AUDITEE:      'text-brand-ink bg-brand-500/10 border-brand-500/25',
   SYSTEM:       'text-text-muted bg-surface-inset border-border',
 }
 const ACTION_COLOR = {
@@ -139,7 +139,7 @@ const ACTION_COLOR = {
   REVIEW:      'text-status-tag-fg',
   APPROVE:     'text-status-pass-fg',
   ASSIGN:      'text-status-warn-fg',
-  ACKNOWLEDGE: 'text-brand-400',
+  ACKNOWLEDGE: 'text-brand-ink',
   EVALUATE:    'text-status-warn-fg',
   GENERATE:    'text-status-fail-fg',
   CUSTOM:      'text-text-muted',
@@ -329,7 +329,7 @@ function BlueprintDesignerPanel({ blueprintId, onDeleted }) {
             <span className="text-[10px] font-mono text-text-muted px-1.5 py-0.5 rounded bg-surface-overlay border border-border">
               v{bp.version}
             </span>
-            <span className="text-[10px] font-mono text-brand-400 px-1.5 py-0.5 rounded bg-brand-500/10">
+            <span className="text-[10px] font-mono text-brand-ink px-1.5 py-0.5 rounded bg-brand-500/10">
               {bp.entityType}
             </span>
           </div>
@@ -397,7 +397,7 @@ function BlueprintDesignerPanel({ blueprintId, onDeleted }) {
             className={cn(
               'flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors',
               tab === t.key
-                ? 'border-brand-500 text-brand-400'
+                ? 'border-brand-500 text-brand-ink'
                 : 'border-transparent text-text-muted hover:text-text-secondary'
             )}>
             <t.icon size={12} /> {t.label}
@@ -511,7 +511,7 @@ function StepsTab({ bp, localSteps, setLocalSteps, selectedStep, setSelectedStep
                 setLocalSteps([...steps, newStep])
                 setSelectedStep(steps.length)
               }}
-              className="flex items-center gap-2 w-full px-4 py-3 text-xs text-text-muted hover:text-brand-400 hover:bg-brand-500/5 rounded-card border border-dashed border-border hover:border-brand-500/30 transition-colors mt-3"
+              className="flex items-center gap-2 w-full px-4 py-3 text-xs text-text-muted hover:text-brand-ink hover:bg-brand-500/5 rounded-card border border-dashed border-border hover:border-brand-500/30 transition-colors mt-3"
             >
               <Plus size={13} /> Add step
             </button>
@@ -554,7 +554,7 @@ function StepTimelineRow({ step, index, total, selected, editMode, onClick, onMo
       <div className="flex flex-col items-center shrink-0 w-8">
         <div className={cn(
           'w-7 h-7 rounded-full border-2 flex items-center justify-center text-[10px] font-bold shrink-0 mt-1',
-          selected ? 'border-brand-500 bg-brand-500/15 text-brand-400' : 'border-border bg-surface-overlay text-text-muted'
+          selected ? 'border-brand-500 bg-brand-500/15 text-brand-ink' : 'border-border bg-surface-overlay text-text-muted'
         )}>
           {index + 1}
         </div>
@@ -684,7 +684,7 @@ function StepEditorPanel({ step, index, editMode, isPublished, onChange, onClose
         </div>
       )}
       {!editMode && !isPublished && (
-        <div className="flex items-center gap-2 mx-4 mt-3 px-3 py-2 rounded-card bg-brand-500/5 border border-brand-500/20 text-xs text-brand-300 shrink-0">
+        <div className="flex items-center gap-2 mx-4 mt-3 px-3 py-2 rounded-card bg-brand-500/5 border border-brand-500/20 text-xs text-brand-ink shrink-0">
           <Eye size={11} /> Viewing step — click "Edit" in the header to make changes
         </div>
       )}
@@ -844,7 +844,7 @@ function OverviewTab({ bp }) {
           { label: 'Automated', value: systemSteps, icon: Zap },
         ].map(s => (
           <div key={s.label} className="flex items-center gap-3 p-3 rounded-card border border-border bg-surface-overlay">
-            <s.icon size={16} className="text-brand-400" />
+            <s.icon size={16} className="text-brand-ink" />
             <div>
               <div className="text-sm font-semibold text-text-primary">{s.value}</div>
               <div className="text-[10px] text-text-muted">{s.label}</div>
@@ -1044,7 +1044,7 @@ function Field({ label, hint, required, children }) {
 function ReadValue({ children, mono, muted }) {
   if (!children) return <span className="text-xs text-text-muted italic">not set</span>
   return (
-    <span className={cn('text-xs', mono ? 'font-mono text-brand-400' : muted ? 'text-text-muted' : 'text-text-primary')}>
+    <span className={cn('text-xs', mono ? 'font-mono text-brand-ink' : muted ? 'text-text-muted' : 'text-text-primary')}>
       {children}
     </span>
   )

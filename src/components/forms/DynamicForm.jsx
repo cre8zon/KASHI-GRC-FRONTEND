@@ -311,7 +311,7 @@ function FormField({ field, register, control, error, config, isEditable = true 
                   <button key={opt.value} type="button" onClick={() => toggle(opt.value)}
                     className={cn('px-2 py-0.5 rounded text-[11px] font-medium border transition-colors',
                       selected.includes(opt.value)
-                        ? 'bg-brand-500/20 border-brand-500/40 text-brand-400'
+                        ? 'bg-brand-500/20 border-brand-500/40 text-brand-ink'
                         : 'bg-surface-overlay border-border text-text-muted hover:text-text-secondary')}>
                     {opt.label}
                   </button>
@@ -465,7 +465,7 @@ function FormField({ field, register, control, error, config, isEditable = true 
             return (
               <div className="rounded-ctl border border-border bg-surface-raised px-2 py-1.5 flex flex-wrap gap-1 min-h-[36px]">
                 {tags.map(tag => (
-                  <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-brand-500/15 text-brand-400 text-[11px] font-medium">
+                  <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-brand-500/15 text-brand-ink text-[11px] font-medium">
                     {tag}
                     <button type="button" onClick={() => f.onChange(tags.filter(t => t !== tag))}
                       className="hover:text-status-fail-fg transition-colors">×</button>
@@ -722,7 +722,7 @@ function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityT
     <div className="relative" ref={ref}>
       {value && display ? (
         <div className={cn('flex items-center gap-2 h-9 px-3 rounded-ctl border bg-surface-raised text-sm text-text-primary', error ? 'border-status-fail-bd' : 'border-border')}>
-          <div className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 text-[9px] font-semibold flex items-center justify-center shrink-0">
+          <div className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-ink text-[9px] font-semibold flex items-center justify-center shrink-0">
             {initials}
           </div>
           <span className="flex-1 truncate">{display}</span>
@@ -746,7 +746,7 @@ function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityT
           {results.map(item => (
             <button key={item.id} type="button" onMouseDown={() => select(item)}
               className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-surface-overlay text-left transition-colors">
-              <div className="w-6 h-6 rounded-full bg-brand-500/20 text-brand-400 text-[9px] font-semibold flex items-center justify-center shrink-0">
+              <div className="w-6 h-6 rounded-full bg-brand-500/20 text-brand-ink text-[9px] font-semibold flex items-center justify-center shrink-0">
                 {getLabel(item).split(' ').map(p => p[0]).filter(Boolean).join('').toUpperCase().slice(0,2) || '?'}
               </div>
               <div>

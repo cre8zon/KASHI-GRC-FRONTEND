@@ -236,7 +236,7 @@ function MappingRow({ item, linkedEntityType, canEdit, onUnlink }) {
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono text-text-muted">{ref}</span>
           {tag && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-brand-500/10 border border-brand-500/20 text-brand-400">
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-brand-500/10 border border-brand-500/20 text-brand-ink">
               {tag}
             </span>
           )}

@@ -110,17 +110,17 @@ const COLUMNS = [
   },
   {
     col:   'slaHours',
-    color: 'text-brand-400',
+    color: 'text-brand-ink',
     note:  'SLA in hours (48 = 2 days, 720 = 30 days). Leave blank for no SLA.',
   },
   {
     col:   'isOptional',
-    color: 'text-brand-400',
+    color: 'text-brand-ink',
     note:  'true/false. When true, step advances automatically if no items qualify.',
   },
   {
     col:   'autoApproveAssignerOnFill',
-    color: 'text-brand-400',
+    color: 'text-brand-ink',
     note:  'true/false. Auto-approves assigner task on FILL steps so inbox stays clean.',
   },
   {
@@ -322,7 +322,7 @@ export function WorkflowBlueprintImportModal({
                 <button
                   onMouseDown={(e) => { e.stopPropagation(); downloadTemplate() }}
                   className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px]
-                             text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors"
+                             text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors"
                 >
                   <Download size={11} /> SOC 2 template
                 </button>
@@ -351,7 +351,7 @@ export function WorkflowBlueprintImportModal({
                   <p className="text-[10px] font-semibold text-text-secondary">
                     sections column — pipe format per section (§ separates multiple):
                   </p>
-                  <code className="text-[10px] text-brand-400 font-mono break-all leading-relaxed">
+                  <code className="text-[10px] text-brand-ink font-mono break-all leading-relaxed">
                     {SECTION_FORMAT_NOTE}
                   </code>
                   <div className="flex flex-col gap-0.5 mt-1">
@@ -427,7 +427,7 @@ export function WorkflowBlueprintImportModal({
       {stage === 'importing' && (
         <div className="flex flex-col items-center gap-6 py-10">
           <div className="w-16 h-16 rounded-modal bg-brand-500/10 flex items-center justify-center">
-            <Loader2 size={28} className="text-brand-400 animate-spin" />
+            <Loader2 size={28} className="text-brand-ink animate-spin" />
           </div>
           <div className="text-center">
             <p className="text-sm font-semibold text-text-primary">Importing on server…</p>
@@ -498,7 +498,7 @@ export function WorkflowBlueprintImportModal({
                   entry.status === 'SUCCESS' && 'text-text-secondary',
                   entry.status === 'ERROR'   && 'text-status-fail-fg',
                   entry.status === 'WARNING' && 'text-status-warn-fg',
-                  entry.status === 'INFO'    && 'text-brand-400',
+                  entry.status === 'INFO'    && 'text-brand-ink',
                 )}>
                   {entry.status === 'SUCCESS' && <CheckCircle2 size={11} className="mt-0.5 shrink-0" />}
                   {entry.status === 'ERROR'   && <XCircle      size={11} className="mt-0.5 shrink-0" />}

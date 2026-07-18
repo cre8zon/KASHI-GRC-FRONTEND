@@ -212,7 +212,7 @@ export default function AssessmentListPage() {
         <div className="flex items-center gap-2 px-6 py-3 border-b border-border bg-surface-raised flex-wrap">
           <button onClick={() => { setStatus(''); setPage(1) }}
             className={cn('text-xs px-3 py-1 rounded-full border transition-colors',
-              !statusFilter ? 'border-brand-500 bg-brand-500/10 text-brand-400' : 'border-border text-text-muted hover:text-text-secondary')}>
+              !statusFilter ? 'border-brand-500 bg-brand-500/10 text-brand-ink' : 'border-border text-text-muted hover:text-text-secondary')}>
             All
           </button>
           {Object.entries(STATUS_CONFIG).map(([k, m]) => {
@@ -220,7 +220,7 @@ export default function AssessmentListPage() {
             return (
               <button key={k} onClick={() => { setStatus(s => s === k ? '' : k); setPage(1) }}
                 className={cn('flex items-center gap-1 text-xs px-3 py-1 rounded-full border transition-colors',
-                  statusFilter === k ? 'border-brand-500 bg-brand-500/10 text-brand-400' : 'border-border text-text-muted hover:text-text-secondary')}>
+                  statusFilter === k ? 'border-brand-500 bg-brand-500/10 text-brand-ink' : 'border-border text-text-muted hover:text-text-secondary')}>
                 {m.label}
                 <span className="font-mono">{counts[k]}</span>
               </button>

@@ -201,7 +201,7 @@ export function MentionInput({
 
       {/* @mention indicator when active */}
       {mentionQuery !== null && (
-        <span className="absolute right-2 top-2 text-[10px] text-brand-400/60 flex items-center gap-0.5 pointer-events-none">
+        <span className="absolute right-2 top-2 text-[10px] text-brand-ink/60 flex items-center gap-0.5 pointer-events-none">
           <AtSign size={10} />
           {mentionQuery || 'mention someone'}
         </span>
@@ -229,7 +229,7 @@ export function MentionInput({
                 className={cn(
                   'w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors',
                   i === selectedIdx
-                    ? 'bg-brand-500/15 text-brand-300'
+                    ? 'bg-brand-500/15 text-brand-ink'
                     : 'text-text-secondary hover:bg-surface-overlay'
                 )}>
                 <div className="w-6 h-6 rounded-full bg-surface-overlay border border-border flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-text-muted">
@@ -254,7 +254,7 @@ export function MentionInput({
         <div className="flex flex-wrap gap-1 mt-1">
           {mentionedIds.map(m => (
             <span key={m.id}
-              className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 border border-brand-500/20 text-brand-400">
+              className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 border border-brand-500/20 text-brand-ink">
               <AtSign size={8} />
               {m.name}
             </span>

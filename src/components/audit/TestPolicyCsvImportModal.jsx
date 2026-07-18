@@ -168,7 +168,7 @@ export function TestPolicyCsvImportModal({ open, onClose, onImported }) {
           {/* Format reference */}
           <div className="p-3 rounded-card bg-surface-overlay border border-border text-xs text-text-secondary space-y-1.5">
             <p className="font-semibold text-text-primary">CSV format</p>
-            <p>First column <code className="font-mono bg-brand-500/10 text-brand-400 px-1 rounded">type</code> must be <code className="font-mono">TEST</code> or <code className="font-mono">POLICY</code> — this tells the importer which table to write to.</p>
+            <p>First column <code className="font-mono bg-brand-500/10 text-brand-ink px-1 rounded">type</code> must be <code className="font-mono">TEST</code> or <code className="font-mono">POLICY</code> — this tells the importer which table to write to.</p>
             <p>TEST rows use: <code className="font-mono">name, ref, automation_type, frequency, control_tag, framework_ref, test_procedure, evidence_guidance</code></p>
             <p>POLICY rows use: <code className="font-mono">title, ref, content_type, control_tag, framework_refs</code></p>
             <p className="text-text-muted">Ref is optional — auto-generated as AT-NNN / POL-NNN if blank. Re-importing the same file is safe (upserts).</p>
@@ -177,7 +177,7 @@ export function TestPolicyCsvImportModal({ open, onClose, onImported }) {
           {/* Download example */}
           <button
             onClick={downloadExample}
-            className="w-full flex items-center gap-2 px-4 py-2.5 rounded-card border border-border hover:border-brand-500/40 hover:text-brand-400 text-text-muted text-sm transition-colors"
+            className="w-full flex items-center gap-2 px-4 py-2.5 rounded-card border border-border hover:border-brand-500/40 hover:text-brand-ink text-text-muted text-sm transition-colors"
           >
             <Download size={15} />
             Download example CSV (2 tests + 2 policies)
@@ -229,7 +229,7 @@ export function TestPolicyCsvImportModal({ open, onClose, onImported }) {
       {/* ── Stage: importing ── */}
       {stage === 'importing' && (
         <div className="py-12 flex flex-col items-center gap-4">
-          <Loader2 size={32} className="animate-spin text-brand-400" />
+          <Loader2 size={32} className="animate-spin text-brand-ink" />
           <div className="text-center">
             <p className="text-sm font-medium text-text-primary">Importing {selectedFile?.name}…</p>
             <p className="text-xs text-text-muted mt-1">Please don't close this window</p>

@@ -64,7 +64,7 @@ function TemplateGallery({ onSelect, onBlank }) {
                         {/* Key pills */}
                         <div className="flex flex-wrap gap-1">
                           {tmpl.itemKey && (
-                            <code className="text-[9px] bg-brand-500/10 border border-brand-500/20 text-brand-400 px-1.5 py-0.5 rounded">
+                            <code className="text-[9px] bg-brand-500/10 border border-brand-500/20 text-brand-ink px-1.5 py-0.5 rounded">
                               item: {tmpl.itemKey}
                             </code>
                           )}
@@ -80,7 +80,7 @@ function TemplateGallery({ onSelect, onBlank }) {
                           )}
                         </div>
                       </div>
-                      <ArrowRight size={13} className="text-text-muted group-hover:text-brand-400 transition-colors shrink-0 mt-1" />
+                      <ArrowRight size={13} className="text-text-muted group-hover:text-brand-ink transition-colors shrink-0 mt-1" />
                     </button>
                   )
                 })}
@@ -91,7 +91,7 @@ function TemplateGallery({ onSelect, onBlank }) {
         {/* Blank screen option */}
         <div className="mt-2 pt-4 border-t border-border/50">
           <button onClick={onBlank}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-card border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 text-text-muted text-[11px] transition-colors">
+            className="flex items-center gap-2 px-4 py-2.5 rounded-card border border-dashed border-border hover:border-brand-500/40 hover:text-brand-ink text-text-muted text-[11px] transition-colors">
             <Plus size={13} /> Start with a blank screen
           </button>
         </div>

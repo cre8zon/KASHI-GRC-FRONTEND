@@ -92,7 +92,7 @@ function ToolBtn({ icon: Icon, title, active, onClick, disabled }) {
       className={cn(
         'flex items-center justify-center w-7 h-7 rounded transition-colors',
         active
-          ? 'bg-brand-500/20 text-brand-400'
+          ? 'bg-brand-500/20 text-brand-ink'
           : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay',
         disabled && 'opacity-30 cursor-not-allowed',
       )}
@@ -235,7 +235,7 @@ export default function PolicyEditorPage() {
           >
             <ArrowLeft size={15} />
           </button>
-          <FileText size={14} className="text-brand-400" />
+          <FileText size={14} className="text-brand-ink" />
           <span className="text-sm font-semibold text-text-primary truncate max-w-[400px]">
             {policy.title || 'Untitled policy'}
           </span>
@@ -255,7 +255,7 @@ export default function PolicyEditorPage() {
             className={cn(
               'flex items-center gap-1.5 px-2.5 py-1.5 rounded-ctl text-xs transition-colors',
               historyOpen
-                ? 'bg-brand-500/10 text-brand-400 border border-brand-500/30'
+                ? 'bg-brand-500/10 text-brand-ink border border-brand-500/30'
                 : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay border border-transparent',
             )}
           >
@@ -331,7 +331,7 @@ export default function PolicyEditorPage() {
                       className="w-48 px-2 py-1 text-xs bg-surface-overlay border border-border rounded outline-none
                                  text-text-primary placeholder:text-text-muted focus:border-brand-500/50"
                     />
-                    <button onClick={applyLink} className="px-2 py-1 text-[10px] bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded hover:bg-brand-500/20">Apply</button>
+                    <button onClick={applyLink} className="px-2 py-1 text-[10px] bg-brand-500/10 text-brand-ink border border-brand-500/20 rounded hover:bg-brand-500/20">Apply</button>
                     {editor?.isActive('link') && (
                       <ToolBtn icon={Link2Off} title="Remove link" onClick={() => { editor.chain().focus().unsetLink().run(); setLinkMenuOpen(false) }} />
                     )}
@@ -422,7 +422,7 @@ export default function PolicyEditorPage() {
                         </span>
                         {i === 0 && (
                           <span className="text-[9px] px-1.5 py-0.5 rounded bg-brand-500/10
-                                           border border-brand-500/20 text-brand-400 font-medium">
+                                           border border-brand-500/20 text-brand-ink font-medium">
                             Current
                           </span>
                         )}

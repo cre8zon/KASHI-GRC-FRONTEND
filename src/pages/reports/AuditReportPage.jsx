@@ -306,7 +306,7 @@ function Section({ id, title, icon: Icon, children }) {
   return (
     <section id={id} className="bg-surface border border-border rounded-modal overflow-hidden print:break-inside-avoid">
       <div className="px-6 py-4 border-b border-border flex items-center gap-2.5">
-        {Icon && <Icon size={15} className="text-brand-400 shrink-0" />}
+        {Icon && <Icon size={15} className="text-brand-ink shrink-0" />}
         <h2 className="text-sm font-bold text-text-primary uppercase tracking-wide">{title}</h2>
       </div>
       <div className="p-6">{children}</div>
@@ -458,7 +458,7 @@ export default function AuditReportPage() {
           onClick={handleDownloadPDF}
           disabled={generatingPDF}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-medium
-                     bg-brand-500/10 border border-brand-500/30 text-brand-400
+                     bg-brand-500/10 border border-brand-500/30 text-brand-ink
                      hover:bg-brand-500/20 transition-colors disabled:opacity-50"
         >
           <Download size={12} className={generatingPDF ? 'animate-pulse' : ''} />
@@ -499,7 +499,7 @@ export default function AuditReportPage() {
                   )}
                 </div>
               </div>
-              <Shield size={40} className="text-brand-400/20 shrink-0" />
+              <Shield size={40} className="text-brand-ink/20 shrink-0" />
             </div>
             <div className="mt-5 grid grid-cols-3 gap-4 pt-5 border-t border-border">
               {[

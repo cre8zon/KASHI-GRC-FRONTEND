@@ -267,7 +267,7 @@ export default function ProjectEngagementsTab({ projectId, vc = {}, stepInstance
                     </div>
                   ) : (
                     <span className="flex items-center gap-1 text-xs text-text-muted">
-                      <UserCheck size={11} className="text-brand-400" />
+                      <UserCheck size={11} className="text-brand-ink" />
                       <UserLabel userId={eng.leadAuditorId} users={eligibleUsers} />
                     </span>
                   )}

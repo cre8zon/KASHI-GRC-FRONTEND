@@ -53,20 +53,20 @@ function Section({ icon: Icon, label, accent, badge, children }) {
       )}>
         <div className={cn(
           'flex items-center justify-center w-5 h-5 rounded',
-          accent ? 'bg-brand-500/15 text-brand-400' : 'bg-surface text-text-secondary border border-border'
+          accent ? 'bg-brand-500/15 text-brand-ink' : 'bg-surface text-text-secondary border border-border'
         )}>
           <Icon size={10} />
         </div>
         <span className={cn(
           'text-[11px] font-semibold',
-          accent ? 'text-brand-400' : 'text-text-secondary'
+          accent ? 'text-brand-ink' : 'text-text-secondary'
         )}>
           {label}
         </span>
         {badge != null && (
           <span className={cn(
             'ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-medium',
-            accent ? 'bg-brand-500/15 text-brand-400' : 'bg-surface-overlay text-text-muted'
+            accent ? 'bg-brand-500/15 text-brand-ink' : 'bg-surface-overlay text-text-muted'
           )}>
             {badge}
           </span>
@@ -81,7 +81,7 @@ function AutomatedRow({ link, onAccept, onReject, canReview }) {
   const record = link.record || {}
   return (
     <div className="flex items-start gap-3 py-2.5 border-b border-border/20 last:border-0">
-      <Zap size={12} className="shrink-0 mt-0.5 text-brand-400" />
+      <Zap size={12} className="shrink-0 mt-0.5 text-brand-ink" />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium text-text-primary truncate">
           {record.title || `Integration check #${link.evidenceRecordId}`}

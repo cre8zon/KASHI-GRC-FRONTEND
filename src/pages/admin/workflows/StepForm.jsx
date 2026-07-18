@@ -64,7 +64,7 @@ function NavKeyPicker({ value, onChange }) {
       >
         {selected ? (
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="font-mono text-xs text-brand-400 truncate">{selected.navKey}</span>
+            <span className="font-mono text-xs text-brand-ink truncate">{selected.navKey}</span>
             <span className="text-text-muted text-xs truncate">— {selected.route}</span>
           </div>
         ) : (
@@ -117,7 +117,7 @@ function NavKeyPicker({ value, onChange }) {
                   n.navKey === value && 'bg-brand-500/10'
                 )}
               >
-                <span className="font-mono text-xs text-brand-400">{n.navKey}</span>
+                <span className="font-mono text-xs text-brand-ink">{n.navKey}</span>
                 <span className="text-[10px] text-text-muted mt-0.5">{n.route}</span>
                 {n.label && (
                   <span className="text-[10px] text-text-muted">{n.label}</span>
@@ -201,7 +201,7 @@ function RoleSelector({ side, selectedRoleIds, onChange }) {
               className={cn(
                 'flex items-center gap-1 px-2 py-1 rounded-ctl border text-[11px] font-medium transition-colors',
                 selected
-                  ? 'bg-brand-500/15 border-brand-500/40 text-brand-400'
+                  ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
                   : 'bg-surface-raised border-border text-text-muted hover:text-text-primary hover:border-brand-500/30'
               )}>
               {selected && <X size={9} />}
@@ -278,7 +278,7 @@ function UserSelector({ side, selectedUsers, onChange }) {
               <button key={u.id} onClick={() => addUser(u)} type="button"
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-surface-overlay text-left transition-colors">
                 <div className="w-5 h-5 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0">
-                  <span className="text-[9px] font-bold text-brand-400">
+                  <span className="text-[9px] font-bold text-brand-ink">
                     {(u.fullName || u.email || '?')[0].toUpperCase()}
                   </span>
                 </div>
@@ -337,13 +337,13 @@ function AutomatedActionSelector({ value, onChange }) {
           <button type="button"
             onClick={() => { setUseCustom(false); if (useCustom) onChange('') }}
             className={cn('px-2 py-1 transition-colors',
-              !useCustom ? 'bg-brand-500/15 text-brand-400' : 'text-text-muted hover:text-text-primary')}>
+              !useCustom ? 'bg-brand-500/15 text-brand-ink' : 'text-text-muted hover:text-text-primary')}>
             Pick existing
           </button>
           <button type="button"
             onClick={() => { setUseCustom(true); if (!useCustom) onChange('') }}
             className={cn('px-2 py-1 transition-colors',
-              useCustom ? 'bg-brand-500/15 text-brand-400' : 'text-text-muted hover:text-text-primary')}>
+              useCustom ? 'bg-brand-500/15 text-brand-ink' : 'text-text-muted hover:text-text-primary')}>
             Define new
           </button>
         </div>
@@ -479,7 +479,7 @@ function AssignerResolutionSelector({ resolution, assignerRoleIds, onResolutionC
             className={cn(
               'flex flex-col items-start gap-0.5 px-3 py-2 rounded-card border text-left transition-colors',
               resolution === opt.value
-                ? 'border-brand-500/50 bg-brand-500/10 text-brand-400'
+                ? 'border-brand-500/50 bg-brand-500/10 text-brand-ink'
                 : 'border-border bg-surface-raised text-text-muted hover:border-brand-500/30 hover:text-text-primary'
             )}
           >
@@ -621,7 +621,7 @@ function ActorResolutionSelector({ resolution, onChange }) {
           className={cn(
             'flex flex-col items-start gap-0.5 px-3 py-2 rounded-card border text-left transition-colors',
             resolution === opt.value
-              ? 'border-brand-500/50 bg-brand-500/10 text-brand-400'
+              ? 'border-brand-500/50 bg-brand-500/10 text-brand-ink'
               : 'border-border bg-surface-raised text-text-muted hover:border-brand-500/30 hover:text-text-primary'
           )}
         >
@@ -651,7 +651,7 @@ function StepActionSelector({ value, onChange }) {
           <span className="text-base leading-none mt-0.5 shrink-0">{opt.icon}</span>
           <div className="min-w-0">
             <p className={cn('text-xs font-semibold leading-tight',
-              value === opt.value ? 'text-brand-400' : 'text-text-primary')}>
+              value === opt.value ? 'text-brand-ink' : 'text-text-primary')}>
               {opt.label}
             </p>
             <p className="text-[10px] text-text-muted leading-tight mt-0.5 line-clamp-2">
@@ -745,8 +745,8 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
         <div className={cn('w-5 h-5 rounded-full flex items-center justify-center shrink-0',
           isSystem ? 'bg-brand-500/30' : 'bg-brand-500/20')}>
           {isSystem
-            ? <Zap size={9} className="text-brand-400" />
-            : <span className="text-[10px] font-bold text-brand-400">{index + 1}</span>
+            ? <Zap size={9} className="text-brand-ink" />
+            : <span className="text-[10px] font-bold text-brand-ink">{index + 1}</span>
           }
         </div>
         <input value={step.name} onChange={e => set('name', e.target.value)}
@@ -812,7 +812,7 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
             <div>
               <label className="text-[10px] font-medium text-text-secondary uppercase tracking-wide block mb-2">
                 <span className="flex items-center gap-1.5">
-                  <Zap size={10} className="text-brand-400" />
+                  <Zap size={10} className="text-brand-ink" />
                   Automated Action
                   <span className="ml-1 text-text-muted normal-case font-normal">
                     — fires automatically when this step starts, then auto-approves and advances
@@ -1049,7 +1049,7 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
                     <span className="text-text-secondary font-medium">Runtime assignment: </span>
                     When this step starts, tasks are created for the direct users above immediately.
                     For role-based assignments, the {step.side.toLowerCase()} org resolves which of their
-                    users hold the selected roles and calls <code className="text-brand-400">/tasks/assign</code> to register them.
+                    users hold the selected roles and calls <code className="text-brand-ink">/tasks/assign</code> to register them.
                   </p>
                 </div>
               )}
@@ -1259,7 +1259,7 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
           {stage === 'importing' && (
             <div className="flex flex-col items-center gap-6 py-12">
               <div className="w-16 h-16 rounded-modal bg-brand-500/10 flex items-center justify-center">
-                <svg className="w-7 h-7 text-brand-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                <svg className="w-7 h-7 text-brand-ink animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                 </svg>
@@ -1326,7 +1326,7 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
                       entry.status === 'SUCCESS' && 'text-text-secondary',
                       entry.status === 'ERROR'   && 'text-status-fail-fg',
                       entry.status === 'WARNING' && 'text-status-warn-fg',
-                      entry.status === 'INFO'    && 'text-brand-400',
+                      entry.status === 'INFO'    && 'text-brand-ink',
                     )}>
                       <span className="shrink-0 mt-0.5">
                         {entry.status === 'SUCCESS' ? '✓'
