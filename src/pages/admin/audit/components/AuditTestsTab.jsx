@@ -85,14 +85,14 @@ function DerivedResultBanner({ tests }) {
                                      : { label: 'Control → PARTIALLY_EFFECTIVE (mixed results)',         color: 'amber' }
 
   const borderColor = {
-    red:   'border-red-500/30 bg-red-500/5 text-red-400',
-    green: 'border-green-500/30 bg-green-500/5 text-green-400',
-    amber: 'border-amber-500/30 bg-amber-500/5 text-amber-400',
+    red:   'border-status-fail-bd bg-status-fail-bg text-status-fail-fg',
+    green: 'border-status-pass-bd bg-status-pass-bg text-status-pass-fg',
+    amber: 'border-status-warn-bd bg-status-warn-bg text-status-warn-fg',
     gray:  'border-border bg-surface-overlay text-text-muted',
   }[color]
 
   return (
-    <div className={cn('flex items-center gap-2 px-3 py-2 rounded-lg border text-xs', borderColor)}>
+    <div className={cn('flex items-center gap-2 px-3 py-2 rounded-card border text-xs', borderColor)}>
       <Shield size={12} className="shrink-0" />
       <span className="font-medium">{label}</span>
     </div>
@@ -126,7 +126,7 @@ function TestRow({ test, engagementId, access }) {
   }
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
+    <div className="border border-border rounded-card overflow-hidden">
       {/* Header */}
       <button
         onClick={() => setExpanded(e => !e)}
@@ -134,9 +134,9 @@ function TestRow({ test, engagementId, access }) {
       >
         {/* Result icon */}
         <Icon size={15} className={cn('mt-0.5 shrink-0', {
-          'text-green-400': test.testResult === 'PASS',
-          'text-red-400':   test.testResult === 'FAIL',
-          'text-amber-400': test.testResult === 'EXCEPTION',
+          'text-status-pass-fg': test.testResult === 'PASS',
+          'text-status-fail-fg':   test.testResult === 'FAIL',
+          'text-status-warn-fg': test.testResult === 'EXCEPTION',
           'text-text-muted': !test.testResult || test.testResult === 'NOT_RUN',
         })} />
 
@@ -148,7 +148,7 @@ function TestRow({ test, engagementId, access }) {
             )}
             <span className="text-sm font-medium text-text-primary">{test.testNameSnapshot}</span>
             {test.isRequired && (
-              <span className="text-[10px] text-red-400 font-medium">Required</span>
+              <span className="text-[10px] text-status-fail-fg font-medium">Required</span>
             )}
           </div>
 
@@ -212,9 +212,9 @@ function TestRow({ test, engagementId, access }) {
 
           {/* Failure detail */}
           {test.failureDetail && test.testResult === 'FAIL' && (
-            <div className="p-2 rounded border border-red-500/30 bg-red-500/5">
-              <p className="text-[10px] font-semibold text-red-400 mb-1">Failure detail</p>
-              <p className="text-xs text-red-400/80">{test.failureDetail}</p>
+            <div className="p-2 rounded border border-status-fail-bd bg-status-fail-bg">
+              <p className="text-[10px] font-semibold text-status-fail-fg mb-1">Failure detail</p>
+              <p className="text-xs text-status-fail-fg">{test.failureDetail}</p>
             </div>
           )}
 
@@ -253,11 +253,11 @@ function TestRow({ test, engagementId, access }) {
                       disabled={saving}
                       onClick={() => handleResultChange(value)}
                       className={cn(
-                        'flex items-center gap-2 px-2.5 py-2 rounded-lg border text-xs font-medium transition-all',
+                        'flex items-center gap-2 px-2.5 py-2 rounded-card border text-xs font-medium transition-all',
                         test.testResult === value
-                          ? { PASS: 'border-green-500/40 bg-green-500/10 text-green-400',
-                              FAIL: 'border-red-500/40 bg-red-500/10 text-red-400',
-                              EXCEPTION: 'border-amber-500/40 bg-amber-500/10 text-amber-400',
+                          ? { PASS: 'border-status-pass-bd bg-status-pass-bg text-status-pass-fg',
+                              FAIL: 'border-status-fail-bd bg-status-fail-bg text-status-fail-fg',
+                              EXCEPTION: 'border-status-warn-bd bg-status-warn-bg text-status-warn-fg',
                             }[value]
                           : 'border-border bg-surface-overlay text-text-muted hover:opacity-80',
                       )}
@@ -273,7 +273,7 @@ function TestRow({ test, engagementId, access }) {
 
           {/* Automated — read-only notice */}
           {isAutomated && (
-            <div className="flex items-center gap-2 text-xs text-blue-400/80">
+            <div className="flex items-center gap-2 text-xs text-status-info-fg">
               <Zap size={11} />
               Result set automatically by KashiGuard — cannot be manually overridden
             </div>
@@ -321,7 +321,7 @@ export default function AuditTestsTab({ control, engagementId, access }) {
       {isLoading ? (
         <div className="flex flex-col gap-2">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 rounded-lg bg-surface-overlay animate-pulse" />
+            <div key={i} className="h-16 rounded-card bg-surface-overlay animate-pulse" />
           ))}
         </div>
       ) : testList.length === 0 ? (
@@ -354,11 +354,11 @@ export default function AuditTestsTab({ control, engagementId, access }) {
       {testList.length > 0 && (
         <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
           {[
-            { label: 'Pass',    value: testList.filter(t => t.testResult === 'PASS').length,    color: 'text-green-400' },
-            { label: 'Fail',    value: testList.filter(t => t.testResult === 'FAIL').length,    color: 'text-red-400'   },
+            { label: 'Pass',    value: testList.filter(t => t.testResult === 'PASS').length,    color: 'text-status-pass-fg' },
+            { label: 'Fail',    value: testList.filter(t => t.testResult === 'FAIL').length,    color: 'text-status-fail-fg'   },
             { label: 'Not run', value: testList.filter(t => t.testResult === 'NOT_RUN').length, color: 'text-text-muted' },
           ].map(s => (
-            <div key={s.label} className="text-center p-2 rounded-lg border border-border bg-surface-overlay">
+            <div key={s.label} className="text-center p-2 rounded-card border border-border bg-surface-overlay">
               <div className={cn('text-lg font-bold font-mono', s.color)}>{s.value}</div>
               <div className="text-[10px] text-text-muted">{s.label}</div>
             </div>

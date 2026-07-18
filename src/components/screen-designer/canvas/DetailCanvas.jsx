@@ -90,10 +90,10 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
   }, [tabFieldsRes])
 
   const lmc = {
-    FULL_PAGE:  { ring: 'border-blue-500/20   bg-blue-500/3',   chromeBg: 'bg-blue-500/8',   chromeBorder: 'border-blue-500/15',   chromeText: 'text-blue-400',   label: 'Full page — navigates to a dedicated route' },
-    DRAWER:     { ring: 'border-purple-500/20 bg-purple-500/3', chromeBg: 'bg-purple-500/8', chromeBorder: 'border-purple-500/15', chromeText: 'text-purple-400', label: 'Drawer — ~480px · slides from right' },
-    SIDE_PANEL: { ring: 'border-teal-500/20   bg-teal-500/3',   chromeBg: 'bg-teal-500/8',   chromeBorder: 'border-teal-500/15',   chromeText: 'text-teal-400',   label: 'Side panel — permanent · 33vw' },
-  }[layoutMode] || { ring: 'border-blue-500/20 bg-blue-500/3', chromeBg: 'bg-blue-500/8', chromeBorder: 'border-blue-500/15', chromeText: 'text-blue-400', label: '' }
+    FULL_PAGE:  { ring: 'border-status-info-bd   bg-status-info-bg',   chromeBg: 'bg-status-info-bg',   chromeBorder: 'border-status-info-bd',   chromeText: 'text-status-info-fg',   label: 'Full page — navigates to a dedicated route' },
+    DRAWER:     { ring: 'border-status-tag-bd bg-status-tag-bg', chromeBg: 'bg-status-tag-bg', chromeBorder: 'border-status-tag-bd', chromeText: 'text-status-tag-fg', label: 'Drawer — ~480px · slides from right' },
+    SIDE_PANEL: { ring: 'border-brand-500/20   bg-brand-500/3',   chromeBg: 'bg-brand-500/8',   chromeBorder: 'border-brand-500/15',   chromeText: 'text-brand-400',   label: 'Side panel — permanent · 33vw' },
+  }[layoutMode] || { ring: 'border-status-info-bd bg-status-info-bg', chromeBg: 'bg-status-info-bg', chromeBorder: 'border-status-info-bd', chromeText: 'text-status-info-fg', label: '' }
 
   // ── Shared inner content ────────────────────────────────────────────────────
   const innerContent = (
@@ -111,20 +111,20 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
               <h2 className="text-sm font-semibold text-text-primary">Entity Title</h2>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className="text-[10px] text-text-secondary">Entity #42 · Created today</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">IN REVIEW</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-info-bg text-status-info-fg border border-status-info-bd">IN REVIEW</span>
               </div>
             </div>
             <div className="flex items-center gap-1.5">
               {actions.slice(0, 2).map(a => (
                 <button key={a.id}
                   onClick={e => { e.stopPropagation(); onSelectElement({ type: 'action', id: a.id, data: a, screenKey: screen.key }) }}
-                  className={cn('px-2 py-1 rounded-md text-[10px] font-medium border hover:scale-105 transition-all',
-                    { primary: 'bg-brand-500/10 border-brand-500/40 text-brand-400', secondary: 'bg-surface-overlay border-border text-text-secondary', danger: 'bg-red-500/10 border-red-500/40 text-red-400' }[a.variant] || 'bg-surface-overlay border-border text-text-secondary')}>
+                  className={cn('px-2 py-1 rounded-ctl text-[10px] font-medium border hover:scale-105 transition-all',
+                    { primary: 'bg-brand-500/10 border-brand-500/40 text-brand-400', secondary: 'bg-surface-overlay border-border text-text-secondary', danger: 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg' }[a.variant] || 'bg-surface-overlay border-border text-text-secondary')}>
                   {a.label}
                 </button>
               ))}
               <button onClick={e => { e.stopPropagation(); onSelectElement({ type: 'new_action', screenKey: screen.key }) }}
-                className="px-2 py-1 rounded-md text-[10px] text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 transition-colors">
+                className="px-2 py-1 rounded-ctl text-[10px] text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 transition-colors">
                 + Action
               </button>
             </div>
@@ -139,8 +139,8 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
                   className="p-1.5 rounded border border-brand-500/20 bg-brand-500/5">
                   <div className="text-brand-400 mb-0.5 font-medium">{f.label}</div>
                   <div className={cn('h-2.5 rounded w-3/4',
-                    f.fieldType === 'SELECT' ? 'bg-blue-500/20'
-                    : f.fieldType === 'DATE'   ? 'bg-cyan-500/20'
+                    f.fieldType === 'SELECT' ? 'bg-status-info-bg'
+                    : f.fieldType === 'DATE'   ? 'bg-status-info-bg'
                     : 'bg-border/60')} />
                 </div>
               ))}
@@ -179,8 +179,8 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
                   selectedElement?.type === 'tab' && selectedElement?.tab === tabDef.label ? 'bg-brand-500/5 rounded-t' : '')}>
                 {tabDef.label}
                 {isCap
-                  ? <span className="text-[8px] px-1 py-0.5 rounded bg-green-500/10 text-green-400">cap</span>
-                  : <span className="text-[8px] px-1 py-0.5 rounded bg-amber-500/10 text-amber-400">fields</span>
+                  ? <span className="text-[8px] px-1 py-0.5 rounded bg-status-pass-bg text-status-pass-fg">cap</span>
+                  : <span className="text-[8px] px-1 py-0.5 rounded bg-status-warn-bg text-status-warn-fg">fields</span>
                 }
               </button>
             )
@@ -195,7 +195,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
         {/* ── Zone 3: Tab content — capability vs configurable ── */}
         {activeIsCap && capInfo ? (
           <div className="p-4 flex items-start gap-3">
-            <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center border shrink-0', capInfo.color)}>
+            <div className={cn('w-9 h-9 rounded-card flex items-center justify-center border shrink-0', capInfo.color)}>
               <capInfo.icon size={16} />
             </div>
             <div className="flex-1">
@@ -233,8 +233,8 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
                     className="flex flex-col gap-1 p-1.5 rounded border border-brand-500/20 bg-brand-500/5">
                     <div className="text-brand-400 font-medium">{f.label}</div>
                     <div className={cn('h-5 rounded border',
-                      f.fieldType === 'SELECT'  ? 'bg-blue-500/10 border-blue-500/20'
-                      : f.fieldType === 'DATE'    ? 'bg-cyan-500/10 border-cyan-500/20'
+                      f.fieldType === 'SELECT'  ? 'bg-status-info-bg border-status-info-bd'
+                      : f.fieldType === 'DATE'    ? 'bg-status-info-bg border-status-info-bd'
                       : f.fieldType === 'TEXTAREA'? 'bg-surface-overlay border-border h-10'
                       : 'bg-background border-border')} />
                   </div>
@@ -249,7 +249,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
           // CONFIGURABLE tab — empty, show prompt
           <div
             className={cn(
-              'p-4 min-h-20 border-2 border-dashed border-border/40 rounded-lg m-4 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-brand-500/30 transition-colors',
+              'p-4 min-h-20 border-2 border-dashed border-border/40 rounded-card m-4 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-brand-500/30 transition-colors',
               selectedElement?.type === 'detail_tab_content' && selectedElement?.tabKey === activeTabDef?.key
                 ? 'border-brand-500/40 bg-brand-500/3' : ''
             )}
@@ -277,9 +277,9 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
         <button
           onClick={() => onSelectElement({ type: 'screen_layout_mode', screenKey: screen.key })}
           className={cn('flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-semibold transition-all hover:opacity-80',
-            { FULL_PAGE:  'border-blue-500/40   bg-blue-500/8   text-blue-400',
-              DRAWER:     'border-purple-500/40 bg-purple-500/8 text-purple-400',
-              SIDE_PANEL: 'border-teal-500/40   bg-teal-500/8   text-teal-400', }[layoutMode]
+            { FULL_PAGE:  'border-status-info-bd   bg-status-info-bg   text-status-info-fg',
+              DRAWER:     'border-status-tag-bd bg-status-tag-bg text-status-tag-fg',
+              SIDE_PANEL: 'border-brand-500/40   bg-brand-500/8   text-brand-400', }[layoutMode]
           )}>
           {layoutMode === 'FULL_PAGE'  && <Layout     size={10} />}
           {layoutMode === 'DRAWER'     && <PanelRight size={10} />}
@@ -295,7 +295,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
 
       {/* FULL_PAGE */}
       {layoutMode === 'FULL_PAGE' && (
-        <div className={cn('relative border-2 border-dashed rounded-xl overflow-hidden', lmc.ring)}>
+        <div className={cn('relative border-2 border-dashed rounded-card overflow-hidden', lmc.ring)}>
           <div className={cn('px-3 py-1.5 border-b text-[9px] font-medium', lmc.chromeBg, lmc.chromeBorder, lmc.chromeText)}>
             {lmc.label}
           </div>
@@ -305,7 +305,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
 
       {/* DRAWER */}
       {layoutMode === 'DRAWER' && (
-        <div className={cn('relative border-2 border-dashed rounded-xl overflow-hidden', lmc.ring)}>
+        <div className={cn('relative border-2 border-dashed rounded-card overflow-hidden', lmc.ring)}>
           <div className="flex min-h-40">
             <div className="flex-1 p-4 opacity-25 pointer-events-none">
               <div className="text-[9px] text-text-muted mb-2">List (behind drawer)</div>
@@ -316,7 +316,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
                 </div>
               ))}
             </div>
-            <div className="w-[52%] border-l-2 border-purple-500/30 bg-background flex flex-col shrink-0">
+            <div className="w-[52%] border-l-2 border-status-tag-bd bg-background flex flex-col shrink-0">
               <div className={cn('px-3 py-1.5 border-b flex items-center gap-2 shrink-0', lmc.chromeBg, lmc.chromeBorder)}>
                 <PanelRight size={10} className={lmc.chromeText} />
                 <span className={cn('text-[9px] font-medium', lmc.chromeText)}>{lmc.label}</span>
@@ -330,20 +330,20 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
 
       {/* SIDE_PANEL */}
       {layoutMode === 'SIDE_PANEL' && (
-        <div className={cn('relative border-2 border-dashed rounded-xl overflow-hidden', lmc.ring)}>
+        <div className={cn('relative border-2 border-dashed rounded-card overflow-hidden', lmc.ring)}>
           <div className="flex min-h-40">
             <div className="flex-1 p-4 opacity-40 pointer-events-none">
               <div className="text-[9px] text-text-muted mb-2">List (beside panel)</div>
               {[1,2,3,4,5].map(i => (
                 <div key={i}
                   className={cn('flex items-center gap-3 mb-1.5 p-2 rounded border bg-surface-overlay',
-                    i === 2 ? 'border-teal-500/40 bg-teal-500/5' : 'border-border')}>
+                    i === 2 ? 'border-brand-500/40 bg-brand-500/5' : 'border-border')}>
                   <div className="w-3 h-3 rounded-full bg-border" />
                   <div className="flex-1 h-2 bg-border/60 rounded" />
                 </div>
               ))}
             </div>
-            <div className="w-[48%] border-l-2 border-teal-500/30 bg-background flex flex-col shrink-0">
+            <div className="w-[48%] border-l-2 border-brand-500/30 bg-background flex flex-col shrink-0">
               <div className={cn('px-3 py-1.5 border-b flex items-center gap-2 shrink-0', lmc.chromeBg, lmc.chromeBorder)}>
                 <Columns2 size={10} className={lmc.chromeText} />
                 <span className={cn('text-[9px] font-medium', lmc.chromeText)}>{lmc.label}</span>

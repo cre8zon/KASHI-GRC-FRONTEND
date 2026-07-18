@@ -166,7 +166,7 @@ export function TestPolicyCsvImportModal({ open, onClose, onImported }) {
       {stage === 'upload' && (
         <div className="space-y-4">
           {/* Format reference */}
-          <div className="p-3 rounded-lg bg-surface-overlay border border-border text-xs text-text-secondary space-y-1.5">
+          <div className="p-3 rounded-card bg-surface-overlay border border-border text-xs text-text-secondary space-y-1.5">
             <p className="font-semibold text-text-primary">CSV format</p>
             <p>First column <code className="font-mono bg-brand-500/10 text-brand-400 px-1 rounded">type</code> must be <code className="font-mono">TEST</code> or <code className="font-mono">POLICY</code> — this tells the importer which table to write to.</p>
             <p>TEST rows use: <code className="font-mono">name, ref, automation_type, frequency, control_tag, framework_ref, test_procedure, evidence_guidance</code></p>
@@ -177,7 +177,7 @@ export function TestPolicyCsvImportModal({ open, onClose, onImported }) {
           {/* Download example */}
           <button
             onClick={downloadExample}
-            className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border hover:border-brand-500/40 hover:text-brand-400 text-text-muted text-sm transition-colors"
+            className="w-full flex items-center gap-2 px-4 py-2.5 rounded-card border border-border hover:border-brand-500/40 hover:text-brand-400 text-text-muted text-sm transition-colors"
           >
             <Download size={15} />
             Download example CSV (2 tests + 2 policies)
@@ -190,15 +190,15 @@ export function TestPolicyCsvImportModal({ open, onClose, onImported }) {
             onDrop={handleDrop}
             onClick={() => fileRef.current?.click()}
             className={cn(
-              'flex flex-col items-center justify-center gap-3 py-10 rounded-xl border-2 border-dashed cursor-pointer transition-colors',
+              'flex flex-col items-center justify-center gap-3 py-10 rounded-card border-2 border-dashed cursor-pointer transition-colors',
               dragOver
                 ? 'border-brand-500 bg-brand-500/5'
                 : selectedFile
-                  ? 'border-green-500/40 bg-green-500/5'
+                  ? 'border-status-pass-bd bg-status-pass-bg'
                   : 'border-border hover:border-brand-500/40 hover:bg-brand-500/3'
             )}
           >
-            <Upload size={24} className={selectedFile ? 'text-green-400' : 'text-text-muted'} />
+            <Upload size={24} className={selectedFile ? 'text-status-pass-fg' : 'text-text-muted'} />
             {selectedFile ? (
               <div className="text-center">
                 <p className="text-sm font-medium text-text-primary">{selectedFile.name}</p>
@@ -242,18 +242,18 @@ export function TestPolicyCsvImportModal({ open, onClose, onImported }) {
         <div className="space-y-4">
           {/* Summary header */}
           <div className={cn(
-            'flex items-center gap-3 p-4 rounded-xl border',
+            'flex items-center gap-3 p-4 rounded-card border',
             result.fatalError
-              ? 'bg-red-500/5 border-red-500/20'
+              ? 'bg-status-fail-bg border-status-fail-bd'
               : result.errorRows > 0
-                ? 'bg-amber-500/5 border-amber-500/20'
-                : 'bg-green-500/5 border-green-500/20'
+                ? 'bg-status-warn-bg border-status-warn-bd'
+                : 'bg-status-pass-bg border-status-pass-bd'
           )}>
             {result.fatalError
-              ? <XCircle size={20} className="text-red-400 shrink-0" />
+              ? <XCircle size={20} className="text-status-fail-fg shrink-0" />
               : result.errorRows > 0
-                ? <AlertCircle size={20} className="text-amber-400 shrink-0" />
-                : <CheckCircle2 size={20} className="text-green-400 shrink-0" />
+                ? <AlertCircle size={20} className="text-status-warn-fg shrink-0" />
+                : <CheckCircle2 size={20} className="text-status-pass-fg shrink-0" />
             }
             <div>
               <p className="text-sm font-semibold text-text-primary">
@@ -275,11 +275,11 @@ export function TestPolicyCsvImportModal({ open, onClose, onImported }) {
           {!result.fatalError && (
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label: 'Imported', value: result.importedRows, color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+                { label: 'Imported', value: result.importedRows, color: 'text-status-pass-fg bg-status-pass-bg border-status-pass-bd' },
                 { label: 'Skipped',  value: result.skippedRows,  color: 'text-text-muted bg-surface-overlay border-border' },
-                { label: 'Errors',   value: result.errorRows,    color: result.errorRows > 0 ? 'text-red-400 bg-red-500/10 border-red-500/20' : 'text-text-muted bg-surface-overlay border-border' },
+                { label: 'Errors',   value: result.errorRows,    color: result.errorRows > 0 ? 'text-status-fail-fg bg-status-fail-bg border-status-fail-bd' : 'text-text-muted bg-surface-overlay border-border' },
               ].map(s => (
-                <div key={s.label} className={cn('flex flex-col items-center py-3 rounded-lg border text-center', s.color)}>
+                <div key={s.label} className={cn('flex flex-col items-center py-3 rounded-card border text-center', s.color)}>
                   <span className="text-2xl font-bold">{s.value}</span>
                   <span className="text-[10px] uppercase tracking-wide mt-0.5 opacity-70">{s.label}</span>
                 </div>
@@ -291,18 +291,18 @@ export function TestPolicyCsvImportModal({ open, onClose, onImported }) {
           {result.log?.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Import log</p>
-              <div className="max-h-48 overflow-y-auto rounded-lg border border-border divide-y divide-border/50">
+              <div className="max-h-48 overflow-y-auto rounded-card border border-border divide-y divide-border/50">
                 {result.log.map((entry, i) => (
                   <div key={i} className={cn(
                     'flex items-start gap-2 px-3 py-2 text-xs',
-                    entry.status === 'ERROR'   && 'bg-red-500/3',
-                    entry.status === 'SKIPPED' && 'bg-amber-500/3',
+                    entry.status === 'ERROR'   && 'bg-status-fail-bg',
+                    entry.status === 'SKIPPED' && 'bg-status-warn-bg',
                   )}>
                     <span className={cn(
                       'font-mono shrink-0 mt-0.5 text-[10px] px-1 py-0.5 rounded border',
-                      entry.status === 'ERROR'   ? 'text-red-400 bg-red-500/10 border-red-500/20' :
-                      entry.status === 'SKIPPED' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
-                                                   'text-green-400 bg-green-500/10 border-green-500/20'
+                      entry.status === 'ERROR'   ? 'text-status-fail-fg bg-status-fail-bg border-status-fail-bd' :
+                      entry.status === 'SKIPPED' ? 'text-status-warn-fg bg-status-warn-bg border-status-warn-bd' :
+                                                   'text-status-pass-fg bg-status-pass-bg border-status-pass-bd'
                     )}>{entry.status}</span>
                     {entry.rowNumber > 0 && (
                       <span className="text-text-muted shrink-0">Row {entry.rowNumber}:</span>

@@ -48,7 +48,7 @@ export default function DashboardPage() {
       {widgetsLoading ? (
         <div className="grid grid-cols-4 gap-4">
           {[1,2,3,4].map(i => (
-            <div key={i} className="h-28 rounded-xl border border-border bg-surface-raised animate-pulse" />
+            <div key={i} className="h-28 rounded-card border border-border bg-surface-raised animate-pulse" />
           ))}
         </div>
       ) : widgets.length > 0 ? (
@@ -76,7 +76,7 @@ export default function DashboardPage() {
         <CardHeader
           title="My Action Items"
           subtitle="Open obligations requiring your attention"
-          actions={<Flag size={14} className="text-amber-400" />}
+          actions={<Flag size={14} className="text-status-warn-fg" />}
         />
         <CardBody className="p-0">
           <ActionItemsWidget />
@@ -97,19 +97,19 @@ function ActionItemsWidget() {
     .slice(0, 5)
 
   const PRIORITY_DOT = {
-    CRITICAL: 'bg-red-400', HIGH: 'bg-amber-400',
-    MEDIUM: 'bg-blue-400', LOW: 'bg-surface-overlay border border-border'
+    CRITICAL: 'bg-status-fail-bg', HIGH: 'bg-status-warn-bg',
+    MEDIUM: 'bg-status-info-bg', LOW: 'bg-surface-overlay border border-border'
   }
 
   if (isLoading) return (
     <div className="p-4 space-y-2">
-      {[1,2,3].map(i => <div key={i} className="h-10 animate-pulse bg-surface-overlay rounded-lg" />)}
+      {[1,2,3].map(i => <div key={i} className="h-10 animate-pulse bg-surface-overlay rounded-card" />)}
     </div>
   )
 
   if (!open.length) return (
     <div className="flex flex-col items-center justify-center py-8 gap-2">
-      <Flag size={20} className="text-green-400" />
+      <Flag size={20} className="text-status-pass-fg" />
       <p className="text-xs text-text-muted">No open action items</p>
     </div>
   )

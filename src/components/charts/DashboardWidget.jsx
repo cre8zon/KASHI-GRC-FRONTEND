@@ -10,7 +10,11 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
-const CHART_COLORS = ['#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#6366f1']
+// Categorical data-viz palette — never status colours (see DESIGN.md rule 11)
+const CHART_COLORS = [
+  'var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)',
+  'var(--chart-5)', 'var(--chart-6)', 'var(--chart-7)', 'var(--chart-8)',
+]
 
 function useWidgetData(widget, userSides) {
   // Check if user's sides match widget's allowedSidesJson
@@ -73,11 +77,11 @@ function WidgetContent({ widget, data, config }) {
       return (
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={data || []} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgb(51 65 85 / 0.5)" />
-            <XAxis dataKey={config.xAxis || 'name'} tick={{ fontSize: 10, fill: 'rgb(100 116 139)' }} />
-            <YAxis tick={{ fontSize: 10, fill: 'rgb(100 116 139)' }} />
-            <Tooltip contentStyle={{ background: 'rgb(22 33 56)', border: '1px solid rgb(51 65 85)', borderRadius: '6px', fontSize: 12 }} />
-            <Bar dataKey={config.yAxis || 'value'} fill="rgb(14 165 233)" radius={[3, 3, 0, 0]} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-border) / 0.5)" />
+            <XAxis dataKey={config.xAxis || 'name'} tick={{ fontSize: 10, fill: 'rgb(var(--color-text-muted))' }} />
+            <YAxis tick={{ fontSize: 10, fill: 'rgb(var(--color-text-muted))' }} />
+            <Tooltip contentStyle={{ background: 'rgb(var(--color-surface-raised))', border: '1px solid rgb(var(--color-border))', borderRadius: '6px', fontSize: 12 }} />
+            <Bar dataKey={config.yAxis || 'value'} fill="rgb(var(--color-brand-500))" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       )
@@ -88,15 +92,15 @@ function WidgetContent({ widget, data, config }) {
           <AreaChart data={data || []} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="rgb(14 165 233)" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="rgb(14 165 233)" stopOpacity={0} />
+                <stop offset="5%" stopColor="rgb(var(--color-brand-500))" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="rgb(var(--color-brand-500))" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgb(51 65 85 / 0.5)" />
-            <XAxis dataKey={config.xAxis || 'name'} tick={{ fontSize: 10, fill: 'rgb(100 116 139)' }} />
-            <YAxis tick={{ fontSize: 10, fill: 'rgb(100 116 139)' }} />
-            <Tooltip contentStyle={{ background: 'rgb(22 33 56)', border: '1px solid rgb(51 65 85)', borderRadius: '6px', fontSize: 12 }} />
-            <Area type="monotone" dataKey={config.yAxis || 'value'} stroke="rgb(14 165 233)" fill="url(#colorGrad)" strokeWidth={2} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-border) / 0.5)" />
+            <XAxis dataKey={config.xAxis || 'name'} tick={{ fontSize: 10, fill: 'rgb(var(--color-text-muted))' }} />
+            <YAxis tick={{ fontSize: 10, fill: 'rgb(var(--color-text-muted))' }} />
+            <Tooltip contentStyle={{ background: 'rgb(var(--color-surface-raised))', border: '1px solid rgb(var(--color-border))', borderRadius: '6px', fontSize: 12 }} />
+            <Area type="monotone" dataKey={config.yAxis || 'value'} stroke="rgb(var(--color-brand-500))" fill="url(#colorGrad)" strokeWidth={2} />
           </AreaChart>
         </ResponsiveContainer>
       )
@@ -109,7 +113,7 @@ function WidgetContent({ widget, data, config }) {
               cx="50%" cy="50%" innerRadius={widget.widgetType === 'DONUT_CHART' ? 45 : 0} outerRadius={70} paddingAngle={2}>
               {(data || []).map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
             </Pie>
-            <Tooltip contentStyle={{ background: 'rgb(22 33 56)', border: '1px solid rgb(51 65 85)', borderRadius: '6px', fontSize: 12 }} />
+            <Tooltip contentStyle={{ background: 'rgb(var(--color-surface-raised))', border: '1px solid rgb(var(--color-border))', borderRadius: '6px', fontSize: 12 }} />
           </PieChart>
         </ResponsiveContainer>
       )

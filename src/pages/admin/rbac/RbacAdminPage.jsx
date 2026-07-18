@@ -197,13 +197,13 @@ function PermissionsTab() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search permissions…"
-            className="w-full pl-8 pr-3 h-8 text-xs bg-surface-overlay border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="w-full pl-8 pr-3 h-8 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
         <select
           value={moduleFilter}
           onChange={e => setModuleFilter(e.target.value)}
-          className="h-8 px-2 text-xs bg-surface-overlay border border-border rounded-md text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand-500"
+          className="h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand-500"
         >
           <option value="">All modules</option>
           {MODULES.map(m => <option key={m} value={m}>{m}</option>)}
@@ -224,7 +224,7 @@ function PermissionsTab() {
       {isLoading
         ? <div className="text-xs text-text-muted">Loading…</div>
         : Object.entries(grouped).map(([module, perms]) => (
-          <div key={module} className="border border-border rounded-lg overflow-hidden">
+          <div key={module} className="border border-border rounded-card overflow-hidden">
             <button
               onClick={() => setExpandedModule(expandedModule === module ? '__ALL__' : module)}
               className="w-full flex items-center justify-between px-4 py-3 bg-surface-overlay hover:bg-surface-raised transition-colors"
@@ -250,7 +250,7 @@ function PermissionsTab() {
                         <Pencil size={12} />
                       </button>
                       <button onClick={() => setDeleteTarget(p)}
-                        className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10">
+                        className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg">
                         <Trash2 size={12} />
                       </button>
                     </div>
@@ -299,23 +299,23 @@ function PermissionModal({ open, onClose, initial, onSave, loading }) {
     >
       <div className="space-y-3">
         <div>
-          <label className="text-xs font-medium text-text-secondary block mb-1">Permission code <span className="text-red-400">*</span></label>
+          <label className="text-xs font-medium text-text-secondary block mb-1">Permission code <span className="text-status-fail-fg">*</span></label>
           <input value={form.code} onChange={e => set('code', e.target.value)}
             placeholder="risk.approve"
-            className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           <p className="text-xs text-text-muted mt-1">Use dot notation: module.action — e.g. risk.approve, vendor.edit</p>
         </div>
         <div>
-          <label className="text-xs font-medium text-text-secondary block mb-1">Display name <span className="text-red-400">*</span></label>
+          <label className="text-xs font-medium text-text-secondary block mb-1">Display name <span className="text-status-fail-fg">*</span></label>
           <input value={form.name} onChange={e => set('name', e.target.value)}
             placeholder="Approve risk treatment"
-            className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Module</label>
             <select value={form.module} onChange={e => set('module', e.target.value)}
-              className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+              className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">Select…</option>
               {MODULES.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
@@ -324,7 +324,7 @@ function PermissionModal({ open, onClose, initial, onSave, loading }) {
             <label className="text-xs font-medium text-text-secondary block mb-1">Resource type</label>
             <input value={form.resourceType} onChange={e => set('resourceType', e.target.value)}
               placeholder="RISK_RECORD"
-              className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
         </div>
       </div>
@@ -355,8 +355,8 @@ function GrantsTab({ tenantId }) {
 
   const SIDES = ['ORGANIZATION', 'VENDOR', 'SYSTEM', 'AUDITOR', 'AUDITEE']
   const SIDE_COLOR = {
-    ORGANIZATION: 'text-blue-400', VENDOR: 'text-purple-400', SYSTEM: 'text-green-400',
-    AUDITOR: 'text-cyan-400', AUDITEE: 'text-amber-400',
+    ORGANIZATION: 'text-status-info-fg', VENDOR: 'text-status-tag-fg', SYSTEM: 'text-status-pass-fg',
+    AUDITOR: 'text-status-info-fg', AUDITEE: 'text-status-warn-fg',
   }
 
   // Group roles by side
@@ -412,7 +412,7 @@ function GrantsTab({ tenantId }) {
             {SIDES.filter(s => (bySide[s] || []).length > 0 || rolesLoading).map(s => (
               <button key={s} onClick={() => { setActiveSide(s); setSelectedRole(null) }}
                 className={cn(
-                  'px-2.5 py-1 text-[10px] font-medium rounded-md whitespace-nowrap transition-colors',
+                  'px-2.5 py-1 text-[10px] font-medium rounded-ctl whitespace-nowrap transition-colors',
                   activeSide === s
                     ? 'bg-brand-500/15 text-brand-400 border border-brand-500/30'
                     : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay border border-transparent'
@@ -426,7 +426,7 @@ function GrantsTab({ tenantId }) {
           <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5 px-0.5">
             {activeSide} ROLES ({sideRoles.length})
           </p>
-          <div className="border border-border rounded-lg overflow-hidden">
+          <div className="border border-border rounded-card overflow-hidden">
             {rolesLoading && <div className="px-3 py-3 text-xs text-text-muted text-center">Loading roles…</div>}
             {!rolesLoading && sideRoles.length === 0 && (
               <div className="px-3 py-3 text-xs text-text-muted italic text-center">No {activeSide.toLowerCase()} roles</div>
@@ -454,7 +454,7 @@ function GrantsTab({ tenantId }) {
         {/* Permission grant matrix */}
         <div className="flex-1 min-w-0">
           {!selectedRole ? (
-            <div className="flex flex-col items-center justify-center h-64 text-center border border-dashed border-border rounded-lg gap-2">
+            <div className="flex flex-col items-center justify-center h-64 text-center border border-dashed border-border rounded-card gap-2">
               <Shield size={24} className="text-text-muted opacity-40" />
               <p className="text-xs text-text-muted">Select a role on the left to manage its permissions</p>
             </div>
@@ -473,7 +473,7 @@ function GrantsTab({ tenantId }) {
                 </div>
               </div>
               {Object.entries(grouped).map(([module, perms]) => (
-                <div key={module} className="border border-border rounded-lg overflow-hidden">
+                <div key={module} className="border border-border rounded-card overflow-hidden">
                   <div className="flex items-center gap-2 px-4 py-2 bg-surface-overlay border-b border-border">
                     <Layers size={12} className="text-brand-400" />
                     <span className="text-xs font-semibold text-text-primary">{module}</span>
@@ -488,14 +488,14 @@ function GrantsTab({ tenantId }) {
                         <button key={p.id} onClick={() => toggle(p)}
                           className={cn(
                             'flex items-center gap-3 px-4 py-2.5 text-left transition-colors',
-                            granted ? 'hover:bg-green-500/5' : 'hover:bg-surface-overlay'
+                            granted ? 'hover:bg-status-pass-bg' : 'hover:bg-surface-overlay'
                           )}
                         >
                           <div className={cn(
                             'w-4 h-4 rounded flex items-center justify-center transition-colors shrink-0',
-                            granted ? 'bg-green-500/20 border border-green-500/40' : 'border border-border bg-surface-overlay'
+                            granted ? 'bg-status-pass-bg border border-status-pass-bd' : 'border border-border bg-surface-overlay'
                           )}>
-                            {granted && <CheckCircle2 size={10} className="text-green-400" />}
+                            {granted && <CheckCircle2 size={10} className="text-status-pass-fg" />}
                           </div>
                           <div className="min-w-0">
                             <div className="text-xs font-mono text-brand-400 truncate">{p.code}</div>
@@ -542,22 +542,22 @@ function OverridesTab() {
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search by user or permission…"
-            className="w-full pl-8 pr-3 h-8 text-xs bg-surface-overlay border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full pl-8 pr-3 h-8 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <Button icon={Plus} size="sm" onClick={() => setModalOpen(true)}>New override</Button>
       </div>
 
       {/* Info banner */}
-      <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-blue-500/5 border border-blue-500/20">
-        <Info size={13} className="text-blue-400 mt-0.5 shrink-0" />
-        <p className="text-xs text-blue-300">
+      <div className="flex items-start gap-2 px-3 py-2.5 rounded-card bg-status-info-bg border border-status-info-bd">
+        <Info size={13} className="text-status-info-fg mt-0.5 shrink-0" />
+        <p className="text-xs text-status-info-fg">
           User overrides win over role grants. A granted override adds a permission the role doesn't have.
           A denied override removes a permission the role does have. Overrides are bounded by the role ceiling — Platform Admins can exceed this.
         </p>
       </div>
 
       {/* Table */}
-      <div className="border border-border rounded-lg overflow-hidden">
+      <div className="border border-border rounded-card overflow-hidden">
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-border bg-surface-overlay">
@@ -584,8 +584,8 @@ function OverridesTab() {
                     <td className="px-4 py-2.5 font-mono text-brand-400">{o.permissionCode}</td>
                     <td className="px-4 py-2.5">
                       {o.granted
-                        ? <span className="inline-flex items-center gap-1 text-green-400"><Unlock size={11} /> Grant</span>
-                        : <span className="inline-flex items-center gap-1 text-red-400"><Lock size={11} /> Deny</span>
+                        ? <span className="inline-flex items-center gap-1 text-status-pass-fg"><Unlock size={11} /> Grant</span>
+                        : <span className="inline-flex items-center gap-1 text-status-fail-fg"><Lock size={11} /> Deny</span>
                       }
                     </td>
                     <td className="px-4 py-2.5 text-text-secondary max-w-xs truncate">{o.reason || '—'}</td>
@@ -599,7 +599,7 @@ function OverridesTab() {
                     <td className="px-4 py-2.5">
                       {o.isActive && (
                         <button onClick={() => revokeMut.mutate(o.id)}
-                          className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:underline transition-opacity">
+                          className="opacity-0 group-hover:opacity-100 text-xs text-status-fail-fg hover:underline transition-opacity">
                           Revoke
                         </button>
                       )}
@@ -633,25 +633,25 @@ function OverrideModal({ open, onClose, onSave, loading }) {
     >
       <div className="space-y-3">
         <div>
-          <label className="text-xs font-medium text-text-secondary block mb-1">User ID or email <span className="text-red-400">*</span></label>
+          <label className="text-xs font-medium text-text-secondary block mb-1">User ID or email <span className="text-status-fail-fg">*</span></label>
           <input value={form.userId} onChange={e => set('userId', e.target.value)}
             placeholder="user@company.com or user ID"
-            className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
-          <label className="text-xs font-medium text-text-secondary block mb-1">Permission code <span className="text-red-400">*</span></label>
+          <label className="text-xs font-medium text-text-secondary block mb-1">Permission code <span className="text-status-fail-fg">*</span></label>
           <input value={form.permissionCode} onChange={e => set('permissionCode', e.target.value)}
             placeholder="risk.approve"
-            className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="text-xs font-medium text-text-secondary block mb-1">Override type</label>
           <div className="flex gap-3">
-            {[{ v: true, label: 'Grant (add permission)', icon: Unlock, color: 'text-green-400' },
-              { v: false, label: 'Deny (remove permission)', icon: Lock, color: 'text-red-400' }].map(o => (
+            {[{ v: true, label: 'Grant (add permission)', icon: Unlock, color: 'text-status-pass-fg' },
+              { v: false, label: 'Deny (remove permission)', icon: Lock, color: 'text-status-fail-fg' }].map(o => (
               <button key={String(o.v)} onClick={() => set('granted', o.v)}
                 className={cn(
-                  'flex-1 flex items-center gap-2 px-3 py-2.5 text-xs rounded-lg border transition-colors',
+                  'flex-1 flex items-center gap-2 px-3 py-2.5 text-xs rounded-card border transition-colors',
                   form.granted === o.v ? 'border-brand-500 bg-brand-500/10 text-text-primary' : 'border-border text-text-muted hover:border-border-strong'
                 )}>
                 <o.icon size={13} className={o.color} /> {o.label}
@@ -660,15 +660,15 @@ function OverrideModal({ open, onClose, onSave, loading }) {
           </div>
         </div>
         <div>
-          <label className="text-xs font-medium text-text-secondary block mb-1">Justification <span className="text-red-400">*</span></label>
+          <label className="text-xs font-medium text-text-secondary block mb-1">Justification <span className="text-status-fail-fg">*</span></label>
           <textarea value={form.reason} onChange={e => set('reason', e.target.value)}
             rows={2} placeholder="Why is this override needed?"
-            className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+            className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
         </div>
         <div>
           <label className="text-xs font-medium text-text-secondary block mb-1">Expiry date (leave blank for permanent)</label>
           <input type="date" value={form.expiresAt} onChange={e => set('expiresAt', e.target.value)}
-            className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
     </Modal>
@@ -708,9 +708,9 @@ function SodTab({ tenantId }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20 flex-1 mr-4">
-          <AlertTriangle size={13} className="text-amber-400 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-300">
+        <div className="flex items-start gap-2 px-3 py-2.5 rounded-card bg-status-warn-bg border border-status-warn-bd flex-1 mr-4">
+          <AlertTriangle size={13} className="text-status-warn-fg mt-0.5 shrink-0" />
+          <p className="text-xs text-status-warn-fg">
             SoD rules are evaluated at task assignment time, scoped to the same workflow instance.
             HARD rules block assignment entirely. SOFT rules allow with a documented exception.
           </p>
@@ -723,18 +723,18 @@ function SodTab({ tenantId }) {
         : (
           <div className="space-y-2">
             {rules.length === 0 && (
-              <div className="flex items-center justify-center h-32 border border-dashed border-border rounded-lg text-xs text-text-muted">
+              <div className="flex items-center justify-center h-32 border border-dashed border-border rounded-card text-xs text-text-muted">
                 No SoD rules defined yet
               </div>
             )}
             {rules.map(rule => (
               <div key={rule.id}
-                className="flex items-start gap-4 p-4 border border-border rounded-lg hover:border-border-strong transition-colors group">
+                className="flex items-start gap-4 p-4 border border-border rounded-card hover:border-border-strong transition-colors group">
                 <div className={cn(
                   'h-6 px-2 rounded text-[10px] font-bold flex items-center shrink-0 mt-0.5',
                   rule.conflictType === 'HARD'
-                    ? 'bg-red-500/15 text-red-400 border border-red-500/30'
-                    : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                    ? 'bg-status-fail-bg text-status-fail-fg border border-status-fail-bd'
+                    : 'bg-status-warn-bg text-status-warn-fg border border-status-warn-bd'
                 )}>
                   {rule.conflictType}
                 </div>
@@ -742,7 +742,7 @@ function SodTab({ tenantId }) {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-medium text-text-primary">{rule.ruleName}</span>
                     {rule.frameworkRef && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-tag-bg text-status-tag-fg border border-status-tag-bd">
                         {rule.frameworkRef}
                       </span>
                     )}
@@ -764,7 +764,7 @@ function SodTab({ tenantId }) {
                     <Pencil size={12} />
                   </button>
                   <button onClick={() => setDeleteTarget(rule)}
-                    className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10">
+                    className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg">
                     <Trash2 size={12} />
                   </button>
                 </div>
@@ -826,10 +826,10 @@ function SodRuleModal({ open, onClose, initial, onSave, loading, allRoles }) {
     >
       <div className="space-y-3">
         <div>
-          <label className="text-xs font-medium text-text-secondary block mb-1">Rule name <span className="text-red-400">*</span></label>
+          <label className="text-xs font-medium text-text-secondary block mb-1">Rule name <span className="text-status-fail-fg">*</span></label>
           <input value={form.ruleName} onChange={e => set('ruleName', e.target.value)}
             placeholder="Auditor cannot be Control Owner"
-            className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         {/* Rule type toggle */}
         <div>
@@ -838,7 +838,7 @@ function SodRuleModal({ open, onClose, initial, onSave, loading, allRoles }) {
             {[{ v: 'ROLE_PAIR', label: 'Role conflict' }, { v: 'PERMISSION_PAIR', label: 'Permission conflict' }].map(opt => (
               <button key={opt.v} type="button" onClick={() => set('ruleType', opt.v)}
                 className={cn(
-                  'flex-1 py-2 text-xs rounded-md border transition-colors',
+                  'flex-1 py-2 text-xs rounded-ctl border transition-colors',
                   form.ruleType === opt.v
                     ? 'border-brand-500 bg-brand-500/10 text-brand-400 font-medium'
                     : 'border-border text-text-muted hover:border-border-strong'
@@ -852,17 +852,17 @@ function SodRuleModal({ open, onClose, initial, onSave, loading, allRoles }) {
         {isRolePair ? (
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-text-secondary block mb-1">Role 1 <span className="text-red-400">*</span></label>
+              <label className="text-xs font-medium text-text-secondary block mb-1">Role 1 <span className="text-status-fail-fg">*</span></label>
               <select value={form.role1Id} onChange={e => set('role1Id', e.target.value)}
-                className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 <option value="">Select role…</option>
                 {(allRoles || []).map(r => <option key={r.id} value={r.id}>{r.name} ({r.side})</option>)}
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-text-secondary block mb-1">Role 2 <span className="text-red-400">*</span></label>
+              <label className="text-xs font-medium text-text-secondary block mb-1">Role 2 <span className="text-status-fail-fg">*</span></label>
               <select value={form.role2Id} onChange={e => set('role2Id', e.target.value)}
-                className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 <option value="">Select role…</option>
                 {(allRoles || []).map(r => <option key={r.id} value={r.id}>{r.name} ({r.side})</option>)}
               </select>
@@ -871,16 +871,16 @@ function SodRuleModal({ open, onClose, initial, onSave, loading, allRoles }) {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-text-secondary block mb-1">Permission A <span className="text-red-400">*</span></label>
+              <label className="text-xs font-medium text-text-secondary block mb-1">Permission A <span className="text-status-fail-fg">*</span></label>
               <input value={form.permissionA} onChange={e => set('permissionA', e.target.value)}
                 placeholder="risk.create"
-                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
-              <label className="text-xs font-medium text-text-secondary block mb-1">Permission B <span className="text-red-400">*</span></label>
+              <label className="text-xs font-medium text-text-secondary block mb-1">Permission B <span className="text-status-fail-fg">*</span></label>
               <input value={form.permissionB} onChange={e => set('permissionB', e.target.value)}
                 placeholder="risk.approve"
-                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
         )}
@@ -888,20 +888,20 @@ function SodRuleModal({ open, onClose, initial, onSave, loading, allRoles }) {
           <label className="text-xs font-medium text-text-secondary block mb-1">Description</label>
           <textarea value={form.description} onChange={e => set('description', e.target.value)}
             rows={2} placeholder="Why this conflict matters…"
-            className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+            className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Conflict type</label>
             <select value={form.conflictType} onChange={e => set('conflictType', e.target.value)}
-              className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+              className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               {CONFLICT_TYPES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
           </div>
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Framework reference</label>
             <select value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)}
-              className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+              className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">None</option>
               {FRAMEWORKS.map(f => <option key={f} value={f}>{f}</option>)}
             </select>

@@ -81,7 +81,7 @@ function LayoutModeInspector({ screenKey }) {
         Controls how this screen opens when a user clicks a list row.
         Saved to <code className="font-mono">ui_layouts.layout_mode</code>.
       </p>
-      <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-lg border border-brand-500/15 bg-brand-500/5 mb-3">
+      <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-card border border-brand-500/15 bg-brand-500/5 mb-3">
         <span className="text-brand-400 text-[11px] shrink-0">💡</span>
         <p className="text-[9px] text-text-muted leading-relaxed">
           Capability tabs (Workflow, Evidence, Comments) only appear if enabled in
@@ -98,7 +98,7 @@ function LayoutModeInspector({ screenKey }) {
               onClick={() => handleSelect(value)}
               disabled={saving}
               className={cn(
-                'w-full text-left flex items-start gap-3 px-3 py-2.5 rounded-lg border transition-all',
+                'w-full text-left flex items-start gap-3 px-3 py-2.5 rounded-card border transition-all',
                 active ? color : dimColor,
                 saving ? 'opacity-60 cursor-not-allowed' : 'hover:opacity-90 cursor-pointer',
               )}>
@@ -109,7 +109,7 @@ function LayoutModeInspector({ screenKey }) {
                     {label}
                   </span>
                   {active && (
-                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/10 border border-current">
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-on-dark/10 border border-current">
                       active
                     </span>
                   )}
@@ -132,7 +132,7 @@ function LayoutModeInspector({ screenKey }) {
             { value: 'TENANT',   label: 'Specific tenant', desc: 'Override for one tenant only' },
           ].map(s => (
             <button key={s.value} onClick={() => { setScope(s.value); if (s.value !== 'TENANT') setTargetTenantId(null) }}
-              className={`w-full text-left flex items-start gap-2 px-3 py-2 rounded-lg border text-[10px] transition-all ${
+              className={`w-full text-left flex items-start gap-2 px-3 py-2 rounded-card border text-[10px] transition-all ${
                 scope === s.value
                   ? 'border-brand-500/40 bg-brand-500/10 text-brand-300'
                   : 'border-border text-text-muted hover:border-border-strong'
@@ -140,7 +140,7 @@ function LayoutModeInspector({ screenKey }) {
               <span className={`mt-0.5 w-3 h-3 rounded-full border shrink-0 flex items-center justify-center ${
                 scope === s.value ? 'border-brand-400 bg-brand-400' : 'border-text-muted'
               }`}>
-                {scope === s.value && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                {scope === s.value && <span className="w-1.5 h-1.5 rounded-full bg-surface-raised" />}
               </span>
               <div>
                 <span className="font-medium">{s.label}</span>
@@ -166,7 +166,7 @@ function LayoutModeInspector({ screenKey }) {
         )}
 
         {scope === 'GLOBAL' && (
-          <p className="text-[9px] text-amber-400/70 mt-1.5">
+          <p className="text-[9px] text-status-warn-fg mt-1.5">
             ⚙ Changes will apply to all tenants on next page load
           </p>
         )}

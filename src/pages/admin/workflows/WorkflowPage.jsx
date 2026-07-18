@@ -39,9 +39,9 @@ const APPROVAL_TYPES = [
 ]
 const ACTION_TYPES = ['APPROVE','REJECT','SEND_BACK','REASSIGN','DELEGATE','ESCALATE','COMMENT','WITHDRAW']
 const ACTION_COLOR = {
-  APPROVE: 'text-green-400', REJECT: 'text-red-400', SEND_BACK: 'text-amber-400',
-  REASSIGN: 'text-blue-400', DELEGATE: 'text-purple-400', ESCALATE: 'text-orange-400',
-  COMMENT: 'text-text-muted', WITHDRAW: 'text-red-400',
+  APPROVE: 'text-status-pass-fg', REJECT: 'text-status-fail-fg', SEND_BACK: 'text-status-warn-fg',
+  REASSIGN: 'text-status-info-fg', DELEGATE: 'text-status-tag-fg', ESCALATE: 'text-status-warn-fg',
+  COMMENT: 'text-text-muted', WITHDRAW: 'text-status-fail-fg',
 }
 
 // ─── Hooks (unchanged except useCancelAndRestart — NEW) ───────────────────────
@@ -336,7 +336,7 @@ export default function WorkflowPage({ isPlatformAdmin = false, defaultTab }) {
                 <GitBranch size={12} />
               </button>
               <button onClick={() => setDeleteTarget(row)} title="Delete"
-                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
                 <Trash2 size={12} />
               </button>
             </>
@@ -363,8 +363,8 @@ export default function WorkflowPage({ isPlatformAdmin = false, defaultTab }) {
     },
     { key: 'priority',        label: 'Priority',      sortable: false, width: 90,  type: 'custom',
       render: (row) => <span className={cn('text-xs font-medium',
-        row.priority === 'CRITICAL' ? 'text-red-400' :
-        row.priority === 'HIGH' ? 'text-amber-400' : 'text-text-muted')}>{row.priority}</span>
+        row.priority === 'CRITICAL' ? 'text-status-fail-fg' :
+        row.priority === 'HIGH' ? 'text-status-warn-fg' : 'text-text-muted')}>{row.priority}</span>
     },
     { key: 'startedAt',       label: 'Started',       sortable: true,  width: 110, type: 'date' },
     { key: '__actions',       label: '',              width: 160,       type: 'custom',
@@ -377,19 +377,19 @@ export default function WorkflowPage({ isPlatformAdmin = false, defaultTab }) {
             <>
               {row.status === 'IN_PROGRESS' && (
                 <button onClick={() => holdInstance({ id: row.id })} title="Hold"
-                  className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-amber-400 hover:bg-amber-500/10 transition-colors">
+                  className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-warn-fg hover:bg-status-warn-bg transition-colors">
                   <Pause size={12} />
                 </button>
               )}
               {row.status === 'ON_HOLD' && (
                 <button onClick={() => resumeInstance(row.id)} title="Resume"
-                  className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-green-400 hover:bg-green-500/10 transition-colors">
+                  className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-pass-fg hover:bg-status-pass-bg transition-colors">
                   <Play size={12} />
                 </button>
               )}
               {!['COMPLETED','CANCELLED','REJECTED'].includes(row.status) && (
                 <button onClick={() => setConfirmAction({ type: 'cancel', row })} title="Cancel"
-                  className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                  className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
                   <XCircle size={12} />
                 </button>
               )}
@@ -429,7 +429,7 @@ export default function WorkflowPage({ isPlatformAdmin = false, defaultTab }) {
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search…"
-              className="h-8 pl-8 pr-3 w-48 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-48 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw}
             onClick={tab === 'blueprints' ? bpRefetch : instRefetch} />
@@ -628,7 +628,7 @@ function InstanceDetail({ instanceId, onBack, isPlatformAdmin }) {
       <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
           <button onClick={onBack}
-            className="h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
+            className="h-7 w-7 flex items-center justify-center rounded-ctl text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
             <ArrowLeft size={15} />
           </button>
           <div>
@@ -636,7 +636,7 @@ function InstanceDetail({ instanceId, onBack, isPlatformAdmin }) {
               <h1 className="text-base font-semibold text-text-primary">{instance.workflowName}</h1>
               <Badge value={instance.status} label={instance.status} colorTag={STATUS_COLOR[instance.status] || 'gray'} />
               {instance.priority === 'CRITICAL' && (
-                <span className="text-xs font-bold text-red-400 flex items-center gap-1">
+                <span className="text-xs font-bold text-status-fail-fg flex items-center gap-1">
                   <Zap size={11} /> CRITICAL
                 </span>
               )}
@@ -663,7 +663,7 @@ function InstanceDetail({ instanceId, onBack, isPlatformAdmin }) {
         <div className="max-w-3xl flex flex-col gap-4">
           {/* Progress timeline panel */}
           {showProgress && (
-            <div className="rounded-lg border border-border overflow-hidden">
+            <div className="rounded-card border border-border overflow-hidden">
               <div className="px-4 py-2.5 bg-surface-overlay border-b border-border">
                 <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
                   Step Progress — Assignments & Tasks
@@ -686,7 +686,7 @@ function InstanceDetail({ instanceId, onBack, isPlatformAdmin }) {
           )}
 
           {showHistory && history && (
-            <div className="rounded-lg border border-border overflow-hidden">
+            <div className="rounded-card border border-border overflow-hidden">
               <div className="px-4 py-2.5 bg-surface-overlay border-b border-border">
                 <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
                   Audit Trail — {history.length} events
@@ -728,13 +728,13 @@ function InstanceDetail({ instanceId, onBack, isPlatformAdmin }) {
 function StepCard({ stepInstance, index, isCurrentStep, onAction }) {
   const [expanded, setExpanded] = useState(isCurrentStep)
   return (
-    <div className={cn('rounded-lg border overflow-hidden',
+    <div className={cn('rounded-card border overflow-hidden',
       isCurrentStep ? 'border-brand-500/40 bg-brand-500/3' : 'border-border bg-surface-raised')}>
       <button onClick={() => setExpanded(e => !e)}
         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-overlay transition-colors text-left">
         <div className={cn('w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold',
-          stepInstance.status === 'APPROVED' ? 'bg-green-500/20 text-green-400' :
-          stepInstance.status === 'REJECTED' ? 'bg-red-500/20 text-red-400' :
+          stepInstance.status === 'APPROVED' ? 'bg-status-pass-bg text-status-pass-fg' :
+          stepInstance.status === 'REJECTED' ? 'bg-status-fail-bg text-status-fail-fg' :
           isCurrentStep ? 'bg-brand-500/20 text-brand-400' : 'bg-surface-overlay text-text-muted')}>
           {stepInstance.status === 'APPROVED' ? <CheckCircle2 size={14} /> :
            stepInstance.status === 'REJECTED' ? <XCircle size={14} /> : index + 1}
@@ -743,7 +743,7 @@ function StepCard({ stepInstance, index, isCurrentStep, onAction }) {
           <div className="flex items-center gap-2">
             <p className="text-sm font-semibold text-text-primary">{stepInstance.stepName || `Step ${stepInstance.stepOrder}`}</p>
             {stepInstance.iterationCount > 1 && (
-              <span className="text-[10px] text-amber-400 font-medium">×{stepInstance.iterationCount}</span>
+              <span className="text-[10px] text-status-warn-fg font-medium">×{stepInstance.iterationCount}</span>
             )}
           </div>
           <div className="flex items-center gap-3 mt-0.5">
@@ -832,7 +832,7 @@ function TaskActionModal({ taskId, stepInstance, onClose, onSubmit, isPending })
           <div className="grid grid-cols-2 gap-2">
             {ACTION_TYPES.map(a => (
               <button key={a} onClick={() => setActionType(a)}
-                className={cn('px-3 py-2 rounded-md border text-xs font-medium text-left transition-colors',
+                className={cn('px-3 py-2 rounded-ctl border text-xs font-medium text-left transition-colors',
                   actionType === a ? 'border-brand-500 bg-brand-500/10 text-brand-400'
                     : 'border-border text-text-muted hover:text-text-primary hover:bg-surface-overlay',
                   ACTION_COLOR[a])}>
@@ -843,11 +843,11 @@ function TaskActionModal({ taskId, stepInstance, onClose, onSubmit, isPending })
         </div>
         <div>
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">
-            Remarks {requiresRemarks && <span className="text-red-400">*</span>}
+            Remarks {requiresRemarks && <span className="text-status-fail-fg">*</span>}
           </label>
           <textarea rows={2} value={remarks} onChange={e => setRemarks(e.target.value)}
             placeholder="Add remarks or justification…"
-            className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         {needsTargetUser && (
           <Input label="Target User ID *" type="number" value={targetUserId}

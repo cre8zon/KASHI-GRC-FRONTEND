@@ -20,9 +20,9 @@ const fetchPolicies = (eid, cid) => api.get(`/v1/audit/engagements/${eid}/contro
 
 // ── Result badge ──────────────────────────────────────────────────────────────
 const TEST_RESULT_CFG = {
-  PASS:        { label: 'Pass',       color: 'text-green-400', bg: 'bg-green-500/10',   icon: CheckCircle2 },
-  FAIL:        { label: 'Fail',       color: 'text-red-400',   bg: 'bg-red-500/10',     icon: XCircle },
-  EXCEPTION:   { label: 'Exception',  color: 'text-amber-400', bg: 'bg-amber-500/10',   icon: AlertTriangle },
+  PASS:        { label: 'Pass',       color: 'text-status-pass-fg', bg: 'bg-status-pass-bg',   icon: CheckCircle2 },
+  FAIL:        { label: 'Fail',       color: 'text-status-fail-fg',   bg: 'bg-status-fail-bg',     icon: XCircle },
+  EXCEPTION:   { label: 'Exception',  color: 'text-status-warn-fg', bg: 'bg-status-warn-bg',   icon: AlertTriangle },
   NOT_RUN:     { label: 'Not run',    color: 'text-text-muted',bg: 'bg-surface-overlay', icon: MinusCircle },
 }
 
@@ -52,7 +52,7 @@ function DetailPanel({ item, type, onClose }) {
                 <span className="font-mono text-[10px] text-brand-400">{item.testRefSnapshot}</span>
                 <ResultBadge result={item.testResult} />
                 {item.isRequired && (
-                  <span className="text-[9px] text-red-400 bg-red-500/10 px-1 rounded">Required</span>
+                  <span className="text-[9px] text-status-fail-fg bg-status-fail-bg px-1 rounded">Required</span>
                 )}
               </div>
               <p className="text-sm font-medium text-text-primary truncate">{item.testNameSnapshot}</p>
@@ -63,8 +63,8 @@ function DetailPanel({ item, type, onClose }) {
                 <span className="font-mono text-[10px] text-brand-400">{item.policyRefSnapshot}</span>
                 {item.reviewContribution && (
                   <span className={cn('text-[9px] px-1.5 py-0.5 rounded',
-                    item.reviewContribution === 'SATISFIES' ? 'text-green-400 bg-green-500/10' :
-                    item.reviewContribution === 'GAPS'      ? 'text-red-400 bg-red-500/10' :
+                    item.reviewContribution === 'SATISFIES' ? 'text-status-pass-fg bg-status-pass-bg' :
+                    item.reviewContribution === 'GAPS'      ? 'text-status-fail-fg bg-status-fail-bg' :
                     'text-text-muted bg-surface-overlay')}>
                     {item.reviewContribution}
                   </span>
@@ -103,7 +103,7 @@ function F({ label, value, multi, red }) {
   return (
     <div>
       <p className="text-[9px] text-text-muted uppercase tracking-wide mb-1">{label}</p>
-      <p className={cn('text-xs leading-relaxed', red ? 'text-red-400' : 'text-text-primary', !multi && 'truncate')}>
+      <p className={cn('text-xs leading-relaxed', red ? 'text-status-fail-fg' : 'text-text-primary', !multi && 'truncate')}>
         {value}
       </p>
     </div>
@@ -152,7 +152,7 @@ export function ControlInstanceTestsTab({ engagementId, controlInstanceId }) {
                   <span className="font-mono text-[9px] text-brand-400">{item.testRefSnapshot}</span>
                 )}
                 {item.isRequired && (
-                  <span className="text-[9px] text-red-400">Required</span>
+                  <span className="text-[9px] text-status-fail-fg">Required</span>
                 )}
               </div>
               <p className="text-[11px] text-text-primary leading-snug truncate">{item.testNameSnapshot}</p>
@@ -219,8 +219,8 @@ export function ControlInstancePoliciesTab({ engagementId, controlInstanceId }) 
             <div className="flex items-center gap-1 shrink-0">
               {item.reviewContribution && (
                 <span className={cn('text-[9px] px-1 rounded',
-                  item.reviewContribution === 'SATISFIES' ? 'text-green-400 bg-green-500/10' :
-                  item.reviewContribution === 'GAPS'      ? 'text-red-400 bg-red-500/10' :
+                  item.reviewContribution === 'SATISFIES' ? 'text-status-pass-fg bg-status-pass-bg' :
+                  item.reviewContribution === 'GAPS'      ? 'text-status-fail-fg bg-status-fail-bg' :
                   'text-text-muted bg-surface-overlay')}>
                   {item.reviewContribution}
                 </span>

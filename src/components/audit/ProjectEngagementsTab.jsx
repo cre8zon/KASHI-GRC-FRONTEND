@@ -96,7 +96,7 @@ function DualProgressBar({ submitted, tested, total }) {
       <div className="flex items-center gap-2">
         <span className="text-[9px] text-text-muted w-14 shrink-0">Evidence</span>
         <div className="flex-1 h-1.5 rounded-full bg-surface-overlay overflow-hidden">
-          <div className="h-full bg-green-500/60 rounded-full transition-all" style={{ width: `${submittedPct}%` }} />
+          <div className="h-full bg-status-pass-bg rounded-full transition-all" style={{ width: `${submittedPct}%` }} />
         </div>
         <span className="text-[9px] text-text-muted tabular-nums w-7 text-right">{submittedPct}%</span>
       </div>
@@ -196,7 +196,7 @@ export default function ProjectEngagementsTab({ projectId, vc = {}, stepInstance
     return (
       <div className="flex flex-col gap-3 py-2">
         {[1, 2, 3].map(i => (
-          <div key={i} className="h-24 rounded-lg bg-surface-overlay animate-pulse" />
+          <div key={i} className="h-24 rounded-card bg-surface-overlay animate-pulse" />
         ))}
       </div>
     )
@@ -217,10 +217,10 @@ export default function ProjectEngagementsTab({ projectId, vc = {}, stepInstance
 
       {/* ── Progress banner in assign mode ─── */}
       {isAssignStep && (
-        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-card border text-xs font-medium
           ${allAssigned
-            ? 'bg-green-500/10 border-green-500/30 text-green-400'
-            : 'bg-amber-500/10 border-amber-500/30 text-amber-400'}`}>
+            ? 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg'
+            : 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg'}`}>
           {allAssigned
             ? <><CheckCircle2 size={13}/> All {engagements.length} engagements have lead auditors assigned — step will complete</>
             : <><Users size={13}/> {assignedCount}/{engagements.length} engagements assigned — assign a lead auditor to each</>}
@@ -231,7 +231,7 @@ export default function ProjectEngagementsTab({ projectId, vc = {}, stepInstance
       {engagements.map(eng => (
         <div
           key={eng.id}
-          className="rounded-lg border border-border bg-surface-raised hover:bg-surface-overlay transition-colors p-4"
+          className="rounded-card border border-border bg-surface-raised hover:bg-surface-overlay transition-colors p-4"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -257,7 +257,7 @@ export default function ProjectEngagementsTab({ projectId, vc = {}, stepInstance
                   {/* Lead auditor — picker in assign mode, label otherwise */}
                   {isAssignStep ? (
                     <div className="flex items-center gap-1.5">
-                      <UserCheck size={11} className={eng.leadAuditorId ? 'text-green-400' : 'text-text-muted'} />
+                      <UserCheck size={11} className={eng.leadAuditorId ? 'text-status-pass-fg' : 'text-text-muted'} />
                       <AuditorPicker
                         value={eng.leadAuditorId}
                         users={eligibleUsers}
@@ -275,7 +275,7 @@ export default function ProjectEngagementsTab({ projectId, vc = {}, stepInstance
                   <span className="text-xs text-text-muted">{eng.totalControls ?? 0} controls</span>
 
                   {eng.openFindingCount > 0 && (
-                    <span className="flex items-center gap-1 text-xs text-red-400">
+                    <span className="flex items-center gap-1 text-xs text-status-fail-fg">
                       <AlertTriangle size={11} />{eng.openFindingCount} findings
                     </span>
                   )}

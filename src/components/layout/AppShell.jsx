@@ -17,8 +17,10 @@ export function AppShell() {
 
   if (isLoading) return <PageSkeleton />
 
+  // No background here: the pastel wash lives on <body>. An opaque surface at
+  // this level would cover it and leave the glass chrome with nothing to blur.
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-surface">
+    <div className="flex flex-col h-screen overflow-hidden">
       {/* Server status banner — slides in above everything when server is down */}
       <ServerStatusBanner
         status={status}

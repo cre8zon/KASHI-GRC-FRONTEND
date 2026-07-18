@@ -16,7 +16,9 @@ const uiConfigSlice = createSlice({
     },
     applyBrandingLive(state, { payload }) {
       state.branding = { ...state.branding, ...payload }
-      applyBranding({ ...state.branding, ...payload })
+      // force: this is an explicit admin/user action (live preview, save),
+      // not the passive org-branding repaint that setBootstrap performs.
+      applyBranding({ ...state.branding, ...payload }, { force: true })
     },
   },
 })
@@ -33,16 +35,38 @@ const uiConfigSlice = createSlice({
  * Per-user theme (dark/light/system) is handled separately by useTheme hook
  * via data-theme attribute — it is NOT overridden here so user preference wins.
  */
-export function applyBranding(branding) {
+/**
+ * True when this user has a personal brand colour (a pastel preset click, or a
+ * Settings colour). Org branding must not repaint over a personal choice.
+ * Mirrors the sidebarTheme precedence rule already used below.
+ */
+function hasPersonalBrandChoice() {
+  try {
+    return !!localStorage.getItem('kashi_brand_preset') ||
+           !!localStorage.getItem('kashi_sidebar_color')
+  } catch { return false }
+}
+
+export function applyBranding(branding, { force = false } = {}) {
   const root = document.documentElement
 
-  if (branding.primaryColor) {
+  // setBootstrap() calls this with ORG branding on every load. Without this
+  // guard a tenant's stored primaryColor repaints --color-brand-* a few
+  // hundred ms after boot and stomps the user's pastel preset.
+  const skipBrandColor = !force && hasPersonalBrandChoice()
+
+  if (branding.primaryColor && !skipBrandColor) {
     const rgb = hexToRgb(branding.primaryColor)
     if (rgb) {
       const scale = generateScale(rgb)
       Object.entries(scale).forEach(([shade, value]) => {
         root.style.setProperty(`--color-brand-${shade}`, value)
       })
+      // Keep the pastel wash in step with the brand colour. Without this a
+      // white-labelled tenant gets its own hue on the default sage wash.
+      root.style.setProperty('--wash-a', `rgb(${scale[100]})`)
+      root.style.setProperty('--wash-b', `rgb(${scale[50]})`)
+      root.style.setProperty('--wash-c', `rgb(${scale[200]})`)
     }
   }
 

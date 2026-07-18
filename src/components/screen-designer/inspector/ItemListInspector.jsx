@@ -20,7 +20,7 @@ function ItemListInspector({ screenKey, onNavigate }) {
       <InspectorSection title="Item list">
         <p className="text-[10px] text-text-muted">Items in this section are rendered using the itemScreenKey below. Click to configure the item card.</p>
         <button onClick={() => onNavigate(linkedItemKey)}
-          className="w-full flex items-center gap-2 p-2.5 rounded-lg border border-brand-500/25 bg-brand-500/5 text-[10px] text-brand-400 hover:bg-brand-500/10 transition-colors mt-2">
+          className="w-full flex items-center gap-2 p-2.5 rounded-card border border-brand-500/25 bg-brand-500/5 text-[10px] text-brand-400 hover:bg-brand-500/10 transition-colors mt-2">
           <ArrowRight size={12} />
           <div className="flex-1 text-left">
             <div className="font-medium">Item card screen</div>

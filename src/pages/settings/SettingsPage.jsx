@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useMutation } from '@tanstack/react-query'
 import { selectBranding, applyBrandingLive, applyBranding } from '../../store/slices/uiConfigSlice'
+import { BRAND_PRESETS } from '../../config/brandPresets'
 import { selectAuth }    from '../../store/slices/authSlice'
 import { PageLayout }    from '../../components/layout/PageLayout'
 import { Card, CardHeader, CardBody } from '../../components/ui/Card'
@@ -26,14 +27,18 @@ const TABS = [
   { id: 'integrations', label: 'Integrations', icon: Key     },
 ]
 
-const PRESET_PALETTES = [
-  { label: 'Sky',     primary: '#0ea5e9', accent: '#8b5cf6' },
-  { label: 'Violet',  primary: '#7c3aed', accent: '#ec4899' },
-  { label: 'Rose',    primary: '#e11d48', accent: '#f97316' },
-  { label: 'Emerald', primary: '#059669', accent: '#0ea5e9' },
-  { label: 'Amber',   primary: '#d97706', accent: '#dc2626' },
-  { label: 'Slate',   primary: '#475569', accent: '#0ea5e9' },
-]
+// The 12 pastel presets, single-sourced from brandPresets.js. These are DATA
+// (hex values saved to ui_sidebar_color in the DB), never styling — a CSS var
+// here would be written to the database and fail hexToRgb() on the next load.
+// Accent = the neighbouring hue, mirroring how the washes pair.
+const PRESET_PALETTES = BRAND_PRESETS.map((p, i, arr) => ({
+  label:   p.name,
+  primary: p.hex,
+  accent:  arr[(i + 1) % arr.length].hex,
+}))
+
+/** Fallback when no personal/org colour is set — pastel Sage. */
+const DEFAULT_HEX = BRAND_PRESETS[0].hex
 
 // ── Shared tab bar ────────────────────────────────────────────────────────────
 function Tabs({ active, onChange }) {
@@ -73,7 +78,7 @@ function ProfileTab({ auth, branding, userColor }) {
           <CardHeader title="Account" icon={User} />
           <CardBody className="flex flex-col gap-4">
             <div className="flex items-center gap-4 pb-4 border-b border-border">
-              <div className="w-16 h-16 rounded-xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-2xl font-bold text-brand-300 shrink-0">
+              <div className="w-16 h-16 rounded-card bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-2xl font-bold text-brand-300 shrink-0">
                 {initials(fullName)}
               </div>
               <div className="min-w-0 flex-1">
@@ -83,7 +88,7 @@ function ProfileTab({ auth, branding, userColor }) {
                   <span className={cn(
                     'text-[10px] px-2 py-0.5 rounded-full font-semibold border',
                     isVendor
-                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                      ? 'bg-status-warn-bg text-status-warn-fg border-status-warn-bd'
                       : 'bg-brand-500/10 text-brand-400 border-brand-500/20'
                   )}>
                     {roleSide}
@@ -103,12 +108,12 @@ function ProfileTab({ auth, branding, userColor }) {
           <CardHeader title="Workspace" icon={Building2} />
           <CardBody>
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg border border-border bg-surface-overlay p-4">
+              <div className="rounded-card border border-border bg-surface-overlay p-4">
                 <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">Organisation</p>
                 <p className="text-base font-bold text-text-primary">{tenantName || `Tenant #${tenantId}`}</p>
                 <p className="text-xs text-text-muted mt-0.5">Your workspace</p>
               </div>
-              <div className="rounded-lg border border-brand-500/20 bg-brand-500/5 p-4">
+              <div className="rounded-card border border-brand-500/20 bg-brand-500/5 p-4">
                 <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">Platform</p>
                 <p className="text-base font-bold text-brand-300">{branding?.companyName || 'KashiGRC'}</p>
                 <p className="text-xs text-text-muted mt-0.5">Powered by KashiGRC</p>
@@ -126,27 +131,27 @@ function ProfileTab({ auth, branding, userColor }) {
             <div className="flex gap-3">
               {/* Currently applied color (user's saved or org default) */}
               <div className="flex flex-col items-center gap-1">
-                <div className="w-10 h-10 rounded-lg border-2 border-brand-500 shadow-sm"
-                  style={{ background: userColor || branding?.primaryColor || '#0ea5e9' }} />
+                <div className="w-10 h-10 rounded-card border-2 border-brand-500 shadow-sm"
+                  style={{ background: userColor || branding?.primaryColor || DEFAULT_HEX }} />
                 <span className="text-[9px] text-brand-400 font-medium">Applied</span>
               </div>
               {/* Org workspace color */}
               {userColor && userColor !== branding?.primaryColor && (
                 <div className="flex flex-col items-center gap-1">
-                  <div className="w-10 h-10 rounded-lg border border-border shadow-sm opacity-60"
-                    style={{ background: branding?.primaryColor || '#0ea5e9' }} />
+                  <div className="w-10 h-10 rounded-card border border-border shadow-sm opacity-60"
+                    style={{ background: branding?.primaryColor || DEFAULT_HEX }} />
                   <span className="text-[9px] text-text-muted">Workspace</span>
                 </div>
               )}
               {/* Accent */}
               <div className="flex flex-col items-center gap-1">
-                <div className="w-10 h-10 rounded-lg border border-border shadow-sm"
-                  style={{ background: branding?.accentColor || '#7c3aed' }} />
+                <div className="w-10 h-10 rounded-card border border-border shadow-sm"
+                  style={{ background: branding?.accentColor || DEFAULT_HEX }} />
                 <span className="text-[9px] text-text-muted">Accent</span>
               </div>
             </div>
             {/* Live color scale — reflects currently applied color */}
-            <div className="flex gap-0.5 h-4 rounded-md overflow-hidden">
+            <div className="flex gap-0.5 h-4 rounded-ctl overflow-hidden">
               {[50,100,200,300,400,500,600,700,800,900].map(s => (
                 <div key={s} className={`flex-1 bg-brand-${s}`} />
               ))}
@@ -175,11 +180,11 @@ function ColorPicker({ label, value, onChange }) {
         <div className="relative shrink-0">
           <input type="color" value={value} onChange={e => onChange(e.target.value)}
             className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" />
-          <div className="w-9 h-9 rounded-lg border border-border shadow-sm cursor-pointer"
+          <div className="w-9 h-9 rounded-card border border-border shadow-sm cursor-pointer"
             style={{ backgroundColor: value }} />
         </div>
         <input value={value} onChange={e => onChange(e.target.value)}
-          className="h-9 flex-1 rounded-lg border border-border bg-surface-raised px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="h-9 flex-1 rounded-card border border-border bg-surface-raised px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
     </div>
   )
@@ -197,7 +202,7 @@ function DisplayTab({ branding }) {
   )
   // User's personal primary color — saved independently of org branding
   const [selColor, setSelColor] = useState(
-    () => { try { return localStorage.getItem('kashi_sidebar_color') || branding?.primaryColor || '#0ea5e9' } catch { return branding?.primaryColor || '#0ea5e9' } }
+    () => { try { return localStorage.getItem('kashi_sidebar_color') || branding?.primaryColor || DEFAULT_HEX } catch { return branding?.primaryColor || DEFAULT_HEX } }
   )
   const [saving, setSaving] = useState(false)
   const [saved,  setSaved]  = useState(false)
@@ -223,7 +228,7 @@ function DisplayTab({ branding }) {
 
       // Apply user's personal color to the ENTIRE app — same as org branding
       // This is the user's personal brand color preference
-      applyBranding({ ...branding, primaryColor: selColor })
+      applyBranding({ ...branding, primaryColor: selColor }, { force: true })
 
       // Update Redux so sidebar and all brand-color components re-render
       dispatch(applyBrandingLive({ primaryColor: selColor }))
@@ -252,8 +257,8 @@ function DisplayTab({ branding }) {
     { id: 'system', label: 'System', icon: Monitor, desc: 'Follows your OS' },
   ]
   const SIDEBAR_THEMES = [
-    { id: 'dark',  label: 'Dark',  preview: 'bg-gray-900',  desc: 'Classic dark sidebar' },
-    { id: 'light', label: 'Light', preview: 'bg-gray-100',  desc: 'Clean white sidebar'  },
+    { id: 'dark',  label: 'Dark',  preview: 'bg-surface',  desc: 'Classic dark sidebar' },
+    { id: 'light', label: 'Light', preview: 'bg-surface-overlay',  desc: 'Clean white sidebar'  },
     { id: 'brand', label: 'Brand', preview: 'bg-brand-600', desc: 'Match your brand color' },
   ]
 
@@ -271,13 +276,13 @@ function DisplayTab({ branding }) {
               {APP_THEMES.map(({ id, label, icon: Icon, desc }) => (
                 <button key={id} onClick={() => handleAppTheme(id)}
                   className={cn(
-                    'flex flex-col items-start gap-2 p-3 rounded-xl border-2 text-left transition-all',
+                    'flex flex-col items-start gap-2 p-3 rounded-card border-2 text-left transition-all',
                     selApp === id
                       ? 'border-brand-500 bg-brand-500/5'
                       : 'border-border hover:border-brand-500/30 bg-surface-raised'
                   )}>
                   <div className={cn(
-                    'w-8 h-8 rounded-lg flex items-center justify-center',
+                    'w-8 h-8 rounded-card flex items-center justify-center',
                     selApp === id ? 'bg-brand-500/20' : 'bg-surface-overlay'
                   )}>
                     <Icon size={16} className={selApp === id ? 'text-brand-400' : 'text-text-muted'} />
@@ -303,12 +308,12 @@ function DisplayTab({ branding }) {
               {SIDEBAR_THEMES.map(({ id, label, preview, desc }) => (
                 <button key={id} onClick={() => handleSidebar(id)}
                   className={cn(
-                    'flex flex-col items-start gap-2 p-3 rounded-xl border-2 text-left transition-all',
+                    'flex flex-col items-start gap-2 p-3 rounded-card border-2 text-left transition-all',
                     selSidebar === id
                       ? 'border-brand-500 bg-brand-500/5'
                       : 'border-border hover:border-brand-500/30 bg-surface-raised'
                   )}>
-                  <div className={cn('w-8 h-8 rounded-lg shrink-0', preview)} />
+                  <div className={cn('w-8 h-8 rounded-card shrink-0', preview)} />
                   <div>
                     <p className={cn('text-sm font-semibold', selSidebar === id ? 'text-brand-400' : 'text-text-primary')}>
                       {label}
@@ -333,7 +338,7 @@ function DisplayTab({ branding }) {
                 {PRESET_PALETTES.map(p => (
                   <button key={p.label}
                     onClick={() => handleColor(p.primary)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border hover:border-brand-500/40 transition-colors text-xs text-text-secondary hover:text-text-primary"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-card border border-border hover:border-brand-500/40 transition-colors text-xs text-text-secondary hover:text-text-primary"
                   >
                     <span className="w-3 h-3 rounded-full shrink-0" style={{ background: p.primary }} />
                     <span className="w-3 h-3 rounded-full shrink-0" style={{ background: p.accent }} />
@@ -353,17 +358,17 @@ function DisplayTab({ branding }) {
         </Card>
 
         {/* Save button */}
-        <div className="flex items-center justify-between p-4 rounded-xl border border-brand-500/20 bg-brand-500/5">
+        <div className="flex items-center justify-between p-4 rounded-card border border-brand-500/20 bg-brand-500/5">
           <div>
             <p className="text-sm font-semibold text-text-primary">Save Preferences</p>
             <p className="text-xs text-text-muted mt-0.5">Persists across refresh, logout, and all your sessions</p>
           </div>
           <button onClick={handleSave} disabled={saving}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-60',
+              'flex items-center gap-2 px-4 py-2 rounded-card text-sm font-semibold transition-all disabled:opacity-60',
               saved
-                ? 'bg-green-500/20 text-green-400 border border-green-500/20'
-                : 'bg-brand-500 text-white hover:bg-brand-600'
+                ? 'bg-status-pass-bg text-status-pass-fg border border-status-pass-bd'
+                : 'bg-brand-500 text-brand-900 hover:bg-brand-600'
             )}>
             {saving ? 'Saving...' : saved ? '✓ Saved!' : 'Save Preferences'}
           </button>
@@ -377,58 +382,58 @@ function DisplayTab({ branding }) {
           <CardBody className="flex flex-col gap-4">
 
             {/* Mini app */}
-            <div className="rounded-lg overflow-hidden border border-border">
+            <div className="rounded-card overflow-hidden border border-border">
               <div className="flex h-40">
                 {/* Sidebar */}
                 <div className={cn(
                   'w-12 flex flex-col items-center py-3 gap-2 shrink-0',
-                  selSidebar === 'light' ? 'bg-white border-r border-gray-200'
+                  selSidebar === 'light' ? 'bg-surface-raised border-r border-border-subtle'
                   : selSidebar === 'brand' ? ''
-                  : 'bg-gray-900'
+                  : 'bg-surface'
                 )} style={selSidebar === 'brand' ? { backgroundColor: selColor } : undefined}>
-                  <div className="w-6 h-6 rounded-md mb-1" style={{ backgroundColor: selColor }} />
+                  <div className="w-6 h-6 rounded-ctl mb-1" style={{ backgroundColor: selColor }} />
                   {[1,2,3,4,5].map(i => (
                     <div key={i} className={cn(
                       'w-5 h-1.5 rounded-full',
                       i === 1
-                        ? (selSidebar === 'brand' ? 'bg-white' : 'bg-brand-400')
-                        : (selSidebar === 'light' ? 'bg-gray-200' : 'bg-white/20')
+                        ? (selSidebar === 'brand' ? 'bg-surface-raised' : 'bg-brand-400')
+                        : (selSidebar === 'light' ? 'bg-surface-inset' : 'bg-on-dark/20')
                     )} />
                   ))}
                 </div>
                 {/* Content */}
                 <div className={cn(
                   'flex-1 flex flex-col',
-                  selApp === 'light' ? 'bg-gray-50' : 'bg-surface-raised'
+                  selApp === 'light' ? 'bg-surface-overlay' : 'bg-surface-raised'
                 )}>
                   {/* Topbar */}
                   <div className={cn(
                     'h-8 flex items-center justify-between px-2 border-b shrink-0',
-                    selApp === 'light' ? 'border-gray-200 bg-white' : 'border-border bg-surface'
+                    selApp === 'light' ? 'border-border-subtle bg-surface-raised' : 'border-border bg-surface'
                   )}>
-                    <div className={cn('h-1.5 rounded w-16', selApp === 'light' ? 'bg-gray-300' : 'bg-border')} />
+                    <div className={cn('h-1.5 rounded w-16', selApp === 'light' ? 'bg-surface-inset' : 'bg-border')} />
                     <div className="w-5 h-5 rounded-full" style={{ backgroundColor: selColor }} />
                   </div>
                   {/* Cards */}
                   <div className="flex-1 p-2 grid grid-cols-2 gap-1.5">
                     {[1,2,3,4].map(i => (
                       <div key={i} className={cn(
-                        'rounded-lg border p-1.5',
-                        selApp === 'light' ? 'bg-white border-gray-200' : 'bg-surface border-border'
+                        'rounded-card border p-1.5',
+                        selApp === 'light' ? 'bg-surface-raised border-border-subtle' : 'bg-surface border-border'
                       )}>
                         <div className={cn('h-1.5 rounded-full mb-1.5',
                           i === 1
-                            ? (selApp === 'light' ? 'bg-gray-400 w-2/3' : 'bg-brand-500 w-2/3')
-                            : (selApp === 'light' ? 'bg-gray-200 w-full' : 'bg-border w-full')
+                            ? (selApp === 'light' ? 'bg-surface-inset w-2/3' : 'bg-brand-500 w-2/3')
+                            : (selApp === 'light' ? 'bg-surface-inset w-full' : 'bg-border w-full')
                         )} />
-                        <div className={cn('h-1 rounded-full', selApp === 'light' ? 'bg-gray-100' : 'bg-border/50')} />
+                        <div className={cn('h-1 rounded-full', selApp === 'light' ? 'bg-surface-overlay' : 'bg-border/50')} />
                       </div>
                     ))}
                   </div>
                   {/* Action button */}
                   <div className="p-2">
-                    <div className="h-5 rounded-md flex items-center justify-center" style={{ backgroundColor: selColor }}>
-                      <span className="text-[8px] text-white font-semibold">Primary Action</span>
+                    <div className="h-5 rounded-ctl flex items-center justify-center" style={{ backgroundColor: selColor }}>
+                      <span className="text-[8px] text-on-dark font-semibold">Primary Action</span>
                     </div>
                   </div>
                 </div>
@@ -438,7 +443,7 @@ function DisplayTab({ branding }) {
             {/* Color scale */}
             <div>
               <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">Brand Scale</p>
-              <div className="flex gap-0.5 h-4 rounded-md overflow-hidden">
+              <div className="flex gap-0.5 h-4 rounded-ctl overflow-hidden">
                 {[50,100,200,300,400,500,600,700,800,900].map(s => (
                   <div key={s} className={`flex-1 bg-brand-${s}`} />
                 ))}
@@ -448,13 +453,13 @@ function DisplayTab({ branding }) {
             {/* Color dots */}
             <div className="flex items-center gap-3">
               <div className="flex flex-col items-center gap-1">
-                <div className="w-8 h-8 rounded-lg border border-border"
+                <div className="w-8 h-8 rounded-card border border-border"
                   style={{ background: selColor }} />
                 <span className="text-[9px] text-text-muted">Your Color</span>
               </div>
               <div className="flex flex-col items-center gap-1">
-                <div className="w-8 h-8 rounded-lg border border-border"
-                  style={{ background: branding?.primaryColor || '#0ea5e9' }} />
+                <div className="w-8 h-8 rounded-card border border-border"
+                  style={{ background: branding?.primaryColor || DEFAULT_HEX }} />
                 <span className="text-[9px] text-text-muted">Workspace</span>
               </div>
             </div>
@@ -511,7 +516,7 @@ function SecurityTab() {
             </div>
           ))}
           {form.next && form.confirm && form.next !== form.confirm && (
-            <p className="text-xs text-red-400">Passwords do not match</p>
+            <p className="text-xs text-status-fail-fg">Passwords do not match</p>
           )}
           <div className="flex justify-end pt-1">
             <Button size="sm" loading={isPending} onClick={submit}>Update Password</Button>

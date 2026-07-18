@@ -32,10 +32,10 @@ import { MentionInput }   from '../ui/MentionInput'
 import toast              from 'react-hot-toast'
 
 const SEVERITY_CLS = {
-  CRITICAL: 'text-red-400 bg-red-500/10 border-red-500/30',
-  HIGH:     'text-orange-400 bg-orange-500/10 border-orange-500/30',
-  MEDIUM:   'text-amber-400 bg-amber-500/10 border-amber-500/30',
-  LOW:      'text-blue-400 bg-blue-500/10 border-blue-500/30',
+  CRITICAL: 'text-status-fail-fg bg-status-fail-bg border-status-fail-bd',
+  HIGH:     'text-status-warn-fg bg-status-warn-bg border-status-warn-bd',
+  MEDIUM:   'text-status-warn-fg bg-status-warn-bg border-status-warn-bd',
+  LOW:      'text-status-info-fg bg-status-info-bg border-status-info-bd',
 }
 
 const STATUS_LABEL = {
@@ -104,7 +104,7 @@ function ActionItemThread({ entityId, item, visibility = 'ALL' }) {
   })
 
   return (
-    <div className="border-t border-white/8 mt-1">
+    <div className="border-t border-on-dark/8 mt-1">
       <button type="button" onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[10px] text-text-muted hover:text-text-secondary transition-colors">
         <MessageSquare size={10} />
@@ -198,10 +198,10 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode, user
       {revisions.map(item => (
         <div key={item.id}
           className={cn(
-            'rounded-lg border text-[11px]',
+            'rounded-card border text-[11px]',
             item.status === 'RESOLVED'
-              ? 'bg-green-500/5 border-green-500/20 text-green-400'
-              : 'bg-amber-500/5 border-amber-500/20 text-amber-400'
+              ? 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg'
+              : 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg'
           )}>
           <div className="flex items-start gap-2 px-3 py-2">
             {item.status === 'RESOLVED'
@@ -221,7 +221,7 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode, user
             </div>
           </div>
           {item.status === 'RESOLVED' && item.resolutionNote && (
-            <p className="text-[10px] text-green-300 px-3 pb-2 pl-7">✓ {item.resolutionNote}</p>
+            <p className="text-[10px] text-status-pass-fg px-3 pb-2 pl-7">✓ {item.resolutionNote}</p>
           )}
           {item.status !== 'RESOLVED' && entityType === 'QUESTION_RESPONSE' && (
             <ActionItemThread entityId={entityId} item={item}
@@ -234,12 +234,12 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode, user
       {remediations.map(item => (
         <div key={item.id}
           className={cn(
-            'rounded-lg border text-[11px]',
+            'rounded-card border text-[11px]',
             item.status === 'RESOLVED'
-              ? 'bg-green-500/5 border-green-500/20 text-green-400'
+              ? 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg'
               : vendorActed(item.status)
-                ? 'bg-blue-500/5 border-blue-500/20 text-blue-400'
-                : 'bg-amber-500/5 border-amber-500/20 text-amber-400'
+                ? 'bg-status-info-bg border-status-info-bd text-status-info-fg'
+                : 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg'
           )}>
           {/* Header */}
           <div className="flex items-start gap-2 px-3 py-2">
@@ -265,7 +265,7 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode, user
               {item.dueAt && (
                 <p className={cn(
                   'text-[10px] mt-0.5 flex items-center gap-0.5',
-                  item.isOverdue ? 'text-red-400' : 'opacity-50'
+                  item.isOverdue ? 'text-status-fail-fg' : 'opacity-50'
                 )}>
                   <Clock size={9} />Due {formatDate(item.dueAt)}{item.isOverdue && ' — overdue'}
                 </p>
@@ -274,7 +274,7 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode, user
           </div>
 
           {/* Party info */}
-          <div className="px-3 py-1 border-t border-white/5 flex flex-wrap gap-x-4 text-[10px] opacity-60">
+          <div className="px-3 py-1 border-t border-on-dark/5 flex flex-wrap gap-x-4 text-[10px] opacity-60">
             {item.createdByName  && <span>Raised by: <strong>{item.createdByName}</strong></span>}
             {item.assignedToName && <span>Assigned: <strong>{item.assignedToName}</strong></span>}
             {item.createdAt      && <span>{formatDate(item.createdAt)}</span>}
@@ -282,7 +282,7 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode, user
 
           {/* Resolution note */}
           {item.status === 'RESOLVED' && item.resolutionNote && (
-            <div className="px-3 py-1.5 border-t border-white/5 text-[10px] text-green-300">
+            <div className="px-3 py-1.5 border-t border-on-dark/5 text-[10px] text-status-pass-fg">
               ✓ {item.resolutionNote}
               {item.resolvedByName && <span className="ml-1 opacity-70">by {item.resolvedByName}</span>}
             </div>
@@ -290,12 +290,12 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode, user
 
           {/* Reviewer actions — only for reviewer mode + canResolve */}
           {isOpen(item.status) && mode === 'reviewer' && item.canResolve && (
-            <div className="px-3 py-1.5 border-t border-white/5 flex gap-3">
+            <div className="px-3 py-1.5 border-t border-on-dark/5 flex gap-3">
               {vendorActed(item.status) && (
                 <button
                   disabled={validating}
                   onClick={() => validate(item.id)}
-                  className="text-[10px] text-green-400 hover:text-green-300 flex items-center gap-1 font-medium disabled:opacity-50">
+                  className="text-[10px] text-status-pass-fg hover:text-status-pass-fg flex items-center gap-1 font-medium disabled:opacity-50">
                   <CheckCircle2 size={10} />
                   {validating ? 'Validating…' : 'Validate'}
                 </button>
@@ -303,7 +303,7 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode, user
               <button
                 disabled={acceptingRisk}
                 onClick={() => acceptRisk(item.id)}
-                className="text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-1 disabled:opacity-50">
+                className="text-[10px] text-status-info-fg hover:text-status-info-fg flex items-center gap-1 disabled:opacity-50">
                 <CheckCheck size={10} />
                 {acceptingRisk ? '…' : 'Accept risk'}
               </button>
@@ -325,10 +325,10 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode, user
       {clarifications.map(item => (
         <div key={item.id}
           className={cn(
-            'rounded-lg border text-[11px] px-3 py-2',
+            'rounded-card border text-[11px] px-3 py-2',
             item.status === 'RESOLVED'
-              ? 'bg-green-500/5 border-green-500/20 text-green-400'
-              : 'bg-purple-500/5 border-purple-500/20 text-purple-400'
+              ? 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg'
+              : 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg'
           )}>
           <div className="flex items-start gap-2">
             {item.status === 'RESOLVED'
@@ -341,7 +341,7 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode, user
             </div>
           </div>
           {item.status === 'RESOLVED' && item.resolutionNote && (
-            <p className="text-[10px] text-green-300 mt-1 pl-5">✓ {item.resolutionNote}</p>
+            <p className="text-[10px] text-status-pass-fg mt-1 pl-5">✓ {item.resolutionNote}</p>
           )}
           {/* Thread discussion for this clarification */}
           {entityType === 'QUESTION_RESPONSE' && (

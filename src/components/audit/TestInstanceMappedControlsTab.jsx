@@ -20,9 +20,9 @@ import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
 
 const CTRL_RESULT = {
-  EFFECTIVE:           { color:'text-green-400',  bg:'bg-green-500/10',   icon:CheckCircle2,  label:'Effective' },
-  PARTIALLY_EFFECTIVE: { color:'text-amber-400',  bg:'bg-amber-500/10',   icon:AlertTriangle, label:'Partial' },
-  INEFFECTIVE:         { color:'text-red-400',    bg:'bg-red-500/10',     icon:XCircle,       label:'Ineffective' },
+  EFFECTIVE:           { color:'text-status-pass-fg',  bg:'bg-status-pass-bg',   icon:CheckCircle2,  label:'Effective' },
+  PARTIALLY_EFFECTIVE: { color:'text-status-warn-fg',  bg:'bg-status-warn-bg',   icon:AlertTriangle, label:'Partial' },
+  INEFFECTIVE:         { color:'text-status-fail-fg',    bg:'bg-status-fail-bg',     icon:XCircle,       label:'Ineffective' },
   NOT_TESTED:          { color:'text-text-muted', bg:'bg-surface-overlay',icon:MinusCircle,   label:'Not tested' },
   NOT_APPLICABLE:      { color:'text-text-muted', bg:'bg-surface-overlay',icon:MinusCircle,   label:'N/A' },
 }
@@ -57,12 +57,12 @@ export function TestInstanceMappedControlsTab({ testInstanceId, testResult, vc =
   return (
     <div className="flex flex-col h-full">
       {/* Info banner */}
-      <div className="mx-3 mt-3 mb-1 flex items-start gap-2 px-3 py-2 bg-brand-500/5 border border-brand-500/20 rounded-lg text-[10px] text-text-secondary">
+      <div className="mx-3 mt-3 mb-1 flex items-start gap-2 px-3 py-2 bg-brand-500/5 border border-brand-500/20 rounded-card text-[10px] text-text-secondary">
         <Info size={12} className="text-brand-400 shrink-0 mt-0.5"/>
         <span>
           This test covers <strong className="text-text-primary">{controls.length} controls</strong>.
           {testResult === 'PASS'
-            ? <span className="text-green-400"> ✓ All linked controls updated.</span>
+            ? <span className="text-status-pass-fg"> ✓ All linked controls updated.</span>
             : <span> Setting this test to <strong>PASS</strong> will mark all required controls as Effective.</span>}
         </span>
       </div>
@@ -71,7 +71,7 @@ export function TestInstanceMappedControlsTab({ testInstanceId, testResult, vc =
       <div className="px-3 py-2 border-b border-border/40 flex items-center gap-3 text-[10px] text-text-muted">
         <span>{controls.length} controls</span>
         <span>·</span>
-        <span className={effective===controls.length?'text-green-400':''}>{effective}/{controls.length} effective</span>
+        <span className={effective===controls.length?'text-status-pass-fg':''}>{effective}/{controls.length} effective</span>
         <span>·</span>
         <span>{required} required</span>
       </div>
@@ -86,7 +86,7 @@ export function TestInstanceMappedControlsTab({ testInstanceId, testResult, vc =
               <div className="flex items-center gap-1.5 mb-0.5">
                 <span className="font-mono text-[9px] text-brand-400 shrink-0">{c.controlCodeSnapshot}</span>
                 {c.isRequired
-                  ? <span className="text-[8px] text-red-400 shrink-0">required</span>
+                  ? <span className="text-[8px] text-status-fail-fg shrink-0">required</span>
                   : <span className="text-[8px] text-text-muted shrink-0">advisory</span>}
                 {c.sectionBreadcrumb && (
                   <span className="text-[9px] text-text-muted truncate">{c.sectionBreadcrumb}</span>

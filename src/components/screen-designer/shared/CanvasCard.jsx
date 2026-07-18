@@ -5,7 +5,7 @@ function CanvasCard({ children, className, selected, onClick, label, hint }) {
     <div
       onClick={onClick}
       className={cn(
-        'rounded-lg border transition-all',
+        'rounded-card border transition-all',
         onClick ? 'cursor-pointer' : '',
         selected
           ? 'border-brand-500 ring-2 ring-brand-500/20 bg-brand-500/3'

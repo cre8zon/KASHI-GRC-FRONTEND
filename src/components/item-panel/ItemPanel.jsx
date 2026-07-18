@@ -95,7 +95,7 @@ export function ItemPanel({
                 <Icon size={11} />
                 {label}
                 {badge && (
-                  <span className="text-[9px] font-bold px-1 rounded-full bg-amber-500/20 text-amber-400">
+                  <span className="text-[9px] font-bold px-1 rounded-full bg-status-warn-bg text-status-warn-fg">
                     {badge}
                   </span>
                 )}
@@ -128,7 +128,7 @@ export function ItemPanel({
                   <Icon size={11} />
                   {label}
                   {badge && (
-                    <span className="text-[9px] font-bold px-1 rounded-full bg-amber-500/20 text-amber-400">
+                    <span className="text-[9px] font-bold px-1 rounded-full bg-status-warn-bg text-status-warn-fg">
                       {badge}
                     </span>
                   )}

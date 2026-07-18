@@ -7,7 +7,11 @@ import { Toaster, ToastBar, toast } from 'react-hot-toast'
 import App from './App'
 import { store } from './store'
 import { queryClient } from './config/queryClient'
+import { applySavedBrandPreset } from './config/brandPresets'
 import './index.css'
+
+// Paint the saved pastel brand preset before first render.
+applySavedBrandPreset()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -20,12 +24,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             toastOptions={{
               duration: 5000,
               style: {
-                background: 'rgb(22 33 56)',
-                color: 'rgb(241 245 249)',
-                border: '1px solid rgb(51 65 85)',
-                fontFamily: "'DM Sans', system-ui",
+                background: 'var(--surface-raised)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-overlay)',
+                fontFamily: "'Albert Sans', system-ui",
                 fontSize: '14px',
-                borderRadius: '8px',
+                borderRadius: 'var(--radius-ctl)',
               },
             }}
           >

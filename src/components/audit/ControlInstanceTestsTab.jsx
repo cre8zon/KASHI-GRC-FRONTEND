@@ -19,9 +19,9 @@ import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
 
 const RESULTS = [
-  { value:'PASS',      label:'Pass',      icon:CheckCircle2, color:'text-green-400', bg:'bg-green-500/10',   border:'border-green-500/30' },
-  { value:'FAIL',      label:'Fail',      icon:XCircle,      color:'text-red-400',   bg:'bg-red-500/10',     border:'border-red-500/30' },
-  { value:'EXCEPTION', label:'Exception', icon:AlertTriangle, color:'text-amber-400', bg:'bg-amber-500/10',  border:'border-amber-500/30' },
+  { value:'PASS',      label:'Pass',      icon:CheckCircle2, color:'text-status-pass-fg', bg:'bg-status-pass-bg',   border:'border-status-pass-bd' },
+  { value:'FAIL',      label:'Fail',      icon:XCircle,      color:'text-status-fail-fg',   bg:'bg-status-fail-bg',     border:'border-status-fail-bd' },
+  { value:'EXCEPTION', label:'Exception', icon:AlertTriangle, color:'text-status-warn-fg', bg:'bg-status-warn-bg',  border:'border-status-warn-bd' },
   { value:'NOT_RUN',   label:'Not run',   icon:MinusCircle,  color:'text-text-muted',bg:'bg-surface-overlay',border:'border-border' },
 ]
 const RES = Object.fromEntries(RESULTS.map(r => [r.value, r]))
@@ -45,7 +45,7 @@ function ResultPicker({ current, onSelect, saving }) {
         <r.icon size={9}/>{r.label}{open?<ChevronUp size={8}/>:<ChevronDown size={8}/>}
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-32 bg-surface-raised border border-border rounded-lg shadow-elevated z-50 py-1">
+        <div className="absolute top-full left-0 mt-1 w-32 bg-surface-raised border border-border rounded-card shadow-elevated z-50 py-1">
           {RESULTS.map(opt => (
             <button key={opt.value} onClick={() => { onSelect(opt.value); setOpen(false) }}
               className={cn('w-full flex items-center gap-2 px-3 py-1.5 text-[11px] hover:bg-surface-overlay',
@@ -92,7 +92,7 @@ export function ControlInstanceTestsTab({ controlInstanceId, vc = {} }) {
       <div className="px-3 py-2 border-b border-border/40 flex items-center gap-3 text-[10px] text-text-muted">
         <span>{tests.length} tests</span>
         <span>·</span>
-        <span className={passed===tests.length?'text-green-400':''}>{passed}/{tests.length} passed</span>
+        <span className={passed===tests.length?'text-status-pass-fg':''}>{passed}/{tests.length} passed</span>
         <span>·</span>
         <span>{required} required</span>
       </div>
@@ -109,7 +109,7 @@ export function ControlInstanceTestsTab({ controlInstanceId, vc = {} }) {
               <div className="flex items-center gap-1.5 mb-0.5">
                 <span className="font-mono text-[9px] text-brand-400 shrink-0">{t.testRefSnapshot}</span>
                 {t.isRequired
-                  ? <span className="text-[8px] text-red-400 shrink-0">required</span>
+                  ? <span className="text-[8px] text-status-fail-fg shrink-0">required</span>
                   : <span className="text-[8px] text-text-muted shrink-0">advisory</span>}
               </div>
               <p className="text-[11px] text-text-primary truncate group-hover:underline">{t.testNameSnapshot}</p>

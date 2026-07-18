@@ -177,7 +177,7 @@ export function LibraryMappingTab({ entityType, entityId, linkedType, canEdit })
       {isLoading ? (
         <div className="py-8 text-center text-sm text-text-muted">Loading…</div>
       ) : items.length === 0 ? (
-        <div className="py-12 text-center border-2 border-dashed border-border rounded-xl">
+        <div className="py-12 text-center border-2 border-dashed border-border rounded-card">
           <MappingIcon size={24} className="text-text-muted mx-auto mb-3" />
           <p className="text-sm font-medium text-text-secondary">
             No {linkedEntityType === 'CONTROL' ? 'controls' : linkedEntityType === 'TEST' ? 'tests' : 'policies'} linked
@@ -228,8 +228,8 @@ function MappingRow({ item, linkedEntityType, canEdit, onUnlink }) {
   const tag   = item.controlTag  || item.frameworkRef || ''
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-background hover:border-border-strong transition-colors group">
-      <div className="w-8 h-8 rounded-md bg-surface-overlay border border-border flex items-center justify-center shrink-0">
+    <div className="flex items-center gap-3 p-3 rounded-card border border-border bg-background hover:border-border-strong transition-colors group">
+      <div className="w-8 h-8 rounded-ctl bg-surface-overlay border border-border flex items-center justify-center shrink-0">
         <RowIcon size={14} className="text-text-muted" />
       </div>
       <div className="flex-1 min-w-0">
@@ -247,7 +247,7 @@ function MappingRow({ item, linkedEntityType, canEdit, onUnlink }) {
         <button
           onClick={onUnlink}
           title="Remove mapping"
-          className="p-1.5 text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all rounded">
+          className="p-1.5 text-text-muted hover:text-status-fail-fg opacity-0 group-hover:opacity-100 transition-all rounded">
           <Trash2 size={13} />
         </button>
       )}
@@ -324,7 +324,7 @@ function AddMappingModal({ entityType, entityId, linkedEntityType, linkedType, e
             onChange={e => setSearch(e.target.value)}
             placeholder={`Search ${linkedEntityType.toLowerCase()}s…`}
             autoFocus
-            className="w-full pl-9 pr-3 h-9 text-sm bg-surface-overlay border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+            className="w-full pl-9 pr-3 h-9 text-sm bg-surface-overlay border border-border rounded-card text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/40"
           />
         </div>
 
@@ -343,7 +343,7 @@ function AddMappingModal({ entityType, entityId, linkedEntityType, linkedType, e
               key={item.id}
               onClick={() => setSelected(item)}
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all',
+                'w-full flex items-center gap-3 px-3 py-2.5 rounded-card border text-left transition-all',
                 selected?.id === item.id
                   ? 'border-brand-500 bg-brand-500/8'
                   : 'border-border hover:border-brand-500/30 bg-background'

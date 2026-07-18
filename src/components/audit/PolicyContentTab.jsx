@@ -31,27 +31,27 @@ const REVIEW_OPTIONS = [
     label:  'Adequate',
     desc:   'Policy fully addresses the control requirement',
     icon:   CheckCircle2,
-    color:  'text-emerald-400',
-    bg:     'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/15',
-    active: 'bg-emerald-500/15 border-emerald-500/50 ring-1 ring-emerald-500/30',
+    color:  'text-status-pass-fg',
+    bg:     'bg-status-pass-bg border-status-pass-bd hover:bg-status-pass-bg',
+    active: 'bg-status-pass-bg border-status-pass-bd ring-1 ring-status-pass-bd',
   },
   {
     value:  'ADEQUATE_WITH_GAPS',
     label:  'Adequate with gaps',
     desc:   'Policy is adequate but has minor gaps noted',
     icon:   AlertCircle,
-    color:  'text-amber-400',
-    bg:     'bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/15',
-    active: 'bg-amber-500/15 border-amber-500/50 ring-1 ring-amber-500/30',
+    color:  'text-status-warn-fg',
+    bg:     'bg-status-warn-bg border-status-warn-bd hover:bg-status-warn-bg',
+    active: 'bg-status-warn-bg border-status-warn-bd ring-1 ring-status-warn-bd',
   },
   {
     value:  'INADEQUATE',
     label:  'Inadequate',
     desc:   'Policy does not adequately address the requirement',
     icon:   XCircle,
-    color:  'text-red-400',
-    bg:     'bg-red-500/10 border-red-500/30 hover:bg-red-500/15',
-    active: 'bg-red-500/15 border-red-500/50 ring-1 ring-red-500/30',
+    color:  'text-status-fail-fg',
+    bg:     'bg-status-fail-bg border-status-fail-bd hover:bg-status-fail-bg',
+    active: 'bg-status-fail-bg border-status-fail-bd ring-1 ring-status-fail-bd',
   },
   {
     value:  'NOT_REVIEWED',
@@ -127,8 +127,8 @@ export function PolicyContentTab({ entity }) {
           <span>Next review {new Date(entity.nextReviewDateSnapshot).toLocaleDateString()}</span></>
         )}
         {entity?.policyStatusSnapshot && (
-          <span className="ml-auto px-1.5 py-0.5 rounded bg-green-500/10
-                           text-green-400 text-[9px] font-medium">
+          <span className="ml-auto px-1.5 py-0.5 rounded bg-status-pass-bg
+                           text-status-pass-fg text-[9px] font-medium">
             {entity.policyStatusSnapshot}
           </span>
         )}
@@ -147,7 +147,7 @@ export function PolicyContentTab({ entity }) {
         {/* ── EXTERNAL_URL ── */}
         {contentType === 'EXTERNAL_URL' && externalUrl && (
           <div className="px-4 py-4">
-            <div className="flex items-start gap-3 p-3 bg-surface-overlay rounded-lg
+            <div className="flex items-start gap-3 p-3 bg-surface-overlay rounded-card
                             border border-border mb-4">
               <Globe size={14} className="text-brand-400 shrink-0 mt-0.5"/>
               <div className="flex-1 min-w-0">
@@ -163,7 +163,7 @@ export function PolicyContentTab({ entity }) {
                 <ExternalLink size={10}/> Open
               </a>
             </div>
-            <div className="relative rounded-lg border border-border overflow-hidden bg-white"
+            <div className="relative rounded-card border border-border overflow-hidden bg-surface-raised"
               style={{ height: '60vh' }}>
               <iframe src={externalUrl} title="Policy document preview"
                 className="w-full h-full"
@@ -178,7 +178,7 @@ export function PolicyContentTab({ entity }) {
         {contentType === 'DOCUMENT' && entity?.evidenceRecordIdSnapshot && (
           <div className="px-4 py-4">
             <div className="flex items-center gap-3 p-3 bg-surface-overlay
-                            rounded-lg border border-border">
+                            rounded-card border border-border">
               <FileText size={14} className="text-brand-400 shrink-0"/>
               <div className="flex-1">
                 <p className="text-[11px] font-medium text-text-primary">
@@ -202,14 +202,14 @@ export function PolicyContentTab({ entity }) {
         {/* ── Fallback ── */}
         {!contentBody && !externalUrl && !entity?.evidenceRecordIdSnapshot && (
           <div className="px-4 py-8 text-center text-xs text-text-muted">
-            <AlertTriangle size={18} className="mx-auto mb-2 text-amber-400 opacity-70"/>
+            <AlertTriangle size={18} className="mx-auto mb-2 text-status-warn-fg opacity-70"/>
             Policy content type is <strong>{contentType}</strong> but no content
             was found in the snapshot.
           </div>
         )}
 
         {/* ── Auditor review panel ─────────────────────────────────────────── */}
-        <div className="mx-4 mb-4 mt-2 border border-border rounded-xl overflow-hidden">
+        <div className="mx-4 mb-4 mt-2 border border-border rounded-card overflow-hidden">
 
           {/* Collapse toggle header */}
           <button
@@ -224,9 +224,9 @@ export function PolicyContentTab({ entity }) {
               {entity?.reviewResult && entity.reviewResult !== 'NOT_REVIEWED' && (
                 <span className={cn(
                   'text-[10px] font-medium px-1.5 py-0.5 rounded border',
-                  reviewResult === 'ADEQUATE'            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
-                  reviewResult === 'ADEQUATE_WITH_GAPS'  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
-                  reviewResult === 'INADEQUATE'          ? 'bg-red-500/10 text-red-400 border-red-500/30' :
+                  reviewResult === 'ADEQUATE'            ? 'bg-status-pass-bg text-status-pass-fg border-status-pass-bd' :
+                  reviewResult === 'ADEQUATE_WITH_GAPS'  ? 'bg-status-warn-bg text-status-warn-fg border-status-warn-bd' :
+                  reviewResult === 'INADEQUATE'          ? 'bg-status-fail-bg text-status-fail-fg border-status-fail-bd' :
                   'bg-surface border-border text-text-muted'
                 )}>
                   {currentOption.label}
@@ -260,7 +260,7 @@ export function PolicyContentTab({ entity }) {
                       key={opt.value}
                       onClick={() => setReviewResult(opt.value)}
                       className={cn(
-                        'flex items-start gap-2 p-2.5 rounded-lg border text-left transition-all',
+                        'flex items-start gap-2 p-2.5 rounded-card border text-left transition-all',
                         reviewResult === opt.value ? opt.active : opt.bg
                       )}>
                       <opt.icon size={13} className={cn(opt.color, 'mt-0.5 shrink-0')} />
@@ -283,7 +283,7 @@ export function PolicyContentTab({ entity }) {
                                tracking-wide mb-1.5">
                   Notes
                   {reviewResult === 'INADEQUATE' && (
-                    <span className="ml-1 text-red-400 normal-case font-normal">
+                    <span className="ml-1 text-status-fail-fg normal-case font-normal">
                       — document gaps for findings
                     </span>
                   )}
@@ -300,7 +300,7 @@ export function PolicyContentTab({ entity }) {
                       : 'Optional notes on this policy review…'
                   }
                   className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border
-                             rounded-lg text-text-primary placeholder:text-text-muted
+                             rounded-card text-text-primary placeholder:text-text-muted
                              focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
                 />
               </div>

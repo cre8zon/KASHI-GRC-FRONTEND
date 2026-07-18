@@ -127,7 +127,7 @@ export function TemplateSectionsTab({ templateId, view = 'sections' }) {
   const controls = useMemo(() => flatControls(rootSections), [rootSections])
 
   if (isLoading) return <div className="px-4 py-6 text-xs text-text-muted text-center">Loading…</div>
-  if (error)     return <div className="px-4 py-6 text-xs text-red-400 text-center">Error loading template</div>
+  if (error)     return <div className="px-4 py-6 text-xs text-status-fail-fg text-center">Error loading template</div>
   if (!rootSections.length) return (
     <div className="px-4 py-6 text-xs text-text-muted text-center">No sections in this template.</div>
   )

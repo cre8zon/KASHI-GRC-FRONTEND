@@ -15,7 +15,7 @@ export function CompoundTaskProgress({ sections = [], compact = false }) {
     ? Math.round((completed.length / required.length) * 100) : 0
  
   return (
-    <div className="rounded-lg border border-border bg-surface-raised p-4 space-y-3">
+    <div className="rounded-card border border-border bg-surface-raised p-4 space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-text-primary">Task progress</p>
         <span className="text-xs text-text-muted font-mono">
@@ -37,7 +37,7 @@ export function CompoundTaskProgress({ sections = [], compact = false }) {
  
 function SectionRow({ section, compact }) {
   const icon = section.completed
-    ? <CheckCircle size={14} className="text-green-500 shrink-0 mt-0.5" />
+    ? <CheckCircle size={14} className="text-status-pass-fg shrink-0 mt-0.5" />
     : <Circle size={14} className={cn('shrink-0 mt-0.5',
         section.required ? 'text-text-muted' : 'text-text-muted/40')} />
  
@@ -94,7 +94,7 @@ export function CompoundTaskBadge({ sections = [] }) {
   return (
     <span className={cn(
       'inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium',
-      allDone ? 'bg-green-500/10 text-green-600' : 'bg-surface-overlay text-text-muted'
+      allDone ? 'bg-status-pass-bg text-status-pass-fg' : 'bg-surface-overlay text-text-muted'
     )}>
       {allDone
         ? <><CheckCircle size={10} /> All sections done</>

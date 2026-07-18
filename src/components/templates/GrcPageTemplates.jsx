@@ -111,18 +111,18 @@ export function ListPageTemplate({
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search…"
-              className="h-7 pl-8 pr-3 w-44 text-xs bg-surface-overlay border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-7 pl-8 pr-3 w-44 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           {filters.length > 0 && (
             <button onClick={() => setShowFilters(f => !f)}
-              className={cn('h-7 px-2.5 flex items-center gap-1.5 text-xs rounded-md border transition-colors',
+              className={cn('h-7 px-2.5 flex items-center gap-1.5 text-xs rounded-ctl border transition-colors',
                 showFilters || Object.keys(activeFilters).length > 0
                   ? 'border-brand-500 text-brand-400 bg-brand-500/10'
                   : 'border-border text-text-muted hover:border-brand-500/40')}>
               <ListFilter size={12} />
               Filters
               {Object.keys(activeFilters).length > 0 && (
-                <span className="text-[10px] bg-brand-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center">
+                <span className="text-[10px] bg-brand-500 text-brand-900 rounded-full w-3.5 h-3.5 flex items-center justify-center">
                   {Object.keys(activeFilters).length}
                 </span>
               )}
@@ -148,7 +148,7 @@ export function ListPageTemplate({
             />
           ))}
           {Object.keys(activeFilters).length > 0 && (
-            <button onClick={() => setFilters({})} className="text-xs text-text-muted hover:text-red-400 transition-colors flex items-center gap-1">
+            <button onClick={() => setFilters({})} className="text-xs text-text-muted hover:text-status-fail-fg transition-colors flex items-center gap-1">
               <X size={12} /> Clear all
             </button>
           )}
@@ -383,7 +383,7 @@ export function CalendarTimelineTemplate({ sources = [], onItemClick }) {
             <div className="space-y-1.5">
               {week.items.map((item, i) => (
                 <button key={i} onClick={() => onItemClick?.(item)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border hover:border-brand-500/30 hover:bg-surface-overlay transition-colors text-left group">
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-card border border-border hover:border-brand-500/30 hover:bg-surface-overlay transition-colors text-left group">
                   <div className={cn('w-2 h-2 rounded-full shrink-0', `bg-${item.colorTag}-400`)} />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-text-primary truncate">{item.title}</p>
@@ -392,13 +392,13 @@ export function CalendarTimelineTemplate({ sources = [], onItemClick }) {
                   <div className="flex items-center gap-2 shrink-0">
                     {item.priority && (
                       <span className={cn('text-[10px]',
-                        item.priority === 'CRITICAL' ? 'text-red-400' :
-                        item.priority === 'HIGH' ? 'text-amber-400' : 'text-text-muted')}>
+                        item.priority === 'CRITICAL' ? 'text-status-fail-fg' :
+                        item.priority === 'HIGH' ? 'text-status-warn-fg' : 'text-text-muted')}>
                         {item.priority}
                       </span>
                     )}
                     <span className={cn('text-[10px] font-medium',
-                      item.overdue ? 'text-red-400' : 'text-text-muted')}>
+                      item.overdue ? 'text-status-fail-fg' : 'text-text-muted')}>
                       {item.overdue ? 'Overdue' : formatDate(item.date)}
                     </span>
                   </div>
@@ -620,7 +620,7 @@ export function ApprovalQueueTemplate({
           {isLoading && <p className="p-4 text-xs text-text-muted">Loading…</p>}
           {!isLoading && tasks.length === 0 && (
             <div className="flex flex-col items-center gap-2 py-10 text-center">
-              <CheckCircle2 size={24} className="text-green-400" />
+              <CheckCircle2 size={24} className="text-status-pass-fg" />
               <p className="text-xs text-text-muted">All clear — no pending approvals</p>
             </div>
           )}
@@ -634,14 +634,14 @@ export function ApprovalQueueTemplate({
               )}>
               <div className="flex items-start gap-2">
                 <div className={cn('w-2 h-2 rounded-full mt-1 shrink-0',
-                  task.priority === 'CRITICAL' ? 'bg-red-400' :
-                  task.priority === 'HIGH' ? 'bg-amber-400' : 'bg-blue-400')} />
+                  task.priority === 'CRITICAL' ? 'bg-status-fail-bg' :
+                  task.priority === 'HIGH' ? 'bg-status-warn-bg' : 'bg-status-info-bg')} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-text-primary truncate">{task.stepName || task.workflowName}</p>
                   <p className="text-[10px] text-text-muted">{task.entityType} #{task.entityId}</p>
                   {task.slaDueAt && (
                     <p className={cn('text-[10px] mt-0.5',
-                      new Date(task.slaDueAt) < new Date() ? 'text-red-400' : 'text-text-muted')}>
+                      new Date(task.slaDueAt) < new Date() ? 'text-status-fail-fg' : 'text-text-muted')}>
                       <Clock size={9} className="inline mr-0.5" />
                       {formatDate(task.slaDueAt)}
                     </p>
@@ -663,7 +663,7 @@ export function ApprovalQueueTemplate({
           : (
             <div className="p-6 space-y-6">
               {/* Task context */}
-              <div className="p-4 rounded-lg bg-surface-overlay border border-border">
+              <div className="p-4 rounded-card bg-surface-overlay border border-border">
                 <p className="text-xs font-semibold text-text-primary">{selected.stepName}</p>
                 <p className="text-[10px] text-text-muted mt-0.5">{selected.workflowName} · {selected.entityType} #{selected.entityId}</p>
               </div>
@@ -673,7 +673,7 @@ export function ApprovalQueueTemplate({
                 <label className="text-xs font-medium text-text-secondary block mb-1">Remarks (optional for approval, required for rejection)</label>
                 <textarea value={remarks} onChange={e => setRemarks(e.target.value)}
                   rows={3} placeholder="Add context for your decision…"
-                  className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+                  className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-card text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
               </div>
 
               {/* Actions */}

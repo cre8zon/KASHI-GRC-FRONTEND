@@ -19,22 +19,22 @@ import toast                                from 'react-hot-toast'
 
 // ── Type config — icon + label + color per notification type ──────────────────
 const TYPE_CONFIG = {
-  ACTION_ITEM_CREATED:        { icon: Flag,     color: 'text-amber-400',  label: 'New action item' },
-  ACTION_ITEM_PENDING_REVIEW: { icon: Clock,    color: 'text-blue-400',   label: 'Ready for review' },
-  ACTION_ITEM_RESOLVED:       { icon: CheckCheck,color: 'text-green-400', label: 'Resolved' },
+  ACTION_ITEM_CREATED:        { icon: Flag,     color: 'text-status-warn-fg',  label: 'New action item' },
+  ACTION_ITEM_PENDING_REVIEW: { icon: Clock,    color: 'text-status-info-fg',   label: 'Ready for review' },
+  ACTION_ITEM_RESOLVED:       { icon: CheckCheck,color: 'text-status-pass-fg', label: 'Resolved' },
   ACTION_ITEM_DISMISSED:      { icon: Flag,     color: 'text-text-muted', label: 'Dismissed' },
-  ACTION_ITEM_REWORK:         { icon: Flag,     color: 'text-red-400',    label: 'Rework needed' },
-  ACTION_ITEM_REOPENED:       { icon: Flag,     color: 'text-amber-400',  label: 'Re-opened' },
-  ANSWER_UPDATED:             { icon: CheckCheck,color: 'text-blue-400',  label: 'Answer updated' },
+  ACTION_ITEM_REWORK:         { icon: Flag,     color: 'text-status-fail-fg',    label: 'Rework needed' },
+  ACTION_ITEM_REOPENED:       { icon: Flag,     color: 'text-status-warn-fg',  label: 'Re-opened' },
+  ANSWER_UPDATED:             { icon: CheckCheck,color: 'text-status-info-fg',  label: 'Answer updated' },
   ASSIGNMENT:                 { icon: ListTodo, color: 'text-brand-400',  label: 'Assigned' },
-  SUBMISSION:                 { icon: CheckCheck,color: 'text-green-400', label: 'Submitted' },
-  REVIEW:                     { icon: Shield,   color: 'text-purple-400', label: 'Review' },
-  ESCALATION:                 { icon: Flag,     color: 'text-red-400',    label: 'Escalation' },
-  SECTION_REOPENED:           { icon: Flag,     color: 'text-amber-400',  label: 'Section unlocked' },
+  SUBMISSION:                 { icon: CheckCheck,color: 'text-status-pass-fg', label: 'Submitted' },
+  REVIEW:                     { icon: Shield,   color: 'text-status-tag-fg', label: 'Review' },
+  ESCALATION:                 { icon: Flag,     color: 'text-status-fail-fg',    label: 'Escalation' },
+  SECTION_REOPENED:           { icon: Flag,     color: 'text-status-warn-fg',  label: 'Section unlocked' },
   MENTIONED_IN_COMMENT:       { icon: Bell,     color: 'text-brand-400',  label: 'Mentioned' },
-  NEW_COMMENT:                { icon: Bell,     color: 'text-blue-400',   label: 'New comment' },
-  REMEDIATION_REQUESTED:      { icon: Flag,     color: 'text-red-400',    label: 'Remediation requested' },
-  ANSWER_OVERRIDDEN:          { icon: Shield,   color: 'text-blue-400',   label: 'Answer overridden' },
+  NEW_COMMENT:                { icon: Bell,     color: 'text-status-info-fg',   label: 'New comment' },
+  REMEDIATION_REQUESTED:      { icon: Flag,     color: 'text-status-fail-fg',    label: 'Remediation requested' },
+  ANSWER_OVERRIDDEN:          { icon: Shield,   color: 'text-status-info-fg',   label: 'Answer overridden' },
 }
 
 const DEFAULT_TYPE = { icon: Bell, color: 'text-text-muted', label: 'Notification' }
@@ -116,7 +116,7 @@ function NotificationRow({ notification, onMarkRead }) {
 
       {/* Icon */}
       <div className={cn(
-        'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+        'w-8 h-8 rounded-card flex items-center justify-center flex-shrink-0',
         'bg-surface-overlay'
       )}>
         <Icon size={14} className={tc.color} />

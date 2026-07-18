@@ -75,18 +75,18 @@ const pct = (n, d) => d > 0 ? Math.round((n / d) * 100) : 0
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const RESULT_CFG = {
-  EFFECTIVE:           { label: 'Effective',            color: 'text-green-400',  bg: 'bg-green-500/10  border-green-500/30'  },
-  PARTIALLY_EFFECTIVE: { label: 'Partially effective',  color: 'text-amber-400',  bg: 'bg-amber-500/10  border-amber-500/30'  },
-  INEFFECTIVE:         { label: 'Ineffective',          color: 'text-red-400',    bg: 'bg-red-500/10    border-red-500/30'    },
+  EFFECTIVE:           { label: 'Effective',            color: 'text-status-pass-fg',  bg: 'bg-status-pass-bg  border-status-pass-bd'  },
+  PARTIALLY_EFFECTIVE: { label: 'Partially effective',  color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg  border-status-warn-bd'  },
+  INEFFECTIVE:         { label: 'Ineffective',          color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg    border-status-fail-bd'    },
   NOT_TESTED:          { label: 'Not tested',           color: 'text-text-muted', bg: 'bg-surface-overlay border-border'      },
-  COMPENSATING:        { label: 'Compensating',         color: 'text-blue-400',   bg: 'bg-blue-500/10   border-blue-500/30'   },
+  COMPENSATING:        { label: 'Compensating',         color: 'text-status-info-fg',   bg: 'bg-status-info-bg   border-status-info-bd'   },
 }
 
 const SEVERITY_CFG = {
-  CRITICAL: { color: 'text-red-400',    bg: 'bg-red-500/10    border-red-500/30',    bar: 'bg-red-500'    },
-  HIGH:     { color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/30', bar: 'bg-orange-500' },
-  MEDIUM:   { color: 'text-amber-400',  bg: 'bg-amber-500/10  border-amber-500/30',  bar: 'bg-amber-500'  },
-  LOW:      { color: 'text-green-400',  bg: 'bg-green-500/10  border-green-500/30',  bar: 'bg-green-500'  },
+  CRITICAL: { color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg    border-status-fail-bd',    bar: 'bg-status-fail-bg'    },
+  HIGH:     { color: 'text-status-warn-fg', bg: 'bg-status-warn-bg border-status-warn-bd', bar: 'bg-status-warn-bg' },
+  MEDIUM:   { color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg  border-status-warn-bd',  bar: 'bg-status-warn-bg'  },
+  LOW:      { color: 'text-status-pass-fg',  bg: 'bg-status-pass-bg  border-status-pass-bd',  bar: 'bg-status-pass-bg'  },
 }
 
 // ─── PDF Generator ────────────────────────────────────────────────────────────
@@ -102,8 +102,8 @@ async function generatePDF(engagement, controls = [], findings = [], progress = 
   const passRate      = totalControls > 0 ? Math.round((effective / totalControls) * 100) : 0
   const openFindings  = findings.filter(f => f.status === 'OPEN' || f.status === 'IN_REMEDIATION').length
 
-  const pctColor = passRate >= 80 ? '#166534' : passRate >= 60 ? '#d97706' : '#dc2626'
-  const pctBg    = passRate >= 80 ? '#dcfce7'  : passRate >= 60 ? '#fef3c7'  : '#fee2e2'
+  const pctColor = passRate >= 80 ? 'var(--rpt-pass-fg)' : passRate >= 60 ? 'var(--rpt-warn-bd)' : 'var(--rpt-crit-bd)'
+  const pctBg    = passRate >= 80 ? 'var(--rpt-pass-bg)'  : passRate >= 60 ? 'var(--rpt-warn-bg)'  : 'var(--rpt-crit-bg)'
 
   // ── Section-grouped control rows ───────────────────────────────────────────
   const sectionMap = {}
@@ -118,30 +118,30 @@ async function generatePDF(engagement, controls = [], findings = [], progress = 
     const secIneff= ctrls.filter(c => c.testResult === 'INEFFECTIVE').length
     const secNT   = ctrls.filter(c => !c.testResult || c.testResult === 'NOT_TESTED').length
     const secPct  = ctrls.length > 0 ? Math.round((secEff / ctrls.length) * 100) : 0
-    const secColor= secPct >= 80 ? '#166534' : secPct >= 60 ? '#d97706' : '#dc2626'
+    const secColor= secPct >= 80 ? 'var(--rpt-pass-fg)' : secPct >= 60 ? 'var(--rpt-warn-bd)' : 'var(--rpt-crit-bd)'
 
     const passW = Math.round(secEff   / Math.max(ctrls.length, 1) * 160)
     const failW = Math.round(secIneff / Math.max(ctrls.length, 1) * 160)
     const ntW   = 160 - passW - failW
     const barSvg = `<svg width="160" height="7" xmlns="http://www.w3.org/2000/svg">
-      <rect x="0" y="0" width="160" height="7" rx="3" fill="#e5e7eb"/>
-      <rect x="0" y="0" width="${passW}" height="7" rx="3" fill="#22c55e"/>
-      <rect x="${passW}" y="0" width="${failW}" height="7" fill="#ef4444"/>
-      <rect x="${passW+failW}" y="0" width="${ntW}" height="7" rx="3" fill="#d1d5db"/>
+      <rect x="0" y="0" width="160" height="7" rx="3" fill="var(--rpt-border)"/>
+      <rect x="0" y="0" width="${passW}" height="7" rx="3" fill="var(--rpt-pass-bd)"/>
+      <rect x="${passW}" y="0" width="${failW}" height="7" fill="var(--rpt-crit-bd)"/>
+      <rect x="${passW+failW}" y="0" width="${ntW}" height="7" rx="3" fill="var(--rpt-border)"/>
     </svg>`
 
     const ctrlRows = ctrls.map((c, i) => {
-      const rc = c.testResult === 'EFFECTIVE' ? '#166534'
-               : c.testResult === 'INEFFECTIVE' ? '#dc2626'
-               : c.testResult === 'PARTIALLY_EFFECTIVE' ? '#d97706' : '#9ca3af'
-      const rb = c.testResult === 'EFFECTIVE' ? '#dcfce7'
-               : c.testResult === 'INEFFECTIVE' ? '#fee2e2'
-               : c.testResult === 'PARTIALLY_EFFECTIVE' ? '#fef3c7' : '#f3f4f6'
-      return `<tr style="background:${i%2===0?'#ffffff':'#f9fafb'}">
-        <td style="padding:7px 14px;border-bottom:1px solid #f3f4f6;font-size:11px;font-weight:600;color:#374151">${c.controlCodeSnapshot||c.controlRef||'—'}</td>
-        <td style="padding:7px 14px;border-bottom:1px solid #f3f4f6;font-size:11px">${(c.controlNameSnapshot||c.name||'').replace(/</g,'&lt;')}</td>
-        <td style="padding:7px 14px;border-bottom:1px solid #f3f4f6;font-size:11px;color:#6b7280">${c.frameworkRefSnapshot||c.frameworkRef||'—'}</td>
-        <td style="padding:7px 14px;border-bottom:1px solid #f3f4f6;text-align:center">
+      const rc = c.testResult === 'EFFECTIVE' ? 'var(--rpt-pass-fg)'
+               : c.testResult === 'INEFFECTIVE' ? 'var(--rpt-crit-bd)'
+               : c.testResult === 'PARTIALLY_EFFECTIVE' ? 'var(--rpt-warn-bd)' : 'var(--rpt-muted)'
+      const rb = c.testResult === 'EFFECTIVE' ? 'var(--rpt-pass-bg)'
+               : c.testResult === 'INEFFECTIVE' ? 'var(--rpt-crit-bg)'
+               : c.testResult === 'PARTIALLY_EFFECTIVE' ? 'var(--rpt-warn-bg)' : 'var(--rpt-bg-soft)'
+      return `<tr style="background:${i%2===0?'var(--rpt-white)':'var(--rpt-paper)'}">
+        <td style="padding:7px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:11px;font-weight:600;color:var(--rpt-ink)">${c.controlCodeSnapshot||c.controlRef||'—'}</td>
+        <td style="padding:7px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:11px">${(c.controlNameSnapshot||c.name||'').replace(/</g,'&lt;')}</td>
+        <td style="padding:7px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:11px;color:var(--rpt-muted)">${c.frameworkRefSnapshot||c.frameworkRef||'—'}</td>
+        <td style="padding:7px 14px;border-bottom:1px solid var(--rpt-bg-soft);text-align:center">
           <span style="padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;background:${rb};color:${rc}">
             ${c.testResult||'NOT TESTED'}
           </span>
@@ -150,10 +150,10 @@ async function generatePDF(engagement, controls = [], findings = [], progress = 
     }).join('')
 
     return `
-    <tr style="background:#f8faff">
-      <td colspan="4" style="padding:10px 14px;font-weight:700;font-size:12px;color:#312e81;border-top:2px solid #e0e7ff;border-bottom:1px solid #e0e7ff">
+    <tr style="background:var(--rpt-paper)">
+      <td colspan="4" style="padding:10px 14px;font-weight:700;font-size:12px;color:var(--rpt-accent);border-top:2px solid var(--rpt-accent-bg);border-bottom:1px solid var(--rpt-accent-bg)">
         ${secName}
-        <span style="font-size:10px;font-weight:400;color:#6b7280;margin-left:12px">
+        <span style="font-size:10px;font-weight:400;color:var(--rpt-muted);margin-left:12px">
           ${ctrls.length} controls · ${barSvg} <span style="vertical-align:middle;font-weight:700;color:${secColor}">${secPct}%</span>
         </span>
       </td>
@@ -163,17 +163,17 @@ async function generatePDF(engagement, controls = [], findings = [], progress = 
 
   // ── Findings rows ──────────────────────────────────────────────────────────
   const findingRows = findings.slice(0, 50).map((f, i) => {
-    const sc = f.severity === 'CRITICAL' ? '#dc2626' : f.severity === 'HIGH' ? '#ea580c' : f.severity === 'MEDIUM' ? '#d97706' : '#6b7280'
-    const sb = f.severity === 'CRITICAL' ? '#fee2e2' : f.severity === 'HIGH' ? '#ffedd5' : f.severity === 'MEDIUM' ? '#fef3c7' : '#f3f4f6'
-    const stc = f.status === 'CLOSED' || f.status === 'RESOLVED' ? '#166534' : f.status === 'IN_REMEDIATION' ? '#1d4ed8' : '#dc2626'
-    const stb = f.status === 'CLOSED' || f.status === 'RESOLVED' ? '#dcfce7'  : f.status === 'IN_REMEDIATION' ? '#eff6ff'  : '#fee2e2'
-    return `<tr style="background:${i%2===0?'#ffffff':'#f9fafb'}">
-      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;font-size:12px;font-weight:600">${(f.title||'').replace(/</g,'&lt;')}</td>
-      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;font-size:11px;color:#374151">${(f.description||'—').slice(0,120).replace(/</g,'&lt;')}</td>
-      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;text-align:center">
+    const sc = f.severity === 'CRITICAL' ? 'var(--rpt-crit-bd)' : f.severity === 'HIGH' ? 'var(--rpt-high-bd)' : f.severity === 'MEDIUM' ? 'var(--rpt-warn-bd)' : 'var(--rpt-muted)'
+    const sb = f.severity === 'CRITICAL' ? 'var(--rpt-crit-bg)' : f.severity === 'HIGH' ? 'var(--rpt-high-bg)' : f.severity === 'MEDIUM' ? 'var(--rpt-warn-bg)' : 'var(--rpt-bg-soft)'
+    const stc = f.status === 'CLOSED' || f.status === 'RESOLVED' ? 'var(--rpt-pass-fg)' : f.status === 'IN_REMEDIATION' ? 'var(--rpt-accent)' : 'var(--rpt-crit-bd)'
+    const stb = f.status === 'CLOSED' || f.status === 'RESOLVED' ? 'var(--rpt-pass-bg)'  : f.status === 'IN_REMEDIATION' ? 'var(--rpt-accent-bg)'  : 'var(--rpt-crit-bg)'
+    return `<tr style="background:${i%2===0?'var(--rpt-white)':'var(--rpt-paper)'}">
+      <td style="padding:9px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:12px;font-weight:600">${(f.title||'').replace(/</g,'&lt;')}</td>
+      <td style="padding:9px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:11px;color:var(--rpt-ink)">${(f.description||'—').slice(0,120).replace(/</g,'&lt;')}</td>
+      <td style="padding:9px 14px;border-bottom:1px solid var(--rpt-bg-soft);text-align:center">
         ${f.severity ? `<span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${sb};color:${sc}">${f.severity}</span>` : '—'}
       </td>
-      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;text-align:center">
+      <td style="padding:9px 14px;border-bottom:1px solid var(--rpt-bg-soft);text-align:center">
         <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${stb};color:${stc}">${f.status||'OPEN'}</span>
       </td>
     </tr>`
@@ -182,14 +182,14 @@ async function generatePDF(engagement, controls = [], findings = [], progress = 
   // ── Action items ───────────────────────────────────────────────────────────
   const openItems = actionItems.filter(a => ['OPEN','IN_PROGRESS','PENDING_REVIEW'].includes(a.status))
   const actionRows = openItems.slice(0, 30).map((a, i) => {
-    const pc = a.priority === 'CRITICAL' ? '#dc2626' : a.priority === 'HIGH' ? '#ea580c' : a.priority === 'MEDIUM' ? '#d97706' : '#6b7280'
-    const pb = a.priority === 'CRITICAL' ? '#fee2e2' : a.priority === 'HIGH' ? '#ffedd5' : a.priority === 'MEDIUM' ? '#fef3c7' : '#f3f4f6'
-    return `<tr style="background:${i%2===0?'#ffffff':'#f9fafb'}">
-      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;font-size:12px">${(a.title||'').replace(/</g,'&lt;')}</td>
-      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;text-align:center">
+    const pc = a.priority === 'CRITICAL' ? 'var(--rpt-crit-bd)' : a.priority === 'HIGH' ? 'var(--rpt-high-bd)' : a.priority === 'MEDIUM' ? 'var(--rpt-warn-bd)' : 'var(--rpt-muted)'
+    const pb = a.priority === 'CRITICAL' ? 'var(--rpt-crit-bg)' : a.priority === 'HIGH' ? 'var(--rpt-high-bg)' : a.priority === 'MEDIUM' ? 'var(--rpt-warn-bg)' : 'var(--rpt-bg-soft)'
+    return `<tr style="background:${i%2===0?'var(--rpt-white)':'var(--rpt-paper)'}">
+      <td style="padding:9px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:12px">${(a.title||'').replace(/</g,'&lt;')}</td>
+      <td style="padding:9px 14px;border-bottom:1px solid var(--rpt-bg-soft);text-align:center">
         ${a.priority ? `<span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${pb};color:${pc}">${a.priority}</span>` : '—'}
       </td>
-      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;text-align:center;font-size:11px;color:${a.dueAt && new Date(a.dueAt) < new Date() ? '#dc2626' : '#374151'}">
+      <td style="padding:9px 14px;border-bottom:1px solid var(--rpt-bg-soft);text-align:center;font-size:11px;color:${a.dueAt && new Date(a.dueAt) < new Date() ? 'var(--rpt-crit-bd)' : 'var(--rpt-ink)'}">
         ${a.dueAt ? fmtShort(a.dueAt) : '—'}
       </td>
     </tr>`
@@ -199,11 +199,11 @@ async function generatePDF(engagement, controls = [], findings = [], progress = 
   const signOffRows = progress
     .filter(s => s.status === 'APPROVED' || s.completedAt)
     .map(s => `<tr>
-      <td style="padding:8px 14px;border-bottom:1px solid #f3f4f6;font-size:12px;font-weight:600">${s.stepName||s.name||'—'}</td>
-      <td style="padding:8px 14px;border-bottom:1px solid #f3f4f6;font-size:11px;color:#6b7280">${s.completedByName||s.actor||'—'}</td>
-      <td style="padding:8px 14px;border-bottom:1px solid #f3f4f6;font-size:11px;color:#6b7280">${fmtShort(s.completedAt||s.actedAt)}</td>
-      <td style="padding:8px 14px;border-bottom:1px solid #f3f4f6;text-align:center">
-        <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:#dcfce7;color:#166534">APPROVED</span>
+      <td style="padding:8px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:12px;font-weight:600">${s.stepName||s.name||'—'}</td>
+      <td style="padding:8px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:11px;color:var(--rpt-muted)">${s.completedByName||s.actor||'—'}</td>
+      <td style="padding:8px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:11px;color:var(--rpt-muted)">${fmtShort(s.completedAt||s.actedAt)}</td>
+      <td style="padding:8px 14px;border-bottom:1px solid var(--rpt-bg-soft);text-align:center">
+        <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:var(--rpt-pass-bg);color:var(--rpt-pass-fg)">APPROVED</span>
       </td>
     </tr>`).join('')
 
@@ -211,29 +211,29 @@ async function generatePDF(engagement, controls = [], findings = [], progress = 
 <title>${engagement.name||'Audit Report'} — ${engagement.engagementRef||''}</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fff;color:#1a1a2e}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fff;color:var(--rpt-ink)}
   @media print{
     body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .page-break{page-break-before:always}
     @page{margin:15mm;size:A4}
   }
-  .header{background:linear-gradient(135deg,#1e1b4b 0%,#4338ca 100%);color:#fff;padding:32px 40px}
+  .header{background:linear-gradient(135deg,var(--rpt-ink) 0%,var(--rpt-accent) 100%);color:#fff;padding:32px 40px}
   .header-meta{font-size:11px;opacity:.7;margin-bottom:8px;letter-spacing:.05em;text-transform:uppercase}
   .header-title{font-size:26px;font-weight:800;margin-bottom:6px}
   .header-sub{font-size:13px;opacity:.8;margin-bottom:16px}
   .header-pills{display:flex;gap:10px;flex-wrap:wrap}
-  .pill{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.3);color:#fff}
-  .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:#e5e7eb}
+  .pill{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgb(var(--color-on-dark) / .3);color:#fff}
+  .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--rpt-border)}
   .kpi{background:#fff;padding:20px 16px;text-align:center}
   .kpi-val{font-size:28px;font-weight:800;line-height:1}
-  .kpi-lbl{font-size:10px;color:#6b7280;margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
-  .section-label{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.08em;padding:20px 24px 10px;border-top:2px solid #e5e7eb;margin-top:8px}
+  .kpi-lbl{font-size:10px;color:var(--rpt-muted);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+  .section-label{font-size:11px;font-weight:700;color:var(--rpt-muted);text-transform:uppercase;letter-spacing:.08em;padding:20px 24px 10px;border-top:2px solid var(--rpt-border);margin-top:8px}
   table{width:100%;border-collapse:collapse}
-  thead th{padding:10px 14px;background:#f3f4f6;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;text-align:left;border-bottom:2px solid #e5e7eb}
+  thead th{padding:10px 14px;background:var(--rpt-bg-soft);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--rpt-muted);text-align:left;border-bottom:2px solid var(--rpt-border)}
   .compliance-bar-wrap{padding:16px 24px}
-  .compliance-bar-track{width:100%;height:12px;background:#e5e7eb;border-radius:6px;overflow:hidden}
-  .compliance-bar-fill{height:100%;border-radius:6px;background:${passRate>=80?'#22c55e':passRate>=60?'#f59e0b':'#ef4444'};width:${passRate}%}
-  .footer{padding:24px 40px;text-align:center;font-size:10px;color:#9ca3af;border-top:1px solid #e5e7eb;margin-top:32px}
+  .compliance-bar-track{width:100%;height:12px;background:var(--rpt-border);border-radius:6px;overflow:hidden}
+  .compliance-bar-fill{height:100%;border-radius:6px;background:${passRate>=80?'var(--rpt-pass-bd)':passRate>=60?'var(--rpt-warn-bd)':'var(--rpt-crit-bd)'};width:${passRate}%}
+  .footer{padding:24px 40px;text-align:center;font-size:10px;color:var(--rpt-muted);border-top:1px solid var(--rpt-border);margin-top:32px}
 </style></head><body>
 
 <div class="header">
@@ -249,10 +249,10 @@ async function generatePDF(engagement, controls = [], findings = [], progress = 
 
 <div class="kpi-grid">
   <div class="kpi"><div class="kpi-val" style="color:${pctColor};background:${pctBg};padding:6px 10px;border-radius:8px;display:inline-block">${passRate}%</div><div class="kpi-lbl">Compliance</div></div>
-  <div class="kpi"><div class="kpi-val" style="color:#166534">${effective}</div><div class="kpi-lbl">Effective of ${totalControls}</div></div>
-  <div class="kpi"><div class="kpi-val" style="color:#dc2626">${ineffective}</div><div class="kpi-lbl">Ineffective</div></div>
-  <div class="kpi"><div class="kpi-val" style="color:#6b7280">${notTested}</div><div class="kpi-lbl">Not Tested</div></div>
-  <div class="kpi"><div class="kpi-val" style="color:${openFindings>0?'#dc2626':'#166534'}">${openFindings}</div><div class="kpi-lbl">Open Findings</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:var(--rpt-pass-fg)">${effective}</div><div class="kpi-lbl">Effective of ${totalControls}</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:var(--rpt-crit-bd)">${ineffective}</div><div class="kpi-lbl">Ineffective</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:var(--rpt-muted)">${notTested}</div><div class="kpi-lbl">Not Tested</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:${openFindings>0?'var(--rpt-crit-bd)':'var(--rpt-pass-fg)'}">${openFindings}</div><div class="kpi-lbl">Open Findings</div></div>
 </div>
 
 <div class="compliance-bar-wrap">
@@ -271,7 +271,7 @@ ${findings.length > 0 ? `
   <thead><tr><th>Finding</th><th>Description</th><th style="text-align:center">Severity</th><th style="text-align:center">Status</th></tr></thead>
   <tbody>${findingRows}</tbody>
 </table>
-` : `<div style="padding:16px 24px;margin:16px 24px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px;color:#166534">✓ No findings recorded for this engagement.</div>`}
+` : `<div style="padding:16px 24px;margin:16px 24px;background:var(--rpt-pass-bg);border:1px solid var(--rpt-pass-bd);border-radius:8px;font-size:12px;color:var(--rpt-pass-fg)">✓ No findings recorded for this engagement.</div>`}
 
 ${openItems.length > 0 ? `
 <div class="section-label">Open Action Items</div>
@@ -304,7 +304,7 @@ ${signOffRows ? `
 
 function Section({ id, title, icon: Icon, children }) {
   return (
-    <section id={id} className="bg-surface border border-border rounded-2xl overflow-hidden print:break-inside-avoid">
+    <section id={id} className="bg-surface border border-border rounded-modal overflow-hidden print:break-inside-avoid">
       <div className="px-6 py-4 border-b border-border flex items-center gap-2.5">
         {Icon && <Icon size={15} className="text-brand-400 shrink-0" />}
         <h2 className="text-sm font-bold text-text-primary uppercase tracking-wide">{title}</h2>
@@ -316,7 +316,7 @@ function Section({ id, title, icon: Icon, children }) {
 
 function StatCard({ label, value, sub, color = 'text-text-primary' }) {
   return (
-    <div className="bg-surface-overlay border border-border rounded-xl p-4">
+    <div className="bg-surface-overlay border border-border rounded-card p-4">
       <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1">{label}</p>
       <p className={cn('text-2xl font-bold tabular-nums', color)}>{value ?? '—'}</p>
       {sub && <p className="text-[11px] text-text-muted mt-0.5">{sub}</p>}
@@ -336,7 +336,7 @@ function ResultChip({ result }) {
 function CollapsibleSection({ title, count, children }) {
   const [open, setOpen] = useState(true)
   return (
-    <div className="border border-border rounded-xl overflow-hidden">
+    <div className="border border-border rounded-card overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-4 py-3
@@ -457,7 +457,7 @@ export default function AuditReportPage() {
         <button
           onClick={handleDownloadPDF}
           disabled={generatingPDF}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-medium
                      bg-brand-500/10 border border-brand-500/30 text-brand-400
                      hover:bg-brand-500/20 transition-colors disabled:opacity-50"
         >
@@ -470,8 +470,8 @@ export default function AuditReportPage() {
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
 
         {/* 1. Header */}
-        <div className="bg-surface border border-border rounded-2xl overflow-hidden">
-          <div className="h-1.5 bg-gradient-to-r from-brand-500 to-indigo-500" />
+        <div className="bg-surface border border-border rounded-modal overflow-hidden">
+          <div className="h-1.5 bg-brand-500" />
           <div className="px-8 py-6">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -481,8 +481,8 @@ export default function AuditReportPage() {
                   <span className={cn(
                     'text-[10px] font-bold px-2 py-0.5 rounded border',
                     engagement.status === 'COMPLETED' || engagement.status === 'CLOSED'
-                      ? 'bg-green-500/10 border-green-500/30 text-green-400'
-                      : 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                      ? 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg'
+                      : 'bg-status-info-bg border-status-info-bd text-status-info-fg'
                   )}>
                     {engagement.status?.replace(/_/g,' ')}
                   </span>
@@ -523,8 +523,8 @@ export default function AuditReportPage() {
         <Section id="summary" title="Executive Summary" icon={BarChart2}>
           <div className="grid grid-cols-4 gap-3 mb-6">
             <StatCard label="Total controls"   value={totalControls}  />
-            <StatCard label="Effective"         value={effective}       color="text-green-400" sub={`${passRate}% pass rate`} />
-            <StatCard label="Ineffective"       value={ineffective}     color="text-red-400"   />
+            <StatCard label="Effective"         value={effective}       color="text-status-pass-fg" sub={`${passRate}% pass rate`} />
+            <StatCard label="Ineffective"       value={ineffective}     color="text-status-fail-fg"   />
             <StatCard label="Not tested"        value={notTested}       color="text-text-muted" />
           </div>
           {/* Pass rate bar */}
@@ -536,7 +536,7 @@ export default function AuditReportPage() {
             <div className="h-2 bg-surface-overlay rounded-full overflow-hidden">
               <div
                 className={cn('h-full rounded-full transition-all',
-                  passRate >= 80 ? 'bg-green-500' : passRate >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                  passRate >= 80 ? 'bg-status-pass-bg' : passRate >= 60 ? 'bg-status-warn-bg' : 'bg-status-fail-bg'
                 )}
                 style={{ width: `${passRate}%` }}
               />
@@ -548,7 +548,7 @@ export default function AuditReportPage() {
                 const count = findings.filter(f => f.severity === sev).length
                 const cfg   = SEVERITY_CFG[sev]
                 return (
-                  <div key={sev} className={cn('rounded-xl border p-3', cfg.bg)}>
+                  <div key={sev} className={cn('rounded-card border p-3', cfg.bg)}>
                     <p className={cn('text-[10px] font-bold uppercase tracking-wide', cfg.color)}>{sev}</p>
                     <p className={cn('text-xl font-bold tabular-nums', cfg.color)}>{count}</p>
                     <p className="text-[10px] text-text-muted">finding{count !== 1 ? 's' : ''}</p>
@@ -646,8 +646,8 @@ export default function AuditReportPage() {
           <Section id="tests" title="Test Execution Summary" icon={Zap}>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label: 'Automated tests passed', result: 'PASS',    color: 'text-green-400' },
-                { label: 'Tests failed',            result: 'FAIL',    color: 'text-red-400'   },
+                { label: 'Automated tests passed', result: 'PASS',    color: 'text-status-pass-fg' },
+                { label: 'Tests failed',            result: 'FAIL',    color: 'text-status-fail-fg'   },
                 { label: 'Not run',                 result: 'NOT_RUN', color: 'text-text-muted' },
               ].map(({ label, result, color }) => {
                 // Count test instances across all controls
@@ -669,14 +669,14 @@ export default function AuditReportPage() {
             <div className="space-y-2">
               {openActionItems.map(item => (
                 <div key={item.id}
-                  className="flex items-center justify-between px-4 py-2.5 rounded-lg
+                  className="flex items-center justify-between px-4 py-2.5 rounded-card
                              bg-surface-overlay border border-border">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className={cn(
                       'text-[10px] font-bold px-1.5 py-0.5 rounded',
-                      item.priority === 'CRITICAL' ? 'text-red-400 bg-red-500/10' :
-                      item.priority === 'HIGH'     ? 'text-orange-400 bg-orange-500/10' :
-                      'text-amber-400 bg-amber-500/10'
+                      item.priority === 'CRITICAL' ? 'text-status-fail-fg bg-status-fail-bg' :
+                      item.priority === 'HIGH'     ? 'text-status-warn-fg bg-status-warn-bg' :
+                      'text-status-warn-fg bg-status-warn-bg'
                     )}>
                       {item.priority}
                     </span>
@@ -699,14 +699,14 @@ export default function AuditReportPage() {
                 <div key={step.stepId || i} className="flex items-start gap-3">
                   <div className={cn(
                     'w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5',
-                    step.status === 'COMPLETED' ? 'bg-green-500/15 border border-green-500/40' :
-                    step.status === 'IN_PROGRESS' ? 'bg-blue-500/15 border border-blue-500/40' :
+                    step.status === 'COMPLETED' ? 'bg-status-pass-bg border border-status-pass-bd' :
+                    step.status === 'IN_PROGRESS' ? 'bg-status-info-bg border border-status-info-bd' :
                     'bg-surface-overlay border border-border'
                   )}>
                     {step.status === 'COMPLETED'
-                      ? <CheckCircle2 size={12} className="text-green-400" />
+                      ? <CheckCircle2 size={12} className="text-status-pass-fg" />
                       : step.status === 'IN_PROGRESS'
-                      ? <Clock size={12} className="text-blue-400" />
+                      ? <Clock size={12} className="text-status-info-fg" />
                       : <Hash size={12} className="text-text-muted" />
                     }
                   </div>

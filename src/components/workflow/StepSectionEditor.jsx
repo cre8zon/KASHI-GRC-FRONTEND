@@ -108,7 +108,7 @@ export function StepSectionEditor({ sections = [], onChange, stepSide }) {
   const validCount     = sections.filter(s => s.sectionKey && s.completionEvent && s.label).length
 
   return (
-    <div className="mt-3 rounded-md border border-border overflow-hidden">
+    <div className="mt-3 rounded-ctl border border-border overflow-hidden">
       {/* ── Header ── */}
       <button
         type="button"
@@ -201,7 +201,7 @@ function SectionRow({ section, index, onUpdate, onRemove }) {
   return (
     <div className={cn(
       'p-3 bg-surface',
-      !isValid && 'border-l-2 border-amber-500/50'
+      !isValid && 'border-l-2 border-status-warn-bd'
     )}>
       <div className="flex items-start gap-2">
         {/* Drag grip (visual only — parent handles drag) */}
@@ -269,7 +269,7 @@ function SectionRow({ section, index, onUpdate, onRemove }) {
         <button
           type="button"
           onClick={onRemove}
-          className="mt-1 p-1 text-text-muted hover:text-red-400 transition-colors rounded shrink-0"
+          className="mt-1 p-1 text-text-muted hover:text-status-fail-fg transition-colors rounded shrink-0"
           title="Remove section"
         >
           <Trash2 size={12} />

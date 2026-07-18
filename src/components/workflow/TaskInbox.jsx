@@ -101,14 +101,14 @@ function requiresPageOpen(task) {
 }
 
 const priorityConfig = {
-  CRITICAL: 'text-red-400 bg-red-500/10',
-  HIGH:     'text-amber-400 bg-amber-500/10',
+  CRITICAL: 'text-status-fail-fg bg-status-fail-bg',
+  HIGH:     'text-status-warn-fg bg-status-warn-bg',
   MEDIUM:   'text-text-muted bg-surface-overlay',
   LOW:      'text-text-muted bg-surface-overlay/50',
 }
 
 const TASK_ROLE_CONFIG = {
-  ASSIGNER: { label: 'Coordinator', icon: UserCheck, color: 'text-purple-400 bg-purple-500/10' },
+  ASSIGNER: { label: 'Coordinator', icon: UserCheck, color: 'text-status-tag-fg bg-status-tag-bg' },
   ACTOR:    { label: 'Actor',       icon: Users,     color: 'text-brand-400 bg-brand-500/10'   },
 }
 
@@ -151,13 +151,13 @@ export function TaskInbox({ filterFn } = {}) {
 
   if (isLoading) return (
     <div className="space-y-2 p-4">
-      {[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full rounded-lg" />)}
+      {[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full rounded-card" />)}
     </div>
   )
 
   if (!tasks.length) return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <CheckCircle size={28} className="text-green-400 mb-3" strokeWidth={1.5} />
+      <CheckCircle size={28} className="text-status-pass-fg mb-3" strokeWidth={1.5} />
       <p className="text-sm font-medium text-text-primary">All clear!</p>
       <p className="text-xs text-text-muted mt-1">No pending tasks</p>
     </div>
@@ -228,12 +228,12 @@ export function TaskInbox({ filterFn } = {}) {
 
                   {/* Context hints */}
                   {isAssigner && !route && (
-                    <p className="text-[10px] text-purple-400/80 mt-0.5">
+                    <p className="text-[10px] text-status-tag-fg mt-0.5">
                       You are coordinating this step. Actors must complete their work first.
                     </p>
                   )}
                   {isMisconfigured && (
-                    <p className="text-[10px] text-amber-400/80 mt-0.5 flex items-center gap-1">
+                    <p className="text-[10px] text-status-warn-fg mt-0.5 flex items-center gap-1">
                       <AlertTriangle size={9} />
                       Open the page to complete this task — contact admin if the link is missing.
                     </p>
@@ -308,7 +308,7 @@ export function TaskInbox({ filterFn } = {}) {
             </label>
             <textarea rows={3} value={remarks} onChange={e => setRemarks(e.target.value)}
               placeholder="Add a note…"
-              className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
           </div>
         </div>
       </Modal>

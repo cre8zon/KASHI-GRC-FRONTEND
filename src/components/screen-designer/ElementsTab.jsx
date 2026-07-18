@@ -29,7 +29,7 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
           </div>
 
           {fields.length === 0 ? (
-            <div className="text-[11px] text-text-muted px-3 py-6 border border-dashed border-border/40 rounded-lg text-center">
+            <div className="text-[11px] text-text-muted px-3 py-6 border border-dashed border-border/40 rounded-card text-center">
               No fields yet — click &quot;Add field&quot; above or use Preview tab → &quot;+ Add field&quot;
             </div>
           ) : (
@@ -43,7 +43,7 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
                   <button key={f.id}
                     onClick={() => onSelectElement({ type: 'form_field', id: f.id, data: { ...f }, screenKey: screen.key, formId })}
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all',
+                      'w-full flex items-center gap-3 px-3 py-2.5 rounded-card border text-left transition-all',
                       isSelected
                         ? 'border-brand-500 bg-brand-500/8'
                         : 'border-border hover:border-brand-500/30 bg-background'
@@ -80,19 +80,19 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
 
                     {/* Required */}
                     {f.isRequired && (
-                      <span className="text-[9px] text-red-400 shrink-0 font-medium">req</span>
+                      <span className="text-[9px] text-status-fail-fg shrink-0 font-medium">req</span>
                     )}
 
                     {/* Has conditional */}
                     {f.dependsOnJson && (
                       <span title="Has conditional display rule"
-                        className="text-[9px] text-amber-400 shrink-0">if</span>
+                        className="text-[9px] text-status-warn-fg shrink-0">if</span>
                     )}
 
                     {/* Options linked */}
                     {f.optionsComponentKey && (
                       <span title={`Options: ${f.optionsComponentKey}`}
-                        className="text-[9px] text-teal-400 shrink-0 font-mono truncate max-w-20">{f.optionsComponentKey}</span>
+                        className="text-[9px] text-brand-400 shrink-0 font-mono truncate max-w-20">{f.optionsComponentKey}</span>
                     )}
 
                     {/* FIX: Visibility indicator — click field to open inspector where RoleVisibilityEditor lives */}
@@ -125,21 +125,21 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
             <button
               onClick={() => onSelectElement({ type: 'form_submit_config', screenKey: screen.key })}
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all',
+                'w-full flex items-center gap-3 px-3 py-2.5 rounded-card border text-left transition-all',
                 screen?.selectedElement?.type === 'form_submit_config'
                   ? 'border-brand-500 bg-brand-500/8'
-                  : 'border-green-500/20 bg-green-500/5 hover:border-brand-500/30'
+                  : 'border-status-pass-bd bg-status-pass-bg hover:border-brand-500/30'
               )}>
-              <CheckCircle2 size={13} className="text-green-400 shrink-0" />
+              <CheckCircle2 size={13} className="text-status-pass-fg shrink-0" />
               <div className="flex-1">
                 <span className="text-xs text-text-primary font-medium">Submit</span>
                 <span className="text-[9px] font-mono text-text-muted ml-2">POST → form.submitUrl · click to configure</span>
               </div>
-              <span className="text-[9px] text-green-400 font-medium">built-in</span>
+              <span className="text-[9px] text-status-pass-fg font-medium">built-in</span>
             </button>
 
             {/* Cancel — always present, closes the modal/form */}
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-card border border-border bg-background">
               <X size={13} className="text-text-muted shrink-0" />
               <div className="flex-1">
                 <span className="text-xs text-text-primary font-medium">Cancel</span>
@@ -153,7 +153,7 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
               <button key={action.id}
                 onClick={() => onSelectElement({ type: 'action', id: action.id, data: action, screenKey: screen.key })}
                 className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all',
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-card border text-left transition-all',
                   selectedElement?.id === action.id
                     ? 'border-brand-500 bg-brand-500/8'
                     : 'border-border hover:border-brand-500/30 bg-background'
@@ -165,7 +165,7 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
                 </div>
                 <span className={cn('text-[9px] px-1.5 py-0.5 rounded border',
                   { primary: 'text-brand-400 bg-brand-500/10 border-brand-500/20',
-                    danger: 'text-red-400 bg-red-500/10 border-red-500/20',
+                    danger: 'text-status-fail-fg bg-status-fail-bg border-status-fail-bd',
                     secondary: 'text-text-secondary bg-surface-overlay border-border',
                   }[action.variant] || 'text-text-muted bg-surface-overlay border-border')}>
                   {action.variant}
@@ -176,7 +176,7 @@ function FormElementsTab({ screen, fields, formId, selectedElement, onSelectElem
         </div>
 
         {/* Form metadata summary */}
-        <div className="p-3 rounded-lg bg-surface border border-border text-[10px] text-text-muted space-y-1">
+        <div className="p-3 rounded-card bg-surface border border-border text-[10px] text-text-muted space-y-1">
           <p><span className="text-text-secondary font-medium">Form key:</span> <code className="font-mono text-brand-400">{screen.key}</code></p>
           <p><span className="text-text-secondary font-medium">Endpoint:</span> <code className="font-mono">GET /v1/ui-config/form/{screen.key}</code></p>
           <p className="text-text-muted">DynamicForm renders this at runtime. Submit posts to the form's configured endpoint.</p>
@@ -277,7 +277,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
               </button>
             </div>
             {columns.length === 0 ? (
-              <div className="text-[11px] text-text-muted px-3 py-6 border border-dashed border-border/40 rounded-lg text-center">
+              <div className="text-[11px] text-text-muted px-3 py-6 border border-dashed border-border/40 rounded-card text-center">
                 No columns configured — click &quot;Add column&quot; above or Preview → click any column header
               </div>
             ) : (
@@ -286,7 +286,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
                   <button key={col.key || idx}
                     onClick={() => onSelectElement({ type: 'column', data: col, screenKey: screen.key })}
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all',
+                      'w-full flex items-center gap-3 px-3 py-2.5 rounded-card border text-left transition-all',
                       selectedElement?.data?.key === col.key
                         ? 'border-brand-500 bg-brand-500/8'
                         : 'border-border hover:border-brand-500/30 bg-background'
@@ -297,10 +297,10 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
                       <span className="text-[9px] font-mono text-text-muted ml-2">{col.key}</span>
                     </div>
                     {col.type && col.type !== 'text' && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded border bg-blue-500/10 border-blue-500/20 text-blue-400">{col.type}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded border bg-status-info-bg border-status-info-bd text-status-info-fg">{col.type}</span>
                     )}
                     {col.sortable && <SlidersHorizontal size={10} className="text-text-muted" />}
-                    {col.hidden && <EyeOff size={10} className="text-amber-400" title="Hidden by default" />}
+                    {col.hidden && <EyeOff size={10} className="text-status-warn-fg" title="Hidden by default" />}
                   </button>
                 ))}
               </div>
@@ -317,7 +317,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
               </p>
             </div>
             {components.length === 0 ? (
-              <div className="text-[11px] text-text-muted px-3 py-6 border border-dashed border-border/40 rounded-lg text-center">
+              <div className="text-[11px] text-text-muted px-3 py-6 border border-dashed border-border/40 rounded-card text-center">
                 No components configured — click a response area in Preview → Inspector → &quot;Quick add component&quot;
               </div>
             ) : (
@@ -328,7 +328,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
                     <button key={comp.id}
                       onClick={() => onSelectElement({ type: 'component', id: comp.id, data: comp, screenKey: screen.key })}
                       className={cn(
-                        'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all',
+                        'w-full flex items-center gap-3 px-3 py-2.5 rounded-card border text-left transition-all',
                         selectedElement?.id === comp.id
                           ? 'border-brand-500 bg-brand-500/8'
                           : 'border-border hover:border-brand-500/30 bg-background'
@@ -338,7 +338,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
                         <span className="text-xs text-text-primary font-medium">{comp.label || comp.componentKey}</span>
                         <span className="text-[9px] font-mono text-text-muted ml-2">{comp.componentKey}</span>
                       </div>
-                      <span className="text-[8px] px-1.5 py-0.5 rounded border bg-teal-500/10 border-teal-500/20 text-teal-400 font-mono">{comp.componentType}</span>
+                      <span className="text-[8px] px-1.5 py-0.5 rounded border bg-brand-500/10 border-brand-500/20 text-brand-400 font-mono">{comp.componentType}</span>
                     </button>
                   )
                 })}
@@ -367,14 +367,14 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
                 <button
                   onClick={() => onSelectElement({ type: 'header_zone', screenKey: screen.key })}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg border text-left transition-all',
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-card border text-left transition-all',
                     selectedElement?.type === 'header_zone'
                       ? 'border-brand-500 bg-brand-500/8'
                       : 'border-border hover:border-brand-500/30 bg-background'
                   )}>
                   <Layout size={13} className="text-text-muted shrink-0" />
                   <span className="text-xs text-text-primary flex-1">Header zone</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded border bg-amber-500/10 border-amber-500/25 text-amber-400">
+                  <span className="text-[9px] px-1.5 py-0.5 rounded border bg-status-warn-bg border-status-warn-bd text-status-warn-fg">
                     configure fields
                   </span>
                 </button>
@@ -431,7 +431,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
                     layout,
                   })}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg border text-left transition-all',
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-card border text-left transition-all',
                     selectedElement?.type === el.key
                       ? 'border-brand-500 bg-brand-500/8'
                       : 'border-border hover:border-brand-500/30 bg-background'
@@ -440,10 +440,10 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
                   <span className="text-xs text-text-primary flex-1">{el.label}</span>
                   {/* Badge: capability (hardcoded component) vs configurable (has fields) */}
                   {el.isCap
-                    ? <span className="text-[9px] px-1.5 py-0.5 rounded border bg-green-500/10 border-green-500/25 text-green-400">component</span>
+                    ? <span className="text-[9px] px-1.5 py-0.5 rounded border bg-status-pass-bg border-status-pass-bd text-status-pass-fg">component</span>
                     : el.tabKey
-                      ? <span className="text-[9px] px-1.5 py-0.5 rounded border bg-amber-500/10 border-amber-500/25 text-amber-400">configure fields</span>
-                      : <span className="text-[9px] px-1.5 py-0.5 rounded border bg-green-500/10 border-green-500/25 text-green-400">click to configure</span>
+                      ? <span className="text-[9px] px-1.5 py-0.5 rounded border bg-status-warn-bg border-status-warn-bd text-status-warn-fg">configure fields</span>
+                      : <span className="text-[9px] px-1.5 py-0.5 rounded border bg-status-pass-bg border-status-pass-bd text-status-pass-fg">click to configure</span>
                   }
                 </button>
               ))}
@@ -472,7 +472,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
             </p>
           )}
           {actions.length === 0 ? (
-            <div className="text-[11px] text-text-muted px-3 py-4 border border-dashed border-border/40 rounded-lg text-center">
+            <div className="text-[11px] text-text-muted px-3 py-4 border border-dashed border-border/40 rounded-card text-center">
               No actions configured — add them in Preview → click &quot;+ Add action&quot;
             </div>
           ) : (
@@ -485,7 +485,7 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
                   <button key={action.id}
                     onClick={() => onSelectElement({ type: 'action', id: action.id, data: action, screenKey: screen.key })}
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg border text-left transition-all',
+                      'w-full flex items-center gap-3 px-3 py-2 rounded-card border text-left transition-all',
                       selectedElement?.id === action.id
                         ? 'border-brand-500 bg-brand-500/8'
                         : 'border-border hover:border-brand-500/30 bg-background'
@@ -496,11 +496,11 @@ function ElementsTab({ screen, screenType, selectedElement, onSelectElement, rol
                       <p className="text-[9px] font-mono text-text-muted truncate">{action.httpMethod} {action.apiEndpoint}</p>
                     </div>
                     {sodBlocked && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded border bg-red-500/10 border-red-500/25 text-red-400">SoD blocked</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded border bg-status-fail-bg border-status-fail-bd text-status-fail-fg">SoD blocked</span>
                     )}
                     <span className={cn('text-[9px] px-1.5 py-0.5 rounded border',
                       visibleToRole
-                        ? 'bg-green-500/10 border-green-500/25 text-green-400'
+                        ? 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg'
                         : 'bg-surface-overlay border-border text-text-muted')}>
                       {visibleToRole ? 'visible' : 'hidden'}
                     </span>

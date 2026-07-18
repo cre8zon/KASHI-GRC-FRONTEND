@@ -87,7 +87,7 @@ export function FormPreviewDrawer({ form, onClose }) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+        className="fixed inset-0 z-40 bg-on-dark-inv/40 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -108,7 +108,7 @@ export function FormPreviewDrawer({ form, onClose }) {
             </div>
           </div>
           <button onClick={onClose}
-            className="h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
+            className="h-7 w-7 flex items-center justify-center rounded-ctl text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
             <X size={15} />
           </button>
         </div>
@@ -116,7 +116,7 @@ export function FormPreviewDrawer({ form, onClose }) {
         {/* Toolbar */}
         <div className="flex items-center gap-2 px-5 py-2.5 border-b border-border shrink-0">
           {/* View toggle */}
-          <div className="flex items-center rounded-md border border-border overflow-hidden">
+          <div className="flex items-center rounded-ctl border border-border overflow-hidden">
             {[
               { key: 'preview', label: 'Preview', icon: Eye },
               { key: 'fields',  label: 'Fields',  icon: List },
@@ -136,7 +136,7 @@ export function FormPreviewDrawer({ form, onClose }) {
 
           {/* Device toggle (only in preview mode) */}
           {view === 'preview' && (
-            <div className="flex items-center rounded-md border border-border overflow-hidden ml-2">
+            <div className="flex items-center rounded-ctl border border-border overflow-hidden ml-2">
               {Object.entries(DEVICE_ICONS).map(([key, Icon]) => (
                 <button key={key} onClick={() => setDevice(key)}
                   className={cn(
@@ -190,9 +190,9 @@ export function FormPreviewDrawer({ form, onClose }) {
                 />
 
                 {/* Preview watermark */}
-                <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                  <Eye size={12} className="text-amber-400 shrink-0" />
-                  <p className="text-[10px] text-amber-300">
+                <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-card bg-status-warn-bg border border-status-warn-bd">
+                  <Eye size={12} className="text-status-warn-fg shrink-0" />
+                  <p className="text-[10px] text-status-warn-fg">
                     Preview mode — form submission is intercepted and logged to console. No data is saved.
                   </p>
                 </div>
@@ -237,7 +237,7 @@ function FieldsView({ formId }) {
         <Layers size={13} className="text-brand-400" />
         <span className="text-xs font-semibold text-text-primary">{fields.length} fields</span>
       </div>
-      <div className="border border-border rounded-lg overflow-hidden">
+      <div className="border border-border rounded-card overflow-hidden">
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-border bg-surface-overlay">
@@ -274,7 +274,7 @@ function FieldsView({ formId }) {
                   <td className="px-3 py-2 text-text-muted">{f.gridCols || 12}/12</td>
                   <td className="px-3 py-2">
                     {f.isRequired
-                      ? <span className="text-red-400">Required</span>
+                      ? <span className="text-status-fail-fg">Required</span>
                       : <span className="text-text-muted">Optional</span>
                     }
                   </td>
@@ -358,7 +358,7 @@ function JsonView({ form }) {
           Copy
         </button>
       </div>
-      <pre className="text-[11px] font-mono text-text-secondary bg-surface-overlay border border-border rounded-lg p-4 overflow-x-auto leading-relaxed whitespace-pre-wrap">
+      <pre className="text-[11px] font-mono text-text-secondary bg-surface-overlay border border-border rounded-card p-4 overflow-x-auto leading-relaxed whitespace-pre-wrap">
         {JSON.stringify(output, null, 2)}
       </pre>
     </div>

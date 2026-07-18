@@ -49,8 +49,8 @@ function TemplateGallery({ onSelect, onBlank }) {
                   return (
                     <button key={key}
                       onClick={() => onSelect(tmpl)}
-                      className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-brand-500/50 bg-background hover:bg-brand-500/5 text-left transition-all group shadow-sm">
-                      <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border', st?.color)}>
+                      className="flex items-start gap-3 p-3 rounded-card border border-border hover:border-brand-500/50 bg-background hover:bg-brand-500/5 text-left transition-all group shadow-sm">
+                      <div className={cn('w-9 h-9 rounded-card flex items-center justify-center shrink-0 border', st?.color)}>
                         <Icon size={15} />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -64,17 +64,17 @@ function TemplateGallery({ onSelect, onBlank }) {
                         {/* Key pills */}
                         <div className="flex flex-wrap gap-1">
                           {tmpl.itemKey && (
-                            <code className="text-[9px] bg-teal-500/10 border border-teal-500/20 text-teal-400 px-1.5 py-0.5 rounded">
+                            <code className="text-[9px] bg-brand-500/10 border border-brand-500/20 text-brand-400 px-1.5 py-0.5 rounded">
                               item: {tmpl.itemKey}
                             </code>
                           )}
                           {tmpl.sectionKey && (
-                            <code className="text-[9px] bg-purple-500/10 border border-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded">
+                            <code className="text-[9px] bg-status-tag-bg border border-status-tag-bd text-status-tag-fg px-1.5 py-0.5 rounded">
                               section: {tmpl.sectionKey}
                             </code>
                           )}
                           {tmpl.formKey && (
-                            <code className="text-[9px] bg-amber-500/10 border border-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">
+                            <code className="text-[9px] bg-status-warn-bg border border-status-warn-bd text-status-warn-fg px-1.5 py-0.5 rounded">
                               form: {tmpl.formKey}
                             </code>
                           )}
@@ -91,7 +91,7 @@ function TemplateGallery({ onSelect, onBlank }) {
         {/* Blank screen option */}
         <div className="mt-2 pt-4 border-t border-border/50">
           <button onClick={onBlank}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 text-text-muted text-[11px] transition-colors">
+            className="flex items-center gap-2 px-4 py-2.5 rounded-card border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 text-text-muted text-[11px] transition-colors">
             <Plus size={13} /> Start with a blank screen
           </button>
         </div>

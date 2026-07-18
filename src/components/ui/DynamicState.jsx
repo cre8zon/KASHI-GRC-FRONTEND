@@ -4,12 +4,12 @@ import { useScreenStates } from '../../hooks/useUiStates'
 import { cn } from '../../lib/cn'
 
 const COLOR_CONFIG = {
-  green:  { bg: 'bg-green-500/10',  icon: 'text-green-400',  border: 'border-green-500/20' },
-  red:    { bg: 'bg-red-500/10',    icon: 'text-red-400',    border: 'border-red-500/20'   },
-  amber:  { bg: 'bg-amber-500/10',  icon: 'text-amber-400',  border: 'border-amber-500/20' },
-  blue:   { bg: 'bg-blue-500/10',   icon: 'text-blue-400',   border: 'border-blue-500/20'  },
-  purple: { bg: 'bg-purple-500/10', icon: 'text-purple-400', border: 'border-purple-500/20'},
-  gray:   { bg: 'bg-slate-500/10',  icon: 'text-slate-400',  border: 'border-slate-500/20' },
+  green:  { bg: 'bg-status-pass-bg',  icon: 'text-status-pass-fg',  border: 'border-status-pass-bd' },
+  red:    { bg: 'bg-status-fail-bg',    icon: 'text-status-fail-fg',    border: 'border-status-fail-bd'   },
+  amber:  { bg: 'bg-status-warn-bg',  icon: 'text-status-warn-fg',  border: 'border-status-warn-bd' },
+  blue:   { bg: 'bg-status-info-bg',   icon: 'text-status-info-fg',   border: 'border-status-info-bd'  },
+  purple: { bg: 'bg-status-tag-bg', icon: 'text-status-tag-fg', border: 'border-status-tag-bd'},
+  gray:   { bg: 'bg-surface-inset',  icon: 'text-text-muted',  border: 'border-border' },
 }
 
 /**
@@ -68,7 +68,7 @@ export function DynamicState({
     <div className={cn('flex flex-col items-center justify-center py-16 px-6 text-center', className)}>
       {/* Icon circle */}
       <div className={cn(
-        'w-16 h-16 rounded-2xl flex items-center justify-center mb-5 border',
+        'w-16 h-16 rounded-modal flex items-center justify-center mb-5 border',
         colors.bg, colors.border
       )}>
         <Icon size={28} className={colors.icon} strokeWidth={1.5} />
@@ -87,7 +87,7 @@ export function DynamicState({
           {ctaLabel && (
             <button
               onClick={handleCta}
-              className="h-8 px-4 rounded-md bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors"
+              className="h-8 px-4 rounded-ctl bg-brand-500 text-brand-900 text-sm font-medium hover:bg-brand-600 transition-colors"
             >
               {ctaLabel}
             </button>
@@ -95,7 +95,7 @@ export function DynamicState({
           {secLabel && (
             <button
               onClick={handleSecondaryCta}
-              className="h-8 px-4 rounded-md border border-border text-text-secondary text-sm hover:text-text-primary hover:bg-surface-overlay transition-colors"
+              className="h-8 px-4 rounded-ctl border border-border text-text-secondary text-sm hover:text-text-primary hover:bg-surface-overlay transition-colors"
             >
               {secLabel}
             </button>

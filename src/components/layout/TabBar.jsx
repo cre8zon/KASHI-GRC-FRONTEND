@@ -47,7 +47,7 @@ function ContextMenu({ x, y, tab, onClose }) {
 
   return (
     <div ref={ref}
-      className="fixed z-[200] min-w-[180px] rounded-lg border border-border bg-surface-raised shadow-elevated py-1 text-sm"
+      className="fixed z-[200] min-w-[180px] rounded-card border border-border bg-surface-raised shadow-elevated py-1 text-sm"
       style={{ left: x, top: y }}>
       {items.map((item, i) => (
         <button key={i}

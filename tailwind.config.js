@@ -1,19 +1,15 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
-  // Use data-theme="dark" attribute instead of class="dark"
-  // This lets useTheme.js control dark/light by setting the attribute,
-  // without needing to add/remove a class from <html>.
   darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Geist', 'system-ui', 'sans-serif'],
-        mono: ['"DM Mono"', '"Fira Code"', 'monospace'],
-        display: ['Geist', 'system-ui', 'sans-serif'],
+        sans: ['"Albert Sans"', 'system-ui', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', '"Fira Code"', 'monospace'],
+        display: ['"Albert Sans"', 'system-ui', 'sans-serif'],
       },
       colors: {
-        // CSS variable-based palette — overridden at runtime from tenant_branding
         brand: {
           50:  'rgb(var(--color-brand-50) / <alpha-value>)',
           100: 'rgb(var(--color-brand-100) / <alpha-value>)',
@@ -28,21 +24,59 @@ export default {
         },
         surface: {
           DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',
-          raised: 'rgb(var(--color-surface-raised) / <alpha-value>)',
+          raised:  'rgb(var(--color-surface-raised) / <alpha-value>)',
           overlay: 'rgb(var(--color-surface-overlay) / <alpha-value>)',
+          inset:   'rgb(var(--color-surface-inset) / <alpha-value>)',
         },
         border: {
           DEFAULT: 'rgb(var(--color-border) / <alpha-value>)',
-          subtle: 'rgb(var(--color-border-subtle) / <alpha-value>)',
+          subtle:  'rgb(var(--color-border-subtle) / <alpha-value>)',
+          strong:  'rgb(var(--color-border-strong) / <alpha-value>)',
         },
         text: {
-          primary: 'rgb(var(--color-text-primary) / <alpha-value>)',
+          primary:   'rgb(var(--color-text-primary) / <alpha-value>)',
           secondary: 'rgb(var(--color-text-secondary) / <alpha-value>)',
-          muted: 'rgb(var(--color-text-muted) / <alpha-value>)',
-          inverse: 'rgb(var(--color-text-inverse) / <alpha-value>)',
+          muted:     'rgb(var(--color-text-muted) / <alpha-value>)',
+          faint:     'rgb(var(--color-text-faint) / <alpha-value>)',
+          inverse:   'rgb(var(--color-text-inverse) / <alpha-value>)',
+        },
+        status: {
+          'pass-bg': 'rgb(var(--color-status-pass-bg) / <alpha-value>)',
+          'pass-fg': 'rgb(var(--color-status-pass-fg) / <alpha-value>)',
+          'pass-bd': 'rgb(var(--color-status-pass-bg) / <alpha-value>)',
+          'fail-bg': 'rgb(var(--color-status-fail-bg) / <alpha-value>)',
+          'fail-fg': 'rgb(var(--color-status-fail-fg) / <alpha-value>)',
+          'fail-bd': 'rgb(var(--color-status-fail-bg) / <alpha-value>)',
+          'warn-bg': 'rgb(var(--color-status-warn-bg) / <alpha-value>)',
+          'warn-fg': 'rgb(var(--color-status-warn-fg) / <alpha-value>)',
+          'warn-bd': 'rgb(var(--color-status-warn-bg) / <alpha-value>)',
+          'info-bg': 'rgb(var(--color-status-info-bg) / <alpha-value>)',
+          'info-fg': 'rgb(var(--color-status-info-fg) / <alpha-value>)',
+          'info-bd': 'rgb(var(--color-status-info-bg) / <alpha-value>)',
+          'pending-bg': 'rgb(var(--color-status-pending-bg) / <alpha-value>)',
+          'pending-fg': 'rgb(var(--color-status-pending-fg) / <alpha-value>)',
+          'pending-bd': 'rgb(var(--color-status-pending-bg) / <alpha-value>)',
+          'tag-bg':  'rgb(var(--color-status-tag-bg) / <alpha-value>)',
+          'tag-fg':  'rgb(var(--color-status-tag-fg) / <alpha-value>)',
+          'tag-bd':  'rgb(var(--color-status-tag-bg) / <alpha-value>)',
         },
         sidebar: 'rgb(var(--color-sidebar) / <alpha-value>)',
+        'on-dark':     'rgb(var(--color-on-dark) / <alpha-value>)',
+        'on-dark-inv': 'rgb(var(--color-on-dark-inv) / <alpha-value>)',
         accent:  'rgb(var(--color-accent)  / <alpha-value>)',
+      },
+      borderRadius: {
+        badge: 'var(--radius-badge)',
+        ctl:   'var(--radius-ctl)',
+        card:  'var(--radius-card)',
+        modal: 'var(--radius-modal)',
+      },
+      boxShadow: {
+        brand:    '0 0 0 1px rgb(var(--color-brand-500) / 0.5)',
+        card:     'var(--shadow-elevated)',
+        elevated: 'var(--shadow-elevated)',
+        hover:    'var(--shadow-hover)',
+        overlay:  'var(--shadow-overlay)',
       },
       animation: {
         'fade-in': 'fadeIn 0.2s ease-out',
@@ -51,27 +85,10 @@ export default {
         'pulse-dot': 'pulseDot 2s ease-in-out infinite',
       },
       keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
-        },
-        slideUp: {
-          '0%': { opacity: '0', transform: 'translateY(8px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        slideInLeft: {
-          '0%': { opacity: '0', transform: 'translateX(-16px)' },
-          '100%': { opacity: '1', transform: 'translateX(0)' },
-        },
-        pulseDot: {
-          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
-          '50%': { opacity: '0.5', transform: 'scale(0.85)' },
-        },
-      },
-      boxShadow: {
-        'brand': '0 0 0 1px rgb(var(--color-brand-500) / 0.5)',
-        'card': '0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3)',
-        'elevated': '0 4px 16px -2px rgb(0 0 0 / 0.4)',
+        fadeIn:  { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+        slideUp: { '0%': { opacity: '0', transform: 'translateY(8px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+        slideInLeft: { '0%': { opacity: '0', transform: 'translateX(-16px)' }, '100%': { opacity: '1', transform: 'translateX(0)' } },
+        pulseDot: { '0%, 100%': { opacity: '1', transform: 'scale(1)' }, '50%': { opacity: '0.5', transform: 'scale(0.85)' } },
       },
     },
   },

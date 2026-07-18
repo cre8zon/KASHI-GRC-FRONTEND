@@ -56,7 +56,7 @@ function ProjectForm({ onSubmit, loading }) {
           value={form.name}
           onChange={e => set('name', e.target.value)}
           placeholder="e.g. Cloud Security Programme 2026"
-          className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
       </div>
       <div>
@@ -65,19 +65,19 @@ function ProjectForm({ onSubmit, loading }) {
           value={form.description}
           onChange={e => set('description', e.target.value)}
           rows={3}
-          className="w-full px-3 py-2 rounded-md border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500"
+          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm text-text-secondary mb-1">Planned start</label>
           <input type="date" value={form.plannedStart} onChange={e => set('plannedStart', e.target.value)}
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="block text-sm text-text-secondary mb-1">Planned end</label>
           <input type="date" value={form.plannedEnd} onChange={e => set('plannedEnd', e.target.value)}
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <Button variant="primary" onClick={() => onSubmit(form)} loading={loading}
@@ -117,7 +117,7 @@ export default function AuditProjectListPage() {
     >
       {isLoading ? (
         <div className="px-6 py-4 grid gap-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-20 rounded-lg bg-surface-overlay animate-pulse" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-20 rounded-card bg-surface-overlay animate-pulse" />)}
         </div>
       ) : !projects?.length ? (
         <EmptyState
@@ -132,7 +132,7 @@ export default function AuditProjectListPage() {
             <button
               key={project.id}
               onClick={() => navigate(`/audit/projects/${project.id}`)}
-              className="w-full text-left rounded-lg border border-border bg-surface-raised hover:bg-surface-overlay transition-colors p-4"
+              className="w-full text-left rounded-card border border-border bg-surface-raised hover:bg-surface-overlay transition-colors p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 min-w-0">

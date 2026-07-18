@@ -87,7 +87,7 @@ function FieldRow({ field, formId, onDelete }) {
           <span className="text-xs font-mono text-text-muted">{field.fieldKey}</span>
           <Badge value={field.fieldType} label={field.fieldType.replace('_',' ')}
             colorTag={typeColor[field.fieldType] || 'gray'} />
-          {field.isRequired && <span className="text-[10px] text-red-400 font-medium">required</span>}
+          {field.isRequired && <span className="text-[10px] text-status-fail-fg font-medium">required</span>}
         </div>
         <p className="text-xs text-text-primary mt-0.5">{field.label}</p>
       </div>
@@ -100,7 +100,7 @@ function FieldRow({ field, formId, onDelete }) {
           <Pencil size={10} />
         </button>
         <button onClick={() => onDelete(field.id)}
-          className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-red-400 transition-colors">
+          className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg transition-colors">
           <Trash2 size={10} />
         </button>
       </div>
@@ -108,7 +108,7 @@ function FieldRow({ field, formId, onDelete }) {
   )
 
   return (
-    <div className="px-3 py-3 bg-surface-overlay rounded-lg border border-border/60 flex flex-col gap-2">
+    <div className="px-3 py-3 bg-surface-overlay rounded-card border border-border/60 flex flex-col gap-2">
       <div className="grid grid-cols-2 gap-2">
         <Input label="Label" value={form.label}
           onChange={e => setForm(f => ({ ...f, label: e.target.value }))} />
@@ -145,7 +145,7 @@ function FieldRow({ field, formId, onDelete }) {
       <div className="flex items-center justify-between">
         <button onClick={() => setForm(f => ({ ...f, isRequired: !f.isRequired }))} type="button"
           className={cn('flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded border transition-colors',
-            form.isRequired ? 'bg-red-500/10 border-red-500/30 text-red-400'
+            form.isRequired ? 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg'
                             : 'border-border text-text-muted hover:bg-surface-overlay')}>
           {form.isRequired ? <ToggleRight size={13}/> : <ToggleLeft size={13}/>}
           {form.isRequired ? 'Required' : 'Optional'}
@@ -192,7 +192,7 @@ function FieldsPanel({ form }) {
   return (
     <div className="flex flex-col gap-4">
       {/* Form summary */}
-      <div className="p-3 bg-surface-overlay rounded-lg border border-border">
+      <div className="p-3 bg-surface-overlay rounded-card border border-border">
         <div className="flex items-center justify-between">
           <p className="text-xs font-mono text-brand-400">{form.formKey}</p>
           <Badge value={form.httpMethod} label={form.httpMethod} colorTag="blue" />
@@ -232,7 +232,7 @@ function FieldsPanel({ form }) {
             <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Type *</label>
             <select value={newField.fieldType}
               onChange={e => setNewField(f => ({ ...f, fieldType: e.target.value }))}
-              className="w-full h-8 rounded-md border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+              className="w-full h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               {FIELD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
@@ -292,7 +292,7 @@ export default function FormsAdminPage() {
             <Pencil size={12} />
           </button>
           <button onClick={() => setDeleteTarget(r)}
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
             <Trash2 size={12} />
           </button>
         </div>
@@ -395,7 +395,7 @@ function FormFormModal({ item, onSubmit, isPending, onClose }) {
             HTTP Method
           </label>
           <select value={form.httpMethod} onChange={e => set('httpMethod', e.target.value)}
-            className="w-full h-8 rounded-md border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            className="w-full h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {HTTP_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>

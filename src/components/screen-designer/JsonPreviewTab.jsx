@@ -36,7 +36,7 @@ function JsonPreviewTab({ screen }) {
 
         {/* Context-aware instructions */}
         {isForm ? (
-          <div className="p-3 rounded-lg bg-teal-500/5 border border-teal-500/20 text-[11px] text-text-secondary space-y-1">
+          <div className="p-3 rounded-card bg-brand-500/5 border border-brand-500/20 text-[11px] text-text-secondary space-y-1">
             <p className="font-medium text-text-primary">How to link this form to a module blueprint</p>
             <p>1. Open <span className="font-mono text-brand-400">/admin/modules</span> → select your module blueprint → click Edit</p>
             <p>2. Set <span className="font-mono text-brand-400">createFormKey = {screen.key}</span></p>
@@ -44,7 +44,7 @@ function JsonPreviewTab({ screen }) {
             <p className="text-text-muted">DynamicForm fetches this endpoint at render time. Add fields in Preview or Elements tab.</p>
           </div>
         ) : (
-          <div className="p-3 rounded-lg bg-brand-500/5 border border-brand-500/20 text-[11px] text-text-secondary space-y-1">
+          <div className="p-3 rounded-card bg-brand-500/5 border border-brand-500/20 text-[11px] text-text-secondary space-y-1">
             <p className="font-medium text-text-primary">How to link this key to a blueprint section</p>
             <p>1. Open <span className="font-mono text-brand-400">/admin/workflows</span> → select your workflow → click a step</p>
             <p>2. In the section editor, set <span className="font-mono text-brand-400">itemScreenKey = {template?.itemKey || screen.key}</span></p>
@@ -82,13 +82,13 @@ function JsonPreviewTab({ screen }) {
         {isLoading ? (
           <div className="flex items-center justify-center py-12 text-text-muted text-sm">Loading…</div>
         ) : (
-          <pre className="text-xs font-mono text-text-primary bg-surface border border-border rounded-lg p-4 overflow-auto leading-relaxed">
+          <pre className="text-xs font-mono text-text-primary bg-surface border border-border rounded-card p-4 overflow-auto leading-relaxed">
             {JSON.stringify(json, null, 2)}
           </pre>
         )}
 
         {/* Seed SQL hint */}
-        <div className="p-3 rounded-lg bg-surface border border-border text-xs text-text-secondary">
+        <div className="p-3 rounded-card bg-surface border border-border text-xs text-text-secondary">
           <p className="font-medium text-text-secondary mb-1">
             {isForm ? 'Generate seed SQL for this form' : 'Generate seed SQL for this screen config'}
           </p>

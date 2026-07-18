@@ -1,18 +1,27 @@
-import { cn } from '../../lib/cn'
-import { ChevronDown, Loader2 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
+import { cn } from '../../lib/cn'
+import { Loader2, ChevronDown } from 'lucide-react'
 
-// ─── Variants & sizes (backward compatible — existing variants unchanged) ─────
+/**
+ * Button — "Calm" v3 restyle. API identical to the original Button
+ * (variant, size, icon, loading, loadingText) so it's a drop-in file swap.
+ *
+ * What changed:
+ *  - danger/warning/success are now SOLID or outlined-on-paper,
+ *    not the bg-X-500/10 text-X-400 tinted-glow pattern
+ *  - radius tightened to 4px (rounded-ctl)
+ *  - secondary is a true paper button with a hairline border
+ *  - focus ring uses brand at full contrast
+ */
 
 const variants = {
-  primary:   'bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700 focus-visible:ring-brand-500/50',
-  secondary: 'bg-surface-overlay text-text-primary hover:bg-surface-raised border border-border',
-  danger:    'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20',
+  primary:   'bg-brand-500 text-brand-900 hover:bg-brand-600 active:bg-brand-700 shadow-elevated hover:shadow-hover focus-visible:ring-brand-800/40',
+  secondary: 'bg-surface-raised text-text-primary border border-border hover:bg-surface-overlay shadow-elevated',
+  danger:    'bg-status-fail-bg text-status-fail-fg hover:brightness-[0.97]',
+  warning:   'bg-status-warn-bg text-status-warn-fg hover:brightness-[0.97]',
+  success:   'bg-status-pass-bg text-status-pass-fg hover:brightness-[0.97]',
   ghost:     'text-text-secondary hover:text-text-primary hover:bg-surface-overlay',
-  warning:   'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20',
-  // NEW
-  link:      'text-brand-400 hover:text-brand-300 hover:underline underline-offset-2 p-0 h-auto',
-  success:   'bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20',
+  link:      'text-brand-900 hover:text-brand-800 hover:underline underline-offset-2 p-0 h-auto',
 }
 
 const sizes = {
@@ -20,7 +29,6 @@ const sizes = {
   sm: 'h-7 px-3 text-xs gap-1.5',
   md: 'h-8 px-3 text-sm gap-2',
   lg: 'h-9 px-4 text-sm gap-2',
-  // NEW: icon-only sizes (square, no horizontal padding)
   'icon-xs': 'h-6 w-6 p-0',
   'icon-sm': 'h-7 w-7 p-0',
   'icon-md': 'h-8 w-8 p-0',
@@ -29,15 +37,6 @@ const sizes = {
 
 const iconSize = { xs: 12, sm: 13, md: 14, lg: 15, 'icon-xs': 12, 'icon-sm': 13, 'icon-md': 14, 'icon-lg': 15 }
 
-/**
- * Button — extended, backward compatible.
- *
- * New props:
- *   loadingText  — shown next to spinner instead of hiding children: <Button loading loadingText="Saving…">Save</Button>
- *   size="icon-sm" — square icon-only button (no children text)
- *   variant="link" — inline text link style
- *   variant="success" — green tinted
- */
 export function Button({
   variant = 'primary',
   size = 'md',
@@ -54,8 +53,8 @@ export function Button({
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center rounded-md font-medium',
-        'transition-all duration-150 focus-visible:outline-none focus-visible:ring-2',
+        'inline-flex items-center justify-center rounded-ctl font-medium select-none',
+        'transition-all duration-150 ease-out focus-visible:outline-none focus-visible:ring-2',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         variants[variant] || variants.primary,
         sizes[size] || sizes.md,
@@ -66,7 +65,7 @@ export function Button({
     >
       {loading ? (
         <>
-          <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
+          <Loader2 size={iSize} className="animate-spin shrink-0" />
           {loadingText && <span>{loadingText}</span>}
           {!loadingText && !isIconOnly && children}
         </>
@@ -80,8 +79,10 @@ export function Button({
   )
 }
 
+
 /**
  * SplitButton — primary action + dropdown of secondary actions.
+ * v3: soft radii, glass-overlay menu, tonal divider (no hardcoded white).
  *
  * <SplitButton
  *   label="Publish"
@@ -105,21 +106,21 @@ export function SplitButton({ label, onClick, actions = [], variant = 'primary',
   const iSize = iconSize[size] || 13
 
   return (
-    <div ref={ref} className="relative inline-flex rounded-md overflow-visible">
+    <div ref={ref} className="relative inline-flex rounded-ctl overflow-visible">
       {/* Primary action */}
       <button
         onClick={onClick}
         disabled={loading || disabled}
         className={cn(
-          'inline-flex items-center rounded-l-md rounded-r-none border-r border-white/20 font-medium',
-          'transition-all duration-150 focus-visible:outline-none',
+          'inline-flex items-center rounded-l-ctl rounded-r-none border-r border-border-subtle font-medium',
+          'transition-all duration-150 ease-out focus-visible:outline-none',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           variants[variant],
           sizes[size]
         )}
       >
         {loading
-          ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          ? <Loader2 size={iSize} className="animate-spin shrink-0" />
           : label
         }
       </button>
@@ -129,8 +130,8 @@ export function SplitButton({ label, onClick, actions = [], variant = 'primary',
         onClick={() => setOpen(!open)}
         disabled={loading || disabled}
         className={cn(
-          'inline-flex items-center justify-center rounded-r-md rounded-l-none px-1.5 font-medium',
-          'transition-all duration-150 focus-visible:outline-none border-l border-white/20',
+          'inline-flex items-center justify-center rounded-r-ctl rounded-l-none px-1.5 font-medium',
+          'transition-all duration-150 ease-out focus-visible:outline-none border-l border-border-subtle',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           variants[variant]
         )}
@@ -138,9 +139,9 @@ export function SplitButton({ label, onClick, actions = [], variant = 'primary',
         <ChevronDown size={iSize} className={cn('transition-transform', open && 'rotate-180')} />
       </button>
 
-      {/* Dropdown menu */}
+      {/* Dropdown menu — overlay surface, so glass applies */}
       {open && actions.length > 0 && (
-        <div className="absolute top-full right-0 mt-1 z-50 min-w-[160px] rounded-lg border border-border bg-surface-raised shadow-elevated overflow-hidden">
+        <div className="absolute top-full right-0 mt-1 z-50 min-w-[160px] glass-overlay rounded-ctl shadow-overlay overflow-hidden">
           {actions.map((action, i) => (
             <button
               key={i}

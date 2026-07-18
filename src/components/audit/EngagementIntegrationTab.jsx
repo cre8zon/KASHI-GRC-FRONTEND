@@ -29,9 +29,9 @@ import toast from 'react-hot-toast'
 // ── Result config ─────────────────────────────────────────────────────────────
 
 const RESULT = {
-  PASS:    { label: 'Pass',    icon: CheckCircle2, color: 'text-green-400', bg: 'bg-green-500/10',   border: 'border-green-500/30' },
-  FAIL:    { label: 'Fail',    icon: XCircle,      color: 'text-red-400',   bg: 'bg-red-500/10',     border: 'border-red-500/30'   },
-  ERROR:   { label: 'Error',   icon: AlertTriangle, color: 'text-amber-400',bg: 'bg-amber-500/10',   border: 'border-amber-500/30' },
+  PASS:    { label: 'Pass',    icon: CheckCircle2, color: 'text-status-pass-fg', bg: 'bg-status-pass-bg',   border: 'border-status-pass-bd' },
+  FAIL:    { label: 'Fail',    icon: XCircle,      color: 'text-status-fail-fg',   bg: 'bg-status-fail-bg',     border: 'border-status-fail-bd'   },
+  ERROR:   { label: 'Error',   icon: AlertTriangle, color: 'text-status-warn-fg',bg: 'bg-status-warn-bg',   border: 'border-status-warn-bd' },
   NOT_RUN: { label: 'Not run', icon: MinusCircle,  color: 'text-text-muted',bg: 'bg-surface-overlay',border: 'border-border'       },
 }
 
@@ -194,9 +194,9 @@ export function EngagementIntegrationTab({ engagementId }) {
       {/* Stats bar */}
       <div className="px-3 py-2 border-b border-border/40 flex items-center gap-4 text-[10px] text-text-muted flex-wrap">
         <span className="font-medium text-text-primary">{snapshots.length} automated checks</span>
-        {passing > 0  && <span className="text-green-400">{passing} passing</span>}
-        {failing > 0  && <span className="text-red-400">{failing} failing</span>}
-        {notRun > 0   && <span className="text-amber-400">{notRun} not yet run</span>}
+        {passing > 0  && <span className="text-status-pass-fg">{passing} passing</span>}
+        {failing > 0  && <span className="text-status-fail-fg">{failing} failing</span>}
+        {notRun > 0   && <span className="text-status-warn-fg">{notRun} not yet run</span>}
         <button onClick={() => refetch()} className="ml-auto text-text-muted hover:text-text-primary" title="Refresh">
           <RefreshCw size={11} />
         </button>
@@ -204,9 +204,9 @@ export function EngagementIntegrationTab({ engagementId }) {
 
       {/* Warning if checks haven't run yet */}
       {notRun > 0 && (
-        <div className="px-4 py-2.5 bg-amber-500/5 border-b border-amber-500/20 flex items-start gap-2">
-          <AlertTriangle size={12} className="text-amber-400 mt-0.5 shrink-0" />
-          <p className="text-[10px] text-amber-300">
+        <div className="px-4 py-2.5 bg-status-warn-bg border-b border-status-warn-bd flex items-start gap-2">
+          <AlertTriangle size={12} className="text-status-warn-fg mt-0.5 shrink-0" />
+          <p className="text-[10px] text-status-warn-fg">
             {notRun} check{notRun > 1 ? 's have' : ' has'} not run yet for this engagement.
             Hover a row and click Run to trigger manually, or wait for the hourly scheduler.
             Ensure the integration is connected in Settings → Integrations.

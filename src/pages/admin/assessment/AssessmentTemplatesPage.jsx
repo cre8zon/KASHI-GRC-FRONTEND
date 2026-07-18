@@ -245,12 +245,12 @@ export default function AssessmentTemplatesPage() {
         {row.status === 'PUBLISHED' && (
           <button onClick={() => unpublish(row.templateId)} title="Unpublish (revert to DRAFT)"
             disabled={unpublishing}
-            className="h-6 w-6 flex items-center justify-center rounded text-amber-400 hover:bg-amber-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-status-warn-fg hover:bg-status-warn-bg transition-colors">
             <ArrowLeft size={12} />
           </button>
         )}
         <button onClick={() => setDeleteTarget(row)} title="Delete"
-          className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+          className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
           <Trash2 size={12} />
         </button>
       </div>
@@ -272,7 +272,7 @@ export default function AssessmentTemplatesPage() {
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search templates…"
-              className="h-8 pl-8 pr-3 w-52 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
           <Button variant="secondary" size="sm" icon={Upload} onClick={() => setShowImport(true)}>Import CSV</Button>
@@ -370,7 +370,7 @@ function CsvImportModal({ open, onClose, onImported }) {
       {stage === 'upload' && (
         <div className="flex flex-col gap-4">
           {/* Format reference */}
-          <div className="rounded-lg border border-border overflow-hidden">
+          <div className="rounded-card border border-border overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2.5 bg-surface-overlay border-b border-border">
               <span className="text-xs font-semibold text-text-secondary">CSV column format</span>
               <Button variant="secondary" size="xs" icon={Download} onClick={downloadCsvTemplate}>Download Example</Button>
@@ -384,10 +384,10 @@ OPTION,   (empty),            (empty),       (empty), (empty), Option text, 10,`
             </pre>
             <div className="px-4 py-2 bg-surface-overlay border-t border-border flex gap-6 flex-wrap">
               {[
-                { label: 'TEMPLATE', color: 'text-purple-400', note: 'first row, sets name' },
-                { label: 'SECTION',  color: 'text-blue-400',   note: 'groups questions' },
-                { label: 'QUESTION', color: 'text-cyan-400',   note: 'col 7 = question_tag (optional)' },
-                { label: 'OPTION',   color: 'text-green-400',  note: 'option_value col 5 + score col 6' },
+                { label: 'TEMPLATE', color: 'text-status-tag-fg', note: 'first row, sets name' },
+                { label: 'SECTION',  color: 'text-status-info-fg',   note: 'groups questions' },
+                { label: 'QUESTION', color: 'text-status-info-fg',   note: 'col 7 = question_tag (optional)' },
+                { label: 'OPTION',   color: 'text-status-pass-fg',  note: 'option_value col 5 + score col 6' },
               ].map(({ label, color, note }) => (
                 <span key={label} className="text-[10px] text-text-muted">
                   <span className={cn('font-mono font-bold', color)}>{label}</span> — {note}
@@ -402,19 +402,19 @@ OPTION,   (empty),            (empty),       (empty), (empty), Option text, 10,`
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             onClick={() => fileRef.current?.click()}
-            className={cn('border-2 border-dashed rounded-lg p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors',
-              selectedFile ? 'border-green-500/40 bg-green-500/5' :
+            className={cn('border-2 border-dashed rounded-card p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors',
+              selectedFile ? 'border-status-pass-bd bg-status-pass-bg' :
               dragOver ? 'border-brand-500 bg-brand-500/5' :
               'border-border hover:border-border-subtle hover:bg-surface-overlay')}>
-            <div className="w-12 h-12 rounded-xl bg-surface-overlay flex items-center justify-center">
+            <div className="w-12 h-12 rounded-card bg-surface-overlay flex items-center justify-center">
               {selectedFile
-                ? <CheckCircle2 size={22} className="text-green-400" />
+                ? <CheckCircle2 size={22} className="text-status-pass-fg" />
                 : <Upload size={22} className="text-text-muted" />}
             </div>
             <div className="text-center">
               {selectedFile ? (
                 <>
-                  <p className="text-sm font-medium text-green-400">{selectedFile.name}</p>
+                  <p className="text-sm font-medium text-status-pass-fg">{selectedFile.name}</p>
                   <p className="text-xs text-text-muted mt-1">Click to choose a different file</p>
                 </>
               ) : (
@@ -440,7 +440,7 @@ OPTION,   (empty),            (empty),       (empty), (empty), Option text, 10,`
       {/* ── Importing ── */}
       {stage === 'importing' && (
         <div className="flex flex-col items-center gap-6 py-8">
-          <div className="w-16 h-16 rounded-2xl bg-brand-500/10 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-modal bg-brand-500/10 flex items-center justify-center">
             <Loader2 size={28} className="text-brand-400 animate-spin" />
           </div>
           <div className="text-center">
@@ -458,12 +458,12 @@ OPTION,   (empty),            (empty),       (empty), (empty), Option text, 10,`
         <div className="flex flex-col gap-4">
           {/* Summary header */}
           <div className="flex items-center gap-3">
-            <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
-              result.fatalError ? 'bg-red-500/10' :
-              errCount > 0 ? 'bg-amber-500/10' : 'bg-green-500/10')}>
+            <div className={cn('w-12 h-12 rounded-card flex items-center justify-center shrink-0',
+              result.fatalError ? 'bg-status-fail-bg' :
+              errCount > 0 ? 'bg-status-warn-bg' : 'bg-status-pass-bg')}>
               {result.fatalError || errCount > 0
-                ? <AlertCircle size={22} className={result.fatalError ? 'text-red-400' : 'text-amber-400'} />
-                : <CheckCircle2 size={22} className="text-green-400" />}
+                ? <AlertCircle size={22} className={result.fatalError ? 'text-status-fail-fg' : 'text-status-warn-fg'} />
+                : <CheckCircle2 size={22} className="text-status-pass-fg" />}
             </div>
             <div>
               <p className="text-sm font-semibold text-text-primary">
@@ -480,10 +480,10 @@ OPTION,   (empty),            (empty),       (empty), (empty), Option text, 10,`
             <div className="grid grid-cols-3 gap-3">
               {[
                 { label: 'Total rows', value: result.totalRows,    color: 'text-text-secondary' },
-                { label: 'Succeeded', value: result.successCount,  color: 'text-green-400' },
-                { label: 'Failed',    value: result.failureCount,  color: result.failureCount ? 'text-red-400' : 'text-text-muted' },
+                { label: 'Succeeded', value: result.successCount,  color: 'text-status-pass-fg' },
+                { label: 'Failed',    value: result.failureCount,  color: result.failureCount ? 'text-status-fail-fg' : 'text-text-muted' },
               ].map(({ label, value, color }) => (
-                <div key={label} className="p-3 bg-surface-overlay rounded-lg border border-border text-center">
+                <div key={label} className="p-3 bg-surface-overlay rounded-card border border-border text-center">
                   <p className={cn('text-xl font-bold font-mono', color)}>{value}</p>
                   <p className="text-xs text-text-muted mt-0.5">{label}</p>
                 </div>
@@ -493,12 +493,12 @@ OPTION,   (empty),            (empty),       (empty), (empty), Option text, 10,`
 
           {/* Log */}
           {result.log?.length > 0 && (
-            <div className="max-h-56 overflow-y-auto rounded-lg border border-border bg-surface-overlay p-3 flex flex-col gap-0.5 font-mono text-xs">
+            <div className="max-h-56 overflow-y-auto rounded-card border border-border bg-surface-overlay p-3 flex flex-col gap-0.5 font-mono text-xs">
               {result.log.map((entry, i) => (
                 <div key={i} className={cn('flex items-start gap-2',
                   entry.status === 'SUCCESS' && 'text-text-secondary',
-                  entry.status === 'ERROR'   && 'text-red-400',
-                  entry.status === 'WARNING' && 'text-amber-400',
+                  entry.status === 'ERROR'   && 'text-status-fail-fg',
+                  entry.status === 'WARNING' && 'text-status-warn-fg',
                   entry.status === 'INFO'    && 'text-brand-400')}>
                   {entry.status === 'SUCCESS' && <CheckCircle2 size={11} className="mt-0.5 shrink-0" />}
                   {entry.status === 'ERROR'   && <XCircle size={11} className="mt-0.5 shrink-0" />}
@@ -554,7 +554,7 @@ function CreateTemplateModal({ open, onClose, onCreated }) {
           placeholder="e.g. High Risk Vendor Security Assessment" error={errors.name} />
         <Input label="Version" type="number" value={form.version}
           onChange={e => setForm(f => ({ ...f, version: e.target.value }))} placeholder="1" />
-        <p className="text-xs text-text-muted">Created as <span className="text-amber-400 font-medium">DRAFT</span>.</p>
+        <p className="text-xs text-text-muted">Created as <span className="text-status-warn-fg font-medium">DRAFT</span>.</p>
       </div>
     </Modal>
   )
@@ -621,7 +621,7 @@ function TemplateBuilder({ templateId, onBack }) {
       <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
           <button onClick={onBack}
-            className="h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
+            className="h-7 w-7 flex items-center justify-center rounded-ctl text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
             <ArrowLeft size={15} />
           </button>
           <div>
@@ -652,7 +652,7 @@ function TemplateBuilder({ templateId, onBack }) {
           )}
           {isPublished && (
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 text-xs text-green-400">
+              <div className="flex items-center gap-1.5 text-xs text-status-pass-fg">
                 <CheckCircle2 size={14} /> Published
               </div>
               <Button variant="secondary" size="sm" icon={ArrowLeft}
@@ -688,7 +688,7 @@ function TemplateBuilder({ templateId, onBack }) {
             ))}
             {!isPublished && (
               <button onClick={() => setShowAddSection(true)}
-                className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-border rounded-lg text-sm text-text-muted hover:text-text-secondary hover:border-border-subtle transition-colors">
+                className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-border rounded-card text-sm text-text-muted hover:text-text-secondary hover:border-border-subtle transition-colors">
                 <Plus size={14} /> Add Section from Library
               </button>
             )}
@@ -735,11 +735,11 @@ function SectionBlock({ section, index, templateId, isPublished, expanded, onTog
   const totalWeight   = section.questions?.reduce((s, q) => s + (q.weight || 0), 0) || 0
 
   return (
-    <div className="rounded-lg border border-border bg-surface-raised overflow-hidden">
+    <div className="rounded-card border border-border bg-surface-raised overflow-hidden">
       <div className="flex items-center">
         <button onClick={onToggle}
           className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-surface-overlay transition-colors text-left">
-          <div className="w-6 h-6 rounded-md bg-brand-500/10 flex items-center justify-center shrink-0">
+          <div className="w-6 h-6 rounded-ctl bg-brand-500/10 flex items-center justify-center shrink-0">
             <span className="text-xs font-bold text-brand-400">{index + 1}</span>
           </div>
           <div className="flex-1 min-w-0">
@@ -760,7 +760,7 @@ function SectionBlock({ section, index, templateId, isPublished, expanded, onTog
               <Pencil size={13} />
             </button>
             <button onClick={onRemove} title="Remove from template"
-              className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+              className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
               <Trash2 size={13} />
             </button>
           </div>
@@ -928,7 +928,7 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
                 <Weight size={10} /> {question.weight}
               </span>
             )}
-            {question.isMandatory && <span className="text-xs text-red-400 font-medium">Required</span>}
+            {question.isMandatory && <span className="text-xs text-status-fail-fg font-medium">Required</span>}
             {question.questionTag && (
               <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] bg-brand-500/8 text-brand-400 border border-brand-500/20">
                 {question.questionTag}
@@ -958,7 +958,7 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
               <Pencil size={12} />
             </button>
             <button onClick={() => setShowRemove(true)}
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10">
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg">
               <Trash2 size={12} />
             </button>
           </div>
@@ -974,11 +974,11 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
         <div className="flex flex-col gap-5">
 
           {/* Shared-library warning */}
-          <div className="flex items-start gap-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-            <AlertCircle size={13} className="text-amber-400 mt-0.5 shrink-0" />
-            <p className="text-xs text-amber-400/80 leading-relaxed">
+          <div className="flex items-start gap-2 p-3 bg-status-warn-bg border border-status-warn-bd rounded-card">
+            <AlertCircle size={13} className="text-status-warn-fg mt-0.5 shrink-0" />
+            <p className="text-xs text-status-warn-fg leading-relaxed">
               Changes to the question text, type, tag, or options update the{' '}
-              <span className="font-semibold text-amber-400">shared library entry</span> — they will
+              <span className="font-semibold text-status-warn-fg">shared library entry</span> — they will
               be reflected in every template and section that uses this question.
               Weight and mandatory status are specific to this section.
             </p>
@@ -993,10 +993,10 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
               <textarea rows={2} value={libText}
                 onChange={e => setLibText(e.target.value)}
                 className={cn(
-                  'w-full rounded-md border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-brand-500',
-                  libErrors.libText ? 'border-red-500/50' : 'border-border'
+                  'w-full rounded-ctl border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-brand-500',
+                  libErrors.libText ? 'border-status-fail-bd' : 'border-border'
                 )} />
-              {libErrors.libText && <p className="text-xs text-red-400 mt-1">{libErrors.libText}</p>}
+              {libErrors.libText && <p className="text-xs text-status-fail-fg mt-1">{libErrors.libText}</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -1004,13 +1004,13 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
                 <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Response Type</label>
                 <select value={libType} onChange={e => setLibType(e.target.value)}
                   className={cn(
-                    'h-9 w-full appearance-none pl-3 pr-8 rounded-md border text-sm text-text-primary bg-surface-raised focus:outline-none focus:ring-1 focus:ring-brand-500',
-                    libErrors.libType ? 'border-red-500/50' : 'border-border'
+                    'h-9 w-full appearance-none pl-3 pr-8 rounded-ctl border text-sm text-text-primary bg-surface-raised focus:outline-none focus:ring-1 focus:ring-brand-500',
+                    libErrors.libType ? 'border-status-fail-bd' : 'border-border'
                   )}>
                   <option value="">Select type…</option>
                   {Object.entries(TYPE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
-                {libErrors.libType && <p className="text-xs text-red-400 mt-1">{libErrors.libType}</p>}
+                {libErrors.libType && <p className="text-xs text-status-fail-fg mt-1">{libErrors.libType}</p>}
               </div>
               <div>
                 <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Guard Tag</label>
@@ -1019,7 +1019,7 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
                   value={libTag}
                   onChange={e => setLibTag(e.target.value.toUpperCase())}
                   placeholder="e.g. MFA, IRP…"
-                  className="h-9 w-full rounded-md border border-border bg-surface-raised px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="h-9 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
                 <datalist id="q-tag-suggestions-builder">
                   {['MFA','ENCRYPTION','PEN_TEST','DATA_RETENTION','DPA','IRP','BCP','DRP',
@@ -1041,29 +1041,29 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
                   </button>
                 </div>
 
-                {libErrors.libOpts && <p className="text-xs text-red-400">{libErrors.libOpts}</p>}
+                {libErrors.libOpts && <p className="text-xs text-status-fail-fg">{libErrors.libOpts}</p>}
 
                 {/* Inline create-option form */}
                 {showNewOpt && (
-                  <div className="flex items-center gap-2 p-2 rounded-lg border border-brand-500/30 bg-brand-500/5">
+                  <div className="flex items-center gap-2 p-2 rounded-card border border-brand-500/30 bg-brand-500/5">
                     <input
                       value={newOptVal}
                       onChange={e => setNewOptVal(e.target.value)}
                       placeholder="Option text…"
-                      className="flex-1 h-7 rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      className="flex-1 h-7 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                     <input
                       type="number"
                       value={newOptScore}
                       onChange={e => setNewOptScore(e.target.value)}
                       placeholder="Score"
-                      className="w-20 h-7 rounded-md border border-border bg-surface-raised px-2 text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      className="w-20 h-7 rounded-ctl border border-border bg-surface-raised px-2 text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                     <Button size="xs" loading={creatingOpt} disabled={!newOptVal.trim()} onClick={handleCreateOption}>
                       Add
                     </Button>
                     <button onClick={() => setShowNewOpt(false)}
-                      className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400">
+                      className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg">
                       <XCircle size={13} />
                     </button>
                   </div>
@@ -1071,9 +1071,9 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
 
                 {/* All options checkbox list */}
                 {allOptions.length === 0
-                  ? <p className="text-xs text-text-muted p-3 bg-surface-overlay rounded-md">No options in library yet. Use "New option" above to create one.</p>
+                  ? <p className="text-xs text-text-muted p-3 bg-surface-overlay rounded-ctl">No options in library yet. Use "New option" above to create one.</p>
                   : (
-                    <div className="max-h-36 overflow-y-auto rounded-md border border-border divide-y divide-border">
+                    <div className="max-h-36 overflow-y-auto rounded-ctl border border-border divide-y divide-border">
                       {!optsReady && (
                         <div className="flex items-center justify-center py-4 gap-2 text-xs text-text-muted">
                           <Loader2 size={13} className="animate-spin" /> Loading current options…
@@ -1087,7 +1087,7 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
                           <span className="flex-1 text-xs text-text-primary">{opt.optionValue}</span>
                           {opt.score != null
                             ? <span className="text-[10px] font-mono text-text-muted">{opt.score} pts</span>
-                            : <span className="text-[10px] font-mono text-red-400/70">no score</span>}
+                            : <span className="text-[10px] font-mono text-status-fail-fg">no score</span>}
                         </label>
                       ))}
                     </div>
@@ -1109,7 +1109,7 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
                             <span className="font-mono text-brand-300">{opt.score}pt</span>
                           )}
                           <button onClick={() => toggleOpt(opt.optionId)}
-                            className="ml-0.5 text-brand-400/60 hover:text-red-400 transition-colors">
+                            className="ml-0.5 text-brand-400/60 hover:text-status-fail-fg transition-colors">
                             ×
                           </button>
                         </span>
@@ -1136,7 +1136,7 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
                 <button type="button" onClick={() => setEditMandatory(m => !m)}
                   className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0',
                     editMandatory ? 'bg-brand-500' : 'bg-surface-raised border border-border')}>
-                  <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform',
+                  <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-surface-raised transition-transform',
                     editMandatory ? 'translate-x-4' : 'translate-x-0.5')} />
                 </button>
                 <span className="text-sm text-text-primary">Mandatory</span>
@@ -1188,9 +1188,9 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
         <div className="relative">
           <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search sections…"
-            className="h-8 pl-8 pr-3 w-full rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="h-8 pl-8 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
-        <div className="max-h-72 overflow-y-auto rounded-lg border border-border divide-y divide-border">
+        <div className="max-h-72 overflow-y-auto rounded-card border border-border divide-y divide-border">
           {isLoading && <div className="flex items-center justify-center py-10"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>}
           {!isLoading && filtered.length === 0 && (
             <div className="flex flex-col items-center justify-center py-10">
@@ -1258,15 +1258,15 @@ function QuestionPickerModal({ open, sectionId, templateId, existingQuestionIds,
             <div className="relative flex-1">
               <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search questions…"
-                className="h-7 pl-8 pr-3 w-full rounded-md border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="h-7 pl-8 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
-              className="h-7 appearance-none pl-2 pr-6 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+              className="h-7 appearance-none pl-2 pr-6 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">All types</option>
               {Object.entries(TYPE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </div>
-          <div className="flex-1 overflow-y-auto rounded-lg border border-border divide-y divide-border">
+          <div className="flex-1 overflow-y-auto rounded-card border border-border divide-y divide-border">
             {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>}
             {!isLoading && filtered.length === 0 && (
               <div className="flex flex-col items-center justify-center py-10">
@@ -1296,7 +1296,7 @@ function QuestionPickerModal({ open, sectionId, templateId, existingQuestionIds,
           </div>
         </div>
         <div className="w-52 shrink-0">
-          <div className="p-3 rounded-lg bg-surface-overlay border border-border">
+          <div className="p-3 rounded-card bg-surface-overlay border border-border">
             <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">Config in this section</p>
             {!selected ? (
               <p className="text-xs text-text-muted">Select a question on the left.</p>
@@ -1309,13 +1309,13 @@ function QuestionPickerModal({ open, sectionId, templateId, existingQuestionIds,
                 <div>
                   <label className="text-[11px] font-medium text-text-secondary uppercase tracking-wide block mb-1">Weight</label>
                   <input type="number" value={weight} onChange={e => setWeight(e.target.value)} placeholder="e.g. 10"
-                    className="h-7 w-full rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="h-7 w-full rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <button type="button" onClick={() => setMandatory(m => !m)}
                     className={cn('relative inline-flex h-4 w-7 items-center rounded-full transition-colors shrink-0',
                       mandatory ? 'bg-brand-500' : 'bg-surface-raised border border-border')}>
-                    <span className={cn('inline-block h-3 w-3 transform rounded-full bg-white transition-transform',
+                    <span className={cn('inline-block h-3 w-3 transform rounded-full bg-surface-raised transition-transform',
                       mandatory ? 'translate-x-3.5' : 'translate-x-0.5')} />
                   </button>
                   <span className="text-xs text-text-primary">Mandatory</span>
@@ -1364,11 +1364,11 @@ function EditSectionModal({ section, templateId, onClose }) {
         <Button size="sm" loading={isPending} onClick={handleSubmit}>Save</Button>
       </div>}>
       <div className="flex flex-col gap-3">
-        <div className="flex items-start gap-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-          <AlertCircle size={13} className="text-amber-400 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-400/80 leading-relaxed">
+        <div className="flex items-start gap-2 p-3 bg-status-warn-bg border border-status-warn-bd rounded-card">
+          <AlertCircle size={13} className="text-status-warn-fg mt-0.5 shrink-0" />
+          <p className="text-xs text-status-warn-fg leading-relaxed">
             This renames the{' '}
-            <span className="font-semibold text-amber-400">shared library section</span> — the
+            <span className="font-semibold text-status-warn-fg">shared library section</span> — the
             new name will appear in every template that uses it.
           </p>
         </div>

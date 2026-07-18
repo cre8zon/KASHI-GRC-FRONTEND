@@ -42,7 +42,7 @@ function IconPicker({ value, onChange }) {
         className="w-full h-7 px-2 text-[11px] font-mono bg-surface-raised border border-border rounded text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-500/50"
       />
       {value && !COMMON_TAB_ICONS.includes(value) && (
-        <p className="text-[9px] text-amber-400">
+        <p className="text-[9px] text-status-warn-fg">
           Custom icon "{value}" — make sure it's a valid Lucide icon name or it'll fall back to #
         </p>
       )}
@@ -133,9 +133,9 @@ function NewDetailTabInspector({ screenKey, layout, onSave }) {
         {/* Capability tab warnings — show when blueprint has caps disabled */}
         {bp && Object.values(disabledCapTabs).some(Boolean) && (
           <div className="space-y-1 mb-3">
-            <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-lg border border-amber-500/20 bg-amber-500/5">
-              <span className="text-amber-400 text-[11px] mt-0.5 shrink-0">⚙</span>
-              <div className="text-[10px] text-amber-300/80 leading-relaxed">
+            <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-card border border-status-warn-bd bg-status-warn-bg">
+              <span className="text-status-warn-fg text-[11px] mt-0.5 shrink-0">⚙</span>
+              <div className="text-[10px] text-status-warn-fg leading-relaxed">
                 Some capability tabs are <strong>disabled in Blueprint Settings</strong> and
                 won't appear at runtime even if added here:
                 <ul className="mt-1 space-y-0.5">
@@ -172,8 +172,8 @@ function NewDetailTabInspector({ screenKey, layout, onSave }) {
         )}
         {/* Warn if user is trying to add a known capability tab that's disabled */}
         {derivedKey && disabledCapTabs[derivedKey] !== undefined && disabledCapTabs[derivedKey] && (
-          <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-lg border border-amber-500/20 bg-amber-500/5 text-[10px] text-amber-300/80">
-            <span className="text-amber-400 shrink-0">⚙</span>
+          <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-card border border-status-warn-bd bg-status-warn-bg text-[10px] text-status-warn-fg">
+            <span className="text-status-warn-fg shrink-0">⚙</span>
             <span>
               <strong>{label.trim()}</strong> is a capability tab. It won't appear at runtime
               until <code className="font-mono">{
@@ -202,7 +202,7 @@ function NewDetailTabInspector({ screenKey, layout, onSave }) {
       </Button>
 
       {!layout?.id && (
-        <p className="text-[9px] text-amber-400 text-center leading-relaxed">
+        <p className="text-[9px] text-status-warn-fg text-center leading-relaxed">
           No layout record yet — add a column first (Preview → click + in the table header) so the layout row is created,
           then come back to add tabs.
         </p>

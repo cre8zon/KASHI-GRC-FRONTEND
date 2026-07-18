@@ -46,7 +46,7 @@ function IconPicker({ value, onChange }) {
         className="w-full h-7 px-2 text-[11px] font-mono bg-surface-raised border border-border rounded text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-500/50"
       />
       {value && !COMMON_TAB_ICONS.includes(value) && (
-        <p className="text-[9px] text-amber-400">
+        <p className="text-[9px] text-status-warn-fg">
           Custom icon "{value}" — make sure it's a valid Lucide icon name or it'll fall back to #
         </p>
       )}
@@ -192,7 +192,7 @@ function TabInspector({ tab, tabKey, screenKey, layout }) {
         </IField>
 
         {isBuiltIn && (
-          <div className="flex items-start gap-1.5 px-2 py-1.5 rounded bg-blue-500/5 border border-blue-500/20 text-[9px] text-blue-400 leading-relaxed">
+          <div className="flex items-start gap-1.5 px-2 py-1.5 rounded bg-status-info-bg border border-status-info-bd text-[9px] text-status-info-fg leading-relaxed">
             <Info size={10} className="mt-0.5 shrink-0" />
             <span>Built-in capability tab — always available when this screen type uses it. You can rename it or hide it per-role, but it cannot be deleted.</span>
           </div>
@@ -200,9 +200,9 @@ function TabInspector({ tab, tabKey, screenKey, layout }) {
 
         {/* Capability disabled warning — shown when bp has this cap turned off */}
         {isCapDisabled && (
-          <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-lg border border-amber-500/20 bg-amber-500/5 mt-2">
-            <span className="text-amber-400 text-[11px] shrink-0 mt-0.5">⚙</span>
-            <div className="text-[10px] text-amber-300/80 leading-relaxed">
+          <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-card border border-status-warn-bd bg-status-warn-bg mt-2">
+            <span className="text-status-warn-fg text-[11px] shrink-0 mt-0.5">⚙</span>
+            <div className="text-[10px] text-status-warn-fg leading-relaxed">
               <strong>{capInfo.label}</strong> capability is <strong>disabled</strong> in Blueprint Settings.
               This tab won't appear at runtime until{' '}
               <code className="font-mono text-[9px]">{capInfo.field}</code> is enabled in{' '}
@@ -213,9 +213,9 @@ function TabInspector({ tab, tabKey, screenKey, layout }) {
 
         {/* Capability enabled confirmation */}
         {isCapabilityTab && bp && !isCapDisabled && (
-          <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg border border-green-500/20 bg-green-500/5 mt-2">
-            <span className="text-green-400 text-[10px] shrink-0 mt-0.5">✓</span>
-            <span className="text-[9px] text-green-300/80">
+          <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-card border border-status-pass-bd bg-status-pass-bg mt-2">
+            <span className="text-status-pass-fg text-[10px] shrink-0 mt-0.5">✓</span>
+            <span className="text-[9px] text-status-pass-fg">
               {capInfo.label} capability is enabled — this tab will appear at runtime.
             </span>
           </div>
@@ -234,7 +234,7 @@ function TabInspector({ tab, tabKey, screenKey, layout }) {
           <button
             onClick={() => { if (window.confirm(`Delete the "${tab}" tab? This cannot be undone.`)) handleDelete() }}
             disabled={saveTabsMut.isPending}
-            className="flex items-center gap-1.5 text-[10px] text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/40 rounded px-2.5 py-1.5 transition-colors disabled:opacity-50">
+            className="flex items-center gap-1.5 text-[10px] text-status-fail-fg hover:text-status-fail-fg border border-status-fail-bd hover:border-status-fail-bd rounded px-2.5 py-1.5 transition-colors disabled:opacity-50">
             <Trash2 size={11} /> Delete tab
           </button>
           <p className="text-[9px] text-text-muted mt-1.5 leading-relaxed">

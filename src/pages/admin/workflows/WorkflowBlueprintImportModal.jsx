@@ -80,82 +80,82 @@ const COLUMNS = [
   },
   {
     col:   'order',
-    color: 'text-purple-400',
+    color: 'text-status-tag-fg',
     note:  'Step position (1-based). Used to match existing steps for update. Required.',
   },
   {
     col:   'name',
-    color: 'text-purple-400',
+    color: 'text-status-tag-fg',
     note:  'Step display name shown in timeline and task inbox. Required.',
   },
   {
     col:   'description',
-    color: 'text-blue-400',
+    color: 'text-status-info-fg',
     note:  'Optional step description shown in workflow timeline detail.',
   },
   {
     col:   'side',
-    color: 'text-blue-400',
+    color: 'text-status-info-fg',
     note:  'ORGANIZATION · AUDITOR · AUDITEE · VENDOR · SYSTEM. Defaults to ORGANIZATION.',
   },
   {
     col:   'stepAction',
-    color: 'text-cyan-400',
+    color: 'text-status-info-fg',
     note:  'FILL · ASSIGN · EVALUATE · REVIEW · APPROVE · ACKNOWLEDGE · GENERATE · CUSTOM',
   },
   {
     col:   'approvalType',
-    color: 'text-cyan-400',
+    color: 'text-status-info-fg',
     note:  'ANY_ONE · ALL · MIN_COUNT. Defaults to ANY_ONE.',
   },
   {
     col:   'slaHours',
-    color: 'text-teal-400',
+    color: 'text-brand-400',
     note:  'SLA in hours (48 = 2 days, 720 = 30 days). Leave blank for no SLA.',
   },
   {
     col:   'isOptional',
-    color: 'text-teal-400',
+    color: 'text-brand-400',
     note:  'true/false. When true, step advances automatically if no items qualify.',
   },
   {
     col:   'autoApproveAssignerOnFill',
-    color: 'text-teal-400',
+    color: 'text-brand-400',
     note:  'true/false. Auto-approves assigner task on FILL steps so inbox stays clean.',
   },
   {
     col:   'assignerResolution',
-    color: 'text-green-400',
+    color: 'text-status-pass-fg',
     note:  'POOL · PREVIOUS_ACTOR · INITIATOR · PUSH_TO_ROLES. Defaults to POOL.',
   },
   {
     col:   'navKey',
-    color: 'text-green-400',
+    color: 'text-status-pass-fg',
     note:  'Navigation key for actor task (e.g. soc2_engagements, task_inbox).',
   },
   {
     col:   'stepUiOverrideJson',
-    color: 'text-amber-400',
+    color: 'text-status-warn-fg',
     note:  'JSON: {"visibleTabs":["overview"],"editableFields":["name"],"availableActions":["APPROVE"]}',
   },
   {
     col:   'actorRoles',
-    color: 'text-rose-400',
+    color: 'text-status-fail-fg',
     note:  'Semicolon-separated role names resolved to IDs. e.g. GRC_MANAGER;LEAD_AUDITOR',
   },
   {
     col:   'assignerRoles',
-    color: 'text-rose-400',
+    color: 'text-status-fail-fg',
     note:  'Semicolon-separated assigner role names. Only needed for PUSH_TO_ROLES resolution.',
   },
   {
     col:   'observerRoles',
-    color: 'text-rose-400',
+    color: 'text-status-fail-fg',
     note:  'Semicolon-separated observer role names. Observers can view but not act.',
   },
   {
     col:   'sections',
-    color: 'text-orange-400',
+    color: 'text-status-warn-fg',
     note:  '§-separated section definitions (pipe-delimited per section). See note below.',
   },
 ]
@@ -299,8 +299,8 @@ export function WorkflowBlueprintImportModal({
         <div className="flex flex-col gap-4">
 
           {/* Warning — destructive behaviour */}
-          <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg
-                          bg-amber-500/6 border border-amber-500/20 text-xs text-amber-300">
+          <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-card
+                          bg-status-warn-bg border border-status-warn-bd text-xs text-status-warn-fg">
             <AlertCircle size={13} className="mt-0.5 shrink-0" />
             <span>
               Steps at order numbers <strong>not present in the CSV</strong> will be deleted.
@@ -309,7 +309,7 @@ export function WorkflowBlueprintImportModal({
           </div>
 
           {/* Column reference — collapsible */}
-          <div className="rounded-lg border border-border overflow-hidden">
+          <div className="rounded-card border border-border overflow-hidden">
             <button
               onClick={() => setRefOpen(o => !o)}
               className="w-full flex items-center justify-between px-4 py-2.5
@@ -372,24 +372,24 @@ export function WorkflowBlueprintImportModal({
             onDrop={handleDrop}
             onClick={() => fileRef.current?.click()}
             className={cn(
-              'border-2 border-dashed rounded-lg p-8 flex flex-col items-center gap-3',
+              'border-2 border-dashed rounded-card p-8 flex flex-col items-center gap-3',
               'cursor-pointer transition-colors',
               selectedFile
-                ? 'border-green-500/40 bg-green-500/5'
+                ? 'border-status-pass-bd bg-status-pass-bg'
                 : dragOver
                   ? 'border-brand-500 bg-brand-500/5'
                   : 'border-border hover:border-border-subtle hover:bg-surface-overlay',
             )}
           >
-            <div className="w-12 h-12 rounded-xl bg-surface-overlay flex items-center justify-center">
+            <div className="w-12 h-12 rounded-card bg-surface-overlay flex items-center justify-center">
               {selectedFile
-                ? <CheckCircle2 size={22} className="text-green-400" />
+                ? <CheckCircle2 size={22} className="text-status-pass-fg" />
                 : <Upload size={22} className="text-text-muted" />}
             </div>
             <div className="text-center">
               {selectedFile ? (
                 <>
-                  <p className="text-sm font-medium text-green-400">{selectedFile.name}</p>
+                  <p className="text-sm font-medium text-status-pass-fg">{selectedFile.name}</p>
                   <p className="text-xs text-text-muted mt-1">
                     {(selectedFile.size / 1024).toFixed(1)} KB · Click to choose a different file
                   </p>
@@ -426,7 +426,7 @@ export function WorkflowBlueprintImportModal({
       {/* ── Stage 2: Importing ───────────────────────────────────────────────── */}
       {stage === 'importing' && (
         <div className="flex flex-col items-center gap-6 py-10">
-          <div className="w-16 h-16 rounded-2xl bg-brand-500/10 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-modal bg-brand-500/10 flex items-center justify-center">
             <Loader2 size={28} className="text-brand-400 animate-spin" />
           </div>
           <div className="text-center">
@@ -449,14 +449,14 @@ export function WorkflowBlueprintImportModal({
           {/* Summary header */}
           <div className="flex items-center gap-3">
             <div className={cn(
-              'w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
-              result.fatalError ? 'bg-red-500/10'
-              : errCount > 0   ? 'bg-amber-500/10'
-              :                   'bg-green-500/10',
+              'w-12 h-12 rounded-card flex items-center justify-center shrink-0',
+              result.fatalError ? 'bg-status-fail-bg'
+              : errCount > 0   ? 'bg-status-warn-bg'
+              :                   'bg-status-pass-bg',
             )}>
               {result.fatalError || errCount > 0
-                ? <AlertCircle size={22} className={result.fatalError ? 'text-red-400' : 'text-amber-400'} />
-                : <CheckCircle2 size={22} className="text-green-400" />}
+                ? <AlertCircle size={22} className={result.fatalError ? 'text-status-fail-fg' : 'text-status-warn-fg'} />
+                : <CheckCircle2 size={22} className="text-status-pass-fg" />}
             </div>
             <div>
               <p className="text-sm font-semibold text-text-primary">
@@ -475,12 +475,12 @@ export function WorkflowBlueprintImportModal({
             <div className="grid grid-cols-3 gap-3">
               {[
                 { label: 'Total rows', value: result.totalRows,   color: 'text-text-secondary' },
-                { label: 'Succeeded', value: result.successCount, color: 'text-green-400' },
+                { label: 'Succeeded', value: result.successCount, color: 'text-status-pass-fg' },
                 { label: 'Failed',    value: result.failureCount,
-                  color: result.failureCount ? 'text-red-400' : 'text-text-muted' },
+                  color: result.failureCount ? 'text-status-fail-fg' : 'text-text-muted' },
               ].map(({ label, value, color }) => (
                 <div key={label}
-                  className="p-3 bg-surface-overlay rounded-lg border border-border text-center">
+                  className="p-3 bg-surface-overlay rounded-card border border-border text-center">
                   <p className={cn('text-xl font-bold font-mono', color)}>{value ?? 0}</p>
                   <p className="text-xs text-text-muted mt-0.5">{label}</p>
                 </div>
@@ -490,14 +490,14 @@ export function WorkflowBlueprintImportModal({
 
           {/* Import log */}
           {result.log?.length > 0 && (
-            <div className="max-h-64 overflow-y-auto rounded-lg border border-border
+            <div className="max-h-64 overflow-y-auto rounded-card border border-border
                             bg-surface-overlay p-3 flex flex-col gap-0.5 font-mono text-xs">
               {result.log.map((entry, i) => (
                 <div key={i} className={cn(
                   'flex items-start gap-2',
                   entry.status === 'SUCCESS' && 'text-text-secondary',
-                  entry.status === 'ERROR'   && 'text-red-400',
-                  entry.status === 'WARNING' && 'text-amber-400',
+                  entry.status === 'ERROR'   && 'text-status-fail-fg',
+                  entry.status === 'WARNING' && 'text-status-warn-fg',
                   entry.status === 'INFO'    && 'text-brand-400',
                 )}>
                   {entry.status === 'SUCCESS' && <CheckCircle2 size={11} className="mt-0.5 shrink-0" />}

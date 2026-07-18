@@ -37,12 +37,12 @@ const TASK_STATUS_CONFIG = {
 
 const ROLE_CONFIG = {
   ACTOR:    { label: 'Actor',       icon: Users,     color: 'text-brand-400 bg-brand-500/10' },
-  ASSIGNER: { label: 'Coordinator', icon: UserCheck, color: 'text-purple-400 bg-purple-500/10' },
+  ASSIGNER: { label: 'Coordinator', icon: UserCheck, color: 'text-status-tag-fg bg-status-tag-bg' },
 }
 
 const PRIORITY_COLORS = {
-  CRITICAL: 'text-red-400 bg-red-500/10',
-  HIGH:     'text-amber-400 bg-amber-500/10',
+  CRITICAL: 'text-status-fail-fg bg-status-fail-bg',
+  HIGH:     'text-status-warn-fg bg-status-warn-bg',
   MEDIUM:   'text-text-muted bg-surface-overlay',
   LOW:      'text-text-muted bg-surface-overlay/50',
 }
@@ -141,8 +141,8 @@ function TaskDetailDrawer({ task, onClose }) {
             <div className="space-y-2">
               {history.slice(0, 20).map((entry, i) => {
                 const action = entry.action || entry.eventType || ''
-                const color = action.includes('APPROVED') || action.includes('COMPLETED') ? 'bg-green-400' :
-                              action.includes('REJECTED') || action.includes('CANCELLED') ? 'bg-red-400' : 'bg-brand-400'
+                const color = action.includes('APPROVED') || action.includes('COMPLETED') ? 'bg-status-pass-bg' :
+                              action.includes('REJECTED') || action.includes('CANCELLED') ? 'bg-status-fail-bg' : 'bg-brand-400'
                 return (
                   <div key={entry.id ?? i} className="flex items-start gap-2">
                     <div className={cn('w-1.5 h-1.5 rounded-full mt-1.5 shrink-0', color)} />
@@ -231,7 +231,7 @@ export default function AllTasksPage() {
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
               <input value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search step or workflow…"
-                className="h-8 pl-8 pr-3 w-48 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="h-8 pl-8 pr-3 w-48 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <Button variant={showFilters ? 'secondary' : 'ghost'} size="sm" icon={SlidersHorizontal}
               onClick={() => setFilters(f => !f)}>
@@ -287,7 +287,7 @@ export default function AllTasksPage() {
         </div>
 
         {/* Task list */}
-        <div className="bg-surface border border-border rounded-xl overflow-hidden mx-6 mt-4">
+        <div className="bg-surface border border-border rounded-card overflow-hidden mx-6 mt-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 size={20} className="animate-spin text-text-muted" />
@@ -313,7 +313,7 @@ export default function AllTasksPage() {
                 )}>
                 {/* Active indicator */}
                 <div className={cn('w-1 h-8 rounded-full shrink-0',
-                  isActive ? 'bg-amber-400' : 'bg-transparent')} />
+                  isActive ? 'bg-status-warn-bg' : 'bg-transparent')} />
 
                 <div className="flex-1 min-w-0 grid grid-cols-[1fr_140px_120px_100px_80px] gap-4 items-center">
                   <div className="min-w-0">
@@ -348,7 +348,7 @@ export default function AllTasksPage() {
       {/* Side drawer */}
       {selectedTask && (
         <>
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30" onClick={() => setSelected(null)} />
+          <div className="fixed inset-0 bg-on-dark-inv/50 backdrop-blur-sm z-30" onClick={() => setSelected(null)} />
           <TaskDetailDrawer task={selectedTask} onClose={() => setSelected(null)} />
         </>
       )}

@@ -382,7 +382,7 @@ function ModuleListView({ bp }) {
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder={`Search ${bp.displayNamePlural?.toLowerCase() || ''}…`}
-              className="w-52 pl-8 pr-3 h-8 text-xs bg-surface-overlay border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-52 pl-8 pr-3 h-8 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           {/* FIX: Render screen designer actions for this list screen.
               This is the single source of truth for toolbar buttons — no more
@@ -435,7 +435,7 @@ function ModuleListView({ bp }) {
                 })
                 if (!bulkActions.length) return null
                 return (
-                  <div className="flex items-center gap-3 px-4 py-2 mb-3 rounded-lg bg-brand-500/8 border border-brand-500/20 text-xs">
+                  <div className="flex items-center gap-3 px-4 py-2 mb-3 rounded-card bg-brand-500/8 border border-brand-500/20 text-xs">
                     <span className="text-brand-400 font-medium">{selectedIds.length} selected</span>
                     <div className="flex items-center gap-2">
                       {bulkActions.map(a => (
@@ -1309,7 +1309,7 @@ function ModuleDetailView({ bp, id }) {
       actions={
         <div className="flex items-center gap-2">
           {vc.sodViolations?.filter(v => v.conflictType === 'HARD').length > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-md px-2 py-1">
+            <div className="flex items-center gap-1.5 text-xs text-status-fail-fg bg-status-fail-bg border border-status-fail-bd rounded-ctl px-2 py-1">
               <AlertTriangle size={12} /> SoD conflict
             </div>
           )}
@@ -1341,7 +1341,7 @@ function ModuleDetailView({ bp, id }) {
           Reminds the user which task they're working on and which step action is expected.
           The back-to-inbox button clears the task context. */}
       {taskId && (
-        <div className="mx-6 mt-4 flex items-center gap-3 px-3 py-2.5 rounded-lg
+        <div className="mx-6 mt-4 flex items-center gap-3 px-3 py-2.5 rounded-card
                         bg-brand-500/8 border border-brand-500/20 text-xs">
           <CheckSquare size={13} className="text-brand-400 shrink-0" />
           <div className="flex-1 min-w-0">
@@ -1479,7 +1479,7 @@ function ModuleDetailView({ bp, id }) {
 
             {/* Last fallback: raw key-value when neither source has data */}
             {detailFieldSections.length === 0 && schema.sections?.length === 0 && entity && (
-              <div className="border border-border rounded-lg overflow-hidden">
+              <div className="border border-border rounded-card overflow-hidden">
                 <div className="px-4 py-2.5 bg-surface-overlay border-b border-border">
                   <span className="text-xs font-medium text-text-muted">Entity data</span>
                 </div>
@@ -1581,14 +1581,14 @@ function ModuleDetailView({ bp, id }) {
           {confirmAction.action.requiresRemarks && (
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">
-                Remarks <span className="text-red-400">*</span>
+                Remarks <span className="text-status-fail-fg">*</span>
               </label>
               <textarea
                 value={confirmAction.remarks}
                 onChange={e => setConfirmAction(prev => ({ ...prev, remarks: e.target.value }))}
                 rows={3}
                 placeholder="Explain the reason for this action…"
-                className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+                className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-card text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
               />
             </div>
           )}
@@ -1687,7 +1687,7 @@ function WorkflowTab({ entityType, entityId, vc, bp, entity }) {
     return (
       <div className="max-w-2xl space-y-3 py-2">
         {[1,2,3,4].map(i => (
-          <div key={i} className="flex items-start gap-3 p-3 border border-border rounded-lg">
+          <div key={i} className="flex items-start gap-3 p-3 border border-border rounded-card">
             <div className="w-8 h-8 rounded-full bg-surface-overlay animate-pulse shrink-0" />
             <div className="flex-1 space-y-2">
               <div className="h-3 w-40 bg-surface-overlay rounded animate-pulse" />
@@ -1702,7 +1702,7 @@ function WorkflowTab({ entityType, entityId, vc, bp, entity }) {
   if (!instance) {
     return (
       <div className="max-w-2xl">
-        <div className="flex flex-col items-center gap-3 py-12 border border-dashed border-border rounded-lg text-center">
+        <div className="flex flex-col items-center gap-3 py-12 border border-dashed border-border rounded-card text-center">
           <GitBranch size={24} className="text-text-muted" />
           <div>
             <p className="text-sm font-medium text-text-secondary">No active workflow</p>
@@ -1740,7 +1740,7 @@ function EvidenceTab({ entityId, entityType, vc }) {
   return (
     <div className="max-w-2xl">
       {canUpload
-        ? <div className="flex flex-col items-center gap-3 py-12 border-2 border-dashed border-border rounded-xl text-center cursor-pointer hover:border-brand-500/40 hover:bg-brand-500/3 transition-colors">
+        ? <div className="flex flex-col items-center gap-3 py-12 border-2 border-dashed border-border rounded-card text-center cursor-pointer hover:border-brand-500/40 hover:bg-brand-500/3 transition-colors">
             <Upload size={24} className="text-text-muted" />
             <div>
               <p className="text-sm font-medium text-text-secondary">Upload evidence</p>
@@ -1989,7 +1989,7 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
   const editButton = canEdit ? (
     <div className="flex justify-end mb-3">
       <button onClick={() => setEditMode(true)}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors">
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-ctl border border-border text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -2084,14 +2084,14 @@ function IssueFindingsTab({ issueId }) {
     <div className="space-y-2">
       {findings.map((f, i) => (
         <div key={f.id || i}
-          className="flex items-start gap-3 p-3 rounded-lg border border-border bg-surface-secondary hover:border-border-strong transition-colors">
+          className="flex items-start gap-3 p-3 rounded-card border border-border bg-surface-secondary hover:border-border-strong transition-colors">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-medium text-text-primary truncate">
                 {f.findingRef || f.ref || `#${f.id}`}
               </span>
               {f.severity && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 font-medium">
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-fail-bg text-status-fail-fg font-medium">
                   {f.severity}
                 </span>
               )}
@@ -2264,7 +2264,7 @@ function FieldDisplay({ label, value, type, editable, field = {} }) {
         const on = value === true || value === 'true' || value === 1 || value === '1'
         return (
           <span className={cn('inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded',
-            on ? 'bg-green-500/10 text-green-400' : 'bg-surface-overlay text-text-muted border border-border')}>
+            on ? 'bg-status-pass-bg text-status-pass-fg' : 'bg-surface-overlay text-text-muted border border-border')}>
             {on ? '✓ Yes' : '✗ No'}
           </span>
         )
@@ -2274,7 +2274,7 @@ function FieldDisplay({ label, value, type, editable, field = {} }) {
         const max = field.maxValue || 5
         const val = Number(value) || 0
         return <span className="text-base tracking-tight">{Array.from({length:max},(_,i)=>(
-          <span key={i} className={i < val ? 'text-amber-400' : 'text-text-muted'}>★</span>
+          <span key={i} className={i < val ? 'text-status-warn-fg' : 'text-text-muted'}>★</span>
         ))}</span>
       }
 
@@ -2398,10 +2398,10 @@ function SodBanner({ violations }) {
   const hasHard = violations.some(v => v.conflictType === 'HARD')
   return (
     <div className={cn(
-      'flex items-start gap-2 mx-6 mt-4 px-3 py-2.5 rounded-lg text-xs border',
+      'flex items-start gap-2 mx-6 mt-4 px-3 py-2.5 rounded-card text-xs border',
       hasHard
-        ? 'bg-red-500/5 border-red-500/25 text-red-300'
-        : 'bg-amber-500/5 border-amber-500/25 text-amber-300'
+        ? 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg'
+        : 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg'
     )}>
       <AlertTriangle size={13} className="mt-0.5 shrink-0" />
       <div>
@@ -2422,7 +2422,7 @@ function LoadingState() {
         </div>
         <div className="h-8 w-28 bg-surface-overlay rounded animate-pulse" />
       </div>
-      <div className="rounded-lg border border-border overflow-hidden">
+      <div className="rounded-card border border-border overflow-hidden">
         <div className="flex items-center gap-4 px-4 py-3 border-b border-border bg-surface-secondary">
           {[120, 220, 100, 140, 90].map((w, i) => (
             <div key={i} className="h-3 bg-surface-overlay rounded animate-pulse" style={{ width: w }} />
@@ -2460,8 +2460,8 @@ function ServerErrorState() {
   const navigate = useNavigate()
   return (
     <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
-      <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-        <ServerCrash size={20} className="text-red-400" strokeWidth={1.5} />
+      <div className="w-12 h-12 rounded-card bg-status-fail-bg border border-status-fail-bd flex items-center justify-center">
+        <ServerCrash size={20} className="text-status-fail-fg" strokeWidth={1.5} />
       </div>
       <div>
         <p className="text-sm font-medium text-text-secondary">Could not load this page</p>
@@ -2740,7 +2740,7 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]"
+      <div className="fixed inset-0 z-40 bg-on-dark-inv/20 backdrop-blur-[1px]"
         onClick={onClose} aria-hidden="true" />
 
       <div className="fixed right-0 top-0 z-50 h-full w-[520px] bg-surface border-l border-border
@@ -2756,16 +2756,16 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
                 </span>
                 {entity?.status && (
                   <span className="px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide
-                                   bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                                   bg-status-info-bg border border-status-info-bd text-status-info-fg">
                     {entity.status.replace(/_/g,' ')}
                   </span>
                 )}
                 {entity?.severity && (
                   <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold border',
-                    entity.severity === 'CRITICAL' ? 'bg-red-500/10 border-red-500/25 text-red-400' :
-                    entity.severity === 'HIGH'     ? 'bg-orange-500/10 border-orange-500/25 text-orange-400' :
-                    entity.severity === 'MEDIUM'   ? 'bg-amber-500/10 border-amber-500/25 text-amber-400' :
-                    'bg-green-500/10 border-green-500/25 text-green-400')}>
+                    entity.severity === 'CRITICAL' ? 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg' :
+                    entity.severity === 'HIGH'     ? 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg' :
+                    entity.severity === 'MEDIUM'   ? 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg' :
+                    'bg-status-pass-bg border-status-pass-bd text-status-pass-fg')}>
                     {entity.severity}
                   </span>
                 )}
@@ -2780,12 +2780,12 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
             <div className="flex items-center gap-1 shrink-0">
               <button onClick={onOpenFull}
                 className="flex items-center gap-1.5 text-[11px] text-brand-400 hover:text-brand-300
-                           border border-brand-500/25 hover:border-brand-500/50 rounded-md
+                           border border-brand-500/25 hover:border-brand-500/50 rounded-ctl
                            px-2.5 py-1.5 transition-colors font-medium">
                 <ExternalLink size={11} /> Full page
               </button>
               <button onClick={onClose}
-                className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
+                className="p-1.5 rounded-ctl text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
                 <X size={15} />
               </button>
             </div>
@@ -2796,7 +2796,7 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
             /* Skeleton action buttons while entity/screen loads */
             <div className="flex items-center gap-2 flex-wrap mt-3">
               {[64, 80, 72].map((w, i) => (
-                <div key={i} className="h-7 rounded-md animate-pulse bg-surface-overlay"
+                <div key={i} className="h-7 rounded-ctl animate-pulse bg-surface-overlay"
                   style={{ width: w }} />
               ))}
             </div>
@@ -2906,7 +2906,7 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
                     const cls = statusColor ? COLOR_MAP[statusColor] : null
                     return (
                       <div key={key}
-                        className="flex flex-col gap-1 p-2.5 rounded-lg border border-border bg-surface-secondary hover:border-border-strong transition-colors cursor-pointer"
+                        className="flex flex-col gap-1 p-2.5 rounded-card border border-border bg-surface-secondary hover:border-border-strong transition-colors cursor-pointer"
                         onClick={() => {
                           const field = fieldSections.flatMap(s=>s.fields).find(f=>f.fieldKey===key)
                           if (field) startEdit(field)
@@ -3020,7 +3020,7 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
                       }}
                       placeholder="Add a comment… (Enter to send)"
                       rows={2}
-                      className="flex-1 px-3 py-2 text-xs bg-surface-secondary border border-border rounded-lg
+                      className="flex-1 px-3 py-2 text-xs bg-surface-secondary border border-border rounded-card
                                  text-text-primary placeholder:text-text-muted focus:outline-none
                                  focus:ring-1 focus:ring-brand-500 resize-none" />
                     <Button size="sm" loading={addCommentMut.isPending}
@@ -3123,12 +3123,12 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
           {confirmAction.action.requiresRemarks && (
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">
-                Remarks <span className="text-red-400">*</span>
+                Remarks <span className="text-status-fail-fg">*</span>
               </label>
               <textarea value={confirmAction.remarks}
                 onChange={e => setConfirmAction(p => ({ ...p, remarks: e.target.value }))}
                 rows={3} placeholder="Reason for this action…"
-                className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-lg
+                className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-card
                            text-text-primary placeholder:text-text-muted focus:outline-none
                            focus:ring-1 focus:ring-brand-500 resize-none" />
             </div>
@@ -3268,7 +3268,7 @@ function DrawerProperty({ field, entity, screenConfig, editingKey, editValue, sa
       {/* Label — always visible, tiny + muted, Wrike style */}
       <p className="text-[9px] font-semibold text-text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
         {field.label}
-        {field.isRequired && <span className="text-red-400">*</span>}
+        {field.isRequired && <span className="text-status-fail-fg">*</span>}
       </p>
 
       {/* Value — click to edit only when field is editable per vc (badge fields open a select, others open a text input) */}
@@ -3278,12 +3278,12 @@ function DrawerProperty({ field, entity, screenConfig, editingKey, editValue, sa
             ? <textarea value={editValue} onChange={e => onChangeValue(e.target.value)}
                 rows={3} autoFocus
                 className="w-full px-2.5 py-1.5 text-xs bg-background border border-brand-500/50
-                           rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+                           rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
             : field.fieldType === 'TOGGLE'
             ? <button type="button" onClick={() => onChangeValue(v => !v)}
                 className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
                   editValue ? 'bg-brand-500' : 'bg-surface-overlay border border-border')}>
-                <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform',
+                <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-surface-raised transition-transform',
                   editValue ? 'translate-x-4' : 'translate-x-0.5')} />
               </button>
             : <input autoFocus
@@ -3291,11 +3291,11 @@ function DrawerProperty({ field, entity, screenConfig, editingKey, editValue, sa
                 value={editValue} onChange={e => onChangeValue(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') onSave(field.fieldKey); if (e.key === 'Escape') onCancel() }}
                 className="w-full h-7 px-2.5 text-xs bg-background border border-brand-500/50
-                           rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                           rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           }
           <div className="flex items-center gap-1.5">
             <button onClick={() => onSave(field.fieldKey)} disabled={saving}
-              className="text-[10px] px-2.5 py-1 rounded bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors font-medium">
+              className="text-[10px] px-2.5 py-1 rounded bg-brand-500 text-brand-900 hover:bg-brand-600 disabled:opacity-50 transition-colors font-medium">
               {saving ? 'Saving…' : 'Save'}
             </button>
             <button onClick={onCancel}
@@ -3307,7 +3307,7 @@ function DrawerProperty({ field, entity, screenConfig, editingKey, editValue, sa
       ) : isFieldEditable ? (
         <button onClick={() => onStartEdit(field)}
           className={cn(
-            'w-full text-left px-2 py-1 rounded-md transition-all group min-h-[28px]',
+            'w-full text-left px-2 py-1 rounded-ctl transition-all group min-h-[28px]',
             'border border-transparent hover:border-border/60 hover:bg-surface-overlay',
           )}>
           <span className="flex items-center justify-between gap-2">
@@ -3317,7 +3317,7 @@ function DrawerProperty({ field, entity, screenConfig, editingKey, editValue, sa
         </button>
       ) : (
         /* Gap 2: read-only — no hover, no pencil, no click */
-        <div className="w-full text-left px-2 py-1 rounded-md min-h-[28px]">
+        <div className="w-full text-left px-2 py-1 rounded-ctl min-h-[28px]">
           {renderValue()}
         </div>
       )}

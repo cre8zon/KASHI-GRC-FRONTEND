@@ -281,7 +281,7 @@ export default function QuestionLibraryPage() {
             <Pencil size={12} />
           </button>
           <button onClick={() => setDeleteQuestion(row)} title="Delete"
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
             <Trash2 size={12} />
           </button>
         </div>
@@ -295,14 +295,14 @@ export default function QuestionLibraryPage() {
     { key: 'score', label: 'Score', sortable: true, width: 90, type: 'custom',
       render: (row) => {
         if (row.score == null) return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono bg-red-500/10 text-red-400 border border-red-500/20">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono bg-status-fail-bg text-status-fail-fg border border-status-fail-bd">
             not set
           </span>
         )
-        const color = row.score >= 8 ? 'text-green-400 bg-green-500/10 border-green-500/20'
-                    : row.score >= 5 ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
-                    : row.score >= 1 ? 'text-orange-400 bg-orange-500/10 border-orange-500/20'
-                    :                  'text-red-400 bg-red-500/10 border-red-500/20'
+        const color = row.score >= 8 ? 'text-status-pass-fg bg-status-pass-bg border-status-pass-bd'
+                    : row.score >= 5 ? 'text-status-warn-fg bg-status-warn-bg border-status-warn-bd'
+                    : row.score >= 1 ? 'text-status-warn-fg bg-status-warn-bg border-status-warn-bd'
+                    :                  'text-status-fail-fg bg-status-fail-bg border-status-fail-bd'
         return (
           <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono border ${color}`}>
             {row.score} pts
@@ -318,7 +318,7 @@ export default function QuestionLibraryPage() {
             <Pencil size={12} />
           </button>
           <button onClick={() => setDeleteOption(row)} title="Delete"
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
             <Trash2 size={12} />
           </button>
         </div>
@@ -337,7 +337,7 @@ export default function QuestionLibraryPage() {
             <Pencil size={12} />
           </button>
           <button onClick={() => setDeleteSection(row)} title="Delete"
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
             <Trash2 size={12} />
           </button>
         </div>
@@ -357,7 +357,7 @@ export default function QuestionLibraryPage() {
             {selectAll ? `All ${totalCount} ${label} selected` : `${count} ${label} selected`}
           </span>
           <Button variant="ghost" size="xs" icon={Trash2}
-            className="text-red-400 hover:bg-red-500/10"
+            className="text-status-fail-fg hover:bg-status-fail-bg"
             loading={loading} onClick={onDelete}>
             Delete selected
           </Button>
@@ -393,14 +393,14 @@ export default function QuestionLibraryPage() {
             <input value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); setOptPage(1); setSecPage(1) }}
               placeholder={tab === 'questions' ? 'Search questions…' : tab === 'options' ? 'Search options…' : 'Search sections…'}
-              className="h-8 pl-8 pr-3 w-52 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
 
           {tab === 'questions' && (
             <div className="relative">
               <select value={typeFilter}
                 onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
-                className="h-8 appearance-none pl-3 pr-8 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                className="h-8 appearance-none pl-3 pr-8 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 <option value="">All types</option>
                 {RESPONSE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
@@ -735,10 +735,10 @@ function QuestionForm({ form, setForm, errors, allOptions, selectedOpts, setSele
           onChange={e => setForm(f => ({ ...f, questionText: e.target.value }))}
           placeholder="Enter the question to ask vendors…"
           className={cn(
-            'w-full rounded-md border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-brand-500',
-            errors.questionText ? 'border-red-500/50' : 'border-border'
+            'w-full rounded-ctl border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-brand-500',
+            errors.questionText ? 'border-status-fail-bd' : 'border-border'
           )} />
-        {errors.questionText && <p className="text-xs text-red-400 mt-1">{errors.questionText}</p>}
+        {errors.questionText && <p className="text-xs text-status-fail-fg mt-1">{errors.questionText}</p>}
       </div>
       <div>
         <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">
@@ -749,7 +749,7 @@ function QuestionForm({ form, setForm, errors, allOptions, selectedOpts, setSele
           value={form.questionTag || ''}
           onChange={e => setForm(f => ({ ...f, questionTag: e.target.value.toUpperCase() }))}
           placeholder="e.g. MFA, ENCRYPTION, IRP…"
-          className="w-full h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono"
+          className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono"
         />
         <datalist id="q-tag-suggestions">
           {['MFA','ENCRYPTION','PEN_TEST','DATA_RETENTION','DPA','IRP','BCP','DRP',
@@ -769,11 +769,11 @@ function QuestionForm({ form, setForm, errors, allOptions, selectedOpts, setSele
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-2">
             Link Options <span className="text-text-muted font-normal">(select from library — stored as join table)</span>
           </label>
-          {errors.options && <p className="text-xs text-red-400 mb-2">{errors.options}</p>}
+          {errors.options && <p className="text-xs text-status-fail-fg mb-2">{errors.options}</p>}
           {allOptions.length === 0
-            ? <p className="text-xs text-text-muted p-3 bg-surface-overlay rounded-md">No options in library yet. Create options first in the Options tab.</p>
+            ? <p className="text-xs text-text-muted p-3 bg-surface-overlay rounded-ctl">No options in library yet. Create options first in the Options tab.</p>
             : (
-              <div className="max-h-48 overflow-y-auto rounded-md border border-border divide-y divide-border">
+              <div className="max-h-48 overflow-y-auto rounded-ctl border border-border divide-y divide-border">
                 {allOptions.map(opt => (
                   <label key={opt.optionId} className="flex items-center gap-3 px-3 py-2 hover:bg-surface-overlay cursor-pointer">
                     <input type="checkbox" checked={selectedOpts.includes(opt.optionId)}
@@ -782,7 +782,7 @@ function QuestionForm({ form, setForm, errors, allOptions, selectedOpts, setSele
                     <span className="flex-1 text-sm text-text-primary">{opt.optionValue}</span>
                     {opt.score != null
                       ? <span className="text-xs font-mono text-text-muted">{opt.score} pts</span>
-                      : <span className="text-[10px] font-mono text-red-400/70">no score</span>
+                      : <span className="text-[10px] font-mono text-status-fail-fg">no score</span>
                     }
                   </label>
                 ))}
@@ -971,7 +971,7 @@ function LibraryCsvImportModal({ open, onClose }) {
 
       {stage === 'upload' && (
         <div className="flex flex-col gap-4">
-          <div className="rounded-lg border border-border overflow-hidden">
+          <div className="rounded-card border border-border overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2.5 bg-surface-overlay border-b border-border">
               <div className="flex items-center gap-2">
                 <FileText size={14} className="text-text-muted" />
@@ -999,19 +999,19 @@ function LibraryCsvImportModal({ open, onClose }) {
             onDrop={handleDrop}
             onClick={() => fileRef.current?.click()}
             className={cn(
-              'border-2 border-dashed rounded-lg p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors',
-              selectedFile ? 'border-green-500/40 bg-green-500/5'
+              'border-2 border-dashed rounded-card p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors',
+              selectedFile ? 'border-status-pass-bd bg-status-pass-bg'
                 : dragOver ? 'border-brand-500 bg-brand-500/5'
                 : 'border-border hover:border-border-subtle hover:bg-surface-overlay'
             )}>
-            <div className="w-12 h-12 rounded-xl bg-surface-overlay flex items-center justify-center">
+            <div className="w-12 h-12 rounded-card bg-surface-overlay flex items-center justify-center">
               {selectedFile
-                ? <CheckCircle2 size={22} className="text-green-400" />
+                ? <CheckCircle2 size={22} className="text-status-pass-fg" />
                 : <Upload size={22} className="text-text-muted" />}
             </div>
             <div className="text-center">
               {selectedFile
-                ? <><p className="text-sm font-medium text-green-400">{selectedFile.name}</p>
+                ? <><p className="text-sm font-medium text-status-pass-fg">{selectedFile.name}</p>
                     <p className="text-xs text-text-muted mt-1">Click to choose a different file</p></>
                 : <><p className="text-sm font-medium text-text-primary">Drop CSV here, or click to browse</p>
                     <p className="text-xs text-text-muted mt-1">.csv only</p></>}
@@ -1031,7 +1031,7 @@ function LibraryCsvImportModal({ open, onClose }) {
 
       {stage === 'importing' && (
         <div className="flex flex-col items-center gap-6 py-8">
-          <div className="w-16 h-16 rounded-2xl bg-brand-500/10 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-modal bg-brand-500/10 flex items-center justify-center">
             <Loader2 size={28} className="text-brand-400 animate-spin" />
           </div>
           <div className="text-center">
@@ -1048,12 +1048,12 @@ function LibraryCsvImportModal({ open, onClose }) {
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <div className={cn(
-              'w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
-              result.fatalError || result.failureCount > 0 ? 'bg-amber-500/10' : 'bg-green-500/10'
+              'w-12 h-12 rounded-card flex items-center justify-center shrink-0',
+              result.fatalError || result.failureCount > 0 ? 'bg-status-warn-bg' : 'bg-status-pass-bg'
             )}>
               {result.fatalError || result.failureCount > 0
-                ? <AlertCircle size={22} className="text-amber-400" />
-                : <CheckCircle2 size={22} className="text-green-400" />}
+                ? <AlertCircle size={22} className="text-status-warn-fg" />
+                : <CheckCircle2 size={22} className="text-status-pass-fg" />}
             </div>
             <div>
               <p className="text-sm font-semibold text-text-primary">
@@ -1069,10 +1069,10 @@ function LibraryCsvImportModal({ open, onClose }) {
             <div className="grid grid-cols-3 gap-3">
               {[
                 { label: 'Total rows', value: result.totalRows,    color: 'text-text-secondary' },
-                { label: 'Succeeded',  value: result.successCount, color: 'text-green-400' },
-                { label: 'Failed',     value: result.failureCount, color: result.failureCount ? 'text-red-400' : 'text-text-muted' },
+                { label: 'Succeeded',  value: result.successCount, color: 'text-status-pass-fg' },
+                { label: 'Failed',     value: result.failureCount, color: result.failureCount ? 'text-status-fail-fg' : 'text-text-muted' },
               ].map(({ label, value, color }) => (
-                <div key={label} className="p-3 bg-surface-overlay rounded-lg border border-border text-center">
+                <div key={label} className="p-3 bg-surface-overlay rounded-card border border-border text-center">
                   <p className={cn('text-xl font-bold font-mono', color)}>{value}</p>
                   <p className="text-xs text-text-muted mt-0.5">{label}</p>
                 </div>
@@ -1081,13 +1081,13 @@ function LibraryCsvImportModal({ open, onClose }) {
           )}
 
           {result.log?.length > 0 && (
-            <div className="max-h-52 overflow-y-auto rounded-lg border border-border bg-surface-overlay p-3 flex flex-col gap-0.5 font-mono text-xs">
+            <div className="max-h-52 overflow-y-auto rounded-card border border-border bg-surface-overlay p-3 flex flex-col gap-0.5 font-mono text-xs">
               {result.log.map((entry, i) => (
                 <div key={i} className={cn(
                   'flex items-start gap-2',
                   entry.status === 'SUCCESS' && 'text-text-secondary',
-                  entry.status === 'ERROR'   && 'text-red-400',
-                  entry.status === 'WARNING' && 'text-amber-400',
+                  entry.status === 'ERROR'   && 'text-status-fail-fg',
+                  entry.status === 'WARNING' && 'text-status-warn-fg',
                   entry.status === 'INFO'    && 'text-brand-400'
                 )}>
                   {entry.status === 'SUCCESS' && <CheckCircle2 size={11} className="mt-0.5 shrink-0" />}

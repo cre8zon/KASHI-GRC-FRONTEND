@@ -122,10 +122,10 @@ function ClarificationBanner({ questionInstanceId, hasCurrentEval }) {
     <div className="space-y-1.5 mb-2">
       {openClarifications.map(item => (
         <div key={item.id}
-          className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-purple-500/8 border border-purple-500/30">
-          <AlertTriangle size={13} className="text-purple-400 flex-shrink-0 mt-0.5" />
+          className="flex items-start gap-2 px-3 py-2.5 rounded-card bg-status-tag-bg border border-status-tag-bd">
+          <AlertTriangle size={13} className="text-status-tag-fg flex-shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-semibold text-purple-400">
+            <p className="text-[11px] font-semibold text-status-tag-fg">
               Clarification requested by {item.createdByName || 'reviewer'}
             </p>
             {item.description && (
@@ -133,12 +133,12 @@ function ClarificationBanner({ questionInstanceId, hasCurrentEval }) {
                 "{item.description}"
               </p>
             )}
-            <p className="text-[10px] text-purple-400/70 mt-1">
+            <p className="text-[10px] text-status-tag-fg mt-1">
               Re-evaluate below and re-submit this section.
             </p>
           </div>
           {item.status === 'PENDING_REVIEW' && (
-            <span className="text-[10px] text-blue-400 flex items-center gap-1 shrink-0">
+            <span className="text-[10px] text-status-info-fg flex items-center gap-1 shrink-0">
               <CheckCircle2 size={10} /> Submitted for review
             </span>
           )}
@@ -151,9 +151,9 @@ function ClarificationBanner({ questionInstanceId, hasCurrentEval }) {
 // ─── EvalButtons ─────────────────────────────────────────────────────────────
 
 const EVAL_OPTIONS = [
-  { value: 'PASS',    label: 'Pass',    Icon: ThumbsUp,   cls: 'bg-green-500/10 border-green-500/40 text-green-400' },
-  { value: 'PARTIAL', label: 'Partial', Icon: Minus,      cls: 'bg-amber-500/10 border-amber-500/40 text-amber-400' },
-  { value: 'FAIL',    label: 'Fail',    Icon: ThumbsDown, cls: 'bg-red-500/10   border-red-500/40   text-red-400'   },
+  { value: 'PASS',    label: 'Pass',    Icon: ThumbsUp,   cls: 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg' },
+  { value: 'PARTIAL', label: 'Partial', Icon: Minus,      cls: 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg' },
+  { value: 'FAIL',    label: 'Fail',    Icon: ThumbsDown, cls: 'bg-status-fail-bg   border-status-fail-bd   text-status-fail-fg'   },
 ]
 
 function EvalButtons({ value, onChange, disabled }) {
@@ -163,7 +163,7 @@ function EvalButtons({ value, onChange, disabled }) {
         <button key={v} type="button" disabled={disabled}
           onClick={() => onChange(v)}
           className={cn(
-            'flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-[11px] font-medium transition-colors',
+            'flex items-center gap-1 px-2.5 py-1.5 rounded-ctl border text-[11px] font-medium transition-colors',
             value === v ? cls : 'border-border text-text-muted hover:border-brand-500/30',
             disabled && 'opacity-40 cursor-not-allowed'
           )}>
@@ -209,9 +209,9 @@ function QuestionEvalCard({ question, assessmentId, evaluation, onEvaluate, task
   return (
     <div data-qid={question.questionInstanceId} className={cn(
       'py-3.5 border-b border-border last:border-0 rounded transition-all duration-500',
-      evaluation === 'FAIL'    && 'bg-red-500/3',
-      evaluation === 'PARTIAL' && 'bg-amber-500/3',
-      evaluation === 'PASS'    && 'bg-green-500/3',
+      evaluation === 'FAIL'    && 'bg-status-fail-bg',
+      evaluation === 'PARTIAL' && 'bg-status-warn-bg',
+      evaluation === 'PASS'    && 'bg-status-pass-bg',
     )}>
       {/* Clarification banner (purple — reviewer sent this back to me) */}
       <ClarificationBanner questionInstanceId={question.questionInstanceId} hasCurrentEval={!!evaluation} />
@@ -221,13 +221,13 @@ function QuestionEvalCard({ question, assessmentId, evaluation, onEvaluate, task
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-2 flex-wrap mb-1.5">
             <p className="text-sm text-text-primary flex-1">{question.questionText}</p>
-            {question.mandatory && <span className="text-red-400 text-xs shrink-0">*</span>}
+            {question.mandatory && <span className="text-status-fail-fg text-xs shrink-0">*</span>}
             {evaluation && (
               <span className={cn(
                 'text-[10px] px-1.5 py-0.5 rounded border font-medium shrink-0',
-                evaluation === 'PASS'    && 'bg-green-500/10 border-green-500/30 text-green-400',
-                evaluation === 'PARTIAL' && 'bg-amber-500/10 border-amber-500/30 text-amber-400',
-                evaluation === 'FAIL'    && 'bg-red-500/10   border-red-500/30   text-red-400',
+                evaluation === 'PASS'    && 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg',
+                evaluation === 'PARTIAL' && 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg',
+                evaluation === 'FAIL'    && 'bg-status-fail-bg   border-status-fail-bd   text-status-fail-fg',
               )}>
                 {evaluation}
               </span>
@@ -236,7 +236,7 @@ function QuestionEvalCard({ question, assessmentId, evaluation, onEvaluate, task
 
           {/* Answer display */}
           {resp ? (
-            <div className="p-2.5 rounded-md bg-surface-overlay border border-border mb-2">
+            <div className="p-2.5 rounded-ctl bg-surface-overlay border border-border mb-2">
               {resp.responseText && (
                 <p className="text-xs text-text-secondary leading-relaxed">{resp.responseText}</p>
               )}
@@ -261,8 +261,8 @@ function QuestionEvalCard({ question, assessmentId, evaluation, onEvaluate, task
               )}
             </div>
           ) : (
-            <div className="p-2 rounded-md bg-red-500/5 border border-red-500/15 mb-2">
-              <p className="text-[11px] text-red-400">No response — auto-evaluated as FAIL</p>
+            <div className="p-2 rounded-ctl bg-status-fail-bg border border-status-fail-bd mb-2">
+              <p className="text-[11px] text-status-fail-fg">No response — auto-evaluated as FAIL</p>
             </div>
           )}
 
@@ -278,7 +278,7 @@ function QuestionEvalCard({ question, assessmentId, evaluation, onEvaluate, task
             <div className="mt-2 space-y-1">
               {allComments.map((c, i) => (
                 <div key={c.id ?? i}
-                  className="flex gap-1.5 px-2 py-1 rounded text-[11px] bg-blue-500/5 border border-blue-500/10 text-blue-300">
+                  className="flex gap-1.5 px-2 py-1 rounded text-[11px] bg-status-info-bg border border-status-info-bd text-status-info-fg">
                   <MessageSquare size={9} className="mt-0.5 shrink-0" />
                   <span className="flex-1">{c.commentedByName && <strong className="mr-1">{c.commentedByName}:</strong>}{c.commentText}</span>
                 </div>
@@ -290,14 +290,14 @@ function QuestionEvalCard({ question, assessmentId, evaluation, onEvaluate, task
           {!sectionSubmitted && (
             !showNote ? (
               <button onClick={() => setShowNote(true)}
-                className="flex items-center gap-1 text-[11px] text-text-muted hover:text-blue-400 transition-colors mt-2">
+                className="flex items-center gap-1 text-[11px] text-text-muted hover:text-status-info-fg transition-colors mt-2">
                 <MessageSquare size={10} /> Add evaluation note
               </button>
             ) : (
               <div className="mt-2 space-y-1.5">
                 <textarea value={noteText} onChange={e => setNoteText(e.target.value)} rows={2}
                   autoFocus placeholder="Add your evaluation note…"
-                  className="w-full rounded-md border border-blue-500/20 bg-blue-500/5 px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" />
+                  className="w-full rounded-ctl border border-status-info-bd bg-status-info-bg px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-status-info-bd resize-none" />
                 <div className="flex gap-1">
                   <Button size="xs" variant="secondary" onClick={handleNote} loading={adding} disabled={!noteText.trim()}>Save note</Button>
                   <Button size="xs" variant="ghost" onClick={() => { setShowNote(false); setNoteText('') }}>Cancel</Button>
@@ -326,7 +326,7 @@ function SectionGroup({ sectionInstanceId, sectionName, questions, assessmentId,
   }
 
   return (
-    <div className="bg-surface rounded-xl border border-border overflow-hidden mb-3">
+    <div className="bg-surface rounded-card border border-border overflow-hidden mb-3">
       <button onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-surface-overlay/40 transition-colors">
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -334,7 +334,7 @@ function SectionGroup({ sectionInstanceId, sectionName, questions, assessmentId,
           <span className="text-sm font-medium text-text-primary">{sectionName}</span>
           <span className="text-xs text-text-muted">{evaluated}/{questions.length} evaluated</span>
           {isSubmitted && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20 flex items-center gap-1">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-pass-bg text-status-pass-fg border border-status-pass-bd flex items-center gap-1">
               <CheckCircle2 size={9} /> Submitted
             </span>
           )}
@@ -490,7 +490,7 @@ export default function ReviewAssistantPage() {
           </p>
         </div>
         {allDone && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-medium">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-ctl bg-status-pass-bg border border-status-pass-bd text-status-pass-fg text-xs font-medium">
             <CheckCircle2 size={13} />
             All sections submitted
           </div>

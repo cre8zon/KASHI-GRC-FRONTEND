@@ -80,7 +80,7 @@ export default function TenantDetailPage() {
           <Card>
             <CardBody>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-card bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
                   <Building2 size={22} className="text-brand-400" />
                 </div>
                 <div>
@@ -130,7 +130,7 @@ export default function TenantDetailPage() {
                       </p>
                       <p className="text-xs text-text-muted font-mono truncate">{tenantOwner.email}</p>
                     </div>
-                    <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded-full font-semibold shrink-0 ml-auto">
+                    <span className="text-[10px] bg-status-warn-bg text-status-warn-fg border border-status-warn-bd px-1.5 py-0.5 rounded-full font-semibold shrink-0 ml-auto">
                       Owner
                     </span>
                   </div>
@@ -184,7 +184,7 @@ export default function TenantDetailPage() {
                   <button
                     key={item.label}
                     onClick={item.action}
-                    className="text-left p-4 border border-border rounded-xl hover:border-brand-500/30 hover:bg-surface-overlay transition-all group"
+                    className="text-left p-4 border border-border rounded-card hover:border-brand-500/30 hover:bg-surface-overlay transition-all group"
                   >
                     <item.icon size={18} className="text-brand-400 mb-2" strokeWidth={1.75} />
                     <p className="text-sm font-semibold text-text-primary group-hover:text-brand-300 transition-colors">

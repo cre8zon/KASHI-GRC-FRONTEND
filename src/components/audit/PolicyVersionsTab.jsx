@@ -17,10 +17,10 @@ import api                from '../../config/axios.config'
  */
 
 const STATUS_STYLE = {
-  DRAFT:        'bg-slate-500/10  text-slate-400  border-slate-500/20',
-  UNDER_REVIEW: 'bg-blue-500/10   text-blue-400   border-blue-500/20',
-  APPROVED:     'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  DEPRECATED:   'bg-red-500/10    text-red-400    border-red-500/20',
+  DRAFT:        'bg-surface-inset  text-text-muted  border-border',
+  UNDER_REVIEW: 'bg-status-info-bg   text-status-info-fg   border-status-info-bd',
+  APPROVED:     'bg-status-pass-bg text-status-pass-fg border-status-pass-bd',
+  DEPRECATED:   'bg-status-fail-bg    text-status-fail-fg    border-status-fail-bd',
 }
 
 export function PolicyVersionsTab({ entity }) {
@@ -44,7 +44,7 @@ export function PolicyVersionsTab({ entity }) {
   if (isLoading) return (
     <div className="space-y-2 p-4">
       {[1, 2, 3].map(i => (
-        <div key={i} className="h-12 rounded-lg bg-surface-overlay animate-pulse" />
+        <div key={i} className="h-12 rounded-card bg-surface-overlay animate-pulse" />
       ))}
     </div>
   )

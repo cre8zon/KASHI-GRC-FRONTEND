@@ -106,7 +106,7 @@ function PdfViewer({ documentId }) {
       {error && <PreviewError message={error} />}
       <iframe
         ref={iframeRef}
-        className={cn('w-full h-full border-0 bg-[#0f172a]', (loading || error) && 'hidden')}
+        className={cn('w-full h-full border-0 bg-[var(--surface)]', (loading || error) && 'hidden')}
         onLoad={() => setLoading(false)}
         onError={() => { setError('Failed to render PDF'); setLoading(false) }}
         title="PDF preview"
@@ -164,7 +164,7 @@ function ImageViewer({ documentId, fileName, mimeType }) {
           Reset
         </button>
       </div>
-      <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center bg-[#0a0f1a] p-4">
+      <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center glass-overlay p-4">
         {loading && <LoadingSpinner label="Loading image…" />}
         {error && <PreviewError message={error} />}
         {src && !error && (
@@ -227,7 +227,7 @@ function HtmlOfficeViewer({ documentId }) {
 // ── Shared loading spinner ────────────────────────────────────────────────────
 function LoadingSpinner({ label }) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-[#0f172a]">
+    <div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)]">
       <div className="flex flex-col items-center gap-3">
         <Loader2 size={28} className="animate-spin text-brand-400" />
         <p className="text-xs text-text-muted">{label}</p>
@@ -299,7 +299,7 @@ export function DocumentPreviewDrawer({ document: doc, open, onClose }) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-center max-w-xs">
-          <div className="w-14 h-14 rounded-2xl bg-surface-overlay border border-border flex items-center justify-center">
+          <div className="w-14 h-14 rounded-modal bg-surface-overlay border border-border flex items-center justify-center">
             <FileText size={24} className="text-text-muted" />
           </div>
           <p className="text-sm font-medium text-text-primary">Preview unavailable</p>
@@ -320,7 +320,7 @@ export function DocumentPreviewDrawer({ document: doc, open, onClose }) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 z-[199] transition-opacity"
+        className="fixed inset-0 bg-on-dark-inv/40 z-[199] transition-opacity"
         onClick={onClose}
       />
       {/* Drawer panel */}
@@ -341,20 +341,20 @@ export function DocumentPreviewDrawer({ document: doc, open, onClose }) {
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {/* Download */}
             <DownloadButton documentId={doc.documentId} fileName={doc.fileName}
-              className="p-1.5 rounded-lg hover:bg-surface-overlay text-text-muted hover:text-text-primary transition-colors">
+              className="p-1.5 rounded-card hover:bg-surface-overlay text-text-muted hover:text-text-primary transition-colors">
               <Download size={15} />
             </DownloadButton>
             {/* Expand/collapse */}
             <button
               onClick={() => setExpanded(e => !e)}
-              className="p-1.5 rounded-lg hover:bg-surface-overlay text-text-muted hover:text-text-primary transition-colors"
+              className="p-1.5 rounded-card hover:bg-surface-overlay text-text-muted hover:text-text-primary transition-colors"
               title={expanded ? 'Collapse' : 'Expand'}>
               {expanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
             </button>
             {/* Close */}
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-surface-overlay text-text-muted hover:text-text-primary transition-colors">
+              className="p-1.5 rounded-card hover:bg-surface-overlay text-text-muted hover:text-text-primary transition-colors">
               <X size={15} />
             </button>
           </div>

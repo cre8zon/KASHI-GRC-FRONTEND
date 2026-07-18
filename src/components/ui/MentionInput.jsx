@@ -196,7 +196,7 @@ export function MentionInput({
         placeholder={placeholder}
         disabled={disabled}
         autoFocus={autoFocus}
-        className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none disabled:opacity-50"
+        className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none disabled:opacity-50"
       />
 
       {/* @mention indicator when active */}
@@ -219,7 +219,7 @@ export function MentionInput({
             transform: 'translateY(-100%)',
             zIndex:   9999,
           }}
-          className="bg-surface-raised border border-border rounded-lg shadow-elevated overflow-hidden">
+          className="bg-surface-raised border border-border rounded-card shadow-elevated overflow-hidden">
           <div className="max-h-52 overflow-y-auto">
             {suggestions.map((user, i) => (
               <button

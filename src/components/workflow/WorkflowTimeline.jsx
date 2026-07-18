@@ -28,20 +28,20 @@ function duration(mins) {
 // ── Status config ─────────────────────────────────────────────────────────────
 
 const STEP_STATUS = {
-  APPROVED:            { icon: Check,        color: 'text-green-400',  ring: 'border-green-500/40  bg-green-500/10'  },
-  REJECTED:            { icon: X,            color: 'text-red-400',    ring: 'border-red-500/40    bg-red-500/10'    },
+  APPROVED:            { icon: Check,        color: 'text-status-pass-fg',  ring: 'border-status-pass-bd  bg-status-pass-bg'  },
+  REJECTED:            { icon: X,            color: 'text-status-fail-fg',    ring: 'border-status-fail-bd    bg-status-fail-bg'    },
   IN_PROGRESS:         { icon: Clock,        color: 'text-brand-400',  ring: 'border-brand-500/40  bg-brand-500/10'  },
-  AWAITING_ASSIGNMENT: { icon: Users,        color: 'text-amber-400',  ring: 'border-amber-500/40  bg-amber-500/10'  },
-  REASSIGNED:          { icon: RotateCcw,    color: 'text-purple-400', ring: 'border-purple-500/40 bg-purple-500/10' },
+  AWAITING_ASSIGNMENT: { icon: Users,        color: 'text-status-warn-fg',  ring: 'border-status-warn-bd  bg-status-warn-bg'  },
+  REASSIGNED:          { icon: RotateCcw,    color: 'text-status-tag-fg', ring: 'border-status-tag-bd bg-status-tag-bg' },
   PENDING:             { icon: Circle,       color: 'text-text-muted', ring: 'border-border        bg-surface-overlay'},
 }
 
 const TASK_STATUS_COLOR = {
-  PENDING:    'text-amber-400',
-  APPROVED:   'text-green-400',
-  REJECTED:   'text-red-400',
-  DELEGATED:  'text-purple-400',
-  REASSIGNED: 'text-blue-400',
+  PENDING:    'text-status-warn-fg',
+  APPROVED:   'text-status-pass-fg',
+  REJECTED:   'text-status-fail-fg',
+  DELEGATED:  'text-status-tag-fg',
+  REASSIGNED: 'text-status-info-fg',
   EXPIRED:    'text-text-muted',
 }
 
@@ -113,7 +113,7 @@ function TaskRow({ task, isAssigner, stepInstanceId, workflowInstanceId, isAdmin
       <div className={cn(
         'w-6 h-6 rounded-full border flex items-center justify-center shrink-0 mt-0.5',
         isAssigner
-          ? 'bg-purple-500/10 border-purple-500/30'
+          ? 'bg-status-tag-bg border-status-tag-bd'
           : 'bg-surface-overlay border-border'
       )}>
         <span className="text-[9px] font-bold text-text-muted">
@@ -124,7 +124,7 @@ function TaskRow({ task, isAssigner, stepInstanceId, workflowInstanceId, isAdmin
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-medium text-text-primary">{name}</span>
           {isAssigner && (
-            <span className="text-[9px] px-1 py-0.5 rounded bg-purple-500/10 text-purple-400 font-mono">
+            <span className="text-[9px] px-1 py-0.5 rounded bg-status-tag-bg text-status-tag-fg font-mono">
               coordinator
             </span>
           )}
@@ -167,7 +167,7 @@ function TaskRow({ task, isAssigner, stepInstanceId, workflowInstanceId, isAdmin
               <button
                 onClick={() => setConfirmReset(true)}
                 disabled={resetting || reEvaluating}
-                className="flex items-center gap-1 text-[10px] font-medium text-amber-400 hover:text-amber-300 border border-amber-500/30 hover:bg-amber-500/10 px-2 py-0.5 rounded transition-colors disabled:opacity-50"
+                className="flex items-center gap-1 text-[10px] font-medium text-status-warn-fg hover:text-status-warn-fg border border-status-warn-bd hover:bg-status-warn-bg px-2 py-0.5 rounded transition-colors disabled:opacity-50"
               >
                 <RotateCw size={9}/>
                 Reopen task
@@ -176,17 +176,17 @@ function TaskRow({ task, isAssigner, stepInstanceId, workflowInstanceId, isAdmin
 
             {/* Two-option reopen modal */}
             {confirmReset && (
-              <div className="mt-1 w-full rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+              <div className="mt-1 w-full rounded-card border border-status-warn-bd bg-status-warn-bg p-3 space-y-2">
                 <div className="flex items-center gap-1.5">
-                  <AlertCircle size={11} className="text-amber-400 shrink-0" />
-                  <span className="text-[10px] font-semibold text-amber-400">How do you want to reopen?</span>
+                  <AlertCircle size={11} className="text-status-warn-fg shrink-0" />
+                  <span className="text-[10px] font-semibold text-status-warn-fg">How do you want to reopen?</span>
                 </div>
                 {/* Option 1 — task only, with confirmation */}
                 {!confirmTaskOnly ? (
                   <button
                     onClick={() => setConfirmTaskOnly(true)}
                     disabled={resetting}
-                    className="w-full text-left rounded-md border border-border hover:border-brand-500/40 bg-surface-raised hover:bg-brand-500/5 px-2.5 py-2 transition-colors disabled:opacity-50"
+                    className="w-full text-left rounded-ctl border border-border hover:border-brand-500/40 bg-surface-raised hover:bg-brand-500/5 px-2.5 py-2 transition-colors disabled:opacity-50"
                   >
                     <p className="text-[10px] font-semibold text-text-primary">Reopen this task only</p>
                     <p className="text-[10px] text-text-muted mt-0.5">
@@ -194,7 +194,7 @@ function TaskRow({ task, isAssigner, stepInstanceId, workflowInstanceId, isAdmin
                     </p>
                   </button>
                 ) : (
-                  <div className="rounded-md border border-brand-500/30 bg-brand-500/5 p-2.5 space-y-2">
+                  <div className="rounded-ctl border border-brand-500/30 bg-brand-500/5 p-2.5 space-y-2">
                     <div className="flex items-start gap-1.5">
                       <AlertCircle size={11} className="text-brand-400 shrink-0 mt-0.5" />
                       <div>
@@ -208,7 +208,7 @@ function TaskRow({ task, isAssigner, stepInstanceId, workflowInstanceId, isAdmin
                       <button
                         onClick={() => resetTask({ rollbackDownstream: false })}
                         disabled={resetting}
-                        className="flex-1 text-[10px] font-bold text-white bg-brand-600 hover:bg-brand-700 rounded px-2 py-1 transition-colors disabled:opacity-50"
+                        className="flex-1 text-[10px] font-bold text-brand-900 bg-brand-600 hover:bg-brand-700 rounded px-2 py-1 transition-colors disabled:opacity-50"
                       >
                         {resetting ? 'Reopening…' : 'Yes, reopen task'}
                       </button>
@@ -226,19 +226,19 @@ function TaskRow({ task, isAssigner, stepInstanceId, workflowInstanceId, isAdmin
                   <button
                     onClick={() => setConfirmRollback(true)}
                     disabled={resetting}
-                    className="w-full text-left rounded-md border border-amber-500/30 hover:border-amber-500/50 bg-amber-500/5 hover:bg-amber-500/10 px-2.5 py-2 transition-colors disabled:opacity-50"
+                    className="w-full text-left rounded-ctl border border-status-warn-bd hover:border-status-warn-bd bg-status-warn-bg hover:bg-status-warn-bg px-2.5 py-2 transition-colors disabled:opacity-50"
                   >
-                    <p className="text-[10px] font-semibold text-amber-400">Reopen + roll back downstream</p>
+                    <p className="text-[10px] font-semibold text-status-warn-fg">Reopen + roll back downstream</p>
                     <p className="text-[10px] text-text-muted mt-0.5">
                       Reverts this step and expires all tasks on subsequent steps. Use when the work here was fundamentally wrong.
                     </p>
                   </button>
                 ) : (
-                  <div className="rounded-md border border-red-500/40 bg-red-500/10 p-2.5 space-y-2">
+                  <div className="rounded-ctl border border-status-fail-bd bg-status-fail-bg p-2.5 space-y-2">
                     <div className="flex items-start gap-1.5">
-                      <AlertCircle size={11} className="text-red-400 shrink-0 mt-0.5" />
+                      <AlertCircle size={11} className="text-status-fail-fg shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-[10px] font-bold text-red-400">This cannot be undone</p>
+                        <p className="text-[10px] font-bold text-status-fail-fg">This cannot be undone</p>
                         <p className="text-[10px] text-text-muted mt-0.5">
                           All tasks on every step after this one will be permanently expired. Responders will lose access to their in-progress work. The CISO will need to reassign sections from scratch.
                         </p>
@@ -248,7 +248,7 @@ function TaskRow({ task, isAssigner, stepInstanceId, workflowInstanceId, isAdmin
                       <button
                         onClick={() => { resetTask({ rollbackDownstream: true }); setConfirmRollback(false) }}
                         disabled={resetting}
-                        className="flex-1 text-[10px] font-bold text-white bg-red-600 hover:bg-red-700 rounded px-2 py-1 transition-colors disabled:opacity-50"
+                        className="flex-1 text-[10px] font-bold text-on-dark bg-status-fail-bg hover:bg-status-fail-bg rounded px-2 py-1 transition-colors disabled:opacity-50"
                       >
                         {resetting ? 'Rolling back…' : 'Yes, roll back downstream'}
                       </button>
@@ -314,7 +314,7 @@ function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
 
       {/* Card */}
       <div className={cn(
-        'flex-1 mb-3 rounded-lg border overflow-hidden',
+        'flex-1 mb-3 rounded-card border overflow-hidden',
         step.isCurrentStep
           ? 'border-brand-500/30 bg-brand-500/3'
           : step.visited
@@ -341,12 +341,12 @@ function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
                 </span>
               )}
               {step.timesVisited > 1 && (
-                <span className="text-[10px] text-amber-400 font-medium">
+                <span className="text-[10px] text-status-warn-fg font-medium">
                   ×{step.timesVisited} revisits
                 </span>
               )}
               {slaBreached && (
-                <span className="flex items-center gap-1 text-[10px] text-red-400">
+                <span className="flex items-center gap-1 text-[10px] text-status-fail-fg">
                   <AlertTriangle size={9} /> SLA breached
                 </span>
               )}
@@ -386,12 +386,12 @@ function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
                   <span className="text-[10px] text-text-muted">fires automatically</span>
                 </div>
                 {status === 'IN_PROGRESS' && isAdmin && (
-                  <div className="flex items-start gap-2 bg-amber-500/5 border border-amber-500/20 rounded-lg px-2.5 py-2 mt-1">
-                    <Info size={10} className="shrink-0 text-amber-400 mt-0.5" />
-                    <p className="text-[10px] text-amber-300/80 leading-relaxed">
+                  <div className="flex items-start gap-2 bg-status-warn-bg border border-status-warn-bd rounded-card px-2.5 py-2 mt-1">
+                    <Info size={10} className="shrink-0 text-status-warn-fg mt-0.5" />
+                    <p className="text-[10px] text-status-warn-fg leading-relaxed">
                       This step auto-completes when all required items are done.
                       If you're satisfied with progress, you can manually advance
-                      using <span className="font-medium text-amber-400">Re-evaluate</span> → approve on any task above, or the APPROVE action.
+                      using <span className="font-medium text-status-warn-fg">Re-evaluate</span> → approve on any task above, or the APPROVE action.
                     </p>
                   </div>
                 )}
@@ -470,9 +470,9 @@ export function WorkflowTimeline({ progress, workflowInstanceId, isAdmin = false
           <div
             className={cn(
               'h-full rounded-full transition-all duration-500',
-              instanceStatus === 'COMPLETED' ? 'bg-green-500' :
+              instanceStatus === 'COMPLETED' ? 'bg-status-pass-bg' :
               instanceStatus === 'CANCELLED' ? 'bg-text-muted' :
-              instanceStatus === 'REJECTED'  ? 'bg-red-500' : 'bg-brand-500'
+              instanceStatus === 'REJECTED'  ? 'bg-status-fail-bg' : 'bg-brand-500'
             )}
             style={{ width: `${pct}%` }}
           />
@@ -498,21 +498,21 @@ export function WorkflowTimeline({ progress, workflowInstanceId, isAdmin = false
 
       {/* Terminal state banner */}
       {instanceStatus === 'COMPLETED' && (
-        <div className="flex items-center gap-2 py-2 px-3 rounded-md bg-green-500/5 border border-green-500/20">
-          <Check size={12} className="text-green-400" />
-          <span className="text-xs text-green-400 font-medium">Workflow completed</span>
+        <div className="flex items-center gap-2 py-2 px-3 rounded-ctl bg-status-pass-bg border border-status-pass-bd">
+          <Check size={12} className="text-status-pass-fg" />
+          <span className="text-xs text-status-pass-fg font-medium">Workflow completed</span>
         </div>
       )}
       {instanceStatus === 'CANCELLED' && (
-        <div className="flex items-center gap-2 py-2 px-3 rounded-md bg-surface-overlay border border-border">
+        <div className="flex items-center gap-2 py-2 px-3 rounded-ctl bg-surface-overlay border border-border">
           <X size={12} className="text-text-muted" />
           <span className="text-xs text-text-muted">Workflow cancelled</span>
         </div>
       )}
       {instanceStatus === 'REJECTED' && (
-        <div className="flex items-center gap-2 py-2 px-3 rounded-md bg-red-500/5 border border-red-500/20">
-          <X size={12} className="text-red-400" />
-          <span className="text-xs text-red-400 font-medium">Workflow rejected</span>
+        <div className="flex items-center gap-2 py-2 px-3 rounded-ctl bg-status-fail-bg border border-status-fail-bd">
+          <X size={12} className="text-status-fail-fg" />
+          <span className="text-xs text-status-fail-fg font-medium">Workflow rejected</span>
         </div>
       )}
     </div>

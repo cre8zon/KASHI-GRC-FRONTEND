@@ -60,9 +60,9 @@ import { formatDate } from '../../utils/format'
 // ─── Priority config ──────────────────────────────────────────────────────────
 
 const PRIORITY_CONFIG = {
-  CRITICAL: { color: 'text-red-400',    bg: 'bg-red-500/10 border-red-500/25',    dot: 'bg-red-400' },
-  HIGH:     { color: 'text-amber-400',  bg: 'bg-amber-500/10 border-amber-500/25', dot: 'bg-amber-400' },
-  MEDIUM:   { color: 'text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/25',   dot: 'bg-blue-400' },
+  CRITICAL: { color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg border-status-fail-bd',    dot: 'bg-status-fail-bg' },
+  HIGH:     { color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg border-status-warn-bd', dot: 'bg-status-warn-bg' },
+  MEDIUM:   { color: 'text-status-info-fg',   bg: 'bg-status-info-bg border-status-info-bd',   dot: 'bg-status-info-bg' },
   LOW:      { color: 'text-text-muted', bg: 'bg-surface-overlay border-border',    dot: 'bg-text-muted' },
 }
 
@@ -175,7 +175,7 @@ export function RecordDetailTemplate({
       <div className="flex items-start justify-between px-6 py-4 border-b border-border shrink-0">
         <div className="flex items-start gap-3 min-w-0">
           <button onClick={handleBack}
-            className="h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors mt-0.5 shrink-0">
+            className="h-7 w-7 flex items-center justify-center rounded-ctl text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors mt-0.5 shrink-0">
             <ArrowLeft size={15} />
           </button>
           <div className="min-w-0">
@@ -191,7 +191,7 @@ export function RecordDetailTemplate({
                 </span>
               )}
               {hasHardSod && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/25 text-red-400 flex items-center gap-1">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-status-fail-bg border border-status-fail-bd text-status-fail-fg flex items-center gap-1">
                   <AlertTriangle size={10} /> SoD conflict
                 </span>
               )}
@@ -205,7 +205,7 @@ export function RecordDetailTemplate({
                   <>
                     <span className="text-text-muted/40">·</span>
                     <Calendar size={11} />
-                    <span className={cn(new Date(dueDate) < new Date() ? 'text-red-400' : '')}>
+                    <span className={cn(new Date(dueDate) < new Date() ? 'text-status-fail-fg' : '')}>
                       Due {formatDate(dueDate)}
                     </span>
                   </>
@@ -226,10 +226,10 @@ export function RecordDetailTemplate({
       {/* SoD banner */}
       {sodViolations.length > 0 && (
         <div className={cn(
-          'flex items-center gap-2 mx-6 mt-3 px-3 py-2 rounded-lg text-xs border',
+          'flex items-center gap-2 mx-6 mt-3 px-3 py-2 rounded-card text-xs border',
           hasHardSod
-            ? 'bg-red-500/5 border-red-500/25 text-red-300'
-            : 'bg-amber-500/5 border-amber-500/25 text-amber-300'
+            ? 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg'
+            : 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg'
         )}>
           <AlertTriangle size={13} className="shrink-0" />
           <span className="font-medium">{hasHardSod ? 'SoD violation — some actions blocked:' : 'SoD warning:'}</span>
@@ -338,7 +338,7 @@ export function RecordDetailTemplate({
               )}
               {dueDate && (
                 <MetaRow icon={Calendar} label="Due date">
-                  <span className={cn('text-xs', new Date(dueDate) < new Date() ? 'text-red-400' : 'text-text-primary')}>
+                  <span className={cn('text-xs', new Date(dueDate) < new Date() ? 'text-status-fail-fg' : 'text-text-primary')}>
                     {formatDate(dueDate)}
                   </span>
                 </MetaRow>
@@ -404,7 +404,7 @@ function MetaRow({ icon: Icon, label, children }) {
 function WorkflowTab({ entityType, entityId, workflowInstanceId, workflowProgress, viewContext }) {
   if (!workflowInstanceId) {
     return (
-      <div className="flex flex-col items-center gap-3 py-12 border border-dashed border-border rounded-lg text-center">
+      <div className="flex flex-col items-center gap-3 py-12 border border-dashed border-border rounded-card text-center">
         <GitBranch size={24} className="text-text-muted" />
         <div>
           <p className="text-sm font-medium text-text-secondary">No active workflow</p>
@@ -429,7 +429,7 @@ function HistoryTab({ entityType, entityId }) {
   return (
     <div className="space-y-3">
       <p className="text-xs text-text-muted">Audit trail for {entityType} #{entityId}</p>
-      <div className="border border-border rounded-lg p-4 text-xs text-text-muted text-center">
+      <div className="border border-border rounded-card p-4 text-xs text-text-muted text-center">
         History entries will appear here as changes are recorded.
       </div>
     </div>

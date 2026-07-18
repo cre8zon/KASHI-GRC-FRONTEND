@@ -38,11 +38,11 @@ export default function LoginPage() {
       {/* Left panel — branding */}
       <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-sidebar border-r border-border relative overflow-hidden">
         <div className="absolute inset-0 opacity-5"
-          style={{ backgroundImage: 'radial-gradient(circle, rgb(14 165 233) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+          style={{ backgroundImage: 'radial-gradient(circle, rgb(var(--color-brand-500)) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
 
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-12">
-            <div className="w-9 h-9 rounded-lg bg-brand-500/20 border border-brand-500/30 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-card bg-brand-500/20 border border-brand-500/30 flex items-center justify-center">
               <ShieldCheck size={18} className="text-brand-400" />
             </div>
             <span className="text-lg font-bold text-text-primary tracking-tight">KashiGRC</span>
@@ -62,7 +62,7 @@ export default function LoginPage() {
               { label: 'Assessments', value: '14k' },
               { label: 'Risk Score', value: '99.2%' },
             ].map(stat => (
-              <div key={stat.label} className="bg-white/5 rounded-lg p-3 border border-border/40">
+              <div key={stat.label} className="bg-on-dark/5 rounded-card p-3 border border-border/40">
                 <p className="font-mono text-xl font-bold text-brand-300">{stat.value}</p>
                 <p className="text-xs text-text-muted mt-0.5">{stat.label}</p>
               </div>
@@ -85,7 +85,7 @@ export default function LoginPage() {
 
           {/* Error state */}
           {errorMsg && (
-            <div className="mb-4 px-3 py-2.5 rounded-md bg-red-500/10 border border-red-500/20 text-xs text-red-400">
+            <div className="mb-4 px-3 py-2.5 rounded-ctl bg-status-fail-bg border border-status-fail-bd text-xs text-status-fail-fg">
               {errorMsg}
             </div>
           )}
@@ -100,10 +100,10 @@ export default function LoginPage() {
                 type="email"
                 placeholder="admin@kashigrc.com"
                 autoComplete="email"
-                className="h-10 w-full rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+                className="h-10 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 transition-colors"
                 {...register('email')}
               />
-              {errors.email && <p className="text-xs text-red-400">{errors.email.message}</p>}
+              {errors.email && <p className="text-xs text-status-fail-fg">{errors.email.message}</p>}
             </div>
 
             {/* Password */}
@@ -121,7 +121,7 @@ export default function LoginPage() {
                   type={showPwd ? 'text' : 'password'}
                   placeholder="Enter your password"
                   autoComplete="current-password"
-                  className="h-10 w-full rounded-md border border-border bg-surface-raised px-3 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+                  className="h-10 w-full rounded-ctl border border-border bg-surface-raised px-3 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 transition-colors"
                   {...register('password')}
                 />
                 <button
@@ -132,7 +132,7 @@ export default function LoginPage() {
                   {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-              {errors.password && <p className="text-xs text-red-400">{errors.password.message}</p>}
+              {errors.password && <p className="text-xs text-status-fail-fg">{errors.password.message}</p>}
             </div>
 
             {/* Remember me — from Figma */}
@@ -152,22 +152,22 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isPending}
-              className="w-full h-10 rounded-md bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 active:bg-brand-700 transition-all flex items-center justify-center gap-2 disabled:opacity-60 mt-2"
+              className="w-full h-10 rounded-ctl bg-brand-500 text-brand-900 text-sm font-semibold hover:bg-brand-600 active:bg-brand-700 transition-all flex items-center justify-center gap-2 disabled:opacity-60 mt-2"
             >
               {isPending
-                ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ? <span className="w-4 h-4 border-2 border-on-dark/30 border-t-white rounded-full animate-spin" />
                 : <><span>Sign In</span><ArrowRight size={15} /></>
               }
             </button>
           </form>
 
           {/* Admin access notice — from Figma */}
-          <div className="mt-6 px-3 py-2.5 rounded-md bg-blue-500/5 border border-blue-500/15 flex items-start gap-2">
-            <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center shrink-0 mt-0.5">
-              <span className="text-white text-[9px] font-bold">i</span>
+          <div className="mt-6 px-3 py-2.5 rounded-ctl bg-status-info-bg border border-status-info-bd flex items-start gap-2">
+            <div className="w-4 h-4 rounded-full bg-status-info-bg flex items-center justify-center shrink-0 mt-0.5">
+              <span className="text-on-dark text-[9px] font-bold">i</span>
             </div>
             <div>
-              <p className="text-xs font-semibold text-blue-400">Admin Access Required</p>
+              <p className="text-xs font-semibold text-status-info-fg">Admin Access Required</p>
               <p className="text-[11px] text-text-muted mt-0.5">
                 This portal is restricted to authorized administrators only. All login attempts are monitored and logged.
               </p>

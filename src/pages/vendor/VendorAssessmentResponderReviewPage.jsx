@@ -119,7 +119,7 @@ function AnswerCard({ question, assessmentId, canAct, onOpenDrawer, drawerOpenId
           {/* Question text + type badge */}
           <div className="flex items-start gap-2 mb-1.5 flex-wrap">
             <p className="text-sm text-text-primary flex-1">{question.questionText}</p>
-            {question.mandatory && <span className="text-red-400 text-xs flex-shrink-0">*</span>}
+            {question.mandatory && <span className="text-status-fail-fg text-xs flex-shrink-0">*</span>}
           </div>
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <Badge value={question.responseType} label={tc.label} colorTag={tc.color} />
@@ -138,7 +138,7 @@ function AnswerCard({ question, assessmentId, canAct, onOpenDrawer, drawerOpenId
           {/* Answer area — always show structure even when unanswered */}
           {question.responseType === 'TEXT' || question.responseType === 'NUMERIC' || question.responseType === 'DATE' ? (
             resp?.responseText ? (
-              <div className="p-2.5 rounded-md bg-surface-overlay border border-border mb-2">
+              <div className="p-2.5 rounded-ctl bg-surface-overlay border border-border mb-2">
                 <p className="text-xs text-text-secondary leading-relaxed">{resp.responseText}</p>
               </div>
             ) : (
@@ -182,9 +182,9 @@ function AnswerCard({ question, assessmentId, canAct, onOpenDrawer, drawerOpenId
           <div className="flex items-center justify-between mt-2">
             {resp?.reviewerStatus && resp.reviewerStatus !== 'PENDING' && (() => {
               const VERDICT = {
-                ACCEPTED:           { cls: 'text-green-400',   label: '✓ Accepted' },
-                OVERRIDDEN:         { cls: 'text-blue-400',    label: '✎ Overridden' },
-                REVISION_REQUESTED: { cls: 'text-amber-400',   label: '↩ Revision requested' },
+                ACCEPTED:           { cls: 'text-status-pass-fg',   label: '✓ Accepted' },
+                OVERRIDDEN:         { cls: 'text-status-info-fg',    label: '✎ Overridden' },
+                REVISION_REQUESTED: { cls: 'text-status-warn-fg',   label: '↩ Revision requested' },
               }
               const v = VERDICT[resp.reviewerStatus]
               return v ? <span className={cn('text-[10px] font-medium', v.cls)}>{v.label}</span> : <span />
@@ -397,10 +397,10 @@ export default function VendorAssessmentResponderReviewPage() {
           </p>
         </div>
         {access?.mode === 'OBSERVER' && (
-          <span className="text-[10px] font-medium px-2 py-1 rounded bg-purple-500/10 text-purple-400">Observer</span>
+          <span className="text-[10px] font-medium px-2 py-1 rounded bg-status-tag-bg text-status-tag-fg">Observer</span>
         )}
         {access?.mode === 'COMPLETED' && (
-          <span className="text-[10px] font-medium px-2 py-1 rounded bg-green-500/10 text-green-400">Completed</span>
+          <span className="text-[10px] font-medium px-2 py-1 rounded bg-status-pass-bg text-status-pass-fg">Completed</span>
         )}
         {/* Show action buttons when user has an active task for this assessment.
             activeTask is resolved from myTasks (live inbox data) — more reliable
@@ -445,7 +445,7 @@ export default function VendorAssessmentResponderReviewPage() {
             .reduce((sum, s) => sum + (s.questions?.length || 0), 0)
 
           return (
-            <div key={si} className="bg-surface rounded-xl border border-border overflow-hidden">
+            <div key={si} className="bg-surface rounded-card border border-border overflow-hidden">
               <button onClick={() => toggle(key)}
                 className="w-full flex items-center justify-between px-5 py-4 hover:bg-surface-overlay/40 transition-colors">
                 <div className="flex items-center gap-3">
@@ -485,7 +485,7 @@ export default function VendorAssessmentResponderReviewPage() {
             Approve this assessment and publish the reviewed answers to the org team.
           </p>
           <textarea
-            className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+            className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             rows={3}
             placeholder="Review remarks (optional)"
             value={remarks}

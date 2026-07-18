@@ -90,32 +90,32 @@ export function PostActionState({
 const CONFIGS = {
   SUCCESS: {
     Icon:        CheckCircle2,
-    iconBg:      'bg-green-500/10',
-    iconColor:   'text-green-500',
+    iconBg:      'bg-status-pass-bg',
+    iconColor:   'text-status-pass-fg',
     title:       'Action submitted',
     message:     'The workflow has been updated. You can close this page or return to your inbox.',
     actionLabel: 'Go to inbox',
   },
   REJECTED: {
     Icon:        XCircle,
-    iconBg:      'bg-red-500/10',
-    iconColor:   'text-red-400',
+    iconBg:      'bg-status-fail-bg',
+    iconColor:   'text-status-fail-fg',
     title:       'Step rejected',
     message:     'The step has been rejected and the requester has been notified.',
     actionLabel: 'Go to inbox',
   },
   SENT_BACK: {
     Icon:        CornerUpLeft,
-    iconBg:      'bg-amber-500/10',
-    iconColor:   'text-amber-400',
+    iconBg:      'bg-status-warn-bg',
+    iconColor:   'text-status-warn-fg',
     title:       'Sent back for revision',
     message:     'The task has been returned for corrections. The assignee will be notified.',
     actionLabel: 'Go to inbox',
   },
   ESCALATED: {
     Icon:        AlertTriangle,
-    iconBg:      'bg-orange-500/10',
-    iconColor:   'text-orange-400',
+    iconBg:      'bg-status-warn-bg',
+    iconColor:   'text-status-warn-fg',
     title:       'Task escalated',
     message:     'The task has been escalated. The escalation chain has been notified.',
     actionLabel: 'Go to inbox',
@@ -156,8 +156,8 @@ export function TaskActionModal({ action, isPending, onConfirm, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-surface rounded-xl border border-border shadow-2xl w-full max-w-md mx-4 p-6 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-on-dark-inv/40 backdrop-blur-sm">
+      <div className="bg-surface rounded-card border border-border shadow-2xl w-full max-w-md mx-4 p-6 space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className={cn('w-9 h-9 rounded-full flex items-center justify-center', cfg.iconBg)}>
@@ -174,14 +174,14 @@ export function TaskActionModal({ action, isPending, onConfirm, onClose }) {
           <div>
             <label className="block text-xs font-medium text-text-secondary mb-1.5">
               {cfg.remarksLabel}
-              {cfg.required && <span className="text-red-400 ml-1">*</span>}
+              {cfg.required && <span className="text-status-fail-fg ml-1">*</span>}
             </label>
             <textarea
               name="remarks"
               rows={4}
               required={cfg.required}
               placeholder={cfg.placeholder}
-              className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-brand-500/50"
+              className="w-full rounded-card border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-brand-500/50"
             />
           </div>
 
@@ -206,8 +206,8 @@ export function TaskActionModal({ action, isPending, onConfirm, onClose }) {
 const ACTION_CONFIGS = {
   REJECT: {
     Icon:         XCircle,
-    iconBg:       'bg-red-500/10',
-    iconColor:    'text-red-400',
+    iconBg:       'bg-status-fail-bg',
+    iconColor:    'text-status-fail-fg',
     title:        'Reject this step',
     subtitle:     'The assignee will be notified with your reason.',
     remarksLabel: 'Reason for rejection',
@@ -218,8 +218,8 @@ const ACTION_CONFIGS = {
   },
   SEND_BACK: {
     Icon:         CornerUpLeft,
-    iconBg:       'bg-amber-500/10',
-    iconColor:    'text-amber-400',
+    iconBg:       'bg-status-warn-bg',
+    iconColor:    'text-status-warn-fg',
     title:        'Send back for revision',
     subtitle:     'The assignee will need to correct and resubmit.',
     remarksLabel: 'What needs to be corrected?',
@@ -230,8 +230,8 @@ const ACTION_CONFIGS = {
   },
   ESCALATE: {
     Icon:         AlertTriangle,
-    iconBg:       'bg-orange-500/10',
-    iconColor:    'text-orange-400',
+    iconBg:       'bg-status-warn-bg',
+    iconColor:    'text-status-warn-fg',
     title:        'Escalate task',
     subtitle:     'This task will be escalated to the next level.',
     remarksLabel: 'Escalation reason',

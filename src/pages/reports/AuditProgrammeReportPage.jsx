@@ -56,31 +56,31 @@ const fmt = (dt) => dt
 const pct = (n, d) => d > 0 ? Math.round((n / d) * 100) : 0
 
 const riskRating = (passRate, openFindings) => {
-  if (passRate >= 90 && openFindings === 0) return { label: 'Low Risk',      color: 'text-green-400',  bg: 'bg-green-500/10  border-green-500/30'  }
-  if (passRate >= 75 && openFindings <= 2)  return { label: 'Moderate Risk', color: 'text-amber-400',  bg: 'bg-amber-500/10  border-amber-500/30'  }
-  if (passRate >= 50)                        return { label: 'Elevated Risk', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/30' }
-  return                                            { label: 'High Risk',     color: 'text-red-400',    bg: 'bg-red-500/10    border-red-500/30'    }
+  if (passRate >= 90 && openFindings === 0) return { label: 'Low Risk',      color: 'text-status-pass-fg',  bg: 'bg-status-pass-bg  border-status-pass-bd'  }
+  if (passRate >= 75 && openFindings <= 2)  return { label: 'Moderate Risk', color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg  border-status-warn-bd'  }
+  if (passRate >= 50)                        return { label: 'Elevated Risk', color: 'text-status-warn-fg', bg: 'bg-status-warn-bg border-status-warn-bd' }
+  return                                            { label: 'High Risk',     color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg    border-status-fail-bd'    }
 }
 
 const RESULT_CFG = {
-  EFFECTIVE:           { label: 'Effective',           color: 'text-green-400',  bg: 'bg-green-500/20'  },
-  PARTIALLY_EFFECTIVE: { label: 'Partial',             color: 'text-amber-400',  bg: 'bg-amber-500/20'  },
-  INEFFECTIVE:         { label: 'Ineffective',         color: 'text-red-400',    bg: 'bg-red-500/20'    },
+  EFFECTIVE:           { label: 'Effective',           color: 'text-status-pass-fg',  bg: 'bg-status-pass-bg'  },
+  PARTIALLY_EFFECTIVE: { label: 'Partial',             color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg'  },
+  INEFFECTIVE:         { label: 'Ineffective',         color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg'    },
   NOT_TESTED:          { label: 'Not tested',          color: 'text-text-muted', bg: 'bg-surface-overlay'},
 }
 
 const SEVERITY_CFG = {
-  CRITICAL: { color: 'text-red-400',    bg: 'bg-red-500/10    border-red-500/30',    dot: 'bg-red-500'    },
-  HIGH:     { color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/30', dot: 'bg-orange-500' },
-  MEDIUM:   { color: 'text-amber-400',  bg: 'bg-amber-500/10  border-amber-500/30',  dot: 'bg-amber-500'  },
-  LOW:      { color: 'text-green-400',  bg: 'bg-green-500/10  border-green-500/30',  dot: 'bg-green-500'  },
+  CRITICAL: { color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg    border-status-fail-bd',    dot: 'bg-status-fail-bg'    },
+  HIGH:     { color: 'text-status-warn-fg', bg: 'bg-status-warn-bg border-status-warn-bd', dot: 'bg-status-warn-bg' },
+  MEDIUM:   { color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg  border-status-warn-bd',  dot: 'bg-status-warn-bg'  },
+  LOW:      { color: 'text-status-pass-fg',  bg: 'bg-status-pass-bg  border-status-pass-bd',  dot: 'bg-status-pass-bg'  },
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StatCard({ label, value, sub, color = 'text-text-primary', icon: Icon }) {
   return (
-    <div className="bg-surface border border-border rounded-xl px-4 py-3 flex flex-col gap-1">
+    <div className="bg-surface border border-border rounded-card px-4 py-3 flex flex-col gap-1">
       {Icon && <Icon size={14} className={cn('mb-0.5', color)} />}
       <p className={cn('text-2xl font-bold tabular-nums', color)}>{value}</p>
       <p className="text-[10px] text-text-muted uppercase tracking-wide">{label}</p>
@@ -92,8 +92,8 @@ function StatCard({ label, value, sub, color = 'text-text-primary', icon: Icon }
 function SectionHeader({ icon: Icon, title, subtitle, className }) {
   return (
     <div className={cn('flex items-center gap-3 mb-4', className)}>
-      <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
-        <Icon size={15} className="text-indigo-400" />
+      <div className="w-8 h-8 rounded-card bg-status-tag-bg border border-status-tag-bd flex items-center justify-center shrink-0">
+        <Icon size={15} className="text-status-tag-fg" />
       </div>
       <div>
         <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
@@ -104,8 +104,8 @@ function SectionHeader({ icon: Icon, title, subtitle, className }) {
 }
 
 function PassRateBar({ passRate, size = 'md' }) {
-  const color = passRate >= 80 ? 'bg-green-500' : passRate >= 60 ? 'bg-amber-500' : 'bg-red-500'
-  const textColor = passRate >= 80 ? 'text-green-400' : passRate >= 60 ? 'text-amber-400' : 'text-red-400'
+  const color = passRate >= 80 ? 'bg-status-pass-bg' : passRate >= 60 ? 'bg-status-warn-bg' : 'bg-status-fail-bg'
+  const textColor = passRate >= 80 ? 'text-status-pass-fg' : passRate >= 60 ? 'text-status-warn-fg' : 'text-status-fail-fg'
   return (
     <div className={cn('flex items-center gap-2', size === 'sm' ? 'gap-1.5' : 'gap-2')}>
       <div className={cn('flex-1 bg-surface-overlay rounded-full overflow-hidden', size === 'sm' ? 'h-1' : 'h-1.5')}>
@@ -123,7 +123,7 @@ function EngagementRow({ eng }) {
   const risk = riskRating(eng.passRatePct, eng.openFindings)
 
   return (
-    <div className="border border-border rounded-xl overflow-hidden">
+    <div className="border border-border rounded-card overflow-hidden">
       {/* Summary row */}
       <button
         onClick={() => setOpen(o => !o)}
@@ -131,7 +131,7 @@ function EngagementRow({ eng }) {
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-mono text-indigo-400/80 bg-indigo-500/10 px-1.5 py-0.5 rounded">
+            <span className="text-xs font-mono text-status-tag-fg bg-status-tag-bg px-1.5 py-0.5 rounded">
               {eng.frameworkRef || 'UNKNOWN'}
             </span>
             <span className="text-sm font-medium text-text-primary truncate">{eng.name}</span>
@@ -148,18 +148,18 @@ function EngagementRow({ eng }) {
             <p className="text-[9px] text-text-muted uppercase">Controls</p>
           </div>
           <div className="text-center">
-            <p className="font-semibold text-green-400">{eng.effective}</p>
+            <p className="font-semibold text-status-pass-fg">{eng.effective}</p>
             <p className="text-[9px] text-text-muted uppercase">Effective</p>
           </div>
           {eng.ineffective > 0 && (
             <div className="text-center">
-              <p className="font-semibold text-red-400">{eng.ineffective}</p>
+              <p className="font-semibold text-status-fail-fg">{eng.ineffective}</p>
               <p className="text-[9px] text-text-muted uppercase">Ineffective</p>
             </div>
           )}
           {eng.openFindings > 0 && (
             <div className="text-center">
-              <p className="font-semibold text-amber-400">{eng.openFindings}</p>
+              <p className="font-semibold text-status-warn-fg">{eng.openFindings}</p>
               <p className="text-[9px] text-text-muted uppercase">Findings</p>
             </div>
           )}
@@ -181,7 +181,7 @@ function EngagementRow({ eng }) {
               <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-2">
                 Controls ({eng.controls.length})
               </p>
-              <div className="rounded-lg border border-border overflow-hidden">
+              <div className="rounded-card border border-border overflow-hidden">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-surface-overlay text-text-muted">
@@ -225,7 +225,7 @@ function EngagementRow({ eng }) {
                 {(eng.findings || []).map(f => {
                   const sev = SEVERITY_CFG[f.severity] || SEVERITY_CFG.LOW
                   return (
-                    <div key={f.id} className={cn('rounded-lg border p-3', sev.bg)}>
+                    <div key={f.id} className={cn('rounded-card border p-3', sev.bg)}>
                       <div className="flex items-start gap-2">
                         <span className={cn('w-1.5 h-1.5 rounded-full mt-1.5 shrink-0', sev.dot)} />
                         <div className="flex-1 min-w-0">
@@ -276,18 +276,18 @@ function WorkflowTimeline({ steps }) {
         return (
           <div key={step.id || i} className="flex items-start gap-3">
             <div className={cn('w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5',
-              done   ? 'border-green-500 bg-green-500/20' :
-              active ? 'border-indigo-400 bg-indigo-400/20' :
+              done   ? 'border-status-pass-bd bg-status-pass-bg' :
+              active ? 'border-status-tag-bd bg-status-tag-bg' :
                        'border-border bg-surface-overlay')}>
-              {done && <CheckCircle2 size={10} className="text-green-400" />}
-              {active && <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />}
+              {done && <CheckCircle2 size={10} className="text-status-pass-fg" />}
+              {active && <div className="w-1.5 h-1.5 rounded-full bg-status-tag-bg animate-pulse" />}
             </div>
             <div className="flex-1 min-w-0 pb-2 border-b border-border/30 last:border-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-medium text-text-primary">{step.stepName || step.name}</span>
                 <span className={cn('text-[9px] font-medium uppercase px-1.5 py-0.5 rounded',
-                  done   ? 'text-green-400 bg-green-500/10' :
-                  active ? 'text-indigo-400 bg-indigo-500/10' :
+                  done   ? 'text-status-pass-fg bg-status-pass-bg' :
+                  active ? 'text-status-tag-fg bg-status-tag-bg' :
                            'text-text-muted bg-surface-overlay')}>
                   {step.status === 'APPROVED' ? 'COMPLETED' : step.status}
                 </span>
@@ -320,11 +320,11 @@ async function generatePDF(report, steps = []) {
   const riskLabel = passRate >= 90 && (report.openFindings ?? 0) === 0 ? 'Low Risk'
                   : passRate >= 75 && (report.openFindings ?? 0) <= 2  ? 'Moderate Risk'
                   : passRate >= 60 ? 'Elevated Risk' : 'High Risk'
-  const riskColor = passRate >= 90 ? '#166534' : passRate >= 75 ? '#92400e' : passRate >= 60 ? '#9a3412' : '#991b1b'
-  const riskBg    = passRate >= 90 ? '#dcfce7'  : passRate >= 75 ? '#fef3c7'  : passRate >= 60 ? '#fed7aa'  : '#fee2e2'
-  const riskBorder= passRate >= 90 ? '#16a34a'  : passRate >= 75 ? '#d97706'  : passRate >= 60 ? '#ea580c'  : '#dc2626'
-  const pctColor  = passRate >= 80 ? '#166534' : passRate >= 60 ? '#d97706' : '#dc2626'
-  const pctBg     = passRate >= 80 ? '#dcfce7'  : passRate >= 60 ? '#fef3c7'  : '#fee2e2'
+  const riskColor = passRate >= 90 ? 'var(--rpt-pass-fg)' : passRate >= 75 ? 'var(--rpt-warn-fg)' : passRate >= 60 ? 'var(--rpt-high-fg)' : 'var(--rpt-crit-fg)'
+  const riskBg    = passRate >= 90 ? 'var(--rpt-pass-bg)'  : passRate >= 75 ? 'var(--rpt-warn-bg)'  : passRate >= 60 ? 'var(--rpt-high-bg)'  : 'var(--rpt-crit-bg)'
+  const riskBorder= passRate >= 90 ? 'var(--rpt-pass-bd)'  : passRate >= 75 ? 'var(--rpt-warn-bd)'  : passRate >= 60 ? 'var(--rpt-high-bd)'  : 'var(--rpt-crit-bd)'
+  const pctColor  = passRate >= 80 ? 'var(--rpt-pass-fg)' : passRate >= 60 ? 'var(--rpt-warn-bd)' : 'var(--rpt-crit-bd)'
+  const pctBg     = passRate >= 80 ? 'var(--rpt-pass-bg)'  : passRate >= 60 ? 'var(--rpt-warn-bg)'  : 'var(--rpt-crit-bg)'
 
   const engagements = report.engagements || []
   const frameworks  = [...new Set(engagements.map(e => e.frameworkRef).filter(Boolean))]
@@ -338,45 +338,45 @@ async function generatePDF(report, steps = []) {
     const failW = Math.round((eng.ineffective ?? 0) / Math.max(eng.totalControls, 1) * 200)
     const ntW   = 200 - passW - failW
     const barSvg = `<svg width="200" height="8" xmlns="http://www.w3.org/2000/svg">
-      <rect x="0" y="0" width="200" height="8" rx="4" fill="#e5e7eb"/>
-      <rect x="0" y="0" width="${passW}" height="8" rx="4" fill="#22c55e"/>
-      <rect x="${passW}" y="0" width="${failW}" height="8" fill="#ef4444"/>
-      <rect x="${passW + failW}" y="0" width="${ntW}" height="8" rx="4" fill="#d1d5db"/>
+      <rect x="0" y="0" width="200" height="8" rx="4" fill="var(--rpt-border)"/>
+      <rect x="0" y="0" width="${passW}" height="8" rx="4" fill="var(--rpt-pass-bd)"/>
+      <rect x="${passW}" y="0" width="${failW}" height="8" fill="var(--rpt-crit-bd)"/>
+      <rect x="${passW + failW}" y="0" width="${ntW}" height="8" rx="4" fill="var(--rpt-border)"/>
     </svg>`
     const epct = eng.passRatePct ?? 0
-    const epctColor = epct >= 80 ? '#166534' : epct >= 60 ? '#d97706' : '#dc2626'
+    const epctColor = epct >= 80 ? 'var(--rpt-pass-fg)' : epct >= 60 ? 'var(--rpt-warn-bd)' : 'var(--rpt-crit-bd)'
     const sevCols = [
-      eng.criticalFindings > 0 ? `<span style="background:#fee2e2;color:#dc2626;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700">${eng.criticalFindings} C</span>` : '',
-      eng.highFindings > 0     ? `<span style="background:#ffedd5;color:#ea580c;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700">${eng.highFindings} H</span>` : '',
-      eng.mediumFindings > 0   ? `<span style="background:#fef3c7;color:#d97706;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700">${eng.mediumFindings} M</span>` : '',
-      eng.lowFindings > 0      ? `<span style="background:#f0fdf4;color:#16a34a;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700">${eng.lowFindings} L</span>` : '',
-    ].filter(Boolean).join(' ') || '<span style="color:#9ca3af">—</span>'
+      eng.criticalFindings > 0 ? `<span style="background:var(--rpt-crit-bg);color:var(--rpt-crit-bd);padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700">${eng.criticalFindings} C</span>` : '',
+      eng.highFindings > 0     ? `<span style="background:var(--rpt-high-bg);color:var(--rpt-high-bd);padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700">${eng.highFindings} H</span>` : '',
+      eng.mediumFindings > 0   ? `<span style="background:var(--rpt-warn-bg);color:var(--rpt-warn-bd);padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700">${eng.mediumFindings} M</span>` : '',
+      eng.lowFindings > 0      ? `<span style="background:var(--rpt-pass-bg);color:var(--rpt-pass-bd);padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700">${eng.lowFindings} L</span>` : '',
+    ].filter(Boolean).join(' ') || '<span style="color:var(--rpt-muted)">—</span>'
 
-    return `<tr style="background:${idx % 2 === 0 ? '#ffffff' : '#f9fafb'}">
-      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-weight:600;font-size:12px">${eng.name || eng.engagementRef}</td>
-      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:11px;color:#6b7280">${eng.frameworkRef || '—'}</td>
-      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:12px">${eng.totalControls ?? 0}</td>
-      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:12px;font-weight:700;color:#166534">${eng.effective ?? 0}</td>
-      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:12px;font-weight:700;color:#dc2626">${eng.ineffective ?? 0}</td>
-      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;vertical-align:middle">${barSvg}</td>
-      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:13px;font-weight:800;color:${epctColor}">${epct}%</td>
-      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;text-align:center">${sevCols}</td>
+    return `<tr style="background:${idx % 2 === 0 ? 'var(--rpt-white)' : 'var(--rpt-paper)'}">
+      <td style="padding:10px 14px;border-bottom:1px solid var(--rpt-border);font-weight:600;font-size:12px">${eng.name || eng.engagementRef}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--rpt-border);font-size:11px;color:var(--rpt-muted)">${eng.frameworkRef || '—'}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--rpt-border);text-align:center;font-size:12px">${eng.totalControls ?? 0}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--rpt-border);text-align:center;font-size:12px;font-weight:700;color:var(--rpt-pass-fg)">${eng.effective ?? 0}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--rpt-border);text-align:center;font-size:12px;font-weight:700;color:var(--rpt-crit-bd)">${eng.ineffective ?? 0}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--rpt-border);vertical-align:middle">${barSvg}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--rpt-border);text-align:center;font-size:13px;font-weight:800;color:${epctColor}">${epct}%</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--rpt-border);text-align:center">${sevCols}</td>
     </tr>`
   }).join('')
 
   // ── All findings table ─────────────────────────────────────────────────────
   const findingRows = allFindings.slice(0, 50).map((f, i) => {
-    const sevColor = f.severity === 'CRITICAL' ? '#dc2626' : f.severity === 'HIGH' ? '#ea580c' : f.severity === 'MEDIUM' ? '#d97706' : '#6b7280'
-    const sevBg    = f.severity === 'CRITICAL' ? '#fee2e2' : f.severity === 'HIGH' ? '#ffedd5' : f.severity === 'MEDIUM' ? '#fef3c7' : '#f3f4f6'
-    const stColor  = f.status === 'CLOSED' || f.status === 'RESOLVED' ? '#166534' : f.status === 'IN_REMEDIATION' ? '#1d4ed8' : '#dc2626'
-    const stBg     = f.status === 'CLOSED' || f.status === 'RESOLVED' ? '#dcfce7'  : f.status === 'IN_REMEDIATION' ? '#eff6ff'  : '#fee2e2'
-    return `<tr style="background:${i % 2 === 0 ? '#ffffff' : '#f9fafb'}">
-      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;font-size:12px">${(f.title || '').replace(/</g,'&lt;')}</td>
-      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;font-size:11px;color:#6b7280">${f.engName || f.frameworkRef || '—'}</td>
-      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;text-align:center">
+    const sevColor = f.severity === 'CRITICAL' ? 'var(--rpt-crit-bd)' : f.severity === 'HIGH' ? 'var(--rpt-high-bd)' : f.severity === 'MEDIUM' ? 'var(--rpt-warn-bd)' : 'var(--rpt-muted)'
+    const sevBg    = f.severity === 'CRITICAL' ? 'var(--rpt-crit-bg)' : f.severity === 'HIGH' ? 'var(--rpt-high-bg)' : f.severity === 'MEDIUM' ? 'var(--rpt-warn-bg)' : 'var(--rpt-bg-soft)'
+    const stColor  = f.status === 'CLOSED' || f.status === 'RESOLVED' ? 'var(--rpt-pass-fg)' : f.status === 'IN_REMEDIATION' ? 'var(--rpt-accent)' : 'var(--rpt-crit-bd)'
+    const stBg     = f.status === 'CLOSED' || f.status === 'RESOLVED' ? 'var(--rpt-pass-bg)'  : f.status === 'IN_REMEDIATION' ? 'var(--rpt-accent-bg)'  : 'var(--rpt-crit-bg)'
+    return `<tr style="background:${i % 2 === 0 ? 'var(--rpt-white)' : 'var(--rpt-paper)'}">
+      <td style="padding:9px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:12px">${(f.title || '').replace(/</g,'&lt;')}</td>
+      <td style="padding:9px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:11px;color:var(--rpt-muted)">${f.engName || f.frameworkRef || '—'}</td>
+      <td style="padding:9px 14px;border-bottom:1px solid var(--rpt-bg-soft);text-align:center">
         ${f.severity ? `<span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${sevBg};color:${sevColor}">${f.severity}</span>` : '—'}
       </td>
-      <td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;text-align:center">
+      <td style="padding:9px 14px;border-bottom:1px solid var(--rpt-bg-soft);text-align:center">
         <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${stBg};color:${stColor}">${f.status || 'OPEN'}</span>
       </td>
     </tr>`
@@ -386,11 +386,11 @@ async function generatePDF(report, steps = []) {
   const signOffRows = steps
     .filter(s => s.status === 'APPROVED' || s.completedAt)
     .map(s => `<tr>
-      <td style="padding:8px 14px;border-bottom:1px solid #f3f4f6;font-size:12px;font-weight:600">${s.stepName || s.name || '—'}</td>
-      <td style="padding:8px 14px;border-bottom:1px solid #f3f4f6;font-size:11px;color:#6b7280">${s.completedByName || s.actor || '—'}</td>
-      <td style="padding:8px 14px;border-bottom:1px solid #f3f4f6;font-size:11px;color:#6b7280">${fmtShort(s.completedAt || s.actedAt)}</td>
-      <td style="padding:8px 14px;border-bottom:1px solid #f3f4f6;text-align:center">
-        <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:#dcfce7;color:#166534">APPROVED</span>
+      <td style="padding:8px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:12px;font-weight:600">${s.stepName || s.name || '—'}</td>
+      <td style="padding:8px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:11px;color:var(--rpt-muted)">${s.completedByName || s.actor || '—'}</td>
+      <td style="padding:8px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:11px;color:var(--rpt-muted)">${fmtShort(s.completedAt || s.actedAt)}</td>
+      <td style="padding:8px 14px;border-bottom:1px solid var(--rpt-bg-soft);text-align:center">
+        <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:var(--rpt-pass-bg);color:var(--rpt-pass-fg)">APPROVED</span>
       </td>
     </tr>`).join('')
 
@@ -398,30 +398,30 @@ async function generatePDF(report, steps = []) {
 <title>${report.projectName || 'Programme Report'} — ${report.instanceRef || ''}</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#fff; color:#1a1a2e; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#fff; color:var(--rpt-ink); }
   @media print {
     body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     .page-break { page-break-before:always; }
     @page { margin:15mm; size:A4; }
   }
-  .header { background:linear-gradient(135deg,#1e1b4b 0%,#312e81 100%); color:#fff; padding:32px 40px; }
+  .header { background:linear-gradient(135deg,var(--rpt-ink) 0%,var(--rpt-accent) 100%); color:#fff; padding:32px 40px; }
   .header-meta { font-size:11px; opacity:.7; margin-bottom:8px; letter-spacing:.05em; text-transform:uppercase; }
   .header-title { font-size:26px; font-weight:800; margin-bottom:6px; }
   .header-desc { font-size:12px; opacity:.8; max-width:600px; margin-bottom:16px; line-height:1.5; }
   .header-pills { display:flex; gap:10px; flex-wrap:wrap; }
-  .pill { font-size:10px; font-weight:700; padding:3px 10px; border-radius:20px; border:1px solid rgba(255,255,255,.3); color:#fff; }
-  .kpi-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:#e5e7eb; margin:0; }
+  .pill { font-size:10px; font-weight:700; padding:3px 10px; border-radius:20px; border:1px solid rgb(var(--color-on-dark) / .3); color:#fff; }
+  .kpi-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--rpt-border); margin:0; }
   .kpi { background:#fff; padding:20px 16px; text-align:center; }
   .kpi-val { font-size:28px; font-weight:800; line-height:1; }
-  .kpi-lbl { font-size:10px; color:#6b7280; margin-top:4px; text-transform:uppercase; letter-spacing:.05em; }
-  .section-label { font-size:11px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.08em; padding:20px 24px 10px; border-top:2px solid #e5e7eb; margin-top:8px; }
+  .kpi-lbl { font-size:10px; color:var(--rpt-muted); margin-top:4px; text-transform:uppercase; letter-spacing:.05em; }
+  .section-label { font-size:11px; font-weight:700; color:var(--rpt-muted); text-transform:uppercase; letter-spacing:.08em; padding:20px 24px 10px; border-top:2px solid var(--rpt-border); margin-top:8px; }
   table { width:100%; border-collapse:collapse; }
-  thead th { padding:10px 14px; background:#f3f4f6; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; text-align:left; border-bottom:2px solid #e5e7eb; }
+  thead th { padding:10px 14px; background:var(--rpt-bg-soft); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--rpt-muted); text-align:left; border-bottom:2px solid var(--rpt-border); }
   .risk-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:11px; font-weight:700; border:1px solid ${riskBorder}; background:${riskBg}; color:${riskColor}; }
-  .footer { padding:24px 40px; text-align:center; font-size:10px; color:#9ca3af; border-top:1px solid #e5e7eb; margin-top:32px; }
+  .footer { padding:24px 40px; text-align:center; font-size:10px; color:var(--rpt-muted); border-top:1px solid var(--rpt-border); margin-top:32px; }
   .compliance-bar-wrap { padding:16px 24px; }
-  .compliance-bar-track { width:100%; height:12px; background:#e5e7eb; border-radius:6px; overflow:hidden; }
-  .compliance-bar-fill { height:100%; border-radius:6px; background:${passRate >= 80 ? '#22c55e' : passRate >= 60 ? '#f59e0b' : '#ef4444'}; width:${passRate}%; }
+  .compliance-bar-track { width:100%; height:12px; background:var(--rpt-border); border-radius:6px; overflow:hidden; }
+  .compliance-bar-fill { height:100%; border-radius:6px; background:${passRate >= 80 ? 'var(--rpt-pass-bd)' : passRate >= 60 ? 'var(--rpt-warn-bd)' : 'var(--rpt-crit-bd)'}; width:${passRate}%; }
 </style></head><body>
 
 <!-- HEADER -->
@@ -441,10 +441,10 @@ async function generatePDF(report, steps = []) {
 <!-- KPI BAR -->
 <div class="kpi-grid">
   <div class="kpi"><div class="kpi-val" style="color:${pctColor};background:${pctBg};padding:6px 10px;border-radius:8px;display:inline-block">${passRate}%</div><div class="kpi-lbl">Overall Compliance</div></div>
-  <div class="kpi"><div class="kpi-val" style="color:#166534">${report.effectiveControls ?? 0}</div><div class="kpi-lbl">Effective of ${report.totalControls ?? 0}</div></div>
-  <div class="kpi"><div class="kpi-val" style="color:#dc2626">${report.ineffectiveControls ?? 0}</div><div class="kpi-lbl">Ineffective</div></div>
-  <div class="kpi"><div class="kpi-val" style="color:#6b7280">${report.notTestedControls ?? 0}</div><div class="kpi-lbl">Not Tested</div></div>
-  <div class="kpi"><div class="kpi-val" style="color:${(report.openFindings ?? 0) > 0 ? '#dc2626' : '#166534'}">${report.openFindings ?? 0}</div><div class="kpi-lbl">Open Findings</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:var(--rpt-pass-fg)">${report.effectiveControls ?? 0}</div><div class="kpi-lbl">Effective of ${report.totalControls ?? 0}</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:var(--rpt-crit-bd)">${report.ineffectiveControls ?? 0}</div><div class="kpi-lbl">Ineffective</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:var(--rpt-muted)">${report.notTestedControls ?? 0}</div><div class="kpi-lbl">Not Tested</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:${(report.openFindings ?? 0) > 0 ? 'var(--rpt-crit-bd)' : 'var(--rpt-pass-fg)'}">${report.openFindings ?? 0}</div><div class="kpi-lbl">Open Findings</div></div>
 </div>
 
 <!-- Compliance bar -->
@@ -454,10 +454,10 @@ async function generatePDF(report, steps = []) {
 
 <!-- FINDINGS SEVERITY SUMMARY -->
 <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-  <div class="kpi"><div class="kpi-val" style="color:#dc2626">${report.criticalFindings ?? 0}</div><div class="kpi-lbl">Critical</div></div>
-  <div class="kpi"><div class="kpi-val" style="color:#ea580c">${report.highFindings ?? 0}</div><div class="kpi-lbl">High</div></div>
-  <div class="kpi"><div class="kpi-val" style="color:#d97706">${report.mediumFindings ?? 0}</div><div class="kpi-lbl">Medium</div></div>
-  <div class="kpi"><div class="kpi-val" style="color:#6b7280">${report.lowFindings ?? 0}</div><div class="kpi-lbl">Low</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:var(--rpt-crit-bd)">${report.criticalFindings ?? 0}</div><div class="kpi-lbl">Critical</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:var(--rpt-high-bd)">${report.highFindings ?? 0}</div><div class="kpi-lbl">High</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:var(--rpt-warn-bd)">${report.mediumFindings ?? 0}</div><div class="kpi-lbl">Medium</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:var(--rpt-muted)">${report.lowFindings ?? 0}</div><div class="kpi-lbl">Low</div></div>
 </div>
 
 <!-- FRAMEWORK COVERAGE TABLE -->
@@ -480,9 +480,9 @@ ${allFindings.length > 0 ? `
   </tr></thead>
   <tbody>${findingRows}</tbody>
 </table>
-${allFindings.length > 50 ? `<p style="font-size:10px;color:#9ca3af;padding:8px 24px">Showing 50 of ${allFindings.length} findings.</p>` : ''}
+${allFindings.length > 50 ? `<p style="font-size:10px;color:var(--rpt-muted);padding:8px 24px">Showing 50 of ${allFindings.length} findings.</p>` : ''}
 ` : `
-<div style="padding:16px 24px;margin:16px 24px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px;color:#166534">
+<div style="padding:16px 24px;margin:16px 24px;background:var(--rpt-pass-bg);border:1px solid var(--rpt-pass-bd);border-radius:8px;font-size:12px;color:var(--rpt-pass-fg)">
   ✓ No findings recorded across all engagements.
 </div>`}
 
@@ -539,7 +539,7 @@ export default function AuditProgrammeReportPage() {
   if (isLoading) return (
     <div className="flex items-center justify-center h-full">
       <div className="flex flex-col items-center gap-3">
-        <Loader2 size={24} className="text-indigo-400 animate-spin" />
+        <Loader2 size={24} className="text-status-tag-fg animate-spin" />
         <p className="text-sm text-text-muted">Loading programme report…</p>
       </div>
     </div>
@@ -548,10 +548,10 @@ export default function AuditProgrammeReportPage() {
   if (isError || !report) return (
     <div className="flex items-center justify-center h-full">
       <div className="text-center">
-        <AlertTriangle size={32} className="text-red-400 mx-auto mb-3" />
+        <AlertTriangle size={32} className="text-status-fail-fg mx-auto mb-3" />
         <p className="text-sm font-medium text-text-primary mb-1">Report data unavailable</p>
         <p className="text-xs text-text-muted mb-4">The programme report could not be loaded.</p>
-        <button onClick={() => navigate(-1)} className="text-xs text-indigo-400 underline">Go back</button>
+        <button onClick={() => navigate(-1)} className="text-xs text-status-tag-fg underline">Go back</button>
       </div>
     </div>
   )
@@ -568,7 +568,7 @@ export default function AuditProgrammeReportPage() {
         @media print {
           .no-print { display: none !important; }
           .print-break { page-break-before: always; }
-          body { background: white; color: #1a1a1a; }
+          body { background: white; color: var(--rpt-ink); }
         }
       `}</style>
 
@@ -585,7 +585,7 @@ export default function AuditProgrammeReportPage() {
           <p className="text-[10px] text-text-muted">{report.instanceRef} · {frameworks.join(' + ') || 'Multi-framework'}</p>
         </div>
         <button onClick={handleDownloadPDF} disabled={generatingPDF}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 transition-colors disabled:opacity-50">
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-card bg-status-tag-bg border border-status-tag-bd text-status-tag-fg hover:bg-status-tag-bg transition-colors disabled:opacity-50">
           <Download size={12} className={generatingPDF ? 'animate-pulse' : ''}/>{generatingPDF ? 'Generating…' : 'Download PDF'}
         </button>
       </div>
@@ -593,12 +593,12 @@ export default function AuditProgrammeReportPage() {
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-10">
 
         {/* ── 1. Programme Header ─────────────────────────────────────────── */}
-        <div className="bg-surface border border-indigo-500/20 rounded-2xl p-6">
+        <div className="bg-surface border border-status-tag-bd rounded-modal p-6">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <FolderKanban size={18} className="text-indigo-400" />
-                <span className="text-xs font-mono text-indigo-400/70 bg-indigo-500/10 px-2 py-0.5 rounded">
+                <FolderKanban size={18} className="text-status-tag-fg" />
+                <span className="text-xs font-mono text-status-tag-fg bg-status-tag-bg px-2 py-0.5 rounded">
                   {report.instanceRef || report.projectRef}
                 </span>
                 <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded border', risk.bg, risk.color)}>
@@ -637,14 +637,14 @@ export default function AuditProgrammeReportPage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
             <StatCard label="Overall compliance" value={`${report.passRatePct ?? 0}%`}
-              color={report.passRatePct >= 80 ? 'text-green-400' : report.passRatePct >= 60 ? 'text-amber-400' : 'text-red-400'}
+              color={report.passRatePct >= 80 ? 'text-status-pass-fg' : report.passRatePct >= 60 ? 'text-status-warn-fg' : 'text-status-fail-fg'}
               icon={TrendingUp} />
             <StatCard label="Controls effective" value={report.effectiveControls ?? 0}
-              sub={`of ${report.totalControls ?? 0} total`} color="text-green-400" icon={CheckCircle2} />
+              sub={`of ${report.totalControls ?? 0} total`} color="text-status-pass-fg" icon={CheckCircle2} />
             <StatCard label="Ineffective" value={report.ineffectiveControls ?? 0}
-              color={(report.ineffectiveControls ?? 0) > 0 ? 'text-red-400' : 'text-text-muted'} icon={XCircle} />
+              color={(report.ineffectiveControls ?? 0) > 0 ? 'text-status-fail-fg' : 'text-text-muted'} icon={XCircle} />
             <StatCard label="Open findings" value={report.openFindings ?? 0}
-              color={(report.openFindings ?? 0) > 0 ? 'text-amber-400' : 'text-text-muted'} icon={AlertTriangle} />
+              color={(report.openFindings ?? 0) > 0 ? 'text-status-warn-fg' : 'text-text-muted'} icon={AlertTriangle} />
           </div>
 
           {/* Findings severity breakdown */}
@@ -656,7 +656,7 @@ export default function AuditProgrammeReportPage() {
                 { key: 'mediumFindings',   label: 'Medium',   ...SEVERITY_CFG.MEDIUM   },
                 { key: 'lowFindings',      label: 'Low',      ...SEVERITY_CFG.LOW      },
               ].map(s => (
-                <div key={s.key} className={cn('rounded-xl border px-3 py-2.5 text-center', s.bg)}>
+                <div key={s.key} className={cn('rounded-card border px-3 py-2.5 text-center', s.bg)}>
                   <p className={cn('text-xl font-bold tabular-nums', s.color)}>{report[s.key] ?? 0}</p>
                   <p className={cn('text-[9px] uppercase tracking-wide font-medium mt-0.5', s.color)}>{s.label}</p>
                 </div>
@@ -669,7 +669,7 @@ export default function AuditProgrammeReportPage() {
         <div>
           <SectionHeader icon={Globe} title="Framework Coverage"
             subtitle="Pass rate and findings per engagement" />
-          <div className="rounded-xl border border-border overflow-hidden">
+          <div className="rounded-card border border-border overflow-hidden">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-surface-overlay text-text-muted">
@@ -687,21 +687,21 @@ export default function AuditProgrammeReportPage() {
                 {engagements.map(eng => (
                   <tr key={eng.engagementId} className="border-t border-border/50 hover:bg-surface-overlay/30">
                     <td className="px-4 py-2.5">
-                      <span className="font-mono text-indigo-400/80 bg-indigo-500/10 px-1.5 py-0.5 rounded text-[10px]">
+                      <span className="font-mono text-status-tag-fg bg-status-tag-bg px-1.5 py-0.5 rounded text-[10px]">
                         {eng.frameworkRef || '—'}
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-text-primary max-w-[200px] truncate">{eng.name}</td>
                     <td className="px-4 py-2.5 w-36"><PassRateBar passRate={eng.passRatePct} size="sm" /></td>
                     <td className="px-3 py-2.5 text-center text-text-secondary">{eng.totalControls}</td>
-                    <td className="px-3 py-2.5 text-center text-green-400 font-medium">{eng.effective}</td>
-                    <td className="px-3 py-2.5 text-center text-red-400 font-medium">
+                    <td className="px-3 py-2.5 text-center text-status-pass-fg font-medium">{eng.effective}</td>
+                    <td className="px-3 py-2.5 text-center text-status-fail-fg font-medium">
                       {eng.ineffective > 0 ? eng.ineffective : <span className="text-text-muted">—</span>}
                     </td>
                     <td className="px-3 py-2.5 text-center text-text-muted">{eng.notTested}</td>
                     <td className="px-3 py-2.5 text-center">
                       {eng.openFindings > 0
-                        ? <span className="text-amber-400 font-medium">{eng.openFindings}</span>
+                        ? <span className="text-status-warn-fg font-medium">{eng.openFindings}</span>
                         : <span className="text-text-muted">—</span>}
                     </td>
                   </tr>
@@ -711,14 +711,14 @@ export default function AuditProgrammeReportPage() {
                   <td className="px-4 py-2.5 text-text-muted text-[10px] uppercase tracking-wide" colSpan={2}>Programme total</td>
                   <td className="px-4 py-2.5 w-36"><PassRateBar passRate={report.passRatePct ?? 0} /></td>
                   <td className="px-3 py-2.5 text-center text-text-primary">{report.totalControls}</td>
-                  <td className="px-3 py-2.5 text-center text-green-400">{report.effectiveControls}</td>
-                  <td className="px-3 py-2.5 text-center text-red-400">
+                  <td className="px-3 py-2.5 text-center text-status-pass-fg">{report.effectiveControls}</td>
+                  <td className="px-3 py-2.5 text-center text-status-fail-fg">
                     {report.ineffectiveControls > 0 ? report.ineffectiveControls : <span className="text-text-muted">—</span>}
                   </td>
                   <td className="px-3 py-2.5 text-center text-text-muted">{report.notTestedControls}</td>
                   <td className="px-3 py-2.5 text-center">
                     {report.openFindings > 0
-                      ? <span className="text-amber-400">{report.openFindings}</span>
+                      ? <span className="text-status-warn-fg">{report.openFindings}</span>
                       : <span className="text-text-muted">—</span>}
                   </td>
                 </tr>
@@ -744,12 +744,12 @@ export default function AuditProgrammeReportPage() {
                     </p>
                     <div className="space-y-1.5 pl-3">
                       {group.map(f => (
-                        <div key={f.id} className={cn('rounded-lg border p-3', cfg.bg)}>
+                        <div key={f.id} className={cn('rounded-card border p-3', cfg.bg)}>
                           <div className="flex items-start gap-2">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-xs font-medium text-text-primary">{f.title}</span>
-                                <span className="text-[9px] font-mono text-indigo-400/70 bg-indigo-500/10 px-1 rounded">
+                                <span className="text-[9px] font-mono text-status-tag-fg bg-status-tag-bg px-1 rounded">
                                   {f.frameworkRef}
                                 </span>
                                 {f.status && (
@@ -789,17 +789,17 @@ export default function AuditProgrammeReportPage() {
               subtitle="Auditor conclusions per engagement" />
             <div className="space-y-4">
               {(report.engagementReviews || []).map(rev => (
-                <div key={rev.engagementId} className="bg-surface border border-border rounded-xl p-5">
+                <div key={rev.engagementId} className="bg-surface border border-border rounded-card p-5">
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-xs font-mono text-indigo-400/80 bg-indigo-500/10 px-1.5 py-0.5 rounded">
+                    <span className="text-xs font-mono text-status-tag-fg bg-status-tag-bg px-1.5 py-0.5 rounded">
                       {rev.engagementRef}
                     </span>
                     <span className="text-sm font-semibold text-text-primary">{rev.name}</span>
                     {rev.auditOpinion && (
                       <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded border',
-                        rev.auditOpinion === 'UNQUALIFIED' ? 'text-green-400 bg-green-500/10 border-green-500/30' :
-                        rev.auditOpinion === 'QUALIFIED'   ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' :
-                                                             'text-red-400   bg-red-500/10   border-red-500/30')}>
+                        rev.auditOpinion === 'UNQUALIFIED' ? 'text-status-pass-fg bg-status-pass-bg border-status-pass-bd' :
+                        rev.auditOpinion === 'QUALIFIED'   ? 'text-status-warn-fg bg-status-warn-bg border-status-warn-bd' :
+                                                             'text-status-fail-fg   bg-status-fail-bg   border-status-fail-bd')}>
                         {rev.auditOpinion.replace(/_/g, ' ')}
                       </span>
                     )}
@@ -824,7 +824,7 @@ export default function AuditProgrammeReportPage() {
                   {rev.scopeLimitations && (
                     <div>
                       <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-1">Scope Limitations</p>
-                      <p className="text-xs text-amber-400/80 leading-relaxed">{rev.scopeLimitations}</p>
+                      <p className="text-xs text-status-warn-fg leading-relaxed">{rev.scopeLimitations}</p>
                     </div>
                   )}
                 </div>
@@ -838,15 +838,15 @@ export default function AuditProgrammeReportPage() {
           <div>
             <SectionHeader icon={Layers} title="Cross-Framework Consolidation"
               subtitle="Programme-level themes and risk assessment" />
-            <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+            <div className="bg-surface border border-border rounded-card p-5 space-y-4">
               {report.programmeRisk && (
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Programme Risk:</span>
                   <span className={cn('text-xs font-bold px-2 py-0.5 rounded border',
-                    report.programmeRisk === 'LOW'      ? 'text-green-400 bg-green-500/10 border-green-500/30' :
-                    report.programmeRisk === 'MEDIUM'   ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' :
-                    report.programmeRisk === 'HIGH'     ? 'text-orange-400 bg-orange-500/10 border-orange-500/30' :
-                                                          'text-red-400 bg-red-500/10 border-red-500/30')}>
+                    report.programmeRisk === 'LOW'      ? 'text-status-pass-fg bg-status-pass-bg border-status-pass-bd' :
+                    report.programmeRisk === 'MEDIUM'   ? 'text-status-warn-fg bg-status-warn-bg border-status-warn-bd' :
+                    report.programmeRisk === 'HIGH'     ? 'text-status-warn-fg bg-status-warn-bg border-status-warn-bd' :
+                                                          'text-status-fail-fg bg-status-fail-bg border-status-fail-bd')}>
                     {report.programmeRisk}
                   </span>
                 </div>
@@ -863,14 +863,14 @@ export default function AuditProgrammeReportPage() {
           <div>
             <SectionHeader icon={Info} title="Management Response"
               subtitle="Formal management response to audit findings" />
-            <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+            <div className="bg-surface border border-border rounded-card p-5 space-y-4">
               {report.acceptanceOfFindings && (
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Findings Acceptance:</span>
                   <span className={cn('text-xs font-bold px-2 py-0.5 rounded border',
-                    report.acceptanceOfFindings === 'ACCEPTED' ? 'text-green-400 bg-green-500/10 border-green-500/30' :
-                    report.acceptanceOfFindings === 'PARTIAL'  ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' :
-                                                                  'text-red-400 bg-red-500/10 border-red-500/30')}>
+                    report.acceptanceOfFindings === 'ACCEPTED' ? 'text-status-pass-fg bg-status-pass-bg border-status-pass-bd' :
+                    report.acceptanceOfFindings === 'PARTIAL'  ? 'text-status-warn-fg bg-status-warn-bg border-status-warn-bd' :
+                                                                  'text-status-fail-fg bg-status-fail-bg border-status-fail-bd')}>
                     {report.acceptanceOfFindings}
                   </span>
                 </div>
@@ -895,13 +895,13 @@ export default function AuditProgrammeReportPage() {
         <div>
           <SectionHeader icon={Activity} title="Workflow Audit Trail"
             subtitle="Project lifecycle step history" />
-          <div className="bg-surface border border-border rounded-xl p-5">
+          <div className="bg-surface border border-border rounded-card p-5">
             <WorkflowTimeline steps={steps} />
           </div>
         </div>
 
         {/* ── 7. Sign-off block ────────────────────────────────────────────── */}
-        <div className="bg-surface border border-border rounded-xl p-6">
+        <div className="bg-surface border border-border rounded-card p-6">
           <SectionHeader icon={Shield} title="Programme Sign-off" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
             {['Programme Lead', 'Quality Reviewer', 'Executive Sponsor'].map(role => (

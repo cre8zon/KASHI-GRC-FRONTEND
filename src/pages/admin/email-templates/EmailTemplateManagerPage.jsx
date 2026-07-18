@@ -17,7 +17,7 @@ function VariableChip({ variable, onClick }) {
   return (
     <button
       onClick={() => onClick(variable)}
-      className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-mono hover:bg-blue-500/20 transition-colors"
+      className="inline-flex items-center gap-1 px-2 py-1 rounded-ctl bg-status-info-bg border border-status-info-bd text-status-info-fg text-xs font-mono hover:bg-status-info-bg transition-colors"
     >
       {`{{${variable}}}`}
     </button>
@@ -35,7 +35,7 @@ function LivePreview({ subject, content, mimeType }) {
     return (
       <iframe
         className="w-full h-full rounded border-0"
-        srcDoc={`<style>body{font-family:system-ui,sans-serif;font-size:13px;padding:16px;margin:0;color:#1e293b}</style>${content}`}
+        srcDoc={`<style>body{font-family:system-ui,sans-serif;font-size:13px;padding:16px;margin:0;color:var(--surface-raised)}</style>${content}`}
         title="Email Preview"
         sandbox="allow-same-origin allow-scripts"
       />
@@ -99,12 +99,12 @@ function TemplateEditor({ template, onClose, onSaved }) {
   return (
     <div className="flex flex-col h-full">
       {/* Tabs */}
-      <div className="flex gap-1 bg-surface-overlay rounded-lg p-0.5 w-fit mb-4">
+      <div className="flex gap-1 bg-surface-overlay rounded-card p-0.5 w-fit mb-4">
         {['edit', 'preview'].map(tab => (
           <button
             key={tab}
             onClick={() => { setActiveTab(tab); if (tab === 'preview') handlePreview() }}
-            className={cn('px-3 py-1.5 rounded-md text-xs font-medium transition-colors capitalize',
+            className={cn('px-3 py-1.5 rounded-ctl text-xs font-medium transition-colors capitalize',
               activeTab === tab ? 'bg-surface-raised text-text-primary' : 'text-text-muted hover:text-text-secondary')}
           >
             {tab === 'preview' ? <><Eye size={11} className="inline mr-1" />Preview</> : <><Edit3 size={11} className="inline mr-1" />Edit</>}
@@ -121,7 +121,7 @@ function TemplateEditor({ template, onClose, onSaved }) {
                 <label className="text-xs font-semibold text-text-muted uppercase tracking-wide">Template Key</label>
                 <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. user-invitation"
-                  className="h-8 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  className="h-8 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 <p className="text-[10px] text-text-muted">Used in code: <code className="font-mono">mailService.send("user-invitation", email)</code></p>
               </div>
             )}
@@ -129,13 +129,13 @@ function TemplateEditor({ template, onClose, onSaved }) {
               <label className="text-xs font-semibold text-text-muted uppercase tracking-wide">Description</label>
               <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="When is this email sent?"
-                className="h-8 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="h-8 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-text-muted uppercase tracking-wide">Subject Line</label>
               <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
                 placeholder="Welcome to KashiGRC — {{firstName}}"
-                className="h-8 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="h-8 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-text-muted uppercase tracking-wide">Email Body</label>
@@ -150,7 +150,7 @@ function TemplateEditor({ template, onClose, onSaved }) {
               onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
               rows={10}
               placeholder={`Hello {{firstName}},\n\nWelcome to KashiGRC...`}
-              className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             />
           </div>
 
@@ -184,10 +184,10 @@ function TemplateEditor({ template, onClose, onSaved }) {
                   ))}
                 </div>
               )}
-              <div className="flex-1 bg-white rounded-lg border border-border/50 overflow-hidden min-h-[120px]">
+              <div className="flex-1 bg-surface-raised rounded-card border border-border/50 overflow-hidden min-h-[120px]">
                 <LivePreview
                   subject={Object.entries(previewVars).reduce((acc, [k, v]) => acc.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), v || `{{${k}}}`), form.subject)}
-                  content={Object.entries(previewVars).reduce((acc, [k, v]) => acc.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), v || `<span style="background:#fef3c7;padding:0 2px">{{${k}}}</span>`), form.content)}
+                  content={Object.entries(previewVars).reduce((acc, [k, v]) => acc.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), v || `<span style="background:var(--status-warn-bg);padding:0 2px">{{${k}}}</span>`), form.content)}
                   mimeType={form.mimeType}
                 />
               </div>
@@ -198,11 +198,11 @@ function TemplateEditor({ template, onClose, onSaved }) {
 
       {activeTab === 'preview' && previewData && (
         <div className="flex-1 overflow-hidden flex flex-col gap-3">
-          <div className="bg-surface-overlay rounded-md px-3 py-2 text-sm">
+          <div className="bg-surface-overlay rounded-ctl px-3 py-2 text-sm">
             <span className="text-text-muted text-xs">Subject: </span>
             <span className="text-text-primary">{previewData.renderedSubject}</span>
           </div>
-          <div className="flex-1 bg-white rounded-lg border border-border/50 overflow-hidden">
+          <div className="flex-1 bg-surface-raised rounded-card border border-border/50 overflow-hidden">
             <LivePreview content={previewData.renderedBody} mimeType={previewData.mimeType} />
           </div>
         </div>
@@ -243,7 +243,7 @@ export default function EmailTemplateManagerPage() {
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search templates…"
-              className="h-8 pl-8 pr-3 w-48 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-48 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
           <Button size="sm" icon={Plus} onClick={() => setShowCreate(true)}>New Template</Button>
@@ -251,7 +251,7 @@ export default function EmailTemplateManagerPage() {
       }
     >
       <div className="p-6 space-y-3">
-        {isLoading && [1,2,3].map(i => <Skeleton key={i} className="h-20 rounded-lg" />)}
+        {isLoading && [1,2,3].map(i => <Skeleton key={i} className="h-20 rounded-card" />)}
 
         {!isLoading && templates.length === 0 && (
           <div className="text-center py-16 text-text-muted text-sm">
@@ -262,7 +262,7 @@ export default function EmailTemplateManagerPage() {
         {templates.map(template => (
           <Card key={template.id} className="animate-fade-in">
             <CardBody className="flex items-start gap-4">
-              <div className="w-9 h-9 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-card bg-brand-500/10 border border-brand-500/20 flex items-center justify-center shrink-0">
                 <Mail size={16} className="text-brand-400" />
               </div>
               <div className="flex-1 min-w-0">
@@ -294,11 +294,11 @@ export default function EmailTemplateManagerPage() {
               <div className="flex items-center gap-1.5 shrink-0">
                 <Button variant="ghost" size="xs" icon={template.isActive ? ToggleRight : ToggleLeft}
                   onClick={() => toggle(template.id)}
-                  className={template.isActive ? 'text-green-400' : 'text-text-muted'}
+                  className={template.isActive ? 'text-status-pass-fg' : 'text-text-muted'}
                 />
                 <Button variant="ghost" size="xs" icon={Edit3} onClick={() => setEditTemplate(template)} />
                 <Button variant="ghost" size="xs" icon={Trash2} onClick={() => setDeleteId(template.id)}
-                  className="text-red-400 hover:text-red-300" />
+                  className="text-status-fail-fg hover:text-status-fail-fg" />
               </div>
             </CardBody>
           </Card>

@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "lint:design": "node tools/check-design-system.mjs",
+    "prebuild": "npm run lint:design"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",

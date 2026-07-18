@@ -95,6 +95,8 @@ const BrandingAdminPage          = lazy(() => import('./pages/admin/ui-config/Br
 const RbacAdminPage              = lazy(() => import('./pages/admin/rbac/RbacAdminPage'))
 const ModuleBlueprintAdminPage   = lazy(() => import('./pages/admin/modules/ModuleBlueprintAdminPage'))
 const NotificationTemplateAdminPage = lazy(() => import('./pages/admin/notifications/NotificationTemplateAdminPage'))
+const NotificationEmailRulesPage = lazy(() => import('./pages/admin/notifications/NotificationEmailRulesPage'))
+const NotificationPreferencesPage = lazy(() => import('./pages/settings/NotificationPreferencesPage'))
 const DesignSystemPage           = lazy(() => import('./pages/admin/design-system/DesignSystemPage'))
 const ScreenDesignerPage         = lazy(() => import('./pages/admin/screen-designer/ScreenDesignerPage'))
 const DashboardAdminPage         = lazy(() => import('./pages/admin/dashboard/DashboardAdminPage'))
@@ -169,6 +171,7 @@ export default function App() {
           <Route element={<RequireAuth><AppShellWithTheme /></RequireAuth>}>
             <Route path="/dashboard"      element={<DashboardPage />} />
             <Route path="/settings"       element={<SettingsPage />} />
+            <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
             <Route path="/workflow/inbox"         element={<WorkflowInboxPage />} />
             <Route path="/workflow/tasks"          element={<AllTasksPage />} />
             <Route path="/workflow/tasks/:taskId"  element={<TaskDetailPage />} />
@@ -241,6 +244,7 @@ export default function App() {
             <Route path="/admin/rbac"             element={<RbacAdminPage />} />
             <Route path="/admin/modules"          element={<ModuleBlueprintAdminPage />} />
             <Route path="/admin/notifications"    element={<NotificationTemplateAdminPage />} />
+            <Route path="/admin/notification-email-rules" element={<NotificationEmailRulesPage />} />
             <Route path="/admin/design-system"    element={<DesignSystemPage />} />
             <Route path="/admin/screen-designer"  element={<ScreenDesignerPage />} />
             <Route path="/admin/dashboard"        element={<DashboardAdminPage />} />

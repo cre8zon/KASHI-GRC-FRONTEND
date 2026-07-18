@@ -102,14 +102,14 @@ function BlueprintModal({ blueprint, onClose }) {
           <div>
             <label className="text-xs text-text-muted mb-1 block">Source Type</label>
             <select value={form.sourceType} onChange={e => set('sourceType', e.target.value)}
-              className="w-full h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+              className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               {SOURCE_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
             </select>
           </div>
           <div>
             <label className="text-xs text-text-muted mb-1 block">Category</label>
             <select value={form.category} onChange={e => set('category', e.target.value)}
-              className="w-full h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+              className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">Select category…</option>
               {CATEGORIES.map(c => <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>)}
             </select>
@@ -130,7 +130,7 @@ function BlueprintModal({ blueprint, onClose }) {
           <textarea value={form.descriptionTemplate}
             onChange={e => set('descriptionTemplate', e.target.value)}
             rows={3} placeholder="Detailed guidance for the remediation assignee…"
-            className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+            className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -140,7 +140,7 @@ function BlueprintModal({ blueprint, onClose }) {
           <div>
             <label className="text-xs text-text-muted mb-1 block">Default Priority</label>
             <select value={form.defaultPriority} onChange={e => set('defaultPriority', e.target.value)}
-              className="w-full h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+              className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
@@ -197,11 +197,11 @@ export default function BlueprintsAdminPage() {
       <div className="grid grid-cols-4 gap-3 px-6 pt-4">
         {[
           { label: 'Total',   value: blueprints.length,  color: 'text-text-primary' },
-          { label: 'Global',  value: globalCount,        color: 'text-blue-400' },
-          { label: 'Custom',  value: tenantCount,        color: 'text-purple-400' },
-          { label: 'High+',   value: blueprints.filter(b => ['HIGH','CRITICAL'].includes(b.defaultPriority)).length, color: 'text-amber-400' },
+          { label: 'Global',  value: globalCount,        color: 'text-status-info-fg' },
+          { label: 'Custom',  value: tenantCount,        color: 'text-status-tag-fg' },
+          { label: 'High+',   value: blueprints.filter(b => ['HIGH','CRITICAL'].includes(b.defaultPriority)).length, color: 'text-status-warn-fg' },
         ].map(s => (
-          <div key={s.label} className="p-3 rounded-lg border border-border bg-surface-raised text-center">
+          <div key={s.label} className="p-3 rounded-card border border-border bg-surface-raised text-center">
             <p className={cn('text-2xl font-bold', s.color)}>{s.value}</p>
             <p className="text-[10px] text-text-muted uppercase tracking-wide mt-0.5">{s.label}</p>
           </div>
@@ -214,21 +214,21 @@ export default function BlueprintsAdminPage() {
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search blueprints…"
-            className="w-full h-8 pl-8 pr-3 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 pl-8 pr-3 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
-          className="h-8 rounded-md border border-border bg-surface-raised px-2 text-xs text-text-secondary focus:outline-none">
+          className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-secondary focus:outline-none">
           {categories.map(c => <option key={c} value={c}>{c === 'ALL' ? 'All Categories' : c.replace(/_/g,' ')}</option>)}
         </select>
         <select value={srcFilter} onChange={e => setSrcFilter(e.target.value)}
-          className="h-8 rounded-md border border-border bg-surface-raised px-2 text-xs text-text-secondary focus:outline-none">
+          className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-secondary focus:outline-none">
           {sources.map(s => <option key={s} value={s}>{s === 'ALL' ? 'All Sources' : s.replace(/_/g,' ')}</option>)}
         </select>
       </div>
 
       {/* Table */}
       <div className="px-6 py-4">
-        <div className="rounded-xl border border-border overflow-hidden">
+        <div className="rounded-card border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-surface-raised">
@@ -277,8 +277,8 @@ export default function BlueprintsAdminPage() {
                     </td>
                     <td className="px-4 py-3">
                       {isGlobal
-                        ? <span className="flex items-center gap-1 text-[10px] text-blue-400"><Globe size={10}/>Global</span>
-                        : <span className="flex items-center gap-1 text-[10px] text-purple-400"><Lock size={10}/>Custom</span>
+                        ? <span className="flex items-center gap-1 text-[10px] text-status-info-fg"><Globe size={10}/>Global</span>
+                        : <span className="flex items-center gap-1 text-[10px] text-status-tag-fg"><Lock size={10}/>Custom</span>
                       }
                     </td>
                     <td className="px-4 py-3">
@@ -291,7 +291,7 @@ export default function BlueprintsAdminPage() {
                             </button>
                             {!isGlobal && (
                               <button onClick={() => setDeleteTarget(bp)}
-                                className="p-1.5 rounded hover:bg-surface-overlay text-text-muted hover:text-red-400 transition-colors">
+                                className="p-1.5 rounded hover:bg-surface-overlay text-text-muted hover:text-status-fail-fg transition-colors">
                                 <Trash2 size={12} />
                               </button>
                             )}

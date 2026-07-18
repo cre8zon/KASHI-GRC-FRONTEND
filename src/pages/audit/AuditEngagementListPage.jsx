@@ -84,13 +84,13 @@ function EngagementForm({ projectId, onSubmit, loading }) {
         <label className="block text-sm text-text-secondary mb-1">Engagement name *</label>
         <input value={form.name} onChange={e => set('name', e.target.value)}
           placeholder="e.g. ISO 27001 Surveillance Audit 2026"
-          className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm text-text-secondary mb-1">Audit type *</label>
           <select value={form.auditType} onChange={e => set('auditType', e.target.value)}
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             <option value="INTERNAL">Internal</option>
             <option value="EXTERNAL">External</option>
           </select>
@@ -102,14 +102,14 @@ function EngagementForm({ projectId, onSubmit, loading }) {
             set('templateId', e.target.value)
             if (t?.frameworkRef) set('frameworkRef', t.frameworkRef)
           }}
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             <option value="">— no template —</option>
             {(templates || []).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
       </div>
       {selectedTemplate && (
-        <div className="rounded-md bg-surface-overlay border border-border px-3 py-2 text-xs text-text-secondary">
+        <div className="rounded-ctl bg-surface-overlay border border-border px-3 py-2 text-xs text-text-secondary">
           Template: {selectedTemplate.name} · {selectedTemplate.frameworkRef || 'no framework ref'}
         </div>
       )}
@@ -117,18 +117,18 @@ function EngagementForm({ projectId, onSubmit, loading }) {
         <label className="block text-sm text-text-secondary mb-1">Framework reference</label>
         <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)}
           placeholder="e.g. ISO 27001, SOC 2 Type II, PCI DSS 4.0"
-          className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm text-text-secondary mb-1">Planned start</label>
           <input type="date" value={form.plannedStart} onChange={e => set('plannedStart', e.target.value)}
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="block text-sm text-text-secondary mb-1">Planned end</label>
           <input type="date" value={form.plannedEnd} onChange={e => set('plannedEnd', e.target.value)}
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <Button variant="primary" onClick={() => onSubmit(form)} loading={loading}
@@ -187,7 +187,7 @@ export default function AuditEngagementListPage() {
     >
       {isLoading ? (
         <div className="px-6 py-4 grid gap-3">
-          {[1, 2].map(i => <div key={i} className="h-28 rounded-lg bg-surface-overlay animate-pulse" />)}
+          {[1, 2].map(i => <div key={i} className="h-28 rounded-card bg-surface-overlay animate-pulse" />)}
         </div>
       ) : !engagements?.length ? (
         <EmptyState icon={ClipboardList} title="No engagements yet"
@@ -199,7 +199,7 @@ export default function AuditEngagementListPage() {
           {engagements.map(eng => (
             <button key={eng.id}
               onClick={() => navigate(`/audit/engagements/${eng.id}`)}
-              className="w-full text-left rounded-lg border border-border bg-surface-raised hover:bg-surface-overlay transition-colors p-4">
+              className="w-full text-left rounded-card border border-border bg-surface-raised hover:bg-surface-overlay transition-colors p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 min-w-0">
                   <ClipboardList size={18} className="text-text-muted mt-0.5 shrink-0" />
@@ -223,7 +223,7 @@ export default function AuditEngagementListPage() {
                     <div className="flex items-center gap-3 mt-1 text-xs text-text-muted">
                       <span>{eng.totalControls} controls</span>
                       {eng.openFindingCount > 0 && (
-                        <span className="flex items-center gap-1 text-red-400">
+                        <span className="flex items-center gap-1 text-status-fail-fg">
                           <AlertTriangle size={11} />{eng.openFindingCount} findings
                         </span>
                       )}

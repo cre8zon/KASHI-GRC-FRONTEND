@@ -104,7 +104,7 @@ function RolesCell({ roles = [] }) {
   const [expanded, setExpanded] = useState(false)
 
   if (!roles.length) return (
-    <span className="flex items-center gap-1 text-[10px] text-amber-400 font-medium">
+    <span className="flex items-center gap-1 text-[10px] text-status-warn-fg font-medium">
       <AlertTriangle size={10} /> No roles
     </span>
   )
@@ -224,7 +224,7 @@ function RoleAssignPanel({ user, tenantId, side }) {
   return (
     <div className="flex flex-col gap-3">
       {/* User pill */}
-      <div className="flex items-center gap-3 p-3 bg-surface-overlay rounded-lg border border-border">
+      <div className="flex items-center gap-3 p-3 bg-surface-overlay rounded-card border border-border">
         <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0">
           <span className="text-xs font-bold text-brand-400">{initials(user.fullName || user.email)}</span>
         </div>
@@ -232,7 +232,7 @@ function RoleAssignPanel({ user, tenantId, side }) {
           <p className="text-sm font-medium text-text-primary truncate">{user.fullName || '—'}</p>
           <p className="text-xs text-text-muted truncate">{user.email}</p>
           {localRoles.length === 0 && (
-            <p className="text-[10px] text-amber-400 mt-0.5 flex items-center gap-1">
+            <p className="text-[10px] text-status-warn-fg mt-0.5 flex items-center gap-1">
               <AlertTriangle size={9} /> No roles assigned yet
             </p>
           )}
@@ -250,12 +250,12 @@ function RoleAssignPanel({ user, tenantId, side }) {
               const id = r.id || r.roleId
               return (
                 <span key={id}
-                  className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-brand-500/10 border border-brand-500/20 text-brand-400 font-mono">
+                  className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-ctl bg-brand-500/10 border border-brand-500/20 text-brand-400 font-mono">
                   {r.roleName || r.name}
                   <button
                     onClick={() => toggleRole(id)}
                     disabled={busy}
-                    className="hover:text-red-400 transition-colors ml-0.5 leading-none disabled:opacity-40"
+                    className="hover:text-status-fail-fg transition-colors ml-0.5 leading-none disabled:opacity-40"
                     title="Remove role"
                   >
                     ×
@@ -308,7 +308,7 @@ function RoleAssignPanel({ user, tenantId, side }) {
           return (
             <button key={id} onClick={() => toggleRole(id)} disabled={busy}
               className={cn(
-                'flex items-center justify-between px-3 py-2 rounded-md border text-left transition-colors',
+                'flex items-center justify-between px-3 py-2 rounded-ctl border text-left transition-colors',
                 assigned
                   ? 'bg-brand-500/10 border-brand-500/30 text-brand-400'
                   : 'bg-surface-raised border-border text-text-secondary hover:bg-surface-overlay',
@@ -411,7 +411,7 @@ function InviteUserModal({ open, onClose, side, tenantId, vendorId }) {
 
         <div>
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-2">
-            Assign Role <span className="text-red-400">*</span>
+            Assign Role <span className="text-status-fail-fg">*</span>
           </label>
           {flatRoles.length === 0
             ? <p className="text-xs text-text-muted italic">No roles available for {side}</p>
@@ -423,7 +423,7 @@ function InviteUserModal({ open, onClose, side, tenantId, vendorId }) {
                   return (
                     <button key={id} onClick={() => toggleRole(id)} type="button"
                       className={cn(
-                        'flex items-center gap-1 px-2.5 py-1 rounded-md border text-xs font-medium transition-colors',
+                        'flex items-center gap-1 px-2.5 py-1 rounded-ctl border text-xs font-medium transition-colors',
                         sel
                           ? 'bg-brand-500/15 border-brand-500/40 text-brand-400'
                           : 'border-border text-text-muted hover:text-text-primary hover:bg-surface-overlay'
@@ -437,7 +437,7 @@ function InviteUserModal({ open, onClose, side, tenantId, vendorId }) {
             )
           }
           {errors.roleIds && (
-            <p className="text-xs text-red-400 mt-1.5">{errors.roleIds}</p>
+            <p className="text-xs text-status-fail-fg mt-1.5">{errors.roleIds}</p>
           )}
         </div>
       </div>
@@ -536,7 +536,7 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
               className={cn(
                 'h-6 w-6 flex items-center justify-center rounded transition-colors',
                 (!row.roles || row.roles.length === 0)
-                  ? 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20'
+                  ? 'text-status-warn-fg bg-status-warn-bg hover:bg-status-warn-bg'
                   : 'text-text-muted hover:text-brand-400 hover:bg-brand-500/10'
               )}>
               <Shield size={12} />
@@ -548,13 +548,13 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
           </button>
           {canEdit && row.status === 'ACTIVE' && (
             <button onClick={() => setConfirmSuspend(row)} title="Suspend"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
               <UserX size={12} />
             </button>
           )}
           {canEdit && row.status === 'SUSPENDED' && (
             <button onClick={() => activate(row.id)} title="Activate"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-green-400 hover:bg-green-500/10 transition-colors">
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-pass-fg hover:bg-status-pass-bg transition-colors">
               <UserCheck size={12} />
             </button>
           )}
@@ -581,7 +581,7 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
             <input value={search}
               onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search users…"
-              className="h-8 pl-8 pr-3 w-48 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-48 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
           {canInvite && (

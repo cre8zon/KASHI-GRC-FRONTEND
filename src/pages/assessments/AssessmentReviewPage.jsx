@@ -125,12 +125,12 @@ function isCISOApprovalStep(actorRoleName, stepAction) {
 // ─── Reviewer flag types (unchanged from original) ────────────────────────────
 
 const REVIEWER_FLAG_TYPES = [
-  { code: 'CG_FRAMEWORK_GAP',       label: 'Control Gap',         icon: '⚠',  color: 'text-amber-400',  bg: 'bg-amber-500/8  border-amber-500/25'  },
-  { code: 'RE_HIGH_RESIDUAL',        label: 'Risk Escalation',     icon: '🔺',  color: 'text-red-400',    bg: 'bg-red-500/8    border-red-500/25'    },
-  { code: 'AF_EVIDENCE_MISSING',     label: 'Evidence Missing',    icon: '📄',  color: 'text-orange-400', bg: 'bg-orange-500/8 border-orange-500/25' },
-  { code: 'AF_CONTROL_PARTIAL',      label: 'Partial Control',     icon: '◑',  color: 'text-yellow-400', bg: 'bg-yellow-500/8 border-yellow-500/25' },
-  { code: 'AQ_INSUFFICIENT_DETAIL',  label: 'Needs More Detail',   icon: '💬', color: 'text-blue-400',   bg: 'bg-blue-500/8   border-blue-500/25'   },
-  { code: 'AQ_OUTDATED_DOC',         label: 'Outdated Document',   icon: '🕐',  color: 'text-purple-400', bg: 'bg-purple-500/8 border-purple-500/25' },
+  { code: 'CG_FRAMEWORK_GAP',       label: 'Control Gap',         icon: '⚠',  color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg  border-status-warn-bd'  },
+  { code: 'RE_HIGH_RESIDUAL',        label: 'Risk Escalation',     icon: '🔺',  color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg    border-status-fail-bd'    },
+  { code: 'AF_EVIDENCE_MISSING',     label: 'Evidence Missing',    icon: '📄',  color: 'text-status-warn-fg', bg: 'bg-status-warn-bg border-status-warn-bd' },
+  { code: 'AF_CONTROL_PARTIAL',      label: 'Partial Control',     icon: '◑',  color: 'text-status-warn-fg', bg: 'bg-status-warn-bg border-status-warn-bd' },
+  { code: 'AQ_INSUFFICIENT_DETAIL',  label: 'Needs More Detail',   icon: '💬', color: 'text-status-info-fg',   bg: 'bg-status-info-bg   border-status-info-bd'   },
+  { code: 'AQ_OUTDATED_DOC',         label: 'Outdated Document',   icon: '🕐',  color: 'text-status-tag-fg', bg: 'bg-status-tag-bg border-status-tag-bd' },
 ]
 
 // ─── CommentBox (unchanged from original) ────────────────────────────────────
@@ -169,21 +169,21 @@ function CommentBox({ questionInstanceId }) {
       {reviewerNotes.length > 0 && (
         <div className="space-y-1">
           {reviewerNotes.map((c, i) => (
-            <div key={c.id ?? i} className="flex gap-1.5 px-2.5 py-1.5 rounded-md bg-blue-500/6 border border-blue-500/15 text-[11px] text-blue-300">
+            <div key={c.id ?? i} className="flex gap-1.5 px-2.5 py-1.5 rounded-ctl bg-status-info-bg border border-status-info-bd text-[11px] text-status-info-fg">
               <MessageSquare size={10} className="mt-0.5 shrink-0" />
-              <span>{c.commentedByName && <span className="font-medium text-blue-200 mr-1">{c.commentedByName}:</span>}{c.commentText}</span>
+              <span>{c.commentedByName && <span className="font-medium text-status-info-fg mr-1">{c.commentedByName}:</span>}{c.commentText}</span>
             </div>
           ))}
         </div>
       )}
       {!open
-        ? <button onClick={() => setOpen(true)} className="flex items-center gap-1 text-[11px] text-text-muted hover:text-blue-400 transition-colors">
+        ? <button onClick={() => setOpen(true)} className="flex items-center gap-1 text-[11px] text-text-muted hover:text-status-info-fg transition-colors">
             <MessageSquare size={10} /> Add review note
           </button>
         : <div className="space-y-1.5">
             <textarea value={text} onChange={e => setText(e.target.value)} rows={2} autoFocus
               placeholder="Add your review note…"
-              className="w-full rounded-md border border-blue-500/20 bg-blue-500/5 px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" />
+              className="w-full rounded-ctl border border-status-info-bd bg-status-info-bg px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-status-info-bd resize-none" />
             <div className="flex gap-1">
               <Button size="xs" variant="secondary" onClick={handleAdd} loading={adding} disabled={!text.trim()}>Save note</Button>
               <Button size="xs" variant="ghost" onClick={() => { setOpen(false); setText('') }}>Cancel</Button>
@@ -197,13 +197,13 @@ function CommentBox({ questionInstanceId }) {
 // ─── RemediationActionBanner — ALL action items on a question, full context ───
 
 const STATUS_COLOR = {
-  OPEN:             'bg-red-500/8    border-red-500/25    text-red-400',
-  IN_PROGRESS:      'bg-amber-500/8  border-amber-500/25  text-amber-400',
-  PENDING_REVIEW:   'bg-blue-500/8   border-blue-500/25   text-blue-400',
-  PENDING_VALIDATION:'bg-blue-500/8  border-blue-500/25   text-blue-400',
-  RESOLVED:         'bg-green-500/8  border-green-500/25  text-green-400',
+  OPEN:             'bg-status-fail-bg    border-status-fail-bd    text-status-fail-fg',
+  IN_PROGRESS:      'bg-status-warn-bg  border-status-warn-bd  text-status-warn-fg',
+  PENDING_REVIEW:   'bg-status-info-bg   border-status-info-bd   text-status-info-fg',
+  PENDING_VALIDATION:'bg-status-info-bg  border-status-info-bd   text-status-info-fg',
+  RESOLVED:         'bg-status-pass-bg  border-status-pass-bd  text-status-pass-fg',
   DISMISSED:        'bg-surface-overlay border-border      text-text-muted',
-  RISK_ACCEPTED:    'bg-amber-500/6  border-amber-500/20  text-amber-300',
+  RISK_ACCEPTED:    'bg-status-warn-bg  border-status-warn-bd  text-status-warn-fg',
 }
 const STATUS_LABEL = {
   OPEN:              'Open — pending action',
@@ -258,7 +258,7 @@ function RemediationActionBanner({ questionInstanceId, assessmentId }) {
         const isAccepted  = item.acceptedRisk
         const vendorActed = ['PENDING_REVIEW','PENDING_VALIDATION'].includes(item.status)
         return (
-          <div key={item.id} className={cn('rounded-lg border text-[11px]', colorCls)}>
+          <div key={item.id} className={cn('rounded-card border text-[11px]', colorCls)}>
             {/* Header row */}
             <div className="flex items-start gap-2 px-3 py-2">
               {isResolved   ? <CheckCircle2 size={12} className="shrink-0 mt-0.5"/>
@@ -269,10 +269,10 @@ function RemediationActionBanner({ questionInstanceId, assessmentId }) {
                   <span className="font-semibold">Vendor remediation</span>
                   {item.severity && (
                     <span className={cn('px-1.5 py-0.5 rounded text-[9px] font-bold uppercase',
-                      item.severity === 'CRITICAL' && 'bg-red-500/20 text-red-300',
-                      item.severity === 'HIGH'     && 'bg-orange-500/20 text-orange-300',
-                      item.severity === 'MEDIUM'   && 'bg-amber-500/20 text-amber-300',
-                      item.severity === 'LOW'      && 'bg-blue-500/20 text-blue-300',
+                      item.severity === 'CRITICAL' && 'bg-status-fail-bg text-status-fail-fg',
+                      item.severity === 'HIGH'     && 'bg-status-warn-bg text-status-warn-fg',
+                      item.severity === 'MEDIUM'   && 'bg-status-warn-bg text-status-warn-fg',
+                      item.severity === 'LOW'      && 'bg-status-info-bg text-status-info-fg',
                     )}>{item.severity}</span>
                   )}
                   <span className="opacity-60">— {STATUS_LABEL[item.status] || item.status}</span>
@@ -282,7 +282,7 @@ function RemediationActionBanner({ questionInstanceId, assessmentId }) {
                   <p className="text-[10px] opacity-60 mt-0.5">Expected evidence: {item.expectedEvidence}</p>
                 )}
                 {item.dueAt && !isResolved && (
-                  <p className={cn('text-[10px] mt-0.5 flex items-center gap-1', item.isOverdue ? 'text-red-400' : 'opacity-50')}>
+                  <p className={cn('text-[10px] mt-0.5 flex items-center gap-1', item.isOverdue ? 'text-status-fail-fg' : 'opacity-50')}>
                     <Clock size={9}/> Due {formatDate(item.dueAt)}{item.isOverdue && ' — overdue'}
                   </p>
                 )}
@@ -290,7 +290,7 @@ function RemediationActionBanner({ questionInstanceId, assessmentId }) {
             </div>
 
             {/* Parties involved */}
-            <div className="px-3 py-1.5 border-t border-white/5 flex flex-wrap gap-x-4 gap-y-0.5 text-[10px] opacity-70">
+            <div className="px-3 py-1.5 border-t border-on-dark/5 flex flex-wrap gap-x-4 gap-y-0.5 text-[10px] opacity-70">
               {item.createdByName && <span>Raised by: <strong>{item.createdByName}</strong></span>}
               {item.assignedToName && <span>Assigned to: <strong>{item.assignedToName}</strong></span>}
               {item.assignedGroupRole && !item.assignedToName && <span>Group: <strong>{item.assignedGroupRole}</strong></span>}
@@ -300,21 +300,21 @@ function RemediationActionBanner({ questionInstanceId, assessmentId }) {
 
             {/* Resolution info */}
             {isResolved && (
-              <div className="px-3 py-1.5 border-t border-white/5 text-[10px]">
+              <div className="px-3 py-1.5 border-t border-on-dark/5 text-[10px]">
                 {isAccepted
-                  ? <span className="text-amber-300">⚠ Risk accepted by {item.acceptedRiskByName || item.resolvedByName} — {item.acceptedRiskNote || item.resolutionNote}</span>
-                  : <span className="text-green-300">✓ Validated by {item.resolvedByName} — {item.resolutionNote}</span>}
+                  ? <span className="text-status-warn-fg">⚠ Risk accepted by {item.acceptedRiskByName || item.resolvedByName} — {item.acceptedRiskNote || item.resolutionNote}</span>
+                  : <span className="text-status-pass-fg">✓ Validated by {item.resolvedByName} — {item.resolutionNote}</span>}
                 {item.resolvedAt && <span className="ml-1.5 opacity-50">{formatDate(item.resolvedAt)}</span>}
               </div>
             )}
 
             {/* Actions */}
             {isOpen(item.status) && item.canResolve && (
-              <div className="px-3 py-1.5 border-t border-white/5 flex gap-3 flex-wrap">
+              <div className="px-3 py-1.5 border-t border-on-dark/5 flex gap-3 flex-wrap">
                 {vendorActed && (
                   <button disabled={validating}
                     onClick={() => validate({ actionItemId: item.id, note: 'Remediation validated' })}
-                    className="text-[10px] text-green-400 hover:text-green-300 flex items-center gap-1 font-medium">
+                    className="text-[10px] text-status-pass-fg hover:text-status-pass-fg flex items-center gap-1 font-medium">
                     <CheckCircle2 size={10}/> Validate remediation
                   </button>
                 )}
@@ -325,13 +325,13 @@ function RemediationActionBanner({ questionInstanceId, assessmentId }) {
                         resolutionNote: 'Reviewer sent back for rework' })
                       qc.invalidateQueries({ queryKey: ['action-items-entity', 'QUESTION_RESPONSE', questionInstanceId] })
                     }}
-                    className="text-[10px] text-orange-400/80 hover:text-orange-400 flex items-center gap-1">
+                    className="text-[10px] text-status-warn-fg hover:text-status-warn-fg flex items-center gap-1">
                     <CornerDownLeft size={10}/> Send back for rework
                   </button>
                 )}
                 <button disabled={accepting}
                   onClick={() => acceptRisk({ actionItemId: item.id, note: 'Risk accepted' })}
-                  className="text-[10px] text-amber-400/80 hover:text-amber-400 flex items-center gap-1">
+                  className="text-[10px] text-status-warn-fg hover:text-status-warn-fg flex items-center gap-1">
                   <XCircle size={10}/> Accept risk
                 </button>
               </div>
@@ -342,11 +342,11 @@ function RemediationActionBanner({ questionInstanceId, assessmentId }) {
 
       {/* ── CLARIFICATIONS ───────────────────────────────────────────── */}
       {clarifications.map(item => {
-        const colorCls  = STATUS_COLOR[item.status] || 'bg-purple-500/8 border-purple-500/25 text-purple-400'
+        const colorCls  = STATUS_COLOR[item.status] || 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg'
         const isResolved = item.status === 'RESOLVED'
         return (
-          <div key={item.id} className={cn('rounded-lg border text-[11px]',
-            isResolved ? colorCls : 'bg-purple-500/8 border-purple-500/20 text-purple-400')}>
+          <div key={item.id} className={cn('rounded-card border text-[11px]',
+            isResolved ? colorCls : 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg')}>
             <div className="flex items-start gap-2 px-3 py-2">
               {isResolved ? <CheckCircle2 size={12} className="shrink-0 mt-0.5"/>
                 : item.status === 'PENDING_REVIEW' ? <CheckCircle2 size={12} className="shrink-0 mt-0.5"/>
@@ -362,18 +362,18 @@ function RemediationActionBanner({ questionInstanceId, assessmentId }) {
                 <button onClick={() => {
                   updateStatus({ id: item.id, status: 'RESOLVED', resolutionNote: 'Clarification accepted' })
                   qc.invalidateQueries({ queryKey: ['action-items-entity', 'QUESTION_RESPONSE', questionInstanceId] })
-                }} className="text-[10px] text-green-400/80 hover:text-green-400 flex items-center gap-0.5 shrink-0">
+                }} className="text-[10px] text-status-pass-fg hover:text-status-pass-fg flex items-center gap-0.5 shrink-0">
                   <CheckCircle2 size={10}/> Resolve
                 </button>
               )}
             </div>
-            <div className="px-3 py-1.5 border-t border-white/5 flex flex-wrap gap-x-4 gap-y-0.5 text-[10px] opacity-70">
+            <div className="px-3 py-1.5 border-t border-on-dark/5 flex flex-wrap gap-x-4 gap-y-0.5 text-[10px] opacity-70">
               {item.createdByName && <span>Raised by: <strong>{item.createdByName}</strong></span>}
               {item.assignedToName && <span>Assigned to: <strong>{item.assignedToName}</strong></span>}
               {item.createdAt && <span>{formatDate(item.createdAt)}</span>}
             </div>
             {isResolved && item.resolutionNote && (
-              <div className="px-3 py-1.5 border-t border-white/5 text-[10px] text-green-300">
+              <div className="px-3 py-1.5 border-t border-on-dark/5 text-[10px] text-status-pass-fg">
                 ✓ {item.resolutionNote}
                 {item.resolvedByName && <span className="ml-1 opacity-70">by {item.resolvedByName}</span>}
               </div>
@@ -384,7 +384,7 @@ function RemediationActionBanner({ questionInstanceId, assessmentId }) {
 
       {/* ── SYSTEM FINDINGS ──────────────────────────────────────────── */}
       {systemFindings.map(item => (
-        <div key={item.id} className="rounded-lg border border-amber-500/20 bg-amber-500/6 text-[11px] text-amber-400">
+        <div key={item.id} className="rounded-card border border-status-warn-bd bg-status-warn-bg text-[11px] text-status-warn-fg">
           <div className="flex items-start gap-2 px-3 py-2">
             <AlertTriangle size={11} className="shrink-0 mt-0.5"/>
             <div className="flex-1 min-w-0">
@@ -393,7 +393,7 @@ function RemediationActionBanner({ questionInstanceId, assessmentId }) {
             </div>
             {item.canResolve && (
               <button onClick={() => updateStatus({ id: item.id, status: 'RESOLVED', resolutionNote: 'KashiGuard finding resolved' })}
-                className="text-[10px] text-green-400/70 hover:text-green-400 shrink-0 flex items-center gap-0.5">
+                className="text-[10px] text-status-pass-fg hover:text-status-pass-fg shrink-0 flex items-center gap-0.5">
                 <CheckCircle2 size={10}/> Resolve
               </button>
             )}
@@ -422,8 +422,8 @@ function ClarificationModal({ questionText, questionInstanceId, assessmentId, on
   return (
     <Modal open={true} onClose={onClose} title="Request clarification from review assistant">
       <div className="space-y-4 p-1">
-        <div className="px-3 py-2.5 rounded-lg bg-purple-500/8 border border-purple-500/25 text-[11px]">
-          <p className="font-medium text-purple-400 mb-0.5">Question</p>
+        <div className="px-3 py-2.5 rounded-card bg-status-tag-bg border border-status-tag-bd text-[11px]">
+          <p className="font-medium text-status-tag-fg mb-0.5">Question</p>
           <p className="text-text-secondary">{questionText}</p>
         </div>
         <p className="text-xs text-text-muted">Internal only — the vendor is NOT notified. The assistant will re-evaluate and re-submit.</p>
@@ -431,7 +431,7 @@ function ClarificationModal({ questionText, questionInstanceId, assessmentId, on
           <label className="block text-xs font-medium text-text-secondary mb-1">What needs clarification? *</label>
           <textarea value={description} onChange={e => setDesc(e.target.value)} rows={3} autoFocus
             placeholder="Explain what the assistant should re-examine…"
-            className="w-full rounded-md border border-purple-500/20 bg-purple-500/5 px-2.5 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-purple-500 resize-none"/>
+            className="w-full rounded-ctl border border-status-tag-bd bg-status-tag-bg px-2.5 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-status-tag-bd resize-none"/>
         </div>
         <div className="flex gap-2 justify-end">
           <Button size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
@@ -445,10 +445,10 @@ function ClarificationModal({ questionText, questionInstanceId, assessmentId, on
 // ─── RemediationModal ─────────────────────────────────────────────────────────
 
 const SEVERITY_OPTIONS = [
-  { value: 'LOW',      cls: 'bg-blue-500/10 border-blue-500/40 text-blue-400'     },
-  { value: 'MEDIUM',   cls: 'bg-amber-500/10 border-amber-500/40 text-amber-400'  },
-  { value: 'HIGH',     cls: 'bg-orange-500/10 border-orange-500/40 text-orange-400'},
-  { value: 'CRITICAL', cls: 'bg-red-500/10   border-red-500/40   text-red-400'    },
+  { value: 'LOW',      cls: 'bg-status-info-bg border-status-info-bd text-status-info-fg'     },
+  { value: 'MEDIUM',   cls: 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg'  },
+  { value: 'HIGH',     cls: 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg'},
+  { value: 'CRITICAL', cls: 'bg-status-fail-bg   border-status-fail-bd   text-status-fail-fg'    },
 ]
 
 function RemediationModal({ questionText, questionInstanceId, assessmentId, onClose }) {
@@ -476,8 +476,8 @@ function RemediationModal({ questionText, questionInstanceId, assessmentId, onCl
   return (
     <Modal open={true} onClose={onClose} title="Request vendor remediation">
       <div className="space-y-4 p-1">
-        <div className="px-3 py-2.5 rounded-lg bg-red-500/8 border border-red-500/25 text-[11px]">
-          <p className="font-medium text-red-400 mb-0.5">Question</p>
+        <div className="px-3 py-2.5 rounded-card bg-status-fail-bg border border-status-fail-bd text-[11px]">
+          <p className="font-medium text-status-fail-fg mb-0.5">Question</p>
           <p className="text-text-secondary">{questionText}</p>
         </div>
         <p className="text-xs text-text-muted">Creates a tracked remediation obligation. Vendor contributor and CISO are notified. You validate closure.</p>
@@ -486,7 +486,7 @@ function RemediationModal({ questionText, questionInstanceId, assessmentId, onCl
           <div className="flex gap-2">
             {SEVERITY_OPTIONS.map(({ value, cls }) => (
               <button key={value} type="button" onClick={() => setSeverity(value)}
-                className={cn('flex-1 py-1.5 rounded-md border text-xs font-medium transition-colors',
+                className={cn('flex-1 py-1.5 rounded-ctl border text-xs font-medium transition-colors',
                   severity === value ? cls : 'border-border text-text-muted hover:border-brand-500/30')}>
                 {value}
               </button>
@@ -497,18 +497,18 @@ function RemediationModal({ questionText, questionInstanceId, assessmentId, onCl
           <label className="block text-xs font-medium text-text-secondary mb-1">What must the vendor remediate? *</label>
           <textarea value={description} onChange={e => setDesc(e.target.value)} rows={3} autoFocus
             placeholder="Describe the gap, deficiency, or non-compliance…"
-            className="w-full rounded-md border border-red-500/20 bg-red-500/5 px-2.5 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-red-500 resize-none"/>
+            className="w-full rounded-ctl border border-status-fail-bd bg-status-fail-bg px-2.5 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-status-fail-bd resize-none"/>
         </div>
         <div>
           <label className="block text-xs font-medium text-text-secondary mb-1">Expected evidence (optional)</label>
           <textarea value={expected} onChange={e => setExpected(e.target.value)} rows={2}
             placeholder="e.g. Updated MFA policy, SOC 2 addendum, pen test report…"
-            className="w-full rounded-md border border-border bg-surface-raised px-2.5 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
+            className="w-full rounded-ctl border border-border bg-surface-raised px-2.5 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
         </div>
         <div>
           <label className="block text-xs font-medium text-text-secondary mb-1">Due date (optional)</label>
           <input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)}
-            className="w-full rounded-md border border-border bg-surface-raised px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"/>
+            className="w-full rounded-ctl border border-border bg-surface-raised px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"/>
         </div>
         <div className="flex gap-2 justify-end">
           <Button size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
@@ -549,7 +549,7 @@ function FlagQuestionModal({ questionInstanceId, assessmentId, onClose }) {
         <div className="grid grid-cols-2 gap-2">
           {REVIEWER_FLAG_TYPES.map(ft => (
             <button key={ft.code} type="button" onClick={() => setSelected(ft.code)}
-              className={cn('flex items-center gap-2 px-3 py-2.5 rounded-lg border text-left text-xs transition-colors',
+              className={cn('flex items-center gap-2 px-3 py-2.5 rounded-card border text-left text-xs transition-colors',
                 selected === ft.code ? ft.bg + ' ' + ft.color + ' font-medium' : 'border-border text-text-secondary hover:border-brand-500/30')}>
               <span className="text-sm">{ft.icon}</span>{ft.label}
             </button>
@@ -560,7 +560,7 @@ function FlagQuestionModal({ questionInstanceId, assessmentId, onClose }) {
             <label className="block text-xs text-text-muted mb-1">Additional context (optional)</label>
             <textarea value={description} onChange={e => setDesc(e.target.value)} rows={2}
               placeholder="Describe the specific concern…"
-              className="w-full rounded-md border border-border bg-surface-raised px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
+              className="w-full rounded-ctl border border-border bg-surface-raised px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
           </div>
         )}
         <div className="flex gap-2 justify-end">
@@ -603,20 +603,20 @@ function AssignToAssistantInline({ question, assessmentId, onAssigned }) {
 
   if (isAssigned && !show) return (
     <div className="flex items-center gap-1.5 mt-1.5">
-      <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-purple-500/8 border border-purple-500/20 text-[11px] text-purple-300">
+      <div className="flex items-center gap-1 px-2 py-1 rounded-ctl bg-status-tag-bg border border-status-tag-bd text-[11px] text-status-tag-fg">
         <Users size={10}/><span>{assignedName}</span>
       </div>
-      <button onClick={() => unassign()} className="text-[10px] text-text-muted hover:text-red-400 transition-colors">remove</button>
+      <button onClick={() => unassign()} className="text-[10px] text-text-muted hover:text-status-fail-fg transition-colors">remove</button>
     </div>
   )
   if (!show) return (
-    <button onClick={() => setShow(true)} className="flex items-center gap-1 text-[11px] text-text-muted hover:text-purple-400 transition-colors mt-1.5">
+    <button onClick={() => setShow(true)} className="flex items-center gap-1 text-[11px] text-text-muted hover:text-status-tag-fg transition-colors mt-1.5">
       <UserPlus size={10}/> Assign to assistant (creates inbox task)
     </button>
   )
   return (
-    <div className="mt-2 p-2.5 rounded-lg bg-purple-500/5 border border-purple-500/20 space-y-2">
-      <p className="text-[10px] text-purple-300 font-medium">Assign to review assistant — inbox task created automatically</p>
+    <div className="mt-2 p-2.5 rounded-card bg-status-tag-bg border border-status-tag-bd space-y-2">
+      <p className="text-[10px] text-status-tag-fg font-medium">Assign to review assistant — inbox task created automatically</p>
       <input value={search} onChange={e => setSearch(e.target.value)} autoFocus
         placeholder="Search by name or email (min 2 chars)…"
         className="w-full rounded border border-border bg-surface-raised px-2.5 py-1 text-xs text-text-primary placeholder:text-text-muted focus:outline-none"/>
@@ -624,7 +624,7 @@ function AssignToAssistantInline({ question, assessmentId, onAssigned }) {
         {users.map(u => {
           const uid = u.id || u.userId; const name = u.fullName || u.email
           return <button key={uid} type="button" disabled={isPending} onClick={() => assign(uid)}
-            className="text-[11px] px-2.5 py-1 rounded-md border border-border text-text-secondary hover:border-purple-500/40 hover:text-purple-300 transition-colors">{name}</button>
+            className="text-[11px] px-2.5 py-1 rounded-ctl border border-border text-text-secondary hover:border-status-tag-bd hover:text-status-tag-fg transition-colors">{name}</button>
         })}
       </div>
       <Button size="xs" variant="ghost" onClick={() => { setShow(false); setSearch('') }}>Cancel</Button>
@@ -644,9 +644,9 @@ const TYPE_CONFIG = {
 }
 
 const EVAL_OPTIONS = [
-  { value: 'PASS',    label: 'Pass',    Icon: ThumbsUp,   bg: 'bg-green-500/10 border-green-500/40 text-green-400' },
-  { value: 'PARTIAL', label: 'Partial', Icon: Minus,      bg: 'bg-amber-500/10 border-amber-500/40 text-amber-400' },
-  { value: 'FAIL',    label: 'Fail',    Icon: ThumbsDown, bg: 'bg-red-500/10   border-red-500/40   text-red-400'   },
+  { value: 'PASS',    label: 'Pass',    Icon: ThumbsUp,   bg: 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg' },
+  { value: 'PARTIAL', label: 'Partial', Icon: Minus,      bg: 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg' },
+  { value: 'FAIL',    label: 'Fail',    Icon: ThumbsDown, bg: 'bg-status-fail-bg   border-status-fail-bd   text-status-fail-fg'   },
 ]
 
 function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEvaluate, canAct, sectionSubmitted, onOpenDrawer, number }) {
@@ -667,20 +667,20 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
   return (
     <div data-qi={question.questionInstanceId}
       className={cn('py-3.5 border-b border-border last:border-0 rounded transition-all duration-500',
-      evaluation === 'FAIL'    && 'bg-red-500/3',
-      evaluation === 'PARTIAL' && 'bg-amber-500/3',
+      evaluation === 'FAIL'    && 'bg-status-fail-bg',
+      evaluation === 'PARTIAL' && 'bg-status-warn-bg',
     )}>
       <div className="flex items-start gap-2 mb-2">
         <span className="text-xs font-mono text-text-muted pt-0.5 shrink-0 w-5">{number ?? question.orderNo}.</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-2 flex-wrap mb-1.5">
             <p className="text-sm text-text-primary flex-1">{question.questionText}</p>
-            {question.mandatory && <span className="text-red-400 text-xs shrink-0">*</span>}
+            {question.mandatory && <span className="text-status-fail-fg text-xs shrink-0">*</span>}
             {evaluation && (
               <span className={cn('text-[10px] px-1.5 py-0.5 rounded border font-medium shrink-0',
-                evaluation === 'PASS'    && 'bg-green-500/10 border-green-500/30 text-green-400',
-                evaluation === 'PARTIAL' && 'bg-amber-500/10 border-amber-500/30 text-amber-400',
-                evaluation === 'FAIL'    && 'bg-red-500/10   border-red-500/30   text-red-400',
+                evaluation === 'PASS'    && 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg',
+                evaluation === 'PARTIAL' && 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg',
+                evaluation === 'FAIL'    && 'bg-status-fail-bg   border-status-fail-bd   text-status-fail-fg',
               )}>{evaluation}</span>
             )}
           </div>
@@ -689,7 +689,7 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
             <span className="px-1.5 py-0.5 rounded bg-surface-overlay border border-border">{tc.label}</span>
             {question.weight != null && <span>{question.weight} pts</span>}
             {question.reviewerAssignedUserId && (
-              <span className="flex items-center gap-1 text-purple-300">
+              <span className="flex items-center gap-1 text-status-tag-fg">
                 <Users size={9}/> {question.reviewerAssignedUserName || `User #${question.reviewerAssignedUserId}`}
               </span>
             )}
@@ -697,7 +697,7 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
 
           {/* Answer display — handles all response types */}
           {resp ? (
-            <div className="p-2.5 rounded-md bg-surface-overlay border border-border mb-2 space-y-1.5">
+            <div className="p-2.5 rounded-ctl bg-surface-overlay border border-border mb-2 space-y-1.5">
               {/* SINGLE_CHOICE / MULTI_CHOICE — render options with highlight */}
               {(question.responseType === 'SINGLE_CHOICE' || question.responseType === 'MULTI_CHOICE') && (
                 <div className="flex flex-wrap gap-1.5">
@@ -745,19 +745,19 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
               )}
             </div>
           ) : (
-            <div className="p-2 rounded-md bg-red-500/5 border border-red-500/15 mb-2 text-[11px] text-red-400">No response — auto-FAIL</div>
+            <div className="p-2 rounded-ctl bg-status-fail-bg border border-status-fail-bd mb-2 text-[11px] text-status-fail-fg">No response — auto-FAIL</div>
           )}
 
           {/* Assistant evaluation note — shown when question is assigned to assistant */}
           {question.reviewerAssignedUserId && resp?.reviewerStatus && resp.reviewerStatus !== 'PENDING' && (
-            <div className="flex items-center gap-2 mb-1.5 text-[11px] text-purple-300">
+            <div className="flex items-center gap-2 mb-1.5 text-[11px] text-status-tag-fg">
               <Users size={10}/>
               <span>
                 {question.reviewerAssignedUserName || 'Assistant'} evaluated:
                 <span className={cn('ml-1 font-medium',
-                  resp.reviewerStatus === 'PASS'    && 'text-green-400',
-                  resp.reviewerStatus === 'PARTIAL' && 'text-amber-400',
-                  resp.reviewerStatus === 'FAIL'    && 'text-red-400',
+                  resp.reviewerStatus === 'PASS'    && 'text-status-pass-fg',
+                  resp.reviewerStatus === 'PARTIAL' && 'text-status-warn-fg',
+                  resp.reviewerStatus === 'FAIL'    && 'text-status-fail-fg',
                 )}>{resp.reviewerStatus}</span>
               </span>
               <span className="text-text-muted opacity-60">— reviewer can override below</span>
@@ -769,7 +769,7 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
             <div className="flex gap-1.5 mb-2">
               {EVAL_OPTIONS.map(({ value, label, Icon, bg }) => (
                 <button key={value} type="button" onClick={() => handleEval(value)}
-                  className={cn('flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-[11px] font-medium transition-colors',
+                  className={cn('flex items-center gap-1 px-2.5 py-1.5 rounded-ctl border text-[11px] font-medium transition-colors',
                     evaluation === value ? bg : 'border-border text-text-muted hover:border-brand-500/30')}>
                   <Icon size={11}/>{label}
                 </button>
@@ -788,13 +788,13 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
               {/* Clarify with assistant — only if assistant assigned */}
               {question.reviewerAssignedUserId && (
                 <button onClick={() => setShowClarify(true)}
-                  className="flex items-center gap-1 text-[11px] text-text-muted hover:text-purple-400 transition-colors">
+                  className="flex items-center gap-1 text-[11px] text-text-muted hover:text-status-tag-fg transition-colors">
                   <CornerDownLeft size={10}/> Clarify with assistant
                 </button>
               )}
               {/* Request vendor remediation */}
               <button onClick={() => setShowRemediate(true)}
-                className="flex items-center gap-1 text-[11px] text-text-muted hover:text-red-400 transition-colors">
+                className="flex items-center gap-1 text-[11px] text-text-muted hover:text-status-fail-fg transition-colors">
                 <Flag size={10}/> Vendor remediation
               </button>
               {/* Full context drawer — notes, evidence, activity */}
@@ -858,7 +858,7 @@ function ReviewerSectionAccordion({ section, assessmentId, taskId, evaluations, 
   const allEvaluated = evaluated >= questions.length && questions.length > 0
 
   return (
-    <div className="bg-surface rounded-xl border border-border overflow-hidden">
+    <div className="bg-surface rounded-card border border-border overflow-hidden">
       <button onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-surface-overlay/40 transition-colors">
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -866,13 +866,13 @@ function ReviewerSectionAccordion({ section, assessmentId, taskId, evaluations, 
           <span className="text-sm font-medium text-text-primary">{section.sectionName}</span>
           <span className="text-xs text-text-muted">{answered}/{questions.length} answered</span>
           {unanswered > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">{unanswered} auto-FAIL</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-fail-bg text-status-fail-fg border border-status-fail-bd">{unanswered} auto-FAIL</span>
           )}
           {evaluated > 0 && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">{evaluated}/{questions.length} evaluated</span>
           )}
           {isSubmitted && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20 flex items-center gap-1">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-pass-bg text-status-pass-fg border border-status-pass-bd flex items-center gap-1">
               <CheckCircle2 size={9}/> Submitted
             </span>
           )}
@@ -916,8 +916,8 @@ function ReviewerSectionAccordion({ section, assessmentId, taskId, evaluations, 
             </div>
           )}
           {isSubmitted && section.reviewerSubmittedAt && (
-            <div className="px-5 py-2 border-t border-border bg-green-500/3">
-              <p className="text-[11px] text-green-400 flex items-center gap-1.5">
+            <div className="px-5 py-2 border-t border-border bg-status-pass-bg">
+              <p className="text-[11px] text-status-pass-fg flex items-center gap-1.5">
                 <CheckCircle2 size={11}/>Submitted {formatDate(section.reviewerSubmittedAt)}
               </p>
             </div>
@@ -961,20 +961,20 @@ function AssignReviewersPanel({ assessment, taskId, onDone }) {
   return (
     <div className="space-y-4">
       <p className="text-xs text-text-muted">Assign each section to a reviewer. Reviewers will see only their assigned sections and can further assign questions to review assistants.</p>
-      <div className="rounded-md border border-border bg-surface-raised px-3 py-2">
+      <div className="rounded-ctl border border-border bg-surface-raised px-3 py-2">
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search reviewers by name or email (min 2 chars)…"
           className="w-full text-sm bg-transparent text-text-primary placeholder:text-text-muted focus:outline-none"/>
       </div>
       {sections.map(sec => (
-        <div key={sec.sectionInstanceId} className="rounded-md border border-border overflow-hidden">
+        <div key={sec.sectionInstanceId} className="rounded-ctl border border-border overflow-hidden">
           <div className="px-4 py-3 bg-surface-overlay flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-text-primary">{sec.sectionName}</p>
               <p className="text-xs text-text-muted">{sec.questions?.length || 0} questions</p>
             </div>
             {assignments[sec.sectionInstanceId] && (
-              <span className="text-xs text-green-400 flex items-center gap-1">
+              <span className="text-xs text-status-pass-fg flex items-center gap-1">
                 <CheckCircle2 size={11}/> {assignments[sec.sectionInstanceId].name}
               </span>
             )}
@@ -990,7 +990,7 @@ function AssignReviewersPanel({ assessment, taskId, onDone }) {
                       setAssignments(a => ({ ...a, [sec.sectionInstanceId]: { id: uid, name: u.fullName || u.email } }))
                       assignSection({ sectionInstanceId: sec.sectionInstanceId, userId: uid })
                     }}
-                    className={cn('text-xs px-2.5 py-1 rounded-md border transition-colors',
+                    className={cn('text-xs px-2.5 py-1 rounded-ctl border transition-colors',
                       selected ? 'bg-brand-500/15 border-brand-500/40 text-brand-400' : 'border-border text-text-secondary hover:border-brand-500/30')}>
                     {u.fullName || u.email}
                   </button>
@@ -1010,10 +1010,10 @@ function AssignReviewersPanel({ assessment, taskId, onDone }) {
 // ─── PANEL 2: EvaluateQuestionsPanel (updated: useMyReviewerSections, per-section submit) ──
 
 const RISK_RATINGS = [
-  { value: 'LOW',      color: 'bg-green-500/10 border-green-500/40 text-green-400'   },
-  { value: 'MEDIUM',   color: 'bg-amber-500/10 border-amber-500/40 text-amber-400'  },
-  { value: 'HIGH',     color: 'bg-orange-500/10 border-orange-500/40 text-orange-400'},
-  { value: 'CRITICAL', color: 'bg-red-500/10   border-red-500/40   text-red-400'    },
+  { value: 'LOW',      color: 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg'   },
+  { value: 'MEDIUM',   color: 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg'  },
+  { value: 'HIGH',     color: 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg'},
+  { value: 'CRITICAL', color: 'bg-status-fail-bg   border-status-fail-bd   text-status-fail-fg'    },
 ]
 
 function EvaluateQuestionsPanel({ assessment, taskId, activeTask, onDone, targetQId }) {
@@ -1131,9 +1131,9 @@ function EvaluateQuestionsPanel({ assessment, taskId, activeTask, onDone, target
             {suggested && (
               <span className="text-[10px] text-text-muted bg-surface-overlay px-2 py-0.5 rounded">
                 Suggested: <strong className={cn(
-                  suggested === 'LOW' ? 'text-green-400' :
-                  suggested === 'MEDIUM' ? 'text-amber-400' :
-                  suggested === 'HIGH' ? 'text-orange-400' : 'text-red-400'
+                  suggested === 'LOW' ? 'text-status-pass-fg' :
+                  suggested === 'MEDIUM' ? 'text-status-warn-fg' :
+                  suggested === 'HIGH' ? 'text-status-warn-fg' : 'text-status-fail-fg'
                 )}>{suggested}</strong> based on score
               </span>
             )}
@@ -1142,11 +1142,11 @@ function EvaluateQuestionsPanel({ assessment, taskId, activeTask, onDone, target
             {RISK_RATINGS.map(r => (
               <button key={r.value} type="button"
                 onClick={() => setRiskRating(r.value)}
-                className={cn('py-2 rounded-md border text-xs font-medium transition-colors relative',
+                className={cn('py-2 rounded-ctl border text-xs font-medium transition-colors relative',
                   riskRating === r.value ? r.color : 'border-border text-text-muted hover:border-brand-500/30')}>
                 {r.value}
                 {r.value === suggested && riskRating !== r.value && (
-                  <span className="absolute -top-1.5 -right-1.5 text-[8px] bg-brand-500 text-white rounded-full w-3 h-3 flex items-center justify-center">✓</span>
+                  <span className="absolute -top-1.5 -right-1.5 text-[8px] bg-brand-500 text-brand-900 rounded-full w-3 h-3 flex items-center justify-center">✓</span>
                 )}
               </button>
             ))}
@@ -1189,7 +1189,7 @@ function EvaluateQuestionsPanel({ assessment, taskId, activeTask, onDone, target
         <span>{mySections.length} section(s) assigned to you</span>
         <div className="flex items-center gap-2">
           {unanswered > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-400">{unanswered} auto-FAIL</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-fail-bg border border-status-fail-bd text-status-fail-fg">{unanswered} auto-FAIL</span>
           )}
           <span className="font-medium text-text-muted">{Object.keys(evaluations).length}/{allQs.length} evaluated</span>
         </div>
@@ -1289,7 +1289,7 @@ function ConsolidateFindingsPanel({ assessment, taskId, onDone }) {
           { label: 'Sections',           value: secs.length },
           { label: 'Compliance score',   value: `${displayPct}%` },
         ].map(s => (
-          <div key={s.label} className="rounded-md border border-border p-3 text-center">
+          <div key={s.label} className="rounded-ctl border border-border p-3 text-center">
             <p className="text-lg font-semibold text-text-primary">{s.value}</p>
             <p className="text-xs text-text-muted mt-0.5">{s.label}</p>
           </div>
@@ -1304,7 +1304,7 @@ function ConsolidateFindingsPanel({ assessment, taskId, onDone }) {
           onChange={e => setFindings(e.target.value)}
           rows={6}
           placeholder="Document key findings, risk observations, deficiencies, and recommendations…"
-          className="w-full rounded-md border border-border bg-surface-raised px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+          className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
         />
         <p className="text-[11px] text-text-muted">
           Submitting will consolidate all section scores and document your findings.
@@ -1352,16 +1352,16 @@ function FinalSignOffPanel({ assessment, taskId, onApprove, onSendBack, acting, 
   const secs         = assessment?.sections || []
 
   const RISK_COLOR = {
-    LOW:      'text-green-400  bg-green-500/10  border-green-500/25',
-    MEDIUM:   'text-amber-400  bg-amber-500/10  border-amber-500/25',
-    HIGH:     'text-orange-400 bg-orange-500/10 border-orange-500/25',
-    CRITICAL: 'text-red-400    bg-red-500/10    border-red-500/25',
+    LOW:      'text-status-pass-fg  bg-status-pass-bg  border-status-pass-bd',
+    MEDIUM:   'text-status-warn-fg  bg-status-warn-bg  border-status-warn-bd',
+    HIGH:     'text-status-warn-fg bg-status-warn-bg border-status-warn-bd',
+    CRITICAL: 'text-status-fail-fg    bg-status-fail-bg    border-status-fail-bd',
   }
 
   return (
     <div className="space-y-4">
       {/* Summary before final sign-off */}
-      <div className="rounded-lg border border-border bg-surface-raised overflow-hidden">
+      <div className="rounded-card border border-border bg-surface-raised overflow-hidden">
         <div className="px-4 py-2.5 border-b border-border">
           <p className="text-xs font-medium text-text-muted uppercase tracking-wide">Assessment summary</p>
         </div>
@@ -1374,7 +1374,7 @@ function FinalSignOffPanel({ assessment, taskId, onApprove, onSendBack, acting, 
           </div>
           <div className="px-4 py-3 text-center">
             <p className="text-[10px] text-text-muted uppercase tracking-wide mb-1">Open Remediations</p>
-            <p className={cn('text-lg font-semibold', openRemed > 0 ? 'text-amber-400' : 'text-green-400')}>{openRemed}</p>
+            <p className={cn('text-lg font-semibold', openRemed > 0 ? 'text-status-warn-fg' : 'text-status-pass-fg')}>{openRemed}</p>
           </div>
           <div className="px-4 py-3 text-center">
             <p className="text-[10px] text-text-muted uppercase tracking-wide mb-1">Sections reviewed</p>
@@ -1384,7 +1384,7 @@ function FinalSignOffPanel({ assessment, taskId, onApprove, onSendBack, acting, 
       </div>
 
       {openRemed > 0 && (
-        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-500/6 border border-amber-500/20 text-[11px] text-amber-400">
+        <div className="flex items-start gap-2 px-3 py-2.5 rounded-card bg-status-warn-bg border border-status-warn-bd text-[11px] text-status-warn-fg">
           <AlertTriangle size={13} className="shrink-0 mt-0.5"/>
           <span>{openRemed} open remediation item{openRemed !== 1 ? 's' : ''} — sign-off is non-blocking but these should be tracked.</span>
         </div>
@@ -1394,7 +1394,7 @@ function FinalSignOffPanel({ assessment, taskId, onApprove, onSendBack, acting, 
         <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">Remarks (optional)</label>
         <textarea value={remarks} onChange={e => setRemarks(e.target.value)} rows={3}
           placeholder="Add any final sign-off remarks…"
-          className="w-full rounded-md border border-border bg-surface-raised px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
+          className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
       </div>
       <div className="flex gap-2">
         {canSendBack && (
@@ -1422,7 +1422,7 @@ function AssignOrgCisoPanel({ assessment, taskId, onDone }) {
   return (
     <div className="space-y-4">
       <p className="text-xs text-text-muted">Select the Org CISO who will lead the review.</p>
-      <div className="rounded-md border border-border bg-surface-raised px-3 py-2">
+      <div className="rounded-ctl border border-border bg-surface-raised px-3 py-2">
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or email (min 2 chars)…"
           className="w-full text-sm bg-transparent text-text-primary placeholder:text-text-muted focus:outline-none"/>
       </div>
@@ -1431,14 +1431,14 @@ function AssignOrgCisoPanel({ assessment, taskId, onDone }) {
           const uid = u.id || u.userId; const name = u.fullName || u.email
           return (
             <button key={uid} type="button" onClick={() => setSelected({ id: uid, name })}
-              className={cn('text-xs px-3 py-1.5 rounded-md border transition-colors',
+              className={cn('text-xs px-3 py-1.5 rounded-ctl border transition-colors',
                 selected?.id === uid ? 'bg-brand-500/15 border-brand-500/40 text-brand-400 font-medium' : 'border-border text-text-secondary hover:border-brand-500/30')}>
               {name}
             </button>
           )
         })}
       </div>
-      {selected && <div className="flex items-center gap-2 p-2.5 rounded-md bg-green-500/5 border border-green-500/20"><CheckCircle2 size={13} className="text-green-400"/><span className="text-xs text-green-400">{selected.name} selected</span></div>}
+      {selected && <div className="flex items-center gap-2 p-2.5 rounded-ctl bg-status-pass-bg border border-status-pass-bd"><CheckCircle2 size={13} className="text-status-pass-fg"/><span className="text-xs text-status-pass-fg">{selected.name} selected</span></div>}
       <Button variant="primary" onClick={confirm} loading={isPending} disabled={!selected} className="w-full">Confirm Org CISO assignment</Button>
     </div>
   )
@@ -1464,10 +1464,10 @@ function ReportVersionPanel({ assessmentId, assessment }) {
   const openRemed   = assessment?.openRemediationCount || 0
 
   const RISK_COLOR = {
-    LOW:      'text-green-400 bg-green-500/10 border-green-500/20',
-    MEDIUM:   'text-amber-400 bg-amber-500/10 border-amber-500/20',
-    HIGH:     'text-orange-400 bg-orange-500/10 border-orange-500/20',
-    CRITICAL: 'text-red-400   bg-red-500/10   border-red-500/20',
+    LOW:      'text-status-pass-fg bg-status-pass-bg border-status-pass-bd',
+    MEDIUM:   'text-status-warn-fg bg-status-warn-bg border-status-warn-bd',
+    HIGH:     'text-status-warn-fg bg-status-warn-bg border-status-warn-bd',
+    CRITICAL: 'text-status-fail-fg   bg-status-fail-bg   border-status-fail-bd',
   }
 
   if (isLoading) return <div className="py-4 flex justify-center"><Loader2 size={14} className="animate-spin text-text-muted"/></div>
@@ -1475,7 +1475,7 @@ function ReportVersionPanel({ assessmentId, assessment }) {
   return (
     <div className="space-y-4">
       {/* Live assessment summary — always shown so CISO can review before sign-off */}
-      <div className="rounded-lg border border-border bg-surface-raised overflow-hidden">
+      <div className="rounded-card border border-border bg-surface-raised overflow-hidden">
         <div className="px-4 py-3 border-b border-border flex items-center justify-between">
           <p className="text-sm font-semibold text-text-primary">Assessment summary</p>
           <span className="text-[10px] text-text-muted">Live data</span>
@@ -1486,7 +1486,7 @@ function ReportVersionPanel({ assessmentId, assessment }) {
             <p className="text-[10px] text-text-muted uppercase tracking-wide mb-0.5">Compliance score</p>
             <div className="flex items-baseline gap-1.5">
               <span className={cn('text-2xl font-bold',
-                pct >= 80 ? 'text-green-400' : pct >= 60 ? 'text-amber-400' : 'text-red-400')}>
+                pct >= 80 ? 'text-status-pass-fg' : pct >= 60 ? 'text-status-warn-fg' : 'text-status-fail-fg')}>
                 {pct}%
               </span>
               <span className="text-xs text-text-muted">{totalEarned.toFixed(1)} / {totalPoss} pts</span>
@@ -1505,7 +1505,7 @@ function ReportVersionPanel({ assessmentId, assessment }) {
           <div className="bg-surface-raised px-4 py-3">
             <p className="text-[10px] text-text-muted uppercase tracking-wide mb-0.5">Open remediations</p>
             <p className={cn('text-xl font-semibold mt-0.5',
-              openRemed > 0 ? 'text-amber-400' : 'text-green-400')}>
+              openRemed > 0 ? 'text-status-warn-fg' : 'text-status-pass-fg')}>
               {openRemed}
               <span className="text-xs font-normal text-text-muted ml-1">{openRemed === 0 ? 'All clear' : 'pending'}</span>
             </p>
@@ -1528,7 +1528,7 @@ function ReportVersionPanel({ assessmentId, assessment }) {
             <Button size="sm" variant="secondary" icon={RefreshCw} onClick={() => generate('')} loading={generating}>Re-generate</Button>
           </div>
           {reports.map(r => (
-            <div key={r.reportId} className="rounded-lg border border-border overflow-hidden">
+            <div key={r.reportId} className="rounded-card border border-border overflow-hidden">
               <div className="px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <span className="text-xs font-mono bg-surface px-2 py-0.5 rounded border border-border text-text-secondary">v{r.reportVersion}</span>
@@ -1545,7 +1545,7 @@ function ReportVersionPanel({ assessmentId, assessment }) {
                     <p className="text-[10px] text-text-muted">{r.riskRating || '—'}</p>
                   </div>
                   {r.openRemediationCount > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400">{r.openRemediationCount} open</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-warn-bg border border-status-warn-bd text-status-warn-fg">{r.openRemediationCount} open</span>
                   )}
                   {r.downloadUrl
                     ? <a href={r.downloadUrl} target="_blank" rel="noopener noreferrer"><Button size="xs" variant="ghost" icon={Download}>PDF</Button></a>
@@ -1661,12 +1661,12 @@ export default function AssessmentReviewPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-base font-semibold text-text-primary truncate">{panelConfig.title} — {assessment.templateName || 'Assessment'}</h1>
             {sections.length > 0 && <CompoundTaskBadge sections={sections}/>}
-            {isCompleted && <span className="text-[10px] px-2 py-0.5 rounded bg-green-500/10 border border-green-500/20 text-green-400 font-medium">COMPLETED</span>}
+            {isCompleted && <span className="text-[10px] px-2 py-0.5 rounded bg-status-pass-bg border border-status-pass-bd text-status-pass-fg font-medium">COMPLETED</span>}
           </div>
           <p className="text-xs text-text-muted">
             {assessment.vendorName}
             {taskId && <> · Task #{taskId}</>}
-            {assessment.openRemediationCount > 0 && <span className="ml-2 text-amber-400">{assessment.openRemediationCount} open remediation(s)</span>}
+            {assessment.openRemediationCount > 0 && <span className="ml-2 text-status-warn-fg">{assessment.openRemediationCount} open remediation(s)</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1721,7 +1721,7 @@ export default function AssessmentReviewPage() {
           const answered = (sec.questions || []).filter(q => q.currentResponse).length
           const total    = (sec.questions || []).length
           return (
-            <div key={secKey} className="bg-surface rounded-xl border border-border overflow-hidden">
+            <div key={secKey} className="bg-surface rounded-card border border-border overflow-hidden">
               <button
                 onClick={() => toggleSection(secKey)}
                 className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-surface-overlay/40 transition-colors"
@@ -1753,7 +1753,7 @@ export default function AssessmentReviewPage() {
                             {resp ? (
                               <div className="space-y-1">
                                 {resp.responseText && !resp.responseText.startsWith('[') && (
-                                  <div className="px-3 py-2 rounded-md bg-surface-overlay border border-border">
+                                  <div className="px-3 py-2 rounded-ctl bg-surface-overlay border border-border">
                                     <p className="text-xs text-text-secondary leading-relaxed">{resp.responseText}</p>
                                   </div>
                                 )}
@@ -1780,9 +1780,9 @@ export default function AssessmentReviewPage() {
                                 {resp.reviewerStatus && resp.reviewerStatus !== 'PENDING' && (
                                   <span className={cn(
                                     'inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border font-medium',
-                                    resp.reviewerStatus === 'PASS'    && 'bg-green-500/10 border-green-500/30 text-green-400',
-                                    resp.reviewerStatus === 'PARTIAL' && 'bg-amber-500/10 border-amber-500/30 text-amber-400',
-                                    resp.reviewerStatus === 'FAIL'    && 'bg-red-500/10 border-red-500/30 text-red-400',
+                                    resp.reviewerStatus === 'PASS'    && 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg',
+                                    resp.reviewerStatus === 'PARTIAL' && 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg',
+                                    resp.reviewerStatus === 'FAIL'    && 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg',
                                   )}>{resp.reviewerStatus}</span>
                                 )}
                               </div>
@@ -1814,11 +1814,11 @@ export default function AssessmentReviewPage() {
           </p>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">
-              Remarks {actionModal !== 'approve' && <span className="text-red-400">*</span>}
+              Remarks {actionModal !== 'approve' && <span className="text-status-fail-fg">*</span>}
             </label>
             <textarea rows={3} value={modalRemarks} onChange={e => setModalRemarks(e.target.value)}
               placeholder="Add remarks…"
-              className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
+              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setActionModal(null)}>Cancel</Button>

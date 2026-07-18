@@ -206,7 +206,7 @@ function StartEngagementModal({ projectId, plannedTemplate, onClose }) {
     <Modal open={!!plannedTemplate} onClose={onClose} title="Start engagement">
       <div className="flex flex-col gap-4">
         {/* Isolation notice */}
-        <div className="rounded-lg border border-border bg-surface-overlay p-3 text-xs text-text-secondary">
+        <div className="rounded-card border border-border bg-surface-overlay p-3 text-xs text-text-secondary">
           <p className="font-medium text-text-primary mb-1">100% isolated snapshot</p>
           <p>Starting creates a frozen copy of <strong>{plannedTemplate.templateName}</strong> —
           all sections and controls are snapshotted at this moment.
@@ -216,14 +216,14 @@ function StartEngagementModal({ projectId, plannedTemplate, onClose }) {
         <div>
           <label className="block text-xs text-text-secondary mb-1">Engagement name *</label>
           <input value={name} onChange={e => setName(e.target.value)}
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
 
         <div>
           <label className="block text-xs text-text-secondary mb-1">Lead auditor ID (optional)</label>
           <input value={leadAuditorId} onChange={e => setLeadAuditorId(e.target.value)}
             placeholder="User ID"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
 
         <Button variant="primary" icon={Play} loading={M.start.isPending}
@@ -287,10 +287,10 @@ export default function AuditProjectTemplatesPanel({ projectId }) {
       {/* Planned templates list */}
       {plannedLoading ? (
         <div className="flex flex-col gap-2">
-          {[1,2].map(i => <div key={i} className="h-16 rounded-lg bg-surface-overlay animate-pulse" />)}
+          {[1,2].map(i => <div key={i} className="h-16 rounded-card bg-surface-overlay animate-pulse" />)}
         </div>
       ) : !planned.length ? (
-        <div className="rounded-lg border border-border border-dashed p-8 text-center">
+        <div className="rounded-card border border-border border-dashed p-8 text-center">
           <LayoutTemplate size={24} className="mx-auto text-text-muted mb-2" />
           <p className="text-sm text-text-muted">No templates planned yet.</p>
           <p className="text-xs text-text-muted mt-1">Add published templates to define the scope of this audit project.</p>
@@ -299,12 +299,12 @@ export default function AuditProjectTemplatesPanel({ projectId }) {
         <div className="flex flex-col gap-2">
           {planned.map(pt => (
             <div key={pt.id}
-              className="rounded-lg border border-border p-4 flex items-start gap-3"
+              className="rounded-card border border-border p-4 flex items-start gap-3"
             >
               {/* Status icon */}
               <div className="mt-0.5 shrink-0">
                 {pt.started
-                  ? <CheckCircle2 size={16} className="text-green-400" />
+                  ? <CheckCircle2 size={16} className="text-status-pass-fg" />
                   : <Clock size={16} className="text-text-muted" />}
               </div>
 
@@ -345,7 +345,7 @@ export default function AuditProjectTemplatesPanel({ projectId }) {
                       Start
                     </Button>
                     <button onClick={() => setRemoveTarget(pt)} title="Remove from plan"
-                      className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                      className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
                       <Trash2 size={12} />
                     </button>
                   </>
@@ -363,7 +363,7 @@ export default function AuditProjectTemplatesPanel({ projectId }) {
             <label className="block text-xs text-text-secondary mb-1">Planning note (optional)</label>
             <input value={addNote} onChange={e => setAddNote(e.target.value)}
               placeholder="e.g. Q1 2026, External auditor, Surveillance only"
-              className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
 
           <p className="text-xs text-text-muted -mt-2">
@@ -378,7 +378,7 @@ export default function AuditProjectTemplatesPanel({ projectId }) {
                   disabled={alreadyPlanned || M.add.isPending}
                   onClick={() => handleAdd(t.id)}
                   className={cn(
-                    'flex items-start gap-3 p-3 rounded-lg border text-left transition-colors',
+                    'flex items-start gap-3 p-3 rounded-card border text-left transition-colors',
                     alreadyPlanned
                       ? 'border-border opacity-40 cursor-not-allowed'
                       : 'border-border hover:border-brand-500/40 hover:bg-brand-500/5 cursor-pointer'

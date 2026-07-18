@@ -159,7 +159,7 @@ export default function ScreenDesignerPage() {
             </optgroup>
           </select>
           {roleProfile?.sod && (
-            <span className="text-[10px] px-2 py-0.5 rounded bg-red-500/10 border border-red-500/25 text-red-400 font-medium">
+            <span className="text-[10px] px-2 py-0.5 rounded bg-status-fail-bg border border-status-fail-bd text-status-fail-fg font-medium">
               SoD active
             </span>
           )}
@@ -224,7 +224,7 @@ export default function ScreenDesignerPage() {
                 ))}
                 {/* role note */}
                 <div className="ml-auto flex items-center gap-2 pr-3 text-[10px] text-text-muted">
-                  {roleProfile?.sod && <span className="text-red-400 font-medium">⚠ SoD active</span>}
+                  {roleProfile?.sod && <span className="text-status-fail-fg font-medium">⚠ SoD active</span>}
                   Previewing as <span className="text-brand-400 font-medium">{roleProfile?.label}</span>
                   <span className="opacity-40">·</span>
                   <span>{roleProfile?.stepAction}</span>

@@ -62,7 +62,7 @@ function OptionRow({ opt, componentId, onDelete }) {
           <Pencil size={10} />
         </button>
         <button onClick={() => onDelete(opt.id)}
-          className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-red-400 transition-colors">
+          className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg transition-colors">
           <Trash2 size={10} />
         </button>
       </div>
@@ -112,7 +112,7 @@ function OptionPanel({ component, onClose }) {
   return (
     <div className="flex flex-col gap-4">
       {/* Component info */}
-      <div className="p-3 bg-surface-overlay rounded-lg border border-border">
+      <div className="p-3 bg-surface-overlay rounded-card border border-border">
         <p className="text-xs font-mono text-brand-400">{component.componentKey}</p>
         <p className="text-[10px] text-text-muted mt-0.5">{component.componentType} · {component.screen || 'global'}</p>
       </div>
@@ -147,7 +147,7 @@ function OptionPanel({ component, onClose }) {
             <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Color</label>
             <select value={newOpt.colorTag}
               onChange={e => setNewOpt(f => ({ ...f, colorTag: e.target.value }))}
-              className="w-full h-8 rounded-md border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none">
+              className="w-full h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none">
               <option value="">None</option>
               {COLOR_TAGS.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -212,7 +212,7 @@ export default function ComponentsAdminPage() {
             <Pencil size={12} />
           </button>
           <button onClick={() => setDeleteTarget(r)}
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
             <Trash2 size={12} />
           </button>
         </div>
@@ -230,7 +230,7 @@ export default function ComponentsAdminPage() {
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search key…"
-              className="h-8 pl-8 pr-3 w-44 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-44 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
           <Button size="sm" icon={Plus} onClick={() => setEditTarget(true)}>New Component</Button>
@@ -290,7 +290,7 @@ function ComponentForm({ item, onSubmit, isPending, onClose }) {
         <div>
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Type *</label>
           <select value={form.componentType} onChange={e => set('componentType', e.target.value)}
-            className="w-full h-8 rounded-md border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none">
+            className="w-full h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none">
             {COMPONENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
@@ -303,11 +303,11 @@ function ComponentForm({ item, onSubmit, isPending, onClose }) {
       </div>
       <div className="flex items-center gap-3">
         <button type="button" onClick={() => set('isVisible', !form.isVisible)}
-          className={cn('flex items-center gap-2 px-3 py-1.5 rounded-md border text-xs font-medium transition-colors',
+          className={cn('flex items-center gap-2 px-3 py-1.5 rounded-ctl border text-xs font-medium transition-colors',
             form.isVisible
-              ? 'bg-green-500/10 border-green-500/30 text-green-400'
+              ? 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg'
               : 'bg-surface-overlay border-border text-text-muted')}>
-          <span className={cn('w-2 h-2 rounded-full', form.isVisible ? 'bg-green-400' : 'bg-text-muted')} />
+          <span className={cn('w-2 h-2 rounded-full', form.isVisible ? 'bg-status-pass-bg' : 'bg-text-muted')} />
           {form.isVisible ? 'Visible' : 'Hidden'}
         </button>
       </div>

@@ -60,9 +60,9 @@ function flattenUsers(raw) {
 }
 
 const RESULT_CFG = {
-  EFFECTIVE:           { label: 'Effective',   color: 'text-green-400',  bg: 'bg-green-500/10',    icon: CheckCircle2 },
-  PARTIALLY_EFFECTIVE: { label: 'Partial',     color: 'text-amber-400',  bg: 'bg-amber-500/10',    icon: AlertTriangle },
-  INEFFECTIVE:         { label: 'Ineffective', color: 'text-red-400',    bg: 'bg-red-500/10',      icon: XCircle },
+  EFFECTIVE:           { label: 'Effective',   color: 'text-status-pass-fg',  bg: 'bg-status-pass-bg',    icon: CheckCircle2 },
+  PARTIALLY_EFFECTIVE: { label: 'Partial',     color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg',    icon: AlertTriangle },
+  INEFFECTIVE:         { label: 'Ineffective', color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg',      icon: XCircle },
   NOT_TESTED:          { label: 'Not tested',  color: 'text-text-muted', bg: 'bg-surface-overlay', icon: MinusCircle },
   NOT_APPLICABLE:      { label: 'N/A',         color: 'text-text-muted', bg: 'bg-surface-overlay', icon: MinusCircle },
 }
@@ -141,7 +141,7 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
         onClick={handleToggle}
         disabled={loading}
         className={cn(
-          'flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-md border transition-all',
+          'flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-ctl border transition-all',
           selected
             ? 'border-brand-500/40 bg-brand-500/10 text-brand-300 hover:bg-brand-500/15'
             : 'border-border bg-surface-overlay text-text-muted hover:text-text-secondary hover:border-border-strong'
@@ -165,11 +165,11 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
 
       {open && (
         <div className={cn(
-          'absolute right-0 w-52 bg-surface-raised border border-border rounded-lg shadow-elevated z-[200] overflow-hidden',
+          'absolute right-0 w-52 bg-surface-raised border border-border rounded-card shadow-elevated z-[200] overflow-hidden',
           flipUp ? 'bottom-full mb-1' : 'top-full mt-1'
         )}>
           <div className="p-1.5 border-b border-border">
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-overlay rounded-md">
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-overlay rounded-ctl">
               <Search size={10} className="text-text-muted shrink-0" />
               <input
                 autoFocus
@@ -185,7 +185,7 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
           {selected && (
             <button
               onClick={(e) => { e.stopPropagation(); onChange(null); setOpen(false) }}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-red-400 hover:bg-red-500/10 transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-status-fail-fg hover:bg-status-fail-bg transition-colors"
             >
               <X size={10} /> Unassign
             </button>
@@ -236,7 +236,7 @@ function CascadeToggle({ value, onChange }) {
         )}
       >
         <span className={cn(
-          'absolute top-0.5 h-1.5 w-1.5 rounded-full bg-white transition-transform',
+          'absolute top-0.5 h-1.5 w-1.5 rounded-full bg-surface-raised transition-transform',
           value ? 'translate-x-2.5' : 'translate-x-0.5'
         )} />
       </div>
@@ -291,7 +291,7 @@ function DetailPanel({ item, type, onClose, auditorUsers, auditeeUsers }) {
             {tag  && <span className="text-[9px] px-1 rounded bg-surface-overlay text-text-muted">{tag}</span>}
             {!isSection && <ResultBadge result={item.testResult} />}
             {isSection && item.submittedAt && (
-              <span className="text-[9px] text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded">Submitted</span>
+              <span className="text-[9px] text-status-pass-fg bg-status-pass-bg px-1.5 py-0.5 rounded">Submitted</span>
             )}
           </div>
           <p className="text-sm font-medium text-text-primary truncate">{title}</p>
@@ -327,7 +327,7 @@ function F({ label, value, multi, red, icon: Icon }) {
         {Icon && <Icon size={9} className="text-text-muted" />}
         <p className="text-[9px] text-text-muted uppercase tracking-wide">{label}</p>
       </div>
-      <p className={cn('text-xs leading-relaxed', red ? 'text-red-400' : 'text-text-primary', !multi && 'truncate')}>
+      <p className={cn('text-xs leading-relaxed', red ? 'text-status-fail-fg' : 'text-text-primary', !multi && 'truncate')}>
         {value}
       </p>
     </div>
@@ -410,7 +410,7 @@ function SectionNode({
           onClick={() => onSelectSection(node)}
           className="flex items-center gap-1.5 flex-1 min-w-0 cursor-pointer"
         >
-          <Layers size={10} className={cn('shrink-0', isSubmitted ? 'text-green-400' : isMySection ? 'text-brand-400' : 'text-text-muted')} />
+          <Layers size={10} className={cn('shrink-0', isSubmitted ? 'text-status-pass-fg' : isMySection ? 'text-brand-400' : 'text-text-muted')} />
           {node.sectionCodeSnapshot && (
             <span className="font-mono text-[10px] text-brand-400 shrink-0">{node.sectionCodeSnapshot}</span>
           )}
@@ -423,7 +423,7 @@ function SectionNode({
           <span className="text-[9px] text-text-muted shrink-0">{effectiveCount}/{totalCount}</span>
         )}
         {isSubmitted && (
-          <span className="text-[9px] text-green-400 shrink-0 flex items-center gap-0.5">
+          <span className="text-[9px] text-status-pass-fg shrink-0 flex items-center gap-0.5">
             <CheckCheck size={9} /> submitted
           </span>
         )}
@@ -436,7 +436,7 @@ function SectionNode({
             <AssignmentCell
               label="Assign auditor"
               icon={UserCheck}
-              color="text-emerald-400"
+              color="text-status-pass-fg"
               users={auditorUsers}
               usersLoading={auditorUsersLoading}
               currentUserId={node.assignedAuditorId}
@@ -455,7 +455,7 @@ function SectionNode({
             <AssignmentCell
               label="Assign auditee"
               icon={Users}
-              color="text-purple-400"
+              color="text-status-tag-fg"
               users={auditeeUsers}
               usersLoading={auditeeUsersLoading}
               currentUserId={node.auditeeAssignedUserId}
@@ -468,7 +468,7 @@ function SectionNode({
             <button
               onClick={() => doSubmit()}
               disabled={submitting}
-              className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded bg-status-pass-bg text-status-pass-fg hover:bg-status-pass-bg transition-colors disabled:opacity-50"
             >
               <CheckCheck size={9} /> Submit
             </button>
@@ -478,7 +478,7 @@ function SectionNode({
             <button
               onClick={() => doReopen()}
               disabled={reopening}
-              className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded bg-status-warn-bg text-status-warn-fg hover:bg-status-warn-bg transition-colors disabled:opacity-50"
             >
               <RefreshCw size={9} /> Reopen
             </button>
@@ -735,13 +735,13 @@ export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, o
       )}
 
       {canAssignAuditor && sections.length > 0 && assignedSections < sections.length && (
-        <div className="mx-3 mt-2 mb-1 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center gap-2 text-[11px] text-amber-300 shrink-0">
+        <div className="mx-3 mt-2 mb-1 px-3 py-2 rounded-card bg-status-warn-bg border border-status-warn-bd flex items-center gap-2 text-[11px] text-status-warn-fg shrink-0">
           <UserCheck size={12} className="shrink-0" />
           {assignedSections}/{sections.length} section{sections.length !== 1 ? 's' : ''} assigned — assign an auditor to each
         </div>
       )}
       {canAssignAuditee && sections.length > 0 && sections.filter(s => s.auditeeAssignedUserId).length < sections.length && (
-        <div className="mx-3 mt-2 mb-1 px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center gap-2 text-[11px] text-purple-300 shrink-0">
+        <div className="mx-3 mt-2 mb-1 px-3 py-2 rounded-card bg-status-tag-bg border border-status-tag-bd flex items-center gap-2 text-[11px] text-status-tag-fg shrink-0">
           <Users size={12} className="shrink-0" />
           {sections.filter(s => s.auditeeAssignedUserId).length}/{sections.length} section{sections.length !== 1 ? 's' : ''} have auditee assigned
         </div>
@@ -763,24 +763,24 @@ export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, o
             <span>{sections.length} sections</span>
             <span>·</span>
             {canAssignAuditor && (
-              <><span className={assignedSections === sections.length ? 'text-green-400' : ''}>{assignedSections}/{sections.length} assigned</span><span>·</span></>
+              <><span className={assignedSections === sections.length ? 'text-status-pass-fg' : ''}>{assignedSections}/{sections.length} assigned</span><span>·</span></>
             )}
             {canSubmit && (
-              <><span className={submittedSections === sections.length ? 'text-green-400' : ''}>{submittedSections}/{sections.length} submitted</span><span>·</span></>
+              <><span className={submittedSections === sections.length ? 'text-status-pass-fg' : ''}>{submittedSections}/{sections.length} submitted</span><span>·</span></>
             )}
             <span>{testedControls}/{controls.length} controls tested</span>
           </>
         )}
         <div className="ml-auto flex items-center gap-2">
-          {!effectiveMyView && canAssignAuditor && <span className="flex items-center gap-0.5 text-emerald-400"><UserCheck size={9}/> auditor</span>}
-          {!effectiveMyView && canAssignAuditee && <span className="flex items-center gap-0.5 text-purple-400"><Users size={9}/> auditee</span>}
-          {!effectiveMyView && canSubmit        && <span className="flex items-center gap-0.5 text-green-400"><CheckCheck size={9}/> submit</span>}
-          {!effectiveMyView && canReopen        && <span className="flex items-center gap-0.5 text-amber-400"><RefreshCw size={9}/> reopen</span>}
+          {!effectiveMyView && canAssignAuditor && <span className="flex items-center gap-0.5 text-status-pass-fg"><UserCheck size={9}/> auditor</span>}
+          {!effectiveMyView && canAssignAuditee && <span className="flex items-center gap-0.5 text-status-tag-fg"><Users size={9}/> auditee</span>}
+          {!effectiveMyView && canSubmit        && <span className="flex items-center gap-0.5 text-status-pass-fg"><CheckCheck size={9}/> submit</span>}
+          {!effectiveMyView && canReopen        && <span className="flex items-center gap-0.5 text-status-warn-fg"><RefreshCw size={9}/> reopen</span>}
           {(canAssignAuditor || canAssignAuditee || canAssignCtrlAuditee) && (
             <button
               onClick={() => setMyView(v => !v)}
               className={cn(
-                'flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-md border transition-all',
+                'flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-ctl border transition-all',
                 myView ? 'border-brand-500/40 bg-brand-500/10 text-brand-300' : 'border-border text-text-muted hover:text-text-secondary'
               )}
             >
@@ -788,7 +788,7 @@ export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, o
             </button>
           )}
           {!(canAssignAuditor || canAssignAuditee || canAssignCtrlAuditee) && effectiveMyView && (
-            <span className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-md bg-brand-500/10 text-brand-300 border border-brand-500/30">
+            <span className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-ctl bg-brand-500/10 text-brand-300 border border-brand-500/30">
               <Eye size={9} /> My assignments
             </span>
           )}
@@ -813,11 +813,11 @@ export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, o
           )}
           {(canAssignAuditee || canAssignCtrlAuditee) && auditeeRoles.length > 0 && (
             <div className="flex items-center gap-1.5">
-              <Users size={9} className="text-amber-400 shrink-0"/>
+              <Users size={9} className="text-status-warn-fg shrink-0"/>
               <select
                 value={auditeeRoleFilter ?? ''}
                 onChange={e => setAuditeeRoleFilter(e.target.value ? Number(e.target.value) : null)}
-                className="text-[10px] bg-surface border border-border rounded px-1.5 py-0.5 text-text-secondary focus:outline-none focus:border-amber-500/50 cursor-pointer">
+                className="text-[10px] bg-surface border border-border rounded px-1.5 py-0.5 text-text-secondary focus:outline-none focus:border-status-warn-bd cursor-pointer">
                 <option value="">All auditees</option>
                 {auditeeRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>

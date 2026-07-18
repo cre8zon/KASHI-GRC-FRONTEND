@@ -144,7 +144,7 @@ export default function VendorAssessmentAcknowledgePage() {
               </div>
               <div>
                 <p className="text-xs text-text-muted uppercase tracking-wide mb-0.5">Status</p>
-                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-status-warn-bg text-status-warn-fg">
                   <Clock size={10} /> {assessment.status}
                 </span>
               </div>
@@ -187,7 +187,7 @@ export default function VendorAssessmentAcknowledgePage() {
               onChange={e => setRemarks(e.target.value)}
               rows={2}
               placeholder="Optional remarks…"
-              className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+              className="w-full rounded-ctl border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             />
             <Button
               variant="primary"
@@ -204,12 +204,12 @@ export default function VendorAssessmentAcknowledgePage() {
           </div>
         )}
         {activeTask?.taskRole === 'ASSIGNER' && (
-          <div className="p-3 rounded-md bg-surface-overlay border border-border text-xs text-text-muted">
+          <div className="p-3 rounded-ctl bg-surface-overlay border border-border text-xs text-text-muted">
             You are coordinating this step. The VRM (actor) must acknowledge to advance the workflow.
           </div>
         )}
         {!activeTask && (
-          <div className="p-3 rounded-md bg-surface-overlay border border-border text-xs text-text-muted">
+          <div className="p-3 rounded-ctl bg-surface-overlay border border-border text-xs text-text-muted">
             You are observing this assessment step.
           </div>
         )}
