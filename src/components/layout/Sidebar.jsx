@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { cn } from '../../lib/cn'
+import { useClickOutside } from '../../hooks/useClickOutside'
 import { useNavigation } from '../../hooks/useUIConfig'
 import { useSelector } from 'react-redux'
 import { useDispatch } from 'react-redux'
@@ -203,13 +204,14 @@ function SidebarUserPanel({ collapsed, t, auth, branding }) {
   const navigate         = useNavigate()
   const { mutate: doLogout } = useLogout()
   const [open, setOpen]  = useState(false)
+  const panelRef = useClickOutside(() => setOpen(false), open)
   const { fullName, email, tenantName, vendorName, vendorId, roles } = auth
   const primaryRole      = roles?.[0]
   const roleName         = primaryRole?.roleName?.replace(/_/g, ' ') || ''
   const isVendor         = vendorId != null
 
   return (
-    <div className={cn('shrink-0 relative', t.userBg)}>
+    <div ref={panelRef} className={cn('shrink-0 relative', t.userBg)}>
       {/* Popup menu */}
       {open && !collapsed && (
         <div className={cn(

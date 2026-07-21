@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useClickOutside } from '../../hooks/useClickOutside'
 import { Bell, ChevronDown, LogOut, User, Settings, ChevronRight } from 'lucide-react'
 import { useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -55,6 +56,7 @@ export function TopNav({ onMenuToggle }) {
   const { mutate: doLogout }    = useLogout()
   const navigate                = useNavigate()
   const [showUser, setShowUser] = useState(false)
+  const userMenuRef = useClickOutside(() => setShowUser(false), showUser)
   const { data: notifData }     = useNotifications({ read: false })
   const { data: navItems = [] } = useNavigation()
   const notifications           = notifData?.items || []
@@ -68,7 +70,7 @@ export function TopNav({ onMenuToggle }) {
   const sideLabel    = { ORGANIZATION: 'Organization', VENDOR: 'Vendor', AUDITOR: 'Auditor', AUDITEE: 'Auditee', SYSTEM: 'System' }[primarySide] ?? 'Organization'
 
   return (
-    <header className="h-12 flex items-center justify-between px-4 glass-chrome rounded-card shadow-elevated mt-2 mx-2 shrink-0 gap-4">
+    <header className="relative z-40 h-12 flex items-center justify-between px-4 glass-chrome rounded-card shadow-elevated mt-2 mx-2 shrink-0 gap-4">
 
       {/* Left — org/vendor context where page title used to be */}
       <div className="flex items-center gap-2 min-w-0">
@@ -141,7 +143,7 @@ export function TopNav({ onMenuToggle }) {
         </button>
 
         {/* User dropdown */}
-        <div className="relative">
+        <div className="relative" ref={userMenuRef}>
           <button
             onClick={() => setShowUser(o => !o)}
             className="flex items-center gap-2 h-8 px-2 rounded-ctl hover:bg-surface-overlay transition-colors"
@@ -154,7 +156,7 @@ export function TopNav({ onMenuToggle }) {
           </button>
 
           {showUser && (
-            <div className="absolute right-0 top-10 w-56 bg-surface-raised border border-border rounded-card shadow-elevated z-50 py-1 animate-slide-up">
+            <div className="absolute right-0 top-11 w-56 bg-surface-raised border border-border rounded-card shadow-overlay z-[100] py-1 animate-slide-up">
               <div className="px-3 py-2.5 border-b border-border">
                 <p className="text-xs font-semibold text-text-primary truncate">{fullName}</p>
                 <p className="text-[11px] text-text-muted truncate">{email}</p>
