@@ -17,6 +17,8 @@ import { ThemeProvider } from './providers/ThemeProvider'
 // Auth — small, loads fast, frequently needed
 const LoginPage               = lazy(() => import('./pages/auth/LoginPage'))
 const ForcePasswordChangePage = lazy(() => import('./pages/auth/ForcePasswordChangePage'))
+const ForgotPasswordPage      = lazy(() => import('./pages/auth/ForgotPasswordPage'))
+const ResetPasswordPage       = lazy(() => import('./pages/auth/ResetPasswordPage'))
 const PasswordChangedPage     = lazy(() => import('./pages/auth/PasswordChangedPage'))
 
 // Core — high-traffic pages, loaded early
@@ -158,7 +160,9 @@ export default function App() {
         <Routes>
           {/* Public */}
           <Route path="/auth/login"            element={<RedirectIfAuthed><LoginPage /></RedirectIfAuthed>} />
-          <Route path="/auth/reset-password"   element={<ForcePasswordChangePage />} />
+          <Route path="/auth/forgot-password"  element={<RedirectIfAuthed><ForgotPasswordPage /></RedirectIfAuthed>} />
+          <Route path="/auth/reset-password"   element={<ResetPasswordPage />} />
+          <Route path="/auth/set-password"     element={<ForcePasswordChangePage />} />
           <Route path="/auth/password-changed" element={<PasswordChangedPage />} />
           <Route path="/"                      element={<Navigate to="/dashboard" replace />} />
 

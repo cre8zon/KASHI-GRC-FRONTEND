@@ -13,18 +13,20 @@ import { initials }      from '../../utils/format'
 import { cn }            from '../../lib/cn'
 import {
   User, Building2, Shield, Palette, Key, Eye, EyeOff,
-  Moon, Sun, Monitor
+  Moon, Sun, Monitor, Bell
 } from 'lucide-react'
 import { authApi }       from '../../api/auth.api'
 import { usersApi }      from '../../api/users.api'
 import toast             from 'react-hot-toast'
 import IntegrationsPage  from './IntegrationsPage'
+import { NotificationsTab } from './NotificationPreferencesPage'
 
 const TABS = [
   { id: 'profile',      label: 'Profile',      icon: User    },
   { id: 'display',      label: 'Display',      icon: Palette },
-  { id: 'security',     label: 'Security',     icon: Shield  },
-  { id: 'integrations', label: 'Integrations', icon: Key     },
+  { id: 'security',     label: 'Security',      icon: Shield  },
+  { id: 'notifications',label: 'Notifications',  icon: Bell    },
+  { id: 'integrations', label: 'Integrations',   icon: Key     },
 ]
 
 // The 12 pastel presets, single-sourced from brandPresets.js. These are DATA
@@ -482,7 +484,7 @@ function SecurityTab() {
   const tog = (k)    => setShow(p => ({ ...p, [k]: !p[k] }))
 
   const { mutate, isPending } = useMutation({
-    mutationFn: () => authApi.changePassword({ currentPassword: form.current, newPassword: form.next }),
+    mutationFn: () => usersApi.changePassword({ currentPassword: form.current, newPassword: form.next }),
     onSuccess: () => { toast.success('Password changed'); setForm({ current: '', next: '', confirm: '' }) },
     onError: (e) => toast.error(e?.response?.data?.error?.message || 'Failed to change password'),
   })
@@ -540,6 +542,7 @@ export default function SettingsPage() {
         {tab === 'profile'  && <ProfileTab  auth={auth} branding={branding} userColor={(() => { try { return localStorage.getItem('kashi_sidebar_color') } catch { return null } })()} />}
         {tab === 'display'  && <DisplayTab  branding={branding} />}
         {tab === 'security'      && <SecurityTab />}
+        {tab === 'notifications' && <NotificationsTab />}
         {tab === 'integrations'  && <IntegrationsPage />}
       </div>
     </PageLayout>

@@ -41,7 +41,12 @@ function Toggle({ checked, onChange, disabled }) {
   )
 }
 
-export default function NotificationPreferencesPage() {
+/**
+ * NotificationsTab — the preferences UI without page chrome, so it can render
+ * inside Settings as a tab. The standalone page below wraps this in PageLayout
+ * for the /settings/notifications route that emails link to.
+ */
+export function NotificationsTab() {
   const { data, isLoading } = useMyNotificationPreferences()
   const { mutate: upsert }  = useUpsertNotificationPreference()
   const { mutate: reset }   = useResetNotificationPreference()
@@ -63,10 +68,7 @@ export default function NotificationPreferencesPage() {
   const setGlobal = (emailEnabled)      => upsert({ eventKey: ALL_EVENTS_KEY, emailEnabled, inAppEnabled: true })
 
   return (
-    <PageLayout
-      title="Notification Preferences"
-      subtitle="Choose which events email you. In-app notifications always appear in your bell.">
-      <div className="flex-1 overflow-auto p-6 max-w-3xl space-y-4">
+      <div className="space-y-4 max-w-3xl">
         {isLoading && <Skeleton rows={8} />}
 
         {!isLoading && (
@@ -146,6 +148,21 @@ export default function NotificationPreferencesPage() {
             </div>
           </>
         )}
+      </div>
+  )
+}
+
+/**
+ * Standalone page — the /settings/notifications route that email footers link
+ * to via {{preferencesUrl}}. Keep this route; just wraps NotificationsTab.
+ */
+export default function NotificationPreferencesPage() {
+  return (
+    <PageLayout
+      title="Notification Preferences"
+      subtitle="Choose which events email you. In-app notifications always appear in your bell.">
+      <div className="flex-1 overflow-auto p-6">
+        <NotificationsTab />
       </div>
     </PageLayout>
   )
