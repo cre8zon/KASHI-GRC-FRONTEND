@@ -19,7 +19,7 @@ import * as Icons from 'lucide-react'
 import { cn } from '../../lib/cn'
 import {
   selectTabs, selectActiveTabId,
-  activateTab, closeTab, openTab,
+  activateTab, closeTab, openTab, newTab,
   closeOtherTabs, closeTabsToRight,
 } from '../../store/slices/tabsSlice'
 
@@ -166,7 +166,7 @@ export function TabBar() {
           })}
           {/* New tab button — inline after last tab */}
           <button
-            onClick={() => dispatch(openTab({ route: '/dashboard', title: 'Dashboard', icon: 'LayoutDashboard' }))}
+            onClick={() => dispatch(newTab({ route: '/dashboard', title: 'Dashboard', icon: 'LayoutDashboard' }))}
             className="shrink-0 w-8 h-full flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors border-r border-border/50"
             title="New tab">
             <Plus size={13} />
