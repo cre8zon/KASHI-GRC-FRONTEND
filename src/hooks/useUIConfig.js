@@ -84,10 +84,12 @@ export const useBootstrap = () => {
           // Precedence: an explicitly chosen pastel preset always beats the
           // server-side brand colour. Without this the API response repaints
           // --color-brand-* a few hundred ms after boot and stomps the preset.
-          const { hasUserChosenPreset } = await import('../config/brandPresets')
-          if (sidebarColor && !hasUserChosenPreset()) {
+          // On BOOT the DB is the source of truth: if the user saved a sidebar
+          // colour it IS their choice, so apply it. The old guard skipped it
+          // whenever kashi_brand_preset existed (always true after picking a
+          // preset once), so every refresh ignored the saved colour.
+          if (sidebarColor) {
             localStorage.setItem('kashi_sidebar_color', sidebarColor)
-            // Apply user's personal brand color to entire app
             const { applyBranding } = await import('../store/slices/uiConfigSlice')
             applyBranding({ ...data.branding, primaryColor: sidebarColor }, { force: true })
           }
@@ -96,7 +98,16 @@ export const useBootstrap = () => {
           }
         }
       } catch (e) {
-        //
+        // Server unreachable: fall back to the cached colour so a down/slow
+        // backend doesn't drop the user back to the sage default.
+        try {
+          const cachedColor = localStorage.getItem('kashi_sidebar_color')
+          if (cachedColor) {
+            const { applyBranding } = await import('../store/slices/uiConfigSlice')
+            applyBranding({ primaryColor: cachedColor }, { force: true })
+            window.dispatchEvent(new CustomEvent('kashi-sidebar-changed'))
+          }
+        } catch (_) { /* */ }
       }
 
       return data

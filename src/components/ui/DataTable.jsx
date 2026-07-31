@@ -147,13 +147,13 @@ export function DataTable({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full rounded-card border border-border-subtle overflow-hidden bg-surface-raised/40">
       <div className="flex-1 overflow-auto">
         <table className="w-full text-sm border-collapse">
-          <thead className="sticky top-0 z-10 bg-surface-raised">
-            <tr className="border-b border-border">
+          <thead className="sticky top-0 z-10 bg-brand-500/8 backdrop-blur-sm">
+            <tr className="border-b border-border-subtle">
               {selectable && (
-                <th className="w-10 px-3 py-2">
+                <th className="w-10 px-3 py-2.5">
                   <input
                     type="checkbox"
                     className="rounded border-border bg-surface-raised accent-brand-500"
@@ -179,7 +179,7 @@ export function DataTable({
                   }}
                   onDragEnd={() => setDragColIdx(null)}
                   className={cn(
-                    'px-3 py-2 text-left text-xs font-semibold text-text-muted uppercase tracking-wider',
+                    'px-3 py-2.5 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider',
                     'whitespace-nowrap select-none cursor-grab active:cursor-grabbing',
                     col.sortable && 'hover:text-text-secondary',
                     dragColIdx === ci && 'opacity-40'

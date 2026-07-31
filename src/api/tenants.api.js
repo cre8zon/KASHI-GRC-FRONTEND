@@ -9,4 +9,7 @@ export const tenantsApi = {
   activate: (id)       => api.put(`/v1/tenants/${id}`, { status: 'ACTIVE' }),
   sendWelcomeEmail: (id, data) => api.post(`/v1/tenants/${id}/send-welcome-email`, data),
   getOwner:         (id)       => api.get(`/v1/tenants/${id}/owner`),
+  getFeatures:      (id)              => api.get(`/v1/tenants/${id}/features`),
+  setFeature:       (id, flagKey, enabled) =>
+                       api.put(`/v1/tenants/${id}/features/${flagKey}`, { enabled }),
 }

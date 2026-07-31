@@ -5,6 +5,7 @@ import { ScrollToTop } from './components/ScrollToTop'
 import { useSelector } from 'react-redux'
 import { selectIsAuthenticated, selectRoleSides, validateSession } from './store/slices/authSlice'
 import { useTheme } from './hooks/useTheme'
+import useFeatureGuard from './hooks/useFeatureGuard'
 import { ROLE_SIDES } from './config/constants'
 
 // Layout — NOT lazy: needed immediately on every page
@@ -67,6 +68,7 @@ const AuditProjectDashboardPage = lazy(() => import('./pages/dashboard/AuditProj
 const AuditEngagementListPage   = lazy(() => import('./pages/audit/AuditEngagementListPage'))
 const AuditEngagementDetailPage = lazy(() => import('./pages/audit/AuditEngagementDetailPage'))
 const OrgAuditLibraryPage       = lazy(() => import('./pages/audit/AuditLibraryPage'))
+const KashiLinkPage             = lazy(() => import('./pages/audit/KashiLinkPage'))
 const PolicyEditorPage          = lazy(() => import('./pages/policies/PolicyEditorPage'))
 
 // Auditor portal
@@ -136,8 +138,20 @@ function usePlatformAdmin() {
   return sides.includes(ROLE_SIDES.SYSTEM)
 }
 
+// Platform-admin route guard. The backend hard-blocks /v1/admin/** and
+// /v1/tenants/** to SIDE_SYSTEM, so this is UX only: non-System users are sent
+// to their dashboard instead of loading a page whose APIs would 403. Never
+// rely on this for security — the server boundary is the real gate.
+function RequireSystem({ children }) {
+  const sides = useSelector(selectRoleSides)
+  if (!sides.includes(ROLE_SIDES.SYSTEM)) return <Navigate to="/dashboard" replace />
+  return children
+}
+
 // ─── App ──────────────────────────────────────────────────────────────────────
 function AppShellWithTheme() {
+  // Entitlement: redirect on FEATURE_NOT_LICENSED 403 from any gated endpoint.
+  useFeatureGuard()
   return (
     <ThemeProvider>
       <AppShell />
@@ -167,9 +181,9 @@ export default function App() {
           <Route path="/"                      element={<Navigate to="/dashboard" replace />} />
 
           {/* Outside AppShell */}
-          <Route path="/tenants/new"               element={<RequireAuth><CreateTenantPage /></RequireAuth>} />
-          <Route path="/tenants/success"           element={<RequireAuth><TenantSuccessPage /></RequireAuth>} />
-          <Route path="/tenants/:id/welcome-email" element={<RequireAuth><SendWelcomeEmailPage /></RequireAuth>} />
+          <Route path="/tenants/new"               element={<RequireSystem><RequireAuth><CreateTenantPage /></RequireAuth></RequireSystem>} />
+          <Route path="/tenants/success"           element={<RequireSystem><RequireAuth><TenantSuccessPage /></RequireAuth></RequireSystem>} />
+          <Route path="/tenants/:id/welcome-email" element={<RequireSystem><RequireAuth><SendWelcomeEmailPage /></RequireAuth></RequireSystem>} />
 
           {/* Protected AppShell */}
           <Route element={<RequireAuth><AppShellWithTheme /></RequireAuth>}>
@@ -226,36 +240,36 @@ export default function App() {
 
             {/* Platform Admin */}
             <Route path="/users-list"                     element={<UserListPage />} />
-            <Route path="/admin/email-templates"          element={<EmailTemplateManagerPage />} />
-            <Route path="/admin/assessment/questions"     element={<QuestionLibraryPage />} />
-            <Route path="/admin/assessment/templates"     element={<AssessmentTemplatesPage />} />
-            <Route path="/admin/assessment/risk-mappings" element={<RiskMappingPage />} />
+            <Route path="/admin/email-templates"          element={<RequireSystem><EmailTemplateManagerPage /></RequireSystem>} />
+            <Route path="/admin/assessment/questions"     element={<RequireSystem><QuestionLibraryPage /></RequireSystem>} />
+            <Route path="/admin/assessment/templates"     element={<RequireSystem><AssessmentTemplatesPage /></RequireSystem>} />
+            <Route path="/admin/assessment/risk-mappings" element={<RequireSystem><RiskMappingPage /></RequireSystem>} />
             <Route path="/admin/workflows"
-              element={<WorkflowPage isPlatformAdmin={isPlatformAdmin} defaultTab="blueprints" />} />
+              element={<RequireSystem><WorkflowPage isPlatformAdmin={isPlatformAdmin} defaultTab="blueprints" /></RequireSystem>} />
             <Route path="/admin/workflow-instances"
-              element={<WorkflowPage isPlatformAdmin={isPlatformAdmin} defaultTab="instances" />} />
-            <Route path="/admin/workflows/blueprints"  element={<WorkflowBlueprintDesigner />} />
-            <Route path="/admin/kashiguard/blueprints" element={<BlueprintsAdminPage />} />
-            <Route path="/admin/kashiguard/rules"      element={<GuardRulesAdminPage />} />
-            <Route path="/admin/ui/navigation"  element={<NavigationAdminPage />} />
-            <Route path="/admin/ui/components"  element={<ComponentsAdminPage />} />
-            <Route path="/admin/ui/actions"     element={<UiActionsAdminPage />} />
-            <Route path="/admin/ui/forms"       element={<FormsAdminPage />} />
-            <Route path="/admin/ui/flags"       element={<FeatureFlagsAdminPage />} />
-            <Route path="/admin/ui/branding"    element={<BrandingAdminPage />} />
-            <Route path="/tenants"     element={<TenantListPage />} />
-            <Route path="/tenants/:id" element={<TenantDetailPage />} />
-            <Route path="/admin/rbac"             element={<RbacAdminPage />} />
-            <Route path="/admin/modules"          element={<ModuleBlueprintAdminPage />} />
-            <Route path="/admin/notifications"    element={<NotificationTemplateAdminPage />} />
-            <Route path="/admin/notification-email-rules" element={<NotificationEmailRulesPage />} />
-            <Route path="/admin/design-system"    element={<DesignSystemPage />} />
-            <Route path="/admin/screen-designer"  element={<ScreenDesignerPage />} />
-            <Route path="/admin/dashboard"        element={<DashboardAdminPage />} />
-            <Route path="/admin/audit/library"          element={<AdminAuditLibraryPage />} />
-            <Route path="/admin/controls/library"       element={<ControlsLibraryPage />} />
-            <Route path="/admin/audit/templates"        element={<AuditTemplatesPage />} />
-            <Route path="/admin/controls/frameworks"    element={<ControlFrameworksPage />} />
+              element={<RequireSystem><WorkflowPage isPlatformAdmin={isPlatformAdmin} defaultTab="instances" /></RequireSystem>} />
+            <Route path="/admin/workflows/blueprints"  element={<RequireSystem><WorkflowBlueprintDesigner /></RequireSystem>} />
+            <Route path="/admin/kashiguard/blueprints" element={<RequireSystem><BlueprintsAdminPage /></RequireSystem>} />
+            <Route path="/admin/kashiguard/rules"      element={<RequireSystem><GuardRulesAdminPage /></RequireSystem>} />
+            <Route path="/admin/ui/navigation"  element={<RequireSystem><NavigationAdminPage /></RequireSystem>} />
+            <Route path="/admin/ui/components"  element={<RequireSystem><ComponentsAdminPage /></RequireSystem>} />
+            <Route path="/admin/ui/actions"     element={<RequireSystem><UiActionsAdminPage /></RequireSystem>} />
+            <Route path="/admin/ui/forms"       element={<RequireSystem><FormsAdminPage /></RequireSystem>} />
+            <Route path="/admin/ui/flags"       element={<RequireSystem><FeatureFlagsAdminPage /></RequireSystem>} />
+            <Route path="/admin/ui/branding"    element={<RequireSystem><BrandingAdminPage /></RequireSystem>} />
+            <Route path="/tenants"     element={<RequireSystem><TenantListPage /></RequireSystem>} />
+            <Route path="/tenants/:id" element={<RequireSystem><TenantDetailPage /></RequireSystem>} />
+            <Route path="/admin/rbac"             element={<RequireSystem><RbacAdminPage /></RequireSystem>} />
+            <Route path="/admin/modules"          element={<RequireSystem><ModuleBlueprintAdminPage /></RequireSystem>} />
+            <Route path="/admin/notifications"    element={<RequireSystem><NotificationTemplateAdminPage /></RequireSystem>} />
+            <Route path="/admin/notification-email-rules" element={<RequireSystem><NotificationEmailRulesPage /></RequireSystem>} />
+            <Route path="/admin/design-system"    element={<RequireSystem><DesignSystemPage /></RequireSystem>} />
+            <Route path="/admin/screen-designer"  element={<RequireSystem><ScreenDesignerPage /></RequireSystem>} />
+            <Route path="/admin/dashboard"        element={<RequireSystem><DashboardAdminPage /></RequireSystem>} />
+            <Route path="/admin/audit/library"          element={<RequireSystem><AdminAuditLibraryPage /></RequireSystem>} />
+            <Route path="/admin/controls/library"       element={<RequireSystem><ControlsLibraryPage /></RequireSystem>} />
+            <Route path="/admin/audit/templates"        element={<RequireSystem><AuditTemplatesPage /></RequireSystem>} />
+            <Route path="/admin/controls/frameworks"    element={<RequireSystem><ControlFrameworksPage /></RequireSystem>} />
 
             {/* Universal Module Page */}
             <Route path="/module"                                              element={<Navigate to="/admin/modules" replace />} />
@@ -274,6 +288,8 @@ export default function App() {
             <Route path="/audit/engagements/:id"                        element={<AuditEngagementDetailPage />} />
             <Route path="/audit/engagements/:id/report"                 element={<AuditReportPage />} />
             <Route path="/audit/library"                                element={<OrgAuditLibraryPage />} />
+            <Route path="/audit/kashilink"                              element={<KashiLinkPage />} />
+            <Route path="/audit/kashilink/:tab"                         element={<KashiLinkPage />} />
             <Route path="/audit/policies/:id/edit"                      element={<PolicyEditorPage />} />
             <Route path="/audit/policies/:id"                           element={<PolicyEditorPage />} />
 

@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, RefreshCw, Trash2, ToggleLeft, ToggleRight, Zap, Pencil } from 'lucide-react'
+import { Plus, RefreshCw, Trash2, ToggleLeft, ToggleRight, Zap, Pencil, Users, Globe, ArrowRight } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { uiAdminApi } from '../../../api/uiConfig.api'
 import { PageLayout }  from '../../../components/layout/PageLayout'
 import { Button }      from '../../../components/ui/Button'
-import { Badge }       from '../../../components/ui/Badge'
 import { Modal, ConfirmDialog } from '../../../components/ui/Modal'
 import { Input }       from '../../../components/ui/Input'
 import { cn }          from '../../../lib/cn'
@@ -24,6 +24,7 @@ export default function FeatureFlagsAdminPage() {
   const [editTarget, setEditTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const qc = useQueryClient()
+  const navigate = useNavigate()
 
   const { data, isLoading, refetch } = useFlags({ skip: 0, take: 100 })
 
@@ -40,6 +41,16 @@ export default function FeatureFlagsAdminPage() {
   const { mutate: remove, isPending: deleting } = useMutation({
     mutationFn: (id) => uiAdminApi.flags.delete(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-flags'] }); toast.success('Flag deleted') },
+    onError: (e) => toast.error(e?.message || 'Failed'),
+  })
+  const { mutate: setMode } = useMutation({
+    mutationFn: ({ flagKey, body }) => uiAdminApi.flags.setMode(flagKey, body),
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: ['admin-flags'] })
+      toast.success(v.body.mode === 'LICENSED'
+        ? 'Switched to Licensed — manage per tenant in Tenant Details'
+        : 'Switched to Global — on/off for all tenants')
+    },
     onError: (e) => toast.error(e?.message || 'Failed'),
   })
 
@@ -71,30 +82,63 @@ export default function FeatureFlagsAdminPage() {
         )}
 
         <div className="flex flex-col gap-2">
-          {flags.map(flag => (
+          {flags.map(flag => {
+            const licensed = flag.mode === 'LICENSED'
+            return (
             <div key={flag.id}
               className="flex items-center gap-4 px-4 py-3 rounded-card border border-border bg-surface-raised hover:bg-surface-overlay transition-colors">
-              {/* Toggle */}
-              <button
-                onClick={() => update({ id: flag.id, data: { isEnabled: !flag.isEnabled } })}
-                className={cn('flex items-center gap-1.5 shrink-0 transition-colors',
-                  flag.isEnabled ? 'text-status-pass-fg' : 'text-text-muted')}>
-                {flag.isEnabled
-                  ? <ToggleRight size={22} strokeWidth={1.5} />
-                  : <ToggleLeft  size={22} strokeWidth={1.5} />}
-              </button>
 
-              {/* Info */}
+              {/* Info: name + description (the identity of the flag) */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-mono font-medium text-text-primary">{flag.flagKey}</span>
-                  <Badge
-                    value={flag.isEnabled ? 'ON' : 'OFF'}
-                    label={flag.isEnabled ? 'Enabled' : 'Disabled'}
-                    colorTag={flag.isEnabled ? 'green' : 'gray'} />
-                </div>
+                <span className="text-sm font-mono font-medium text-text-primary">{flag.flagKey}</span>
                 {flag.description && (
                   <p className="text-xs text-text-muted mt-0.5 truncate">{flag.description}</p>
+                )}
+              </div>
+
+              {/* Mode segmented control — the primary decision: how is this
+                  feature governed? Global (on/off for all) or Licensed (per tenant). */}
+              <div className="flex rounded-ctl border border-border overflow-hidden shrink-0 text-[11px] font-medium">
+                <button
+                  type="button"
+                  onClick={() => { if (licensed) setMode({ flagKey: flag.flagKey, body: { mode: 'GLOBAL', enabled: false } }) }}
+                  title="Global — the same on/off state applies to every tenant."
+                  className={cn('flex items-center gap-1 px-2.5 py-1 transition-colors',
+                    !licensed ? 'bg-brand-500/15 text-brand-ink' : 'text-text-muted hover:bg-surface-overlay')}>
+                  <Globe size={11} /> Global
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { if (!licensed) setMode({ flagKey: flag.flagKey, body: { mode: 'LICENSED' } }) }}
+                  title="Licensed — entitlement is granted per tenant on the Tenant Details page."
+                  className={cn('flex items-center gap-1 px-2.5 py-1 border-l border-border transition-colors',
+                    licensed ? 'bg-brand-500/15 text-brand-ink' : 'text-text-muted hover:bg-surface-overlay')}>
+                  <Users size={11} /> Licensed
+                </button>
+              </div>
+
+              {/* Mode-dependent control:
+                  GLOBAL   → the on/off toggle IS the entitlement (on/off for all).
+                  LICENSED → on/off is meaningless here; point to per-tenant management. */}
+              <div className="w-52 flex justify-end shrink-0">
+                {!licensed ? (
+                  <button
+                    onClick={() => update({ id: flag.id, data: { isEnabled: !flag.isEnabled } })}
+                    className={cn('flex items-center gap-1.5 transition-colors',
+                      flag.isEnabled ? 'text-status-pass-fg' : 'text-text-muted')}
+                    title={flag.isEnabled ? 'On for all tenants — click to turn off' : 'Off for all tenants — click to turn on'}>
+                    {flag.isEnabled
+                      ? <ToggleRight size={22} strokeWidth={1.5} />
+                      : <ToggleLeft  size={22} strokeWidth={1.5} />}
+                    <span className="text-xs">{flag.isEnabled ? 'On for all' : 'Off for all'}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => navigate('/tenants')}
+                    className="flex items-center gap-1 text-xs text-brand-ink hover:underline"
+                    title="Entitlement is managed per tenant. Open Tenant Details to grant or revoke.">
+                    <Users size={13} /> Managed per tenant <ArrowRight size={12} />
+                  </button>
                 )}
               </div>
 
@@ -111,7 +155,7 @@ export default function FeatureFlagsAdminPage() {
                 <Trash2 size={12} />
               </button>
             </div>
-          ))}
+          )})}
         </div>
       </div>
 
@@ -144,7 +188,7 @@ export default function FeatureFlagsAdminPage() {
 }
 
 function FlagForm({ onSubmit, isPending, onClose }) {
-  const [form, setForm] = useState({ flagKey: '', description: '', isEnabled: true, allowedSidesJson: '' })
+  const [form, setForm] = useState({ flagKey: '', description: '', isEnabled: true, allowedSidesJson: '', scope: 'GLOBAL', targetTenantId: '' })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   return (
@@ -179,6 +223,30 @@ function FlagForm({ onSubmit, isPending, onClose }) {
           </button>
         </div>
       </div>
+      {/* Scope — same GLOBAL / PLATFORM / TENANT model as the project library.
+          TENANT scope is how you license a feature to one organization. */}
+      <div>
+        <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">
+          Scope
+        </label>
+        <div className="flex gap-1.5">
+          {['GLOBAL','PLATFORM','TENANT'].map(s => (
+            <button key={s} type="button" onClick={() => set('scope', s)}
+              className={cn('px-3 py-1 rounded-ctl border text-xs font-medium transition-colors',
+                form.scope === s ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
+                                 : 'border-border text-text-muted hover:text-text-primary')}>
+              {s === 'GLOBAL' ? 'All tenants' : s === 'PLATFORM' ? 'Platform only' : 'Specific tenant'}
+            </button>
+          ))}
+        </div>
+        {form.scope === 'TENANT' && (
+          <Input label="Target Tenant ID" type="number" value={form.targetTenantId}
+            onChange={e => set('targetTenantId', e.target.value)}
+            placeholder="e.g. 4" className="mt-2"
+            helperText="The organization this feature is licensed to" />
+        )}
+      </div>
+
       <div className="flex items-center gap-3">
         <button onClick={() => set('isEnabled', !form.isEnabled)} type="button"
           className={cn('flex items-center gap-2 px-3 py-1.5 rounded-ctl border text-xs font-medium transition-colors',
@@ -191,7 +259,11 @@ function FlagForm({ onSubmit, isPending, onClose }) {
       <div className="flex justify-end gap-2 pt-2 border-t border-border">
         <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
         <Button size="sm" loading={isPending}
-          onClick={() => { if (!form.flagKey.trim()) { toast.error('Key required'); return } onSubmit(form) }}>
+          onClick={() => {
+            if (!form.flagKey.trim()) { toast.error('Key required'); return }
+            if (form.scope === 'TENANT' && !form.targetTenantId) { toast.error('Target tenant required'); return }
+            onSubmit({ ...form, targetTenantId: form.targetTenantId ? parseInt(form.targetTenantId) : undefined })
+          }}>
           Create Flag
         </Button>
       </div>
