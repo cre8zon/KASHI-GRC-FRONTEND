@@ -71,6 +71,8 @@ export const uiAdminApi = {
     create: (data)      => api.post('/v1/admin/ui/flags', data),
     update: (id, data)  => api.put(`/v1/admin/ui/flags/${id}`, data),
     delete: (id)        => api.delete(`/v1/admin/ui/flags/${id}`),
+    // Set entitlement mode: { mode:'GLOBAL', enabled } or { mode:'LICENSED' }
+    setMode: (flagKey, body) => api.put(`/v1/admin/ui/flags/by-key/${flagKey}/mode`, body),
   },
   branding: {
     create: (data)      => api.post('/v1/admin/ui/branding', data),

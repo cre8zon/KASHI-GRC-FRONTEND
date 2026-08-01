@@ -76,12 +76,42 @@ export function applyBrandPreset(key, { persist = true } = {}) {
   }
 }
 
+/**
+ * Paint the brand scale + mesh from a raw hex, without a named preset.
+ * Used at boot when the user's colour lives in kashi_sidebar_color (the hex,
+ * e.g. synced from the DB) rather than as a named preset key.
+ */
+export function applyBrandScaleFromHex(hex) {
+  const scale = scaleFromHex(hex)
+  if (!scale) return
+  const root = document.documentElement
+  Object.entries(scale).forEach(([shade, v]) =>
+    root.style.setProperty(`--color-brand-${shade}`, v))
+  root.style.setProperty('--mesh-1', `rgb(${scale[400]})`)
+  root.style.setProperty('--mesh-2', `rgb(${scale[200]})`)
+  root.style.setProperty('--mesh-3', `rgb(${scale[300]})`)
+  root.style.setProperty('--mesh-4', `rgb(${scale[100]})`)
+}
+
 /** Call once on module load (alongside applyAppTheme in useTheme.js). */
 export function applySavedBrandPreset() {
   let key = null
+  let hex = null
   try { key = localStorage.getItem(BRAND_KEY) } catch {}
-  // No saved choice -> paint the sage default WITHOUT persisting it.
-  applyBrandPreset(key || 'sage', { persist: !!key })
+  try { hex = localStorage.getItem('kashi_sidebar_color') } catch {}
+
+  // Priority: a named preset the user picked > the saved hex colour (set via
+  // the colour picker or synced from the DB on a prior load) > sage default.
+  // Previously this only read the preset KEY, so a user whose colour lived in
+  // kashi_sidebar_color (the hex) always booted to sage until the DB fetch
+  // corrected it — a visible flash, and a hard reset if the fetch was blocked.
+  if (key) {
+    applyBrandPreset(key, { persist: true })
+  } else if (hex && /^#?[0-9a-fA-F]{6}$/.test(hex)) {
+    applyBrandScaleFromHex(hex)
+  } else {
+    applyBrandPreset('sage', { persist: false })
+  }
 }
 
 /** True only when the user explicitly picked a preset (BrandPicker click). */

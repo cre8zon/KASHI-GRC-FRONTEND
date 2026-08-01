@@ -41,6 +41,23 @@ const useScreenActions = (screenKey) => useQuery({
   staleTime: 60_000,
 })
 
+// Feature catalogue for the required-feature picker (de-duped by flagKey).
+const useFeatures = () => useQuery({
+  queryKey: ['admin-feature-flags-all'],
+  queryFn: () => uiAdminApi.flags.list({ take: 500 }),
+  staleTime: 5 * 60_000,
+  select: (data) => {
+    const items = data?.items || data || []
+    const seen = new Map()
+    for (const f of items) {
+      if (f?.flagKey && !seen.has(f.flagKey)) {
+        seen.set(f.flagKey, { flagKey: f.flagKey, description: f.description })
+      }
+    }
+    return Array.from(seen.values()).sort((a, b) => a.flagKey.localeCompare(b.flagKey))
+  },
+})
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const ICON_OPTIONS = [
@@ -59,7 +76,7 @@ const EMPTY_BLUEPRINT = {
   entityType: '', displayName: '', displayNamePlural: '', icon: 'Layers',
   colorTag: 'blue', apiBasePath: '', listScreenKey: '', detailScreenKey: '',
   createFormKey: '', editFormKey: '', workflowEligibility: '',
-  allowedSides: 'ORGANIZATION,SYSTEM',
+  allowedSides: 'ORGANIZATION,SYSTEM', requiredFeature: null,
   supportsActionItems: true, supportsDocuments: true,
   supportsComments: true, supportsWorkflow: true,
   showInNav: true, sortOrder: 0, navKey: '',
@@ -78,7 +95,7 @@ export default function ModuleBlueprintAdminPage() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [detailTab, setDetailTab] = useState('overview')
 
-  const { data, isLoading } = useBlueprints({ search })
+  const { data, isLoading } = useBlueprints({ search, take: 200 })
   // Handles both shapes: axios-unwrapped ApiResponse { data: { items } }
   // and double-wrapped { data: { data: { items } } } if interceptor is absent.
   const blueprints = data?.data?.items
@@ -377,6 +394,14 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
               </div>
             </div>
 
+            {/* Required feature — the tenant-licensing gate for this module */}
+            <div>
+              <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Required feature</h3>
+              {bp.requiredFeature
+                ? <Badge variant="purple" size="xs">{bp.requiredFeature}</Badge>
+                : <span className="text-xs text-text-muted">None — available to all tenants</span>}
+            </div>
+
             {/* Workflow eligibility */}
             {bp.workflowEligibility && (
               <div>
@@ -576,6 +601,7 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
 function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
   const [form, setForm] = useState(initial || EMPTY_BLUEPRINT)
   const [formTab, setFormTab] = useState('basic')
+  const { data: features } = useFeatures()
 
   // Sync when editing changes
   useEffect(() => { setForm(initial || EMPTY_BLUEPRINT); setFormTab('basic') }, [initial, open])
@@ -687,6 +713,30 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
                 )
               })}
             </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-text-secondary block mb-1">
+              Required feature
+              <span className="text-text-muted font-normal ml-1">
+                (blocks this module's screens for tenants without it — leave blank for all)
+              </span>
+            </label>
+            <select
+              value={form.requiredFeature || ''}
+              onChange={e => set('requiredFeature', e.target.value || null)}
+              className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+              <option value="">None — available to all tenants</option>
+              {(features || []).map(f => (
+                <option key={f.flagKey} value={f.flagKey}>
+                  {f.flagKey}{f.description ? ` — ${f.description}` : ''}
+                </option>
+              ))}
+            </select>
+            <p className="text-[10px] text-text-muted mt-1">
+              ⚠ Do NOT set this on shared screens (e.g. audit_engagement, reached both
+              standalone and via multi-framework projects) — it would block tenants
+              who own the entity through a different path.
+            </p>
           </div>
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Workflow eligibility (comma-sep entity types)</label>

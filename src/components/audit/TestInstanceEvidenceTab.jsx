@@ -12,7 +12,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Zap, CheckCircle2, Clock, XCircle, RefreshCw,
-  FlaskConical, Info,
+  FlaskConical, Info, Link2,
 } from 'lucide-react'
 import api            from '../../config/axios.config'
 import EvidenceUploader from '../ui/EvidenceUploader'
@@ -78,22 +78,23 @@ function Section({ icon: Icon, label, accent, badge, children }) {
 }
 
 function AutomatedRow({ link, onAccept, onReject, canReview }) {
-  const record = link.record || {}
+  // Evidence fields are flat on the link (EvidenceLinkResponse), not nested
+  // under `record` — the nested shape was never sent by the API.
   return (
     <div className="flex items-start gap-3 py-2.5 border-b border-border/20 last:border-0">
       <Zap size={12} className="shrink-0 mt-0.5 text-brand-ink" />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium text-text-primary truncate">
-          {record.title || `Integration check #${link.evidenceRecordId}`}
+          {link.evidenceTitle || `Integration check #${link.evidenceRecordId}`}
         </p>
-        {record.automationMessage && (
-          <p className="text-[10px] text-text-muted mt-0.5">{record.automationMessage}</p>
+        {link.automationMessage && (
+          <p className="text-[10px] text-text-muted mt-0.5">{link.automationMessage}</p>
         )}
         <div className="flex items-center gap-2 mt-1.5">
           <StatusBadge status={link.status} />
-          {record.collectedAt && (
+          {link.collectedAt && (
             <span className="text-[9px] text-text-muted">
-              {new Date(record.collectedAt).toLocaleDateString('en-GB', {
+              {new Date(link.collectedAt).toLocaleDateString('en-GB', {
                 day: '2-digit', month: 'short', year: 'numeric',
               })}
             </span>
@@ -151,7 +152,7 @@ export function TestInstanceEvidenceTab({ testInstanceId, vc = {} }) {
 
   const { mutate: review } = useMutation({
     mutationFn: ({ linkId, action }) =>
-      api.put(`/v1/evidence/links/${linkId}/review`, { action }),
+      api.patch(`/v1/evidence/links/${linkId}/review`, { action }),
     onSuccess: () => {
       toast.success('Updated')
       qc.invalidateQueries({ queryKey: ['test-inst-evidence-links', testInstanceId] })
@@ -160,7 +161,13 @@ export function TestInstanceEvidenceTab({ testInstanceId, vc = {} }) {
   })
 
   const links     = Array.isArray(linksData) ? linksData : []
-  const automated = links.filter(l => l.collectionType === 'AUTOMATED' || l.automationVerified)
+  // collectionType now comes through on the link; the old `automationVerified`
+  // field never existed, so this filter always returned [].
+  const automated = links.filter(l =>
+    l.collectionType === 'AUTOMATED' || l.status === 'AUTOMATION_VERIFIED')
+  // Evidence the engine pulled in from another test that shares this tag.
+  const reused    = links.filter(l =>
+    l.autoLinked && l.collectionType !== 'AUTOMATED' && l.status !== 'AUTOMATION_VERIFIED')
 
   return (
     <div className="flex flex-col gap-3 pb-6 max-w-2xl">
@@ -191,9 +198,48 @@ export function TestInstanceEvidenceTab({ testInstanceId, vc = {} }) {
         <EvidenceUploader
           entityType="AUDIT_TEST_INSTANCE"
           entityId={testInstanceId}
-          readOnly={!canUpload}
+          canUpload={canUpload}
+          canRemove={canUpload}
         />
       </Section>
+
+      {/* ── Reused evidence (KashiLink) ── */}
+      {reused.length > 0 && (
+        <Section icon={Link2} label="Reused evidence" badge={reused.length}>
+          <div className="divide-y divide-border/20 -mx-3 -mb-3">
+            {reused.map(l => (
+              <div key={l.id} className="flex items-start gap-3 py-2.5 px-3">
+                <Link2 size={12} className="shrink-0 mt-0.5 text-text-muted" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-text-primary truncate">
+                    {l.evidenceTitle || `Evidence #${l.evidenceRecordId}`}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <StatusBadge status={l.status} />
+                    {l.matchedTagSnapshot && (
+                      <span className="font-mono text-[9px] px-1 py-0.5 rounded bg-status-tag-bg text-status-tag-fg">
+                        {l.matchedTagSnapshot}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {canReview && l.status === 'PENDING_REVIEW' && (
+                  <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                    <button onClick={() => review({ linkId: l.id, action: 'ACCEPT' })}
+                      className="text-[9px] px-2 py-0.5 rounded-ctl bg-status-pass-bg text-status-pass-fg hover:bg-status-pass-bg font-medium">
+                      Accept
+                    </button>
+                    <button onClick={() => review({ linkId: l.id, action: 'REJECT' })}
+                      className="text-[9px] px-2 py-0.5 rounded-ctl bg-status-fail-bg text-status-fail-fg hover:bg-status-fail-bg font-medium">
+                      Reject
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
 
       {/* Automated evidence */}
       {automated.length > 0 ? (

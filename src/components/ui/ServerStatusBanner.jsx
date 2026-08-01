@@ -23,7 +23,9 @@ const CONFIG = {
   offline: {
     icon:    WifiOff,
     color:   'bg-surface-raised border-border',
-    dot:     'bg-surface-inset',
+    dot:     'bg-text-muted',
+    ink:     'text-text-primary',
+    subInk:  'text-text-muted',
     title:   'No internet connection',
     detail:  'Check your network and we\'ll reconnect automatically.',
   },
@@ -31,6 +33,8 @@ const CONFIG = {
     icon:    ServerCrash,
     color:   'bg-status-fail-bg border-status-fail-bd',
     dot:     'bg-status-fail-fg',
+    ink:     'text-status-fail-fg',
+    subInk:  'text-status-fail-fg/80',
     title:   'Server unreachable',
     detail:  'The backend is not responding. It may be restarting or deploying.',
   },
@@ -38,6 +42,8 @@ const CONFIG = {
     icon:    AlertTriangle,
     color:   'bg-status-warn-bg border-status-warn-bd',
     dot:     'bg-status-warn-fg',
+    ink:     'text-status-warn-fg',
+    subInk:  'text-status-warn-fg/80',
     title:   'Slow connection',
     detail:  'Responses are taking longer than usual. Some actions may be delayed.',
   },
@@ -110,23 +116,23 @@ export function ServerStatusBanner({ status, retryNow, nextRetryIn, retryCount }
         <span className={cn('relative inline-flex rounded-full h-2 w-2', cfg.dot)} />
       </span>
 
-      <Icon size={14} className="text-on-dark/60 shrink-0" />
+      <Icon size={14} className={cn("shrink-0", cfg.ink)} />
 
       {/* Message */}
       <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-        <span className="font-semibold text-on-dark/90">{cfg.title}</span>
-        <span className="text-on-dark/50 text-xs hidden sm:inline">{cfg.detail}</span>
+        <span className={cn("font-semibold", cfg.ink)}>{cfg.title}</span>
+        <span className={cn("text-xs hidden sm:inline", cfg.subInk)}>{cfg.detail}</span>
       </div>
 
       {/* Retry info + button */}
       <div className="flex items-center gap-3 shrink-0">
         {nextRetryIn > 0 && !retrying && (
-          <span className="text-xs text-on-dark/40 hidden sm:inline">
+          <span className={cn("text-xs hidden sm:inline", cfg.subInk)}>
             Retrying in {nextRetryIn}s
           </span>
         )}
         {retryCount > 3 && (
-          <span className="text-[10px] text-on-dark/30 hidden md:inline">
+          <span className={cn("text-[10px] hidden md:inline", cfg.subInk)}>
             Attempt {retryCount}
           </span>
         )}
@@ -135,7 +141,7 @@ export function ServerStatusBanner({ status, retryNow, nextRetryIn, retryCount }
           disabled={retrying}
           className={cn(
             'flex items-center gap-1.5 px-3 py-1 rounded-ctl text-xs font-medium transition-all',
-            'bg-on-dark/10 hover:bg-on-dark/20 text-on-dark/80 hover:text-on-dark border border-on-dark/10',
+            'bg-surface-raised/60 hover:bg-surface-raised border border-border', cfg.ink,
             'disabled:opacity-50 disabled:cursor-not-allowed'
           )}
         >
@@ -147,7 +153,7 @@ export function ServerStatusBanner({ status, retryNow, nextRetryIn, retryCount }
         {status === 'degraded' && (
           <button
             onClick={() => setDismissed(true)}
-            className="p-1 rounded hover:bg-on-dark/10 text-on-dark/40 hover:text-on-dark/70 transition-colors"
+            className={cn("p-1 rounded hover:bg-surface-raised/60 transition-colors", cfg.subInk)}
           >
             <X size={12} />
           </button>

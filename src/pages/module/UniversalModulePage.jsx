@@ -195,6 +195,7 @@ export default function UniversalModulePage() {
 function ModuleListView({ bp }) {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const [searchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [createOpen, setCreateOpen] = useState(false)
@@ -224,7 +225,12 @@ function ModuleListView({ bp }) {
   const { data: screenRes } = useScreenConfig(bp.listScreenKey)
   const screenConfig = screenRes?.data || screenRes
 
+  // frameworkRef scopes a SHARED module (audit_engagement/finding) to one
+  // framework, so an ISO-only tenant reaching the page via the ISO nav row sees
+  // only ISO rows — never SOC2/RBI. Comes from the nav route's ?frameworkRef=.
+  const frameworkRef = searchParams.get('frameworkRef') || undefined
   const params = { search: search || undefined, skip: page * 20, take: 20,
+    frameworkRef,
     sortBy: sortBy || undefined, sortDirection: sortBy ? sortDir : undefined }
   const { data: listRes, isLoading } = useEntityList(bp.apiBasePath, params)
   // Handle all API response shapes:

@@ -246,7 +246,12 @@ function DisplayTab({ branding }) {
   }
 
   const handleAppTheme = (t) => setSelApp(t)
-  const handleSidebar  = (t) => setSelSidebar(t)
+  const handleSidebar  = (t) => {
+    setSelSidebar(t)
+    // Live preview: apply the sidebar theme on click, not only on Save.
+    try { localStorage.setItem('kashi_sidebar_theme', t) } catch {}
+    window.dispatchEvent(new CustomEvent('kashi-sidebar-changed'))
+  }
   const handleColor    = (c) => {
     setSelColor(c)
     // Live preview — update brand CSS vars immediately so bg-brand-* classes react

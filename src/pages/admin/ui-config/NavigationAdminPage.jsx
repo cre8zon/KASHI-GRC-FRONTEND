@@ -695,6 +695,7 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
     module:             item?.module             || '',
     allowedSides:       item?.allowedSides       || '',
     requiredPermission: item?.requiredPermission || null,
+    requiredFeature:    item?.requiredFeature    || null,
     badgeCountEndpoint: item?.badgeCountEndpoint || null,
     isActive:           item?.isActive           ?? true,
   })
@@ -717,6 +718,7 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
       // Send empty string to CLEAR optional fields (null = backend skips the field entirely)
       parentKey:          form.parentKey          ?? '',
       requiredPermission: form.requiredPermission ?? '',
+      requiredFeature:    form.requiredFeature    ?? '',
       badgeCountEndpoint: form.badgeCountEndpoint ?? '',
     })
   }
@@ -815,6 +817,21 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
         onChange={v => set('requiredPermission', v)}
       />
 
+      {/* Feature entitlement — tenant-licensing gate. Hides the link AND, via
+          the API's @RequiresFeature, blocks the route for tenants without it. */}
+      <div>
+        <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">
+          Required Feature
+          <span className="text-text-muted font-normal normal-case ml-1">
+            (tenant licensing gate — leave blank for all tenants)
+          </span>
+        </label>
+        <Input value={form.requiredFeature || ''}
+          onChange={e => set('requiredFeature', e.target.value || null)}
+          placeholder="e.g. framework.iso27001, module.vendor_assessment"
+          helperText="Row is hidden and its route blocked unless the tenant has this feature enabled in Feature Flags" />
+      </div>
+
       <Input label="Badge Count Endpoint" value={form.badgeCountEndpoint || ''}
         onChange={e => set('badgeCountEndpoint', e.target.value || null)}
         placeholder="/v1/issues?status=OPEN&take=1 (optional)"
@@ -894,7 +911,11 @@ export default function NavigationAdminPage() {
       }
     },
     {
-      // ── Key column: permission code → click opens grant/revoke modal
+      key: 'requiredFeature', label: 'Feature Gate', width: 150, type: 'custom',
+      render: (r) => r.requiredFeature
+        ? <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-brand-500/12 text-brand-ink">{r.requiredFeature}</span>
+        : <span className="text-[10px] text-text-muted">—</span>,
+    }, {
       key: 'requiredPermission', label: 'Permission / Who sees', width: 210, type: 'custom',
       render: (r) => (
         <PermissionCell
