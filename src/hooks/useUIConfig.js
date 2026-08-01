@@ -28,6 +28,35 @@ export const useBootstrap = () => {
         const { usersApi } = await import('../api/users.api')
         const prefs = await usersApi.preferences.get()
         //
+        // One-time v3 theme reset. The index.html migration cleared this
+        // browser, but the DB still holds pre-v3 prefs and bootstrap would
+        // restore them. Push the new defaults up once, then behave normally
+        // forever after. Delete this block once every user has loaded once.
+        const resetPending = (() => {
+          try { return localStorage.getItem('kashi_theme_reset_pending') === '1' } catch { return false }
+        })()
+        if (resetPending) {
+          try {
+            const { BRAND_PRESETS } = await import('../config/brandPresets')
+            await usersApi.preferences.save({
+              ui_app_theme:     'light',
+              ui_sidebar_theme: 'light',
+              ui_sidebar_color: BRAND_PRESETS[0].hex, // pastel Sage — single source of truth
+            })
+          } catch (err) {
+            //
+          }
+          try {
+            localStorage.setItem('kashi_theme', 'light')
+            localStorage.setItem('kashi_sidebar_theme', 'light')
+            localStorage.removeItem('kashi_theme_reset_pending')
+          } catch (err) {
+            //
+          }
+          document.documentElement.setAttribute('data-theme', 'light')
+          window.dispatchEvent(new CustomEvent('kashi-sidebar-changed'))
+          return data
+        }
         if (prefs) {
           const appTheme     = prefs['ui_app_theme']
           const sidebarTheme = prefs['ui_sidebar_theme']
@@ -52,11 +81,15 @@ export const useBootstrap = () => {
               localStorage.setItem('kashi_sidebar_theme', 'brand')
             }
           }
-          if (sidebarColor) {
+          // Precedence: an explicitly chosen pastel preset always beats the
+          // server-side brand colour. Without this the API response repaints
+          // --color-brand-* a few hundred ms after boot and stomps the preset.
+          const { hasUserChosenPreset } = await import('../config/brandPresets')
+          if (sidebarColor && !hasUserChosenPreset()) {
             localStorage.setItem('kashi_sidebar_color', sidebarColor)
             // Apply user's personal brand color to entire app
             const { applyBranding } = await import('../store/slices/uiConfigSlice')
-            applyBranding({ ...data.branding, primaryColor: sidebarColor })
+            applyBranding({ ...data.branding, primaryColor: sidebarColor }, { force: true })
           }
           if (sidebarTheme || !localStorage.getItem('kashi_sidebar_theme')) {
             window.dispatchEvent(new CustomEvent('kashi-sidebar-changed'))

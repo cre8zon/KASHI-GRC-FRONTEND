@@ -12,8 +12,8 @@ import { Button } from '../../../components/ui/Button'
 
 function VarChip({ label, onInsert }) {
   return (
-    <div className="flex items-center justify-between p-2 bg-surface-overlay rounded-lg border border-border">
-      <span className="text-xs font-mono text-brand-400">{`{{${label}}}`}</span>
+    <div className="flex items-center justify-between p-2 bg-surface-overlay rounded-card border border-border">
+      <span className="text-xs font-mono text-brand-ink">{`{{${label}}}`}</span>
       <button
         onClick={() => onInsert(label)}
         className="text-[10px] text-text-muted hover:text-text-primary px-1.5 py-0.5 rounded hover:bg-surface-raised transition-colors"
@@ -154,24 +154,24 @@ export default function SendWelcomeEmailPage() {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center p-6">
         <div className="max-w-xl w-full text-center">
-          <div className="inline-flex w-20 h-20 rounded-full bg-green-500/10 border-4 border-green-500/30 items-center justify-center mb-4">
-            <CheckCircle2 size={40} className="text-green-400" strokeWidth={2} />
+          <div className="inline-flex w-20 h-20 rounded-full bg-status-pass-bg border-4 border-status-pass-bd items-center justify-center mb-4">
+            <CheckCircle2 size={40} className="text-status-pass-fg" strokeWidth={2} />
           </div>
           <h1 className="text-2xl font-bold text-text-primary mb-2">Email Sent Successfully!</h1>
           <p className="text-sm text-text-secondary mb-8">
             Welcome email delivered to{' '}
-            <span className="text-brand-400 font-medium">{recipientEmail}</span>
+            <span className="text-brand-ink font-medium">{recipientEmail}</span>
           </p>
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => navigate(`/tenants/${tenant.tenantId}`)}
-              className="flex-1 h-10 bg-brand-500 text-white rounded-xl text-sm font-semibold hover:bg-brand-600 transition-colors flex items-center justify-center gap-2"
+              className="flex-1 h-10 bg-brand-500 text-brand-900 rounded-card text-sm font-semibold hover:bg-brand-600 transition-colors flex items-center justify-center gap-2"
             >
               View Tenant <ArrowRight size={14} />
             </button>
             <button
               onClick={() => { setSent(false); setResetDone(false) }}
-              className="h-10 px-4 border border-border text-text-secondary text-sm rounded-xl hover:bg-surface-overlay transition-colors"
+              className="h-10 px-4 border border-border text-text-secondary text-sm rounded-card hover:bg-surface-overlay transition-colors"
             >
               Send Another
             </button>
@@ -187,8 +187,8 @@ export default function SendWelcomeEmailPage() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center">
-            <Mail size={18} className="text-brand-400" />
+          <div className="w-10 h-10 rounded-card bg-brand-500/10 flex items-center justify-center">
+            <Mail size={18} className="text-brand-ink" />
           </div>
           <div>
             <h1 className="text-base font-bold text-text-primary">Send Welcome Email</h1>
@@ -197,7 +197,7 @@ export default function SendWelcomeEmailPage() {
         </div>
         <button
           onClick={() => navigate(-1)}
-          className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-surface-overlay text-text-muted transition-colors"
+          className="h-8 w-8 flex items-center justify-center rounded-card hover:bg-surface-overlay text-text-muted transition-colors"
         >
           <X size={16} />
         </button>
@@ -209,10 +209,10 @@ export default function SendWelcomeEmailPage() {
 
           {/* Amber banner — shown when no temp password available */}
           {needsPasswordReset && (
-            <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-              <div className="text-amber-400 text-base shrink-0 mt-0.5">⚠</div>
+            <div className="flex items-start gap-3 p-4 bg-status-warn-bg border border-status-warn-bd rounded-card">
+              <div className="text-status-warn-fg text-base shrink-0 mt-0.5">⚠</div>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-amber-400">Temporary password not available</p>
+                <p className="text-sm font-semibold text-status-warn-fg">Temporary password not available</p>
                 <p className="text-xs text-text-muted mt-1">
                   This owner was created earlier. Generate a fresh temporary password to include in the email.
                   The previous password will be invalidated immediately.
@@ -227,10 +227,10 @@ export default function SendWelcomeEmailPage() {
                   resetPassword()
                 }}
                 disabled={resetting || !resolvedOwner?.userId}
-                className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-60 shrink-0"
+                className="flex items-center gap-1.5 px-3 py-2 bg-status-warn-bg text-on-dark text-xs font-semibold rounded-card hover:bg-status-warn-bg transition-colors disabled:opacity-60 shrink-0"
               >
                 {resetting
-                  ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ? <span className="w-3 h-3 border-2 border-on-dark/30 border-t-white rounded-full animate-spin" />
                   : <RefreshCw size={12} />
                 }
                 Reset & Generate
@@ -240,22 +240,22 @@ export default function SendWelcomeEmailPage() {
 
           {/* Green banner after reset */}
           {resetDone && (
-            <div className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/20 rounded-xl">
-              <CheckCircle2 size={16} className="text-green-400 shrink-0" />
-              <p className="text-xs text-green-400 font-medium">
+            <div className="flex items-center gap-3 p-3 bg-status-pass-bg border border-status-pass-bd rounded-card">
+              <CheckCircle2 size={16} className="text-status-pass-fg shrink-0" />
+              <p className="text-xs text-status-pass-fg font-medium">
                 New temporary password generated and inserted into the email body. Review carefully, then send.
               </p>
             </div>
           )}
 
           {/* Tabs */}
-          <div className="flex gap-1 bg-surface-overlay rounded-lg p-0.5 w-fit">
+          <div className="flex gap-1 bg-surface-overlay rounded-card p-0.5 w-fit">
             {[{ key: 'compose', label: 'Email Details' }, { key: 'preview', label: 'Preview' }].map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={cn(
-                  'px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
+                  'px-3 py-1.5 rounded-ctl text-xs font-medium transition-colors',
                   activeTab === tab.key
                     ? 'bg-surface-raised text-text-primary'
                     : 'text-text-muted hover:text-text-secondary'
@@ -267,16 +267,16 @@ export default function SendWelcomeEmailPage() {
           </div>
 
           {activeTab === 'compose' && (
-            <div className="bg-surface-raised border border-border rounded-xl p-5 space-y-4">
+            <div className="bg-surface-raised border border-border rounded-card p-5 space-y-4">
 
               {/* Recipient */}
               <div>
                 <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Recipient</p>
                 <div className={cn(
-                  'flex items-center gap-3 p-3 bg-surface-overlay border rounded-lg transition-colors',
-                  recipientEmail ? 'border-border' : 'border-red-500/40'
+                  'flex items-center gap-3 p-3 bg-surface-overlay border rounded-card transition-colors',
+                  recipientEmail ? 'border-border' : 'border-status-fail-bd'
                 )}>
-                  <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-xs font-bold text-amber-400">
+                  <div className="w-8 h-8 rounded-full bg-status-warn-bg flex items-center justify-center text-xs font-bold text-status-warn-fg">
                     {(resolvedOwner?.firstName || '?')[0].toUpperCase()}
                   </div>
                   <div className="flex-1">
@@ -294,16 +294,16 @@ export default function SendWelcomeEmailPage() {
                         'text-xs bg-transparent border-b focus:outline-none w-full mt-0.5 pb-0.5 transition-colors',
                         recipientEmail
                           ? 'text-text-muted border-transparent focus:border-brand-500'
-                          : 'text-red-400 border-red-400 placeholder:text-red-300'
+                          : 'text-status-fail-fg border-status-fail-bd placeholder:text-status-fail-fg'
                       )}
                     />
                   </div>
-                  <span className="text-[10px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20 font-medium shrink-0">
+                  <span className="text-[10px] bg-status-warn-bg text-status-warn-fg px-2 py-0.5 rounded-full border border-status-warn-bd font-medium shrink-0">
                     Owner
                   </span>
                 </div>
                 {!recipientEmail && (
-                  <p className="text-xs text-red-400 mt-1.5">
+                  <p className="text-xs text-status-fail-fg mt-1.5">
                     ⚠ No email address — type it above before sending
                   </p>
                 )}
@@ -315,7 +315,7 @@ export default function SendWelcomeEmailPage() {
                 <input
                   value={subject}
                   onChange={e => setSubject(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="h-9 w-full rounded-card border border-border bg-surface px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
               </div>
 
@@ -331,13 +331,13 @@ export default function SendWelcomeEmailPage() {
                   value={body}
                   onChange={e => setBody(e.target.value)}
                   rows={12}
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500/50 resize-none opacity-80"
+                  className="w-full rounded-card border border-border bg-surface px-3 py-2 text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500/50 resize-none opacity-80"
                 />
                 <p className="text-[11px] text-text-muted mt-1">
                   To change the email content, go to{' '}
                   <button
                     onClick={() => navigate('/admin/email-templates')}
-                    className="text-brand-400 hover:text-brand-300 underline"
+                    className="text-brand-ink hover:text-brand-ink underline"
                   >
                     Email Templates
                   </button>
@@ -365,7 +365,7 @@ export default function SendWelcomeEmailPage() {
               </div>
 
               {needsPasswordReset && (
-                <p className="text-[11px] text-amber-400 text-center">
+                <p className="text-[11px] text-status-warn-fg text-center">
                   Generate a new temporary password above before sending
                 </p>
               )}
@@ -373,13 +373,13 @@ export default function SendWelcomeEmailPage() {
           )}
 
           {activeTab === 'preview' && (
-            <div className="bg-surface-raised border border-border rounded-xl overflow-hidden">
+            <div className="bg-surface-raised border border-border rounded-card overflow-hidden">
               <div className="px-4 py-3 border-b border-border bg-surface-overlay">
                 <p className="text-xs text-text-muted">
                   Subject: <span className="text-text-primary">{subject}</span>
                 </p>
               </div>
-              <div className="bg-white" style={{ height: 500 }}>
+              <div className="bg-surface-raised" style={{ height: 500 }}>
                 <iframe
                   srcDoc={`<style>body{margin:0;padding:0}</style>${body}`}
                   className="w-full h-full border-0"
@@ -396,7 +396,7 @@ export default function SendWelcomeEmailPage() {
           {/* Mini live preview */}
           <div>
             <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Live Preview</p>
-            <div className="rounded-xl border border-border overflow-hidden bg-white" style={{ height: 200 }}>
+            <div className="rounded-card border border-border overflow-hidden bg-surface-raised" style={{ height: 200 }}>
               <iframe
                 srcDoc={`<style>body{margin:0;padding:12px;font-family:system-ui,sans-serif;font-size:10px}</style>${body}`}
                 className="w-full h-full border-0"
@@ -417,7 +417,7 @@ export default function SendWelcomeEmailPage() {
           </div>
 
           {/* Tenant info */}
-          <div className="bg-surface-raised border border-border rounded-xl p-4">
+          <div className="bg-surface-raised border border-border rounded-card p-4">
             <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Tenant Information</p>
             <div className="space-y-2 text-xs">
               {[

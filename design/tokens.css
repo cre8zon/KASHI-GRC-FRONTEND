@@ -1,0 +1,337 @@
+/* ============================================================
+   KashiGRC — "Calm" design tokens  (v3: pastel + glass chrome)
+   Soft, smooth, pastel. Glass on chrome & overlays only;
+   content surfaces always solid. Default theme: LIGHT.
+
+   Import once in src/index.css (before @tailwind utilities)
+   or link from index.html. Class names in the app stay the
+   same — only these values change the whole look.
+   ============================================================ */
+
+/* Typeface: Albert Sans — soft geometric grotesque. One family for
+   everything; IBM Plex Mono only for codes/IDs.
+   @import url('https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+*/
+
+:root {
+  /* ---------- Brand (runtime-overridable) ----------
+     Format: space-separated RGB triplets — REQUIRED by the
+     existing injector in useTheme.js and by Tailwind's
+     rgb(var(--x) / <alpha-value>) pattern. Defaults = KashiGRC teal. */
+  --color-brand-50:  249 252 250;
+  --color-brand-100: 239 247 242;
+  --color-brand-200: 227 241 233;
+  --color-brand-300: 211 234 220;
+  --color-brand-400: 193 225 206;
+  --color-brand-500: 175 216 192;   /* #AFD8C0 pastel sage (default) */
+  --color-brand-600: 145 180 163;
+  --color-brand-700: 116 144 134;
+  --color-brand-800: 86 107 105;
+  --color-brand-900: 60 75 79;   /* deep sage — text on pastel */
+
+  /* Secondary accent — mint. Use sparingly: progress, positive deltas. */
+  --color-accent: 2 195 154;        /* #02C39A */
+
+  /* ---------- Ink scale (navy-tinted neutrals, not gray) ---------- */
+  --ink-950: #0B1826;
+  --ink-900: #0E1F33;               /* brand INK */
+  --ink-700: #2A3C51;
+  --ink-500: #51637A;
+  --ink-400: #71839B;
+  --ink-300: #9AA9BC;
+  --ink-200: #C6D0DC;
+  --ink-150: #DAE1E9;
+  --ink-100: #E8EDF2;
+  --ink-50:  #F4F6F9;
+  --paper:   #FBFCFD;
+
+  /* ---------- Typography ---------- */
+  --font-sans:    'Albert Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Albert Sans', system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+
+  /* ---------- Type ramp (fixed roles — never invent sizes) ----------
+     Data-dense B2B baseline: 13px body, major-second-ish steps. */
+  --type-display: 700 1.375rem/1.35 var(--font-display); /* 22px page titles */
+  --type-title:   600 1rem/1.4     var(--font-sans);    /* 16px card/section titles */
+  --type-body:    400 0.8125rem/1.5 var(--font-sans);   /* 13px default UI + tables */
+  --type-body-md: 500 0.8125rem/1.5 var(--font-sans);
+  --type-caption: 400 0.75rem/1.45 var(--font-sans);    /* 12px secondary */
+  --type-micro:   500 0.6875rem/1.4 var(--font-sans);   /* 11px labels/badges */
+
+  /* ---------- Spacing: strict 4px grid ---------- */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+
+  /* ---------- Shape: soft & smooth ---------- */
+  --radius-badge: 999px;  /* pills */
+  --radius-ctl:   8px;    /* buttons, inputs */
+  --radius-card:  12px;
+  --radius-modal: 16px;
+}
+
+/* ============================================================
+   LIGHT THEME (default)
+   Paper surfaces, ink text, hairline borders, near-zero shadow.
+   ============================================================ */
+:root,
+[data-theme='light'] {
+  --surface:          var(--paper);      /* app background   */
+  --surface-raised:   #FFFFFF;           /* cards, tables    */
+  --surface-overlay:  var(--ink-50);     /* hovers, wells    */
+  --surface-inset:    var(--ink-100);    /* code, inputs bg  */
+
+  --text-primary:     var(--ink-900);
+  --text-secondary:   var(--ink-700);
+  --text-muted:       var(--ink-500);
+  --text-faint:       var(--ink-400);
+
+  --border:           var(--ink-100);
+  --border-subtle:    #EFF2F6;
+  --border-strong:    var(--ink-300);
+
+  --shadow-elevated:  0 1px 2px rgb(14 31 51 / 0.05), 0 4px 14px rgb(14 31 51 / 0.06);
+  --shadow-hover:     0 2px 4px rgb(14 31 51 / 0.06), 0 10px 24px rgb(14 31 51 / 0.09);
+  --shadow-overlay:   0 12px 40px rgb(14 31 51 / 0.16);
+
+  /* Pastel wash (ambient bg gradient) — overridden per brand preset */
+  --wash-a: #EAF4EC;  --wash-b: #F2F7EE;  --wash-c: #FDF4E7;
+
+  /* Glass chrome (sidebar, topnav, drawers, menus, modals) */
+  --glass-bg:     rgb(255 255 255 / 0.66);
+  --glass-bg-hi:  rgb(255 255 255 / 0.82);  /* overlays holding forms */
+  --glass-bd:     rgb(255 255 255 / 0.75);
+  --glass-blur:   18px;
+
+  /* ---------- Status: printed stamps, not glowing pills.
+     Solid tinted paper + dark saturated text. WCAG AA. ---------- */
+  --status-pass-bg:     #E4F4EA;  --status-pass-fg:    #177149;  --status-pass-bd:    #E4F4EA;
+  --status-fail-bg:     #FCEAEA;  --status-fail-fg:    #B3312F;  --status-fail-bd:    #FCEAEA;
+  --status-warn-bg:     #FBF1DC;  --status-warn-fg:    #96610A;  --status-warn-bd:    #FBF1DC;
+  --status-info-bg:     #E2F1F3;  --status-info-fg:    #0E6D77;  --status-info-bd:    #E2F1F3;
+  --status-pending-bg:  #EEF1F5;  --status-pending-fg: #55647A;  --status-pending-bd: #EEF1F5;
+  --status-tag-bg:      #EEECF8;  --status-tag-fg:     #5D4FB3;  --status-tag-bd:     #EEECF8;
+}
+
+/* ============================================================
+   DARK THEME — deep-navy chart room. Solid chips, no alpha glow.
+   ============================================================ */
+[data-theme='dark'] {
+  --surface:          #0B1622;
+  --surface-raised:   #101E2E;
+  --surface-overlay:  #16283A;
+  --surface-inset:    #0D1A28;
+
+  --text-primary:     #E7EDF4;
+  --text-secondary:   #B7C4D3;
+  --text-muted:       #7E90A5;
+  --text-faint:       #5D7188;
+
+  --border:           #223447;
+  --border-subtle:    #1A2A3C;
+  --border-strong:    #35506B;
+
+  --shadow-elevated:  0 1px 2px rgb(0 0 0 / 0.3), 0 4px 14px rgb(0 0 0 / 0.25);
+  --shadow-hover:     0 2px 4px rgb(0 0 0 / 0.3), 0 10px 24px rgb(0 0 0 / 0.35);
+  --shadow-overlay:   0 16px 44px rgb(0 0 0 / 0.5);
+  --wash-a: #12251E;  --wash-b: #101E2E;  --wash-c: #22201A;
+  --glass-bg:    rgb(16 30 46 / 0.62);
+  --glass-bg-hi: rgb(16 30 46 / 0.82);
+  --glass-bd:    rgb(255 255 255 / 0.08);
+
+  --status-pass-bg:     #123021;  --status-pass-fg:    #86CFA0;  --status-pass-bd:    #1E4A33;
+  --status-fail-bg:     #391A1C;  --status-fail-fg:    #E89A9A;  --status-fail-bd:    #5A2A2D;
+  --status-warn-bg:     #38290F;  --status-warn-fg:    #E4BC72;  --status-warn-bd:    #57411B;
+  --status-info-bg:     #0F2E33;  --status-info-fg:    #7FC6CD;  --status-info-bd:    #1C464C;
+  --status-pending-bg:  #1B2836;  --status-pending-fg: #A5B4C6;  --status-pending-bd: #2A3B4E;
+  --status-tag-bg:      #241F3D;  --status-tag-fg:     #B4A9E6;  --status-tag-bd:     #38315C;
+}
+
+/* system = follow OS */
+@media (prefers-color-scheme: dark) {
+  [data-theme='system'] {
+    --surface:          #0B1622;
+    --surface-raised:   #101E2E;
+    --surface-overlay:  #16283A;
+    --surface-inset:    #0D1A28;
+    --text-primary:     #E7EDF4;
+    --text-secondary:   #B7C4D3;
+    --text-muted:       #7E90A5;
+    --text-faint:       #5D7188;
+    --border:           #223447;
+    --border-subtle:    #1A2A3C;
+    --border-strong:    #35506B;
+    --shadow-elevated:  0 1px 2px rgb(0 0 0 / 0.35);
+    --shadow-overlay:   0 12px 34px rgb(0 0 0 / 0.5);
+    --status-pass-bg:    #123021; --status-pass-fg:    #86CFA0; --status-pass-bd:    #1E4A33;
+    --status-fail-bg:    #391A1C; --status-fail-fg:    #E89A9A; --status-fail-bd:    #5A2A2D;
+    --status-warn-bg:    #38290F; --status-warn-fg:    #E4BC72; --status-warn-bd:    #57411B;
+    --status-info-bg:    #0F2E33; --status-info-fg:    #7FC6CD; --status-info-bd:    #1C464C;
+    --status-pending-bg: #1B2836; --status-pending-fg: #A5B4C6; --status-pending-bd: #2A3B4E;
+    --status-tag-bg:     #241F3D; --status-tag-fg:     #B4A9E6; --status-tag-bd:     #38315C;
+  }
+}
+
+/* ============================================================
+   Base + signature treatments
+   ============================================================ */
+html { font-family: var(--font-sans); }
+body {
+  background: var(--surface);
+  color: var(--text-primary);
+  font-feature-settings: 'tnum' 1, 'cv05' 1;  /* tabular figures — data tables align */
+}
+
+/* Display: page-level headings — bold Jakarta, gently tightened. */
+.reg-display {
+  font: var(--type-display);
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+}
+
+/* Registry signature: every control code, evidence ID, hash is set
+   in mono on inset paper. Use <span class="reg-code">CC6.1</span>. */
+.reg-code {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  background: var(--surface-inset);
+  border-radius: 6px;
+  padding: 0.15em 0.5em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Smooth-feel defaults: gentle motion everywhere */
+button, a, [role='button'], .card-hover {
+  transition: background-color .15s ease, border-color .15s ease,
+              box-shadow .2s ease, color .15s ease, transform .15s ease;
+}
+.card-hover:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+@media (prefers-reduced-motion: reduce) {
+  button, a, [role='button'], .card-hover { transition: none }
+  .card-hover:hover { transform: none }
+}
+
+/* Eyebrow label — section headers in tables/cards */
+.reg-eyebrow {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ---------- Interaction & density (work-tool conventions) ---------- */
+:root {
+  --row-h-compact: 32px;
+  --row-h-comfortable: 40px;
+  --drawer-sm: 400px; --drawer-md: 560px; --drawer-lg: 720px;
+}
+:root, [data-theme='light'] {
+  --row-hover:    var(--ink-50);
+  --row-selected: rgb(var(--color-brand-500) / 0.07);
+}
+[data-theme='dark'] {
+  --row-hover:    #14202F;
+  --row-selected: rgb(var(--color-brand-500) / 0.14);
+}
+.row-selected {
+  background: var(--row-selected);
+  box-shadow: inset 2px 0 0 rgb(var(--color-brand-500));
+}
+
+/* ---------- Categorical chart palette ----------
+   For data-viz ONLY (DashboardWidget etc). Never for status.
+   Harmonized with teal/ink; assign in this order. */
+:root {
+  --chart-1: #0E7C86;  /* teal (brand) */
+  --chart-2: #4C6A92;  /* slate blue   */
+  --chart-3: #02C39A;  /* mint         */
+  --chart-4: #C9822E;  /* ochre        */
+  --chart-5: #7A5FA8;  /* muted plum   */
+  --chart-6: #B75D69;  /* rosewood     */
+  --chart-7: #5B8DB8;  /* steel        */
+  --chart-8: #8B8E63;  /* olive        */
+}
+[data-theme='dark'] {
+  --chart-1: #3AA6AF; --chart-2: #7A97BD; --chart-3: #2FD6B0; --chart-4: #DCA050;
+  --chart-5: #9C82CC; --chart-6: #D08490; --chart-7: #7FAED4; --chart-8: #ACAF85;
+}
+
+/* ---------- Pastel wash background (default LIGHT) ---------- */
+body {
+  background:
+    radial-gradient(900px 500px at 8% -10%, var(--wash-a), transparent 60%),
+    radial-gradient(800px 520px at 100% 0%, var(--wash-c), transparent 55%),
+    radial-gradient(700px 600px at 50% 115%, var(--wash-b), transparent 60%),
+    var(--surface);
+  background-attachment: fixed;
+}
+
+/* ---------- Glass utilities ----------
+   .glass-chrome  → sidebar, top nav (persistent chrome)
+   .glass-overlay → modals, drawers, dropdown menus, command palette
+   Content cards/tables NEVER get these classes. */
+.glass-chrome {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-bd);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+}
+.glass-overlay {
+  background: var(--glass-bg-hi);
+  border: 1px solid var(--glass-bd);
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+}
+/* Solid fallback when backdrop-filter unsupported */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-chrome, .glass-overlay { background: var(--surface-raised); }
+}
+/* Evidence must print clean: solid chrome, no wash, on paper */
+@media print {
+  body { background: #fff !important; }
+  .glass-chrome, .glass-overlay {
+    background: #fff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* ---------- Pastel brand presets (set data-brand on <html>) ----------
+   Brand-* scales are injected at runtime from the seed hex (useTheme.js);
+   these blocks carry the matching wash so ambience follows the theme. */
+[data-brand='sage']       { --wash-a:#D7ECE0; --wash-b:#E9F4ED; --wash-c:#D4F0E8; }
+[data-brand='mint']       { --wash-a:#D4F0E8; --wash-b:#E7F7F2; --wash-c:#D2EEF0; }
+[data-brand='seafoam']    { --wash-a:#D2EEF0; --wash-b:#E6F5F6; --wash-c:#DCEAF8; }
+[data-brand='sky']        { --wash-a:#DCEAF8; --wash-b:#EBF3FB; --wash-c:#E0E4F8; }
+[data-brand='periwinkle'] { --wash-a:#E0E4F8; --wash-b:#EDF0FB; --wash-c:#E9E4F8; }
+[data-brand='lilac']      { --wash-a:#E9E4F8; --wash-b:#F3F0FB; --wash-c:#F0E2F2; }
+[data-brand='mauve']      { --wash-a:#F0E2F2; --wash-b:#F7EEF8; --wash-c:#F8E1E8; }
+[data-brand='blush']      { --wash-a:#F8E1E8; --wash-b:#FBEEF2; --wash-c:#F9E0DC; }
+[data-brand='coral']      { --wash-a:#F9E0DC; --wash-b:#FCEEEB; --wash-c:#FAE7D4; }
+[data-brand='peach']      { --wash-a:#FAE7D4; --wash-b:#FCF2E7; --wash-c:#F8EFD4; }
+[data-brand='butter']     { --wash-a:#F8EFD4; --wash-b:#FBF6E7; --wash-c:#E7F1D4; }
+[data-brand='pistachio']  { --wash-a:#E7F1D4; --wash-b:#F2F7E7; --wash-c:#D7ECE0; }
+
+/* ---------- Report palette (PRINT-STABLE, theme-independent) ----------
+   Audit/assessment report pages use these — NEVER the pastel theme.
+   A printed report must look identical for every user theme. Edit here
+   to rebrand all report output at once. */
+:root, [data-theme='dark'], [data-theme='light'] {
+  --rpt-ink:      #1A2233;
+  --rpt-muted:    #5A6B80;
+  --rpt-border:   #D9E0E8;
+  --rpt-pass-fg:  #166534;  --rpt-pass-bg:  #DCFCE7;  --rpt-pass-bd:  #16A34A;
+  --rpt-warn-fg:  #92400E;  --rpt-warn-bg:  #FEF3C7;  --rpt-warn-bd:  #D97706;
+  --rpt-high-fg:  #9A3412;  --rpt-high-bg:  #FED7AA;  --rpt-high-bd:  #EA580C;
+  --rpt-crit-fg:  #991B1B;  --rpt-crit-bg:  #FEE2E2;  --rpt-crit-bd:  #DC2626;
+  --rpt-accent:   #1D4ED8;  --rpt-accent-bg:#EFF6FF;
+  --rpt-paper:    #FAFBFD;
+  /* dark-sidebar option surface (intentional dark chrome on light theme) */
+  --sidebar-dark: #0E1F33;
+}
+
+/* Kill the old glow utility without touching call sites */
+.gradient-border::after { display: none; }

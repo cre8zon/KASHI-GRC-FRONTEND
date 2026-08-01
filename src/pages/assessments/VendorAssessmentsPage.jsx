@@ -132,7 +132,7 @@ export default function VendorAssessmentsPage() {
           <div className="flex items-center gap-2">
             <div className="flex-1 h-1.5 bg-surface-overlay rounded-full overflow-hidden">
               <div
-                className={cn('h-full rounded-full transition-all', pct === 100 ? 'bg-green-500' : 'bg-brand-500')}
+                className={cn('h-full rounded-full transition-all', pct === 100 ? 'bg-status-pass-bg' : 'bg-brand-500')}
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -176,13 +176,13 @@ export default function VendorAssessmentsPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search vendor or template…"
-              className="h-8 pl-8 pr-3 w-52 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
           <select
             value={statusFilter}
             onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-            className="h-8 appearance-none pl-3 pr-8 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-8 appearance-none pl-3 pr-8 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
             <option value="">All statuses</option>
             {Object.entries(STATUS_META).map(([v, m]) =>
@@ -205,7 +205,7 @@ export default function VendorAssessmentsPage() {
                 className={cn(
                   'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
                   statusFilter === status
-                    ? 'border-brand-500 bg-brand-500/10 text-brand-400'
+                    ? 'border-brand-500 bg-brand-500/10 text-brand-ink'
                     : 'border-border bg-surface-raised text-text-muted hover:text-text-secondary'
                 )}
               >
@@ -274,7 +274,7 @@ function AssessmentDetailModal({ detail, onClose }) {
     >
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 size={22} className="text-brand-400 animate-spin" />
+          <Loader2 size={22} className="text-brand-ink animate-spin" />
         </div>
       ) : !assessment ? null : (
         <div className="flex flex-col gap-4">
@@ -287,7 +287,7 @@ function AssessmentDetailModal({ detail, onClose }) {
               { label: 'Score',     value: prog?.totalEarnedScore != null
                   ? prog.totalEarnedScore.toFixed(1) : '—' },
             ].map(({ label, value }) => (
-              <div key={label} className="p-3 rounded-lg bg-surface-overlay border border-border">
+              <div key={label} className="p-3 rounded-card bg-surface-overlay border border-border">
                 <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-1">{label}</p>
                 <div className="text-sm font-medium text-text-primary">{value}</div>
               </div>
@@ -297,7 +297,7 @@ function AssessmentDetailModal({ detail, onClose }) {
           {/* Overall progress bar */}
           <div className="h-1.5 bg-surface-overlay rounded-full overflow-hidden">
             <div
-              className={cn('h-full rounded-full transition-all', pct === 100 ? 'bg-green-500' : 'bg-brand-500')}
+              className={cn('h-full rounded-full transition-all', pct === 100 ? 'bg-status-pass-bg' : 'bg-brand-500')}
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -313,13 +313,13 @@ function AssessmentDetailModal({ detail, onClose }) {
                 const totalInSection    = section.questions?.length || 0
 
                 return (
-                  <div key={key} className="rounded-lg border border-border overflow-hidden">
+                  <div key={key} className="rounded-card border border-border overflow-hidden">
                     <button
                       onClick={() => toggle(key)}
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-overlay transition-colors text-left"
                     >
-                      <div className="w-6 h-6 rounded-md bg-brand-500/10 flex items-center justify-center shrink-0">
-                        <span className="text-xs font-bold text-brand-400">
+                      <div className="w-6 h-6 rounded-ctl bg-brand-500/10 flex items-center justify-center shrink-0">
+                        <span className="text-xs font-bold text-brand-ink">
                           {section.sectionOrderNo ?? sIdx + 1}
                         </span>
                       </div>
@@ -333,7 +333,7 @@ function AssessmentDetailModal({ detail, onClose }) {
                         <div className="flex items-center gap-2 mr-2">
                           <div className="w-16 h-1 bg-surface-overlay rounded-full overflow-hidden">
                             <div
-                              className={cn('h-full rounded-full', answeredInSection === totalInSection ? 'bg-green-500' : 'bg-brand-500')}
+                              className={cn('h-full rounded-full', answeredInSection === totalInSection ? 'bg-status-pass-bg' : 'bg-brand-500')}
                               style={{ width: `${(answeredInSection / totalInSection) * 100}%` }}
                             />
                           </div>
@@ -373,7 +373,7 @@ function QuestionDetailRow({ question }) {
       <div className="flex items-start gap-3">
         <div className="mt-0.5 shrink-0">
           {answered
-            ? <CheckCircle2 size={14} className="text-green-400" />
+            ? <CheckCircle2 size={14} className="text-status-pass-fg" />
             : <div className="w-3.5 h-3.5 rounded-full border-2 border-border" />
           }
         </div>
@@ -388,7 +388,7 @@ function QuestionDetailRow({ question }) {
               colorTag={TYPE_COLOR[question.responseType] || 'gray'}
             />
             {question.mandatory && (
-              <span className="text-[10px] text-red-400 font-medium">Required</span>
+              <span className="text-[10px] text-status-fail-fg font-medium">Required</span>
             )}
             {question.weight != null && (
               <span className="text-[10px] text-text-muted">Weight: {question.weight}</span>
@@ -396,7 +396,7 @@ function QuestionDetailRow({ question }) {
           </div>
 
           {answered && (
-            <div className="mt-2 p-2.5 rounded-lg bg-surface-overlay border border-border">
+            <div className="mt-2 p-2.5 rounded-card bg-surface-overlay border border-border">
               {question.currentResponse.responseText && (
                 <p className="text-xs text-text-secondary leading-relaxed">
                   {question.currentResponse.responseText}
@@ -413,7 +413,7 @@ function QuestionDetailRow({ question }) {
                         className={cn(
                           'text-[11px] px-2 py-0.5 rounded border',
                           isSelected
-                            ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
+                            ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink font-medium'
                             : 'bg-surface-raised border-border text-text-muted'
                         )}
                       >
@@ -426,7 +426,7 @@ function QuestionDetailRow({ question }) {
               )}
               {question.currentResponse.scoreEarned != null && (
                 <p className="text-[10px] text-text-muted mt-1.5">
-                  Score: <span className="font-mono text-green-400">{question.currentResponse.scoreEarned}</span>
+                  Score: <span className="font-mono text-status-pass-fg">{question.currentResponse.scoreEarned}</span>
                 </p>
               )}
               {question.currentResponse.reviewerStatus && (

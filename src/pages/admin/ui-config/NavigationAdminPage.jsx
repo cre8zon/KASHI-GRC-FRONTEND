@@ -36,11 +36,11 @@ const COMMON_ICONS = [
 const SIDES = ['SYSTEM','ORGANIZATION','VENDOR','AUDITOR','AUDITEE']
 
 const SIDE_STYLE = {
-  SYSTEM:       'bg-purple-500/15 text-purple-400',
-  ORGANIZATION: 'bg-blue-500/15 text-blue-400',
-  AUDITOR:      'bg-teal-500/15 text-teal-400',
-  AUDITEE:      'bg-green-500/15 text-green-400',
-  VENDOR:       'bg-orange-500/15 text-orange-400',
+  SYSTEM:       'bg-status-tag-bg text-status-tag-fg',
+  ORGANIZATION: 'bg-status-info-bg text-status-info-fg',
+  AUDITOR:      'bg-brand-500/15 text-brand-ink',
+  AUDITEE:      'bg-status-pass-bg text-status-pass-fg',
+  VENDOR:       'bg-status-warn-bg text-status-warn-fg',
 }
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -197,13 +197,13 @@ function PermissionPicker({ value, onChange }) {
           type="button"
           onClick={() => setOpen(o => !o)}
           className={cn(
-            'w-full h-9 flex items-center justify-between gap-2 px-3 rounded-md border text-sm',
+            'w-full h-9 flex items-center justify-between gap-2 px-3 rounded-ctl border text-sm',
             'border-border bg-surface-raised text-text-primary',
             'hover:border-brand-500/50 focus:outline-none focus:ring-1 focus:ring-brand-500'
           )}
         >
           <span className={cn('flex items-center gap-2', !value && 'text-text-muted')}>
-            <Shield size={13} className={value ? 'text-brand-400' : 'text-text-muted'} />
+            <Shield size={13} className={value ? 'text-brand-ink' : 'text-text-muted'} />
             {value
               ? <span className="font-mono text-xs">{value}</span>
               : 'None — visible to all side users'
@@ -213,7 +213,7 @@ function PermissionPicker({ value, onChange }) {
             {value && (
               <span
                 onClick={(e) => { e.stopPropagation(); onChange(null) }}
-                className="p-0.5 rounded hover:bg-surface-overlay text-text-muted hover:text-red-400 cursor-pointer"
+                className="p-0.5 rounded hover:bg-surface-overlay text-text-muted hover:text-status-fail-fg cursor-pointer"
               >
                 <X size={12} />
               </span>
@@ -223,7 +223,7 @@ function PermissionPicker({ value, onChange }) {
         </button>
 
         {open && (
-          <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-surface-raised shadow-lg">
+          <div className="absolute z-50 mt-1 w-full rounded-ctl border border-border bg-surface-raised shadow-lg">
             <div className="p-2 border-b border-border">
               <div className="relative">
                 <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
@@ -243,7 +243,7 @@ function PermissionPicker({ value, onChange }) {
                 onClick={() => { onChange(null); setOpen(false) }}
                 className={cn(
                   'w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-overlay transition-colors',
-                  !value ? 'bg-brand-500/10 text-brand-400' : 'text-text-muted'
+                  !value ? 'bg-brand-500/10 text-brand-ink' : 'text-text-muted'
                 )}
               >
                 <span className="font-mono">—</span>
@@ -271,7 +271,7 @@ function PermissionPicker({ value, onChange }) {
                     >
                       <span className={cn(
                         'font-mono text-[11px] shrink-0 mt-0.5',
-                        value === p.code ? 'text-brand-400' : 'text-text-primary'
+                        value === p.code ? 'text-brand-ink' : 'text-text-primary'
                       )}>
                         {p.code}
                       </span>
@@ -452,12 +452,12 @@ function PermissionRolesModal({ open, onClose, permCode, allPermsData }) {
 
         {/* Permission info */}
         {permInfo && (
-          <div className="flex items-center gap-3 p-3 bg-surface-overlay rounded-lg border border-border">
+          <div className="flex items-center gap-3 p-3 bg-surface-overlay rounded-card border border-border">
             <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0">
-              <Shield size={14} className="text-brand-400" />
+              <Shield size={14} className="text-brand-ink" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-mono font-medium text-brand-400 truncate">{permInfo.code}</p>
+              <p className="text-sm font-mono font-medium text-brand-ink truncate">{permInfo.code}</p>
               <p className="text-xs text-text-muted">{permInfo.name}</p>
             </div>
             <span className="ml-auto shrink-0 text-[10px] px-2 py-0.5 rounded bg-surface-raised border border-border text-text-muted">
@@ -471,7 +471,7 @@ function PermissionRolesModal({ open, onClose, permCode, allPermsData }) {
           <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-2">
             Roles with this permission
             {grantedRoles.length > 0 && (
-              <span className="ml-1.5 text-brand-400">{grantedRoles.length}</span>
+              <span className="ml-1.5 text-brand-ink">{grantedRoles.length}</span>
             )}
           </p>
 
@@ -482,7 +482,7 @@ function PermissionRolesModal({ open, onClose, permCode, allPermsData }) {
           )}
 
           {!isLoading && grantedRoles.length === 0 && (
-            <div className="text-[11px] text-amber-400 flex items-center gap-1.5 py-1">
+            <div className="text-[11px] text-status-warn-fg flex items-center gap-1.5 py-1">
               ⚠ No roles hold this permission — this nav item is hidden from everyone.
             </div>
           )}
@@ -492,14 +492,14 @@ function PermissionRolesModal({ open, onClose, permCode, allPermsData }) {
               const id = Number(r.roleId || r.id)
               return (
                 <span key={id} className={cn(
-                  'flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md border font-mono',
-                  'bg-brand-500/10 border-brand-500/20 text-brand-400'
+                  'flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-ctl border font-mono',
+                  'bg-brand-500/10 border-brand-500/20 text-brand-ink'
                 )}>
                   <span className={cn('w-1.5 h-1.5 rounded-full shrink-0',
-                    r.roleSide === 'SYSTEM'       ? 'bg-purple-400' :
-                    r.roleSide === 'ORGANIZATION' ? 'bg-blue-400'   :
-                    r.roleSide === 'AUDITOR'      ? 'bg-teal-400'   :
-                    r.roleSide === 'AUDITEE'      ? 'bg-green-400'  : 'bg-orange-400'
+                    r.roleSide === 'SYSTEM'       ? 'bg-status-tag-bg' :
+                    r.roleSide === 'ORGANIZATION' ? 'bg-status-info-bg'   :
+                    r.roleSide === 'AUDITOR'      ? 'bg-brand-400'   :
+                    r.roleSide === 'AUDITEE'      ? 'bg-status-pass-bg'  : 'bg-status-warn-bg'
                   )} />
                   {r.roleName}
                   <span className="text-[9px] text-text-muted">{r.roleLevel}</span>
@@ -527,7 +527,7 @@ function PermissionRolesModal({ open, onClose, permCode, allPermsData }) {
                       }
                       revoke({ grantId: r.grantId, roleId: id })
                     }}
-                    className="hover:text-red-400 transition-colors ml-0.5 leading-none disabled:opacity-40"
+                    className="hover:text-status-fail-fg transition-colors ml-0.5 leading-none disabled:opacity-40"
                     title="Revoke permission from this role"
                   >×</button>
                 </span>
@@ -550,7 +550,7 @@ function PermissionRolesModal({ open, onClose, permCode, allPermsData }) {
               onClick={() => setSideFilter('')}
               className={cn('px-2 py-0.5 rounded text-[10px] font-medium border transition-colors',
                 !sideFilter
-                  ? 'bg-brand-500/15 border-brand-500/40 text-brand-400'
+                  ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
                   : 'border-border text-text-muted hover:text-text-secondary'
               )}
             >All</button>
@@ -558,7 +558,7 @@ function PermissionRolesModal({ open, onClose, permCode, allPermsData }) {
               <button key={s} onClick={() => setSideFilter(s)}
                 className={cn('px-2 py-0.5 rounded text-[10px] font-medium border transition-colors',
                   sideFilter === s
-                    ? 'bg-brand-500/15 border-brand-500/40 text-brand-400'
+                    ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
                     : 'border-border text-text-muted hover:text-text-secondary'
                 )}>
                 {s.slice(0,3)}
@@ -622,7 +622,7 @@ function PermissionRolesModal({ open, onClose, permCode, allPermsData }) {
                     grant({ roleId: id, permissionId: permId })
                   }}
                   className={cn(
-                    'flex items-center justify-between px-3 py-2 rounded-md border text-left transition-colors',
+                    'flex items-center justify-between px-3 py-2 rounded-ctl border text-left transition-colors',
                     'bg-surface-raised border-border text-text-secondary',
                     'hover:bg-surface-overlay hover:border-brand-500/30',
                     'disabled:opacity-40 disabled:cursor-not-allowed'
@@ -631,11 +631,11 @@ function PermissionRolesModal({ open, onClose, permCode, allPermsData }) {
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={cn(
                       'text-[9px] font-semibold px-1.5 py-0.5 rounded uppercase shrink-0',
-                      side === 'SYSTEM'       ? 'bg-purple-500/15 text-purple-400' :
-                      side === 'ORGANIZATION' ? 'bg-blue-500/15 text-blue-400'     :
-                      side === 'AUDITOR'      ? 'bg-teal-500/15 text-teal-400'     :
-                      side === 'AUDITEE'      ? 'bg-green-500/15 text-green-400'   :
-                      'bg-orange-500/15 text-orange-400'
+                      side === 'SYSTEM'       ? 'bg-status-tag-bg text-status-tag-fg' :
+                      side === 'ORGANIZATION' ? 'bg-status-info-bg text-status-info-fg'     :
+                      side === 'AUDITOR'      ? 'bg-brand-500/15 text-brand-ink'     :
+                      side === 'AUDITEE'      ? 'bg-status-pass-bg text-status-pass-fg'   :
+                      'bg-status-warn-bg text-status-warn-fg'
                     )}>
                       {side.slice(0, 3)}
                     </span>
@@ -644,7 +644,7 @@ function PermissionRolesModal({ open, onClose, permCode, allPermsData }) {
                       {role.level && <p className="text-[10px] text-text-muted">{role.level}</p>}
                     </div>
                   </div>
-                  <span className="text-[10px] text-brand-400 shrink-0 ml-2 flex items-center gap-1">
+                  <span className="text-[10px] text-brand-ink shrink-0 ml-2 flex items-center gap-1">
                     <Plus size={10} /> Grant
                   </span>
                 </button>
@@ -673,7 +673,7 @@ function PermissionCell({ permCode, onOpenModal }) {
       onClick={(e) => { e.stopPropagation(); onOpenModal(permCode) }}
       className={cn(
         'flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border transition-colors',
-        'border-border text-text-muted hover:text-brand-400 hover:border-brand-500/30 hover:bg-brand-500/5'
+        'border-border text-text-muted hover:text-brand-ink hover:border-brand-500/30 hover:bg-brand-500/5'
       )}
     >
       <Shield size={10} />
@@ -744,7 +744,7 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
             value={form.parentKey || ''}
             onChange={e => set('parentKey', e.target.value || null)}
             placeholder="Blank = top-level item"
-            className="h-8 w-full rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-8 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
           <datalist id="parent-key-options">
             <option value="" />
@@ -766,7 +766,7 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
             <button key={ic} onClick={() => set('icon', ic)} type="button"
               className={cn('px-2 py-0.5 rounded text-[10px] font-mono border transition-colors',
                 form.icon === ic
-                  ? 'bg-brand-500/15 border-brand-500/40 text-brand-400'
+                  ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
                   : 'border-border text-text-muted hover:text-text-primary hover:bg-surface-overlay')}>
               {ic}
             </button>
@@ -780,7 +780,7 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
             Allowed Sides
           </label>
           <select value={form.allowedSides} onChange={e => set('allowedSides', e.target.value)}
-            className="w-full h-8 rounded-md border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            className="w-full h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             <option value="">All sides</option>
             {SIDES.map(s => <option key={s} value={s}>{s}</option>)}
             <option value="ORGANIZATION,SYSTEM">ORG + SYSTEM</option>
@@ -798,7 +798,7 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
             value={form.module}
             onChange={e => set('module', e.target.value)}
             placeholder="e.g. THIRD-PARTY RISK"
-            className="h-8 w-full rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-8 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
           <datalist id="module-options">
             {existingModules.map(m => <option key={m} value={m} />)}
@@ -822,9 +822,9 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
 
       <div className="flex items-center gap-3">
         <button onClick={() => set('isActive', !form.isActive)} type="button"
-          className={cn('flex items-center gap-2 px-3 py-1.5 rounded-md border text-xs font-medium transition-colors',
+          className={cn('flex items-center gap-2 px-3 py-1.5 rounded-ctl border text-xs font-medium transition-colors',
             form.isActive
-              ? 'bg-green-500/10 border-green-500/30 text-green-400'
+              ? 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg'
               : 'bg-surface-overlay border-border text-text-muted')}>
           {form.isActive ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
           {form.isActive ? 'Active — visible in sidebar' : 'Inactive — hidden from sidebar'}
@@ -873,7 +873,7 @@ export default function NavigationAdminPage() {
       render: (r) => <span className="text-xs font-mono text-text-secondary">{r.navKey}</span> },
     { key: 'label',  label: 'Label', width: 135 },
     { key: 'route',  label: 'Route', width: 185, type: 'custom',
-      render: (r) => <span className="text-xs font-mono text-brand-400">{r.route || '—'}</span> },
+      render: (r) => <span className="text-xs font-mono text-brand-ink">{r.route || '—'}</span> },
     { key: 'module', label: 'Module', width: 120, type: 'custom',
       render: (r) => <span className="text-[11px] text-text-muted">{r.module || '—'}</span> },
     { key: 'allowedSides', label: 'Sides', width: 100, type: 'custom',
@@ -884,7 +884,7 @@ export default function NavigationAdminPage() {
             {r.allowedSides.split(',').map(s => (
               <span key={s} className={cn(
                 'text-[9px] font-semibold px-1 py-0.5 rounded uppercase tracking-wide',
-                SIDE_STYLE[s.trim()] || 'bg-gray-500/15 text-gray-400'
+                SIDE_STYLE[s.trim()] || 'bg-surface-inset text-text-muted'
               )}>
                 {s.trim().slice(0, 3)}
               </span>
@@ -909,7 +909,7 @@ export default function NavigationAdminPage() {
         <button
           onClick={(e) => { e.stopPropagation(); update({ id: r.id, data: { isActive: !r.isActive } }) }}
           className={cn('flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded transition-colors',
-            r.isActive ? 'text-green-400 hover:bg-green-500/10' : 'text-text-muted hover:bg-surface-overlay')}>
+            r.isActive ? 'text-status-pass-fg hover:bg-status-pass-bg' : 'text-text-muted hover:bg-surface-overlay')}>
           {r.isActive ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
         </button>
       )
@@ -918,11 +918,11 @@ export default function NavigationAdminPage() {
       render: (r) => (
         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
           <button onClick={() => setEditTarget(r)}
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
             <Pencil size={12} />
           </button>
           <button onClick={() => setDeleteTarget(r)}
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
             <Trash2 size={12} />
           </button>
         </div>
@@ -947,7 +947,7 @@ export default function NavigationAdminPage() {
           <select
             value={sideFilter}
             onChange={e => { setSideFilter(e.target.value); setPage(1) }}
-            className="h-8 rounded-md border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
             <option value="">All sides</option>
             {SIDES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -957,7 +957,7 @@ export default function NavigationAdminPage() {
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search label…"
-              className="h-8 pl-8 pr-3 w-44 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-44 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
           <Button size="sm" icon={Plus} onClick={() => setEditTarget(true)}>Add Item</Button>

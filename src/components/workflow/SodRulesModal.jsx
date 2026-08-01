@@ -95,13 +95,13 @@ export function SodRulesModal({ open, onClose, value, onChange }) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-surface-primary border border-border rounded-xl shadow-2xl w-[520px] max-h-[80vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-on-dark-inv/50 backdrop-blur-sm">
+      <div className="bg-surface-primary border border-border rounded-card shadow-2xl w-[520px] max-h-[80vh] flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2.5">
-            <ShieldAlert size={16} className="text-orange-400" />
+            <ShieldAlert size={16} className="text-status-warn-fg" />
             <div>
               <h2 className="text-sm font-semibold text-text-primary">SOD Rules</h2>
               <p className="text-xs text-text-muted mt-0.5">Segregation of Duties — restrict who can act on this step</p>
@@ -122,8 +122,8 @@ export function SodRulesModal({ open, onClose, value, onChange }) {
               {rules.map((rule, idx) => {
                 const typeDef = RULE_TYPES.find(t => t.type === rule.type)
                 return (
-                  <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-orange-500/8 border border-orange-500/20">
-                    <Users size={14} className="text-orange-400 mt-0.5 shrink-0" />
+                  <div key={idx} className="flex items-start gap-3 p-3 rounded-card bg-status-warn-bg border border-status-warn-bd">
+                    <Users size={14} className="text-status-warn-fg mt-0.5 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-text-primary">{typeDef?.label || rule.type}</p>
                       {rule.roleId && (
@@ -135,7 +135,7 @@ export function SodRulesModal({ open, onClose, value, onChange }) {
                     </div>
                     <button
                       onClick={() => removeRule(idx)}
-                      className="text-text-muted hover:text-red-400 transition-colors shrink-0"
+                      className="text-text-muted hover:text-status-fail-fg transition-colors shrink-0"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -165,17 +165,17 @@ export function SodRulesModal({ open, onClose, value, onChange }) {
                       disabled={alreadyAdded}
                       onClick={() => setAddingType(typeDef.type)}
                       className={cn(
-                        'w-full text-left p-3 rounded-lg border transition-colors',
+                        'w-full text-left p-3 rounded-card border transition-colors',
                         alreadyAdded
                           ? 'border-border bg-surface-overlay opacity-40 cursor-not-allowed'
-                          : 'border-border hover:border-orange-500/40 hover:bg-orange-500/5 cursor-pointer'
+                          : 'border-border hover:border-status-warn-bd hover:bg-status-warn-bg cursor-pointer'
                       )}
                     >
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-medium text-text-primary">{typeDef.label}</p>
                         {alreadyAdded
                           ? <span className="text-[10px] text-text-muted">Already active</span>
-                          : <Plus size={12} className="text-orange-400" />
+                          : <Plus size={12} className="text-status-warn-fg" />
                         }
                       </div>
                       <p className="text-[10px] text-text-muted mt-0.5">{typeDef.description}</p>
@@ -185,8 +185,8 @@ export function SodRulesModal({ open, onClose, value, onChange }) {
               </div>
             </div>
           ) : (
-            <div className="border border-orange-500/30 rounded-lg p-4 bg-orange-500/5 space-y-3">
-              <p className="text-xs font-semibold text-orange-400">
+            <div className="border border-status-warn-bd rounded-card p-4 bg-status-warn-bg space-y-3">
+              <p className="text-xs font-semibold text-status-warn-fg">
                 {RULE_TYPES.find(t => t.type === addingType)?.label}
               </p>
 
@@ -198,7 +198,7 @@ export function SodRulesModal({ open, onClose, value, onChange }) {
                     value={newRoleId}
                     onChange={e => setNewRoleId(e.target.value)}
                     placeholder="e.g. 29"
-                    className="mt-1 w-full px-3 py-1.5 text-xs rounded-md bg-surface-overlay border border-border text-text-primary focus:outline-none focus:border-brand-500"
+                    className="mt-1 w-full px-3 py-1.5 text-xs rounded-ctl bg-surface-overlay border border-border text-text-primary focus:outline-none focus:border-brand-500"
                   />
                 </div>
               )}
@@ -210,20 +210,20 @@ export function SodRulesModal({ open, onClose, value, onChange }) {
                   value={newReason}
                   onChange={e => setNewReason(e.target.value)}
                   placeholder="e.g. Cannot validate own remediation"
-                  className="mt-1 w-full px-3 py-1.5 text-xs rounded-md bg-surface-overlay border border-border text-text-primary focus:outline-none focus:border-brand-500"
+                  className="mt-1 w-full px-3 py-1.5 text-xs rounded-ctl bg-surface-overlay border border-border text-text-primary focus:outline-none focus:border-brand-500"
                 />
               </div>
 
               <div className="flex gap-2">
                 <button
                   onClick={addRule}
-                  className="flex-1 px-3 py-1.5 text-xs font-medium rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-colors"
+                  className="flex-1 px-3 py-1.5 text-xs font-medium rounded-ctl bg-status-warn-bg text-on-dark hover:bg-status-warn-bg transition-colors"
                 >
                   Add rule
                 </button>
                 <button
                   onClick={() => { setAddingType(null); setNewRoleId(''); setNewReason('') }}
-                  className="px-3 py-1.5 text-xs rounded-md border border-border text-text-muted hover:text-text-primary transition-colors"
+                  className="px-3 py-1.5 text-xs rounded-ctl border border-border text-text-muted hover:text-text-primary transition-colors"
                 >
                   Cancel
                 </button>
@@ -236,17 +236,17 @@ export function SodRulesModal({ open, onClose, value, onChange }) {
         <div className="flex items-center justify-between px-5 py-4 border-t border-border">
           <button
             onClick={handleClear}
-            className="text-xs text-red-400 hover:text-red-300 transition-colors"
+            className="text-xs text-status-fail-fg hover:text-status-fail-fg transition-colors"
           >
             Clear all rules
           </button>
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-1.5 text-xs rounded-md border border-border text-text-muted hover:text-text-primary transition-colors">
+            <button onClick={onClose} className="px-4 py-1.5 text-xs rounded-ctl border border-border text-text-muted hover:text-text-primary transition-colors">
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-1.5 text-xs font-medium rounded-md bg-brand-500 text-white hover:bg-brand-600 transition-colors"
+              className="px-4 py-1.5 text-xs font-medium rounded-ctl bg-brand-500 text-brand-900 hover:bg-brand-600 transition-colors"
             >
               Save rules
             </button>

@@ -63,12 +63,12 @@ function HeaderZoneInspector({ screenKey, onSelectElement }) {
           Fields that appear above the tabs — always visible to all roles.
           Typical: title, status badge, owner, created date, ID number.
           Stored as <code className="font-mono">UiFormField</code> rows under key{' '}
-          <code className="font-mono text-brand-400">{formKey}</code>.
+          <code className="font-mono text-brand-ink">{formKey}</code>.
         </p>
 
         {/* Field list */}
         {fields.length === 0 ? (
-          <div className="text-[11px] text-text-muted py-4 text-center border border-dashed border-border rounded-lg">
+          <div className="text-[11px] text-text-muted py-4 text-center border border-dashed border-border rounded-card">
             No header fields yet — click "+ Add field" below
           </div>
         ) : (
@@ -76,11 +76,11 @@ function HeaderZoneInspector({ screenKey, onSelectElement }) {
             {fields.map(f => (
               <button key={f.id}
                 onClick={() => onSelectElement({ type: 'form_field', id: f.id, data: f, screenKey: formKey, formId })}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg border border-border hover:border-brand-500/30 bg-background text-left transition-all">
-                <span className="text-[8px] font-mono px-1.5 py-0.5 rounded border bg-blue-500/10 border-blue-500/20 text-blue-400 shrink-0">{f.fieldType}</span>
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-card border border-border hover:border-brand-500/30 bg-background text-left transition-all">
+                <span className="text-[8px] font-mono px-1.5 py-0.5 rounded border bg-status-info-bg border-status-info-bd text-status-info-fg shrink-0">{f.fieldType}</span>
                 <span className="text-xs text-text-primary font-medium flex-1">{f.label}</span>
                 <span className="text-[9px] font-mono text-text-muted">{f.fieldKey}</span>
-                {f.isRequired && <span className="text-[9px] text-red-400">req</span>}
+                {f.isRequired && <span className="text-[9px] text-status-fail-fg">req</span>}
               </button>
             ))}
           </div>
@@ -89,7 +89,7 @@ function HeaderZoneInspector({ screenKey, onSelectElement }) {
         <button
           onClick={() => onSelectElement({ type: 'new_form_field', screenKey: formKey, formId,
             onSaved: () => qc.invalidateQueries({ queryKey: ['sd-form-fields', formId] }) })}
-          className="w-full flex items-center justify-center gap-1.5 py-2 mt-1 border-2 border-dashed border-brand-500/25 hover:border-brand-500/50 rounded-lg text-xs text-brand-400 hover:text-brand-300 font-medium transition-colors bg-brand-500/3">
+          className="w-full flex items-center justify-center gap-1.5 py-2 mt-1 border-2 border-dashed border-brand-500/25 hover:border-brand-500/50 rounded-card text-xs text-brand-ink hover:text-brand-ink font-medium transition-colors bg-brand-500/3">
           <Plus size={12} /> Add header field
         </button>
       </InspectorSection>
@@ -118,7 +118,7 @@ function HeaderZoneInspector({ screenKey, onSelectElement }) {
                   toast.success(`Added "${preset.label}" field`)
                 } catch (e) { toast.error(e?.response?.data?.message || 'Failed') }
               }}
-              className="px-2 py-0.5 rounded text-[9px] border border-border bg-surface-overlay text-text-muted hover:border-brand-500/40 hover:text-brand-400 transition-colors disabled:opacity-40">
+              className="px-2 py-0.5 rounded text-[9px] border border-border bg-surface-overlay text-text-muted hover:border-brand-500/40 hover:text-brand-ink transition-colors disabled:opacity-40">
               + {preset.label}
             </button>
           ))}

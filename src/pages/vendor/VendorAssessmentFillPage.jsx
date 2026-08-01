@@ -261,12 +261,12 @@ function ContributorPicker({ value, onChange }) {
   if (value) {
     return (
       <div className="flex items-center gap-1.5 mt-1.5">
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20">
-          <Users size={10} className="text-purple-400 flex-shrink-0" />
-          <span className="text-[11px] text-purple-300 font-medium">{value.fullName || value.email}</span>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-status-tag-bg border border-status-tag-bd">
+          <Users size={10} className="text-status-tag-fg flex-shrink-0" />
+          <span className="text-[11px] text-status-tag-fg font-medium">{value.fullName || value.email}</span>
         </div>
         <button onClick={() => onChange(null)}
-          className="text-[10px] text-text-muted hover:text-red-400 transition-colors px-1">
+          className="text-[10px] text-text-muted hover:text-status-fail-fg transition-colors px-1">
           unassign
         </button>
       </div>
@@ -290,8 +290,8 @@ function ContributorPicker({ value, onChange }) {
           {users.map(u => (
             <button key={u.id || u.userId} onClick={() => { onChange(u); setOpen(false); setSearch('') }}
               className="w-full flex items-center gap-2 px-2.5 py-2 hover:bg-surface-overlay text-left transition-colors">
-              <div className="w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-[9px] font-bold text-purple-400">
+              <div className="w-5 h-5 rounded-full bg-status-tag-bg flex items-center justify-center flex-shrink-0">
+                <span className="text-[9px] font-bold text-status-tag-fg">
                   {(u.fullName || u.email || '?')[0].toUpperCase()}
                 </span>
               </div>
@@ -332,22 +332,22 @@ function RemediationNoticeBanner({ questionInstanceId }) {
   if (!openRemediations.length && !pendingReview.length) return null
 
   const SEVERITY_COLOR = {
-    CRITICAL: 'text-red-400 bg-red-500/10 border-red-500/40',
-    HIGH:     'text-orange-400 bg-orange-500/10 border-orange-500/40',
-    MEDIUM:   'text-amber-400 bg-amber-500/10 border-amber-500/40',
-    LOW:      'text-blue-400 bg-blue-500/10 border-blue-500/40',
+    CRITICAL: 'text-status-fail-fg bg-status-fail-bg border-status-fail-bd',
+    HIGH:     'text-status-warn-fg bg-status-warn-bg border-status-warn-bd',
+    MEDIUM:   'text-status-warn-fg bg-status-warn-bg border-status-warn-bd',
+    LOW:      'text-status-info-fg bg-status-info-bg border-status-info-bd',
   }
 
   return (
     <div className="space-y-2 mb-3">
       {openRemediations.map(item => (
-        <div key={item.id} className="rounded-lg border border-red-500/30 bg-red-500/6 text-[11px]">
+        <div key={item.id} className="rounded-card border border-status-fail-bd bg-status-fail-bg text-[11px]">
           {/* Header */}
           <div className="flex items-start gap-2 px-3 py-2.5">
-            <AlertTriangle size={13} className="text-red-400 shrink-0 mt-0.5" />
+            <AlertTriangle size={13} className="text-status-fail-fg shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                <span className="font-semibold text-red-400">Remediation required</span>
+                <span className="font-semibold text-status-fail-fg">Remediation required</span>
                 {item.severity && (
                   <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase',
                     SEVERITY_COLOR[item.severity] || SEVERITY_COLOR.MEDIUM)}>
@@ -362,7 +362,7 @@ function RemediationNoticeBanner({ questionInstanceId }) {
                 <p className="text-text-secondary leading-relaxed mt-0.5">{item.description}</p>
               )}
               {item.expectedEvidence && (
-                <p className="text-[10px] text-amber-400/80 mt-1">
+                <p className="text-[10px] text-status-warn-fg mt-1">
                   ⟶ Expected evidence: {item.expectedEvidence}
                 </p>
               )}
@@ -374,7 +374,7 @@ function RemediationNoticeBanner({ questionInstanceId }) {
             </div>
           </div>
           {/* Action */}
-          <div className="px-3 py-2 border-t border-red-500/15 flex items-center gap-2">
+          <div className="px-3 py-2 border-t border-status-fail-bd flex items-center gap-2">
             <span className="text-text-muted flex-1">
               Update your answer above, then submit for review when ready.
             </span>
@@ -385,7 +385,7 @@ function RemediationNoticeBanner({ questionInstanceId }) {
                   resolutionNote: 'Vendor submitted remediation for review' })
                 qc.invalidateQueries({ queryKey: ['action-items-entity', 'QUESTION_RESPONSE', questionInstanceId] })
               }}
-              className="flex items-center gap-1 text-[10px] font-medium text-blue-400 hover:text-blue-300 border border-blue-500/30 rounded px-2 py-1 transition-colors shrink-0">
+              className="flex items-center gap-1 text-[10px] font-medium text-status-info-fg hover:text-status-info-fg border border-status-info-bd rounded px-2 py-1 transition-colors shrink-0">
               <CheckCircle2 size={10} /> Submit for review
             </button>
           </div>
@@ -395,7 +395,7 @@ function RemediationNoticeBanner({ questionInstanceId }) {
       {/* Already submitted — waiting for reviewer */}
       {pendingReview.map(item => (
         <div key={item.id}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-blue-500/20 bg-blue-500/6 text-[11px] text-blue-400">
+          className="flex items-center gap-2 px-3 py-2 rounded-card border border-status-info-bd bg-status-info-bg text-[11px] text-status-info-fg">
           <CheckCircle2 size={12} className="shrink-0" />
           <span className="flex-1">
             Remediation submitted — awaiting validation by {item.resolutionReservedForName || 'reviewer'}
@@ -441,10 +441,10 @@ function RevisionBanner({ questionInstanceId, isContributorView, hasCurrentRespo
       <div className="space-y-1.5 mb-2">
         {openRevisions.map(item => (
           <div key={item.id}
-            className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-500/8 border border-amber-500/30">
-            <AlertTriangle size={13} className="text-amber-400 flex-shrink-0 mt-0.5" />
+            className="flex items-start gap-2 px-3 py-2.5 rounded-card bg-status-warn-bg border border-status-warn-bd">
+            <AlertTriangle size={13} className="text-status-warn-fg flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold text-amber-400">
+              <p className="text-[11px] font-semibold text-status-warn-fg">
                 Revision requested by {item.createdByName || 'reviewer'}
               </p>
               {item.description && (
@@ -452,7 +452,7 @@ function RevisionBanner({ questionInstanceId, isContributorView, hasCurrentRespo
                   "{item.description}"
                 </p>
               )}
-              <p className="text-[10px] text-amber-400/70 mt-1">
+              <p className="text-[10px] text-status-warn-fg mt-1">
                 Re-answer below and re-submit this section.
               </p>
             </div>
@@ -460,9 +460,9 @@ function RevisionBanner({ questionInstanceId, isContributorView, hasCurrentRespo
         ))}
         {openFindings.map(item => (
           <div key={item.id}
-            className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20">
-            <AlertTriangle size={12} className="text-amber-400/70 flex-shrink-0 mt-0.5" />
-            <p className="text-[11px] text-amber-400/80">
+            className="flex items-start gap-2 px-3 py-2 rounded-card bg-status-warn-bg border border-status-warn-bd">
+            <AlertTriangle size={12} className="text-status-warn-fg flex-shrink-0 mt-0.5" />
+            <p className="text-[11px] text-status-warn-fg">
               <span className="font-medium">Finding: </span>{item.title}
             </p>
           </div>
@@ -484,10 +484,10 @@ function RevisionBanner({ questionInstanceId, isContributorView, hasCurrentRespo
         return (
           <div key={item.id}
             className={cn(
-              'flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px]',
+              'flex items-center gap-2 px-3 py-2 rounded-card border text-[11px]',
               reAnswered
-                ? 'bg-blue-500/8 border-blue-500/20 text-blue-400'
-                : 'bg-amber-500/8 border-amber-500/20 text-amber-400'
+                ? 'bg-status-info-bg border-status-info-bd text-status-info-fg'
+                : 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg'
             )}>
             {reAnswered
               ? <CheckCircle2 size={12} className="flex-shrink-0" />
@@ -502,7 +502,7 @@ function RevisionBanner({ questionInstanceId, isContributorView, hasCurrentRespo
                 disabled={resolving}
                 onClick={() => updateStatus({ id: item.id, status: 'RESOLVED',
                   resolutionNote: 'Revision accepted' })}
-                className="text-green-400/80 hover:text-green-400 transition-colors flex-shrink-0 flex items-center gap-1">
+                className="text-status-pass-fg hover:text-status-pass-fg transition-colors flex-shrink-0 flex items-center gap-1">
                 <CheckCircle2 size={11} />
                 Resolve
               </button>
@@ -605,7 +605,7 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
           <p className="text-xs text-text-muted italic">Not answered</p>
         )}
         {hasText && (
-          <div className="px-3 py-2 rounded-lg bg-surface-overlay border border-border">
+          <div className="px-3 py-2 rounded-card bg-surface-overlay border border-border">
             <p className="text-xs text-text-secondary leading-relaxed">{resp.responseText}</p>
           </div>
         )}
@@ -618,7 +618,7 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
                 <span key={o.optionInstanceId}
                   className={cn('text-xs px-2.5 py-1 rounded border',
                     isSelected
-                      ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
+                      ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink font-medium'
                       : 'bg-surface-overlay border-border text-text-muted opacity-40'
                   )}>
                   {o.optionValue}
@@ -649,10 +649,10 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
     return (
       <div className="mt-2 space-y-2">
         {/* Assignment label */}
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-500/5 border border-purple-500/20">
-          <Users size={12} className="text-purple-400 flex-shrink-0" />
+        <div className="flex items-center gap-2 px-3 py-2 rounded-card bg-status-tag-bg border border-status-tag-bd">
+          <Users size={12} className="text-status-tag-fg flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] text-purple-300 font-medium">
+            <p className="text-[11px] text-status-tag-fg font-medium">
               Assigned to {question.assignedUserName || `User #${question.assignedUserId}`}
             </p>
             {!resp && !isFileUp && (
@@ -664,7 +664,7 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
           </div>
           {!disabled && onAssign && (
             <button onClick={() => onAssign({ questionInstanceId: question.questionInstanceId, userId: null })}
-              className="text-[10px] text-text-muted hover:text-red-400 transition-colors flex-shrink-0">
+              className="text-[10px] text-text-muted hover:text-status-fail-fg transition-colors flex-shrink-0">
               unassign
             </button>
           )}
@@ -691,11 +691,11 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
                   className={cn(
                     'text-xs px-2.5 py-1.5 rounded border select-none',
                     sel
-                      ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
+                      ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink font-medium'
                       : 'bg-surface-overlay border-border text-text-muted opacity-40'
                   )}>
                   {opt.optionValue}
-                  {sel && <CheckCircle2 size={10} className="inline ml-1 text-brand-400" />}
+                  {sel && <CheckCircle2 size={10} className="inline ml-1 text-brand-ink" />}
                 </span>
               )
             })}
@@ -722,11 +722,11 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
       <div className="mt-2 space-y-2">
         {/* Saved answer preview — shown when answer exists and not currently editing */}
         {hasSaved && !dirty && (
-          <div className="group relative px-3 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20">
+          <div className="group relative px-3 py-2.5 rounded-card bg-status-pass-bg border border-status-pass-bd">
             <p className="text-xs text-text-secondary leading-relaxed pr-12">{resp.responseText}</p>
             <button
               onClick={() => { setLocalText(resp.responseText); setDirty(true) }}
-              className="absolute right-2 top-2 text-[10px] text-text-muted hover:text-brand-400 transition-colors px-1.5 py-0.5 rounded border border-border hover:border-brand-500/30">
+              className="absolute right-2 top-2 text-[10px] text-text-muted hover:text-brand-ink transition-colors px-1.5 py-0.5 rounded border border-border hover:border-brand-500/30">
               Edit
             </button>
           </div>
@@ -739,7 +739,7 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
               onChange={e => { setLocalText(e.target.value); setDirty(true) }}
               rows={3}
               autoFocus={dirty}
-              className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
               placeholder="Type your answer…"
             />
             <div className="flex items-center gap-2">
@@ -754,7 +754,7 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
                 </button>
               )}
               {isSaving  && <span className="text-xs text-text-muted flex items-center gap-1 animate-pulse">Saving…</span>}
-              {!isSaving && justSaved && <span className="text-xs text-green-400 flex items-center gap-1"><CheckCircle2 size={11} />Saved</span>}
+              {!isSaving && justSaved && <span className="text-xs text-status-pass-fg flex items-center gap-1"><CheckCircle2 size={11} />Saved</span>}
             </div>
           </div>
         )}
@@ -776,11 +776,11 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
                   onClick={() => saveSingle(opt.optionInstanceId)}
                   className={cn('text-xs px-2.5 py-1.5 rounded border transition-all',
                     selected
-                      ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
+                      ? 'bg-brand-500/20 border-brand-500/50 text-brand-ink font-medium'
                       : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary'
                   )}>
                   {opt.optionValue}
-                  {selected && <CheckCircle2 size={10} className="inline ml-1.5 text-brand-400" />}
+                  {selected && <CheckCircle2 size={10} className="inline ml-1.5 text-brand-ink" />}
                 </button>
               )
             })}
@@ -789,7 +789,7 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
           <p className="text-xs text-text-muted italic">No options available</p>
         )}
         {isSaving  && <p className="text-[10px] text-text-muted flex items-center gap-1 animate-pulse">Saving…</p>}
-      {!isSaving && justSaved && <p className="text-[10px] text-green-400 flex items-center gap-1"><CheckCircle2 size={10} />Saved</p>}
+      {!isSaving && justSaved && <p className="text-[10px] text-status-pass-fg flex items-center gap-1"><CheckCircle2 size={10} />Saved</p>}
       </div>
     )
   }
@@ -833,12 +833,12 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
                 onClick={() => toggleMulti(opt.optionInstanceId)}
                 className={cn('text-xs px-2.5 py-1.5 rounded border transition-all flex items-center gap-1.5',
                   selected
-                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
+                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-ink font-medium'
                     : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary'
                 )}>
-                <span className={cn('w-3 h-3 rounded-sm border flex-shrink-0 flex items-center justify-center',
+                <span className={cn('w-3 h-3 rounded-ctl border flex-shrink-0 flex items-center justify-center',
                   selected ? 'bg-brand-500 border-brand-500' : 'border-current opacity-50')}>
-                  {selected && <CheckCircle2 size={9} className="text-white" />}
+                  {selected && <CheckCircle2 size={9} className="text-on-dark" />}
                 </span>
                 {opt.optionValue}
               </button>
@@ -852,7 +852,7 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
         <p className="text-[10px] text-text-muted">{selectedMulti.size} option{selectedMulti.size > 1 ? 's' : ''} selected</p>
       )}
       {isSaving  && <p className="text-[10px] text-text-muted flex items-center gap-1 animate-pulse">Saving…</p>}
-      {!isSaving && justSaved && <p className="text-[10px] text-green-400 flex items-center gap-1"><CheckCircle2 size={10} />Saved</p>}
+      {!isSaving && justSaved && <p className="text-[10px] text-status-pass-fg flex items-center gap-1"><CheckCircle2 size={10} />Saved</p>}
     </div>
   )
 }
@@ -1090,10 +1090,10 @@ export default function VendorAssessmentFillPage() {
         </div>
         <div className="flex items-center gap-3">
           {access?.mode === 'OBSERVER' && (
-            <span className="text-[10px] font-medium px-2 py-1 rounded bg-purple-500/10 text-purple-400">Observer</span>
+            <span className="text-[10px] font-medium px-2 py-1 rounded bg-status-tag-bg text-status-tag-fg">Observer</span>
           )}
           {access?.mode === 'COMPLETED' && (
-            <span className="text-[10px] font-medium px-2 py-1 rounded bg-green-500/10 text-green-400">Completed</span>
+            <span className="text-[10px] font-medium px-2 py-1 rounded bg-status-pass-bg text-status-pass-fg">Completed</span>
           )}
           {/* Progress */}
           <div className="hidden sm:flex items-center gap-2">
@@ -1130,9 +1130,9 @@ export default function VendorAssessmentFillPage() {
 
         return (
           <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-purple-500/5 border border-purple-500/20">
-              <Users size={13} className="text-purple-400 flex-shrink-0" />
-              <p className="text-xs text-purple-300">
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-card bg-status-tag-bg border border-status-tag-bd">
+              <Users size={13} className="text-status-tag-fg flex-shrink-0" />
+              <p className="text-xs text-status-tag-fg">
                 You have <span className="font-medium">{contributorQs.length}</span> question{contributorQs.length !== 1 ? 's' : ''} assigned across <span className="font-medium">{sectionGroups.length}</span> section{sectionGroups.length !== 1 ? 's' : ''}.
               </p>
             </div>
@@ -1148,7 +1148,7 @@ export default function VendorAssessmentFillPage() {
               const answeredCount = group.questions.filter(q => q.currentResponse).length
 
               return (
-                <div key={sectionKey} className="bg-surface rounded-xl border border-border overflow-hidden">
+                <div key={sectionKey} className="bg-surface rounded-card border border-border overflow-hidden">
                   {/* Section header */}
                   <div className="px-5 py-3 border-b border-border bg-surface-overlay/30 flex items-center justify-between">
                     <div>
@@ -1157,14 +1157,14 @@ export default function VendorAssessmentFillPage() {
                     </div>
                     {sectionLocked ? (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-status-warn-bg border border-status-warn-bd text-status-warn-fg">
                           Section locked
                         </span>
                       </div>
                     ) : isSubmitted && (
                       <div className="flex items-center gap-1.5">
-                        <CheckCircle2 size={12} className="text-green-400" />
-                        <span className="text-xs text-green-400">Submitted</span>
+                        <CheckCircle2 size={12} className="text-status-pass-fg" />
+                        <span className="text-xs text-status-pass-fg">Submitted</span>
                       </div>
                     )}
                   </div>
@@ -1178,9 +1178,9 @@ export default function VendorAssessmentFillPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <p className="text-sm text-text-primary">{q.questionText}</p>
-                              {q.mandatory && <span className="text-red-400 text-xs flex-shrink-0">*</span>}
+                              {q.mandatory && <span className="text-status-fail-fg text-xs flex-shrink-0">*</span>}
                               {q.currentResponse && (
-                                <CheckCircle2 size={12} className="text-green-400 flex-shrink-0 ml-auto" />
+                                <CheckCircle2 size={12} className="text-status-pass-fg flex-shrink-0 ml-auto" />
                               )}
                             </div>
                             {(() => {
@@ -1217,14 +1217,14 @@ export default function VendorAssessmentFillPage() {
                             {/* Responder's verdict on this contributor answer — never shown for PENDING (default DB value) */}
                             {q.currentResponse?.reviewerStatus && q.currentResponse.reviewerStatus !== 'PENDING' && (() => {
                               const VERDICT = {
-                                ACCEPTED:           { cls: 'bg-green-500/10 border-green-500/30 text-green-400',   label: 'Accepted by responder',   Icon: CheckCircle2  },
-                                OVERRIDDEN:         { cls: 'bg-blue-500/10 border-blue-500/30 text-blue-400',     label: 'Overridden by responder', Icon: Shield        },
-                                REVISION_REQUESTED: { cls: 'bg-amber-500/10 border-amber-500/30 text-amber-400', label: 'Revision requested',       Icon: AlertTriangle },
+                                ACCEPTED:           { cls: 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg',   label: 'Accepted by responder',   Icon: CheckCircle2  },
+                                OVERRIDDEN:         { cls: 'bg-status-info-bg border-status-info-bd text-status-info-fg',     label: 'Overridden by responder', Icon: Shield        },
+                                REVISION_REQUESTED: { cls: 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg', label: 'Revision requested',       Icon: AlertTriangle },
                               }
                               const cfg = VERDICT[q.currentResponse.reviewerStatus]
                               if (!cfg) return null
                               return (
-                                <div className={cn('flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px] mt-2', cfg.cls)}>
+                                <div className={cn('flex items-center gap-2 px-3 py-2 rounded-card border text-[11px] mt-2', cfg.cls)}>
                                   <cfg.Icon size={11} className="shrink-0" />
                                   <span>{cfg.label}</span>
                                 </div>
@@ -1241,7 +1241,7 @@ export default function VendorAssessmentFillPage() {
                                 onClick={() => drawerQuestion?.questionInstanceId === q.questionInstanceId
                                   ? setDrawerQuestion(null)
                                   : setDrawerQuestion(q)}
-                                className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-400 transition-colors ml-auto">
+                                className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-ink transition-colors ml-auto">
                                 <MessageSquare size={10} />
                                 {drawerQuestion?.questionInstanceId === q.questionInstanceId
                                   ? 'Close panel'
@@ -1259,7 +1259,7 @@ export default function VendorAssessmentFillPage() {
                     <div className="px-5 py-3 bg-surface-overlay/30 border-t border-border flex items-center justify-between">
                       <p className="text-xs text-text-muted">{answeredCount}/{group.questions.length} answered</p>
                       {isSubmitted || optimisticSubmitted.has(sectionInstanceId) ? (
-                        <span className="text-xs text-green-400 flex items-center gap-1">
+                        <span className="text-xs text-status-pass-fg flex items-center gap-1">
                           <CheckCircle2 size={11} /> Submitted
                         </span>
                       ) : (
@@ -1296,7 +1296,7 @@ export default function VendorAssessmentFillPage() {
           const globalOffset = sections.slice(0, si).reduce((sum, s) => sum + (s.questions?.length || 0), 0)
 
           return (
-            <div key={si} className="bg-surface rounded-xl border border-border overflow-hidden">
+            <div key={si} className="bg-surface rounded-card border border-border overflow-hidden">
               <button
                 onClick={() => toggle(key)}
                 className="w-full flex items-center justify-between px-5 py-4 hover:bg-surface-overlay/40 transition-colors"
@@ -1327,8 +1327,8 @@ export default function VendorAssessmentFillPage() {
                 <div className="border-t border-border divide-y divide-border">
                   {/* Batch assign toolbar — shown when items selected */}
                   {editable && batchSet.size > 0 && (
-                    <div className="px-5 py-2.5 bg-purple-500/5 border-b border-purple-500/20 flex items-center gap-3">
-                      <span className="text-xs text-purple-300 font-medium flex-shrink-0">
+                    <div className="px-5 py-2.5 bg-status-tag-bg border-b border-status-tag-bd flex items-center gap-3">
+                      <span className="text-xs text-status-tag-fg font-medium flex-shrink-0">
                         {batchSet.size} question{batchSet.size > 1 ? 's' : ''} selected
                       </span>
                       <ContributorPicker
@@ -1355,11 +1355,11 @@ export default function VendorAssessmentFillPage() {
                             className={cn(
                               'w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 mt-1 transition-colors',
                               batchSet.has(q.questionInstanceId)
-                                ? 'bg-purple-500 border-purple-500'
-                                : 'border-border hover:border-purple-500/50'
+                                ? 'bg-status-tag-bg border-status-tag-bd'
+                                : 'border-border hover:border-status-tag-bd'
                             )}>
                             {batchSet.has(q.questionInstanceId) && (
-                              <CheckCircle2 size={10} className="text-white" />
+                              <CheckCircle2 size={10} className="text-on-dark" />
                             )}
                           </button>
                         )}
@@ -1373,7 +1373,7 @@ export default function VendorAssessmentFillPage() {
                             <span className="text-xs font-mono text-text-muted shrink-0">{globalOffset + qi + 1}.</span>
                             <p className="text-sm text-text-primary">{q.questionText}</p>
                             {q.mandatory && (
-                              <span className="text-red-400 text-xs flex-shrink-0">*</span>
+                              <span className="text-status-fail-fg text-xs flex-shrink-0">*</span>
                             )}
                           </div>
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -1389,7 +1389,7 @@ export default function VendorAssessmentFillPage() {
                               )
                             })()}
                             {q.currentResponse && (
-                              <CheckCircle2 size={12} className="text-green-400" />
+                              <CheckCircle2 size={12} className="text-status-pass-fg" />
                             )}
                           </div>
                           <QuestionInput
@@ -1442,7 +1442,7 @@ export default function VendorAssessmentFillPage() {
                               onClick={() => drawerQuestion?.questionInstanceId === q.questionInstanceId
                                 ? setDrawerQuestion(null)
                                 : setDrawerQuestion(q)}
-                              className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-400 transition-colors shrink-0">
+                              className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-ink transition-colors shrink-0">
                               <MessageSquare size={10} />
                               {drawerQuestion?.questionInstanceId === q.questionInstanceId
                                 ? 'Close panel'
@@ -1464,8 +1464,8 @@ export default function VendorAssessmentFillPage() {
                         {/* Left: status text */}
                         {isSubmitted ? (
                           <div className="flex items-center gap-1.5">
-                            <CheckCircle2 size={13} className="text-green-400 flex-shrink-0" />
-                            <span className="text-xs text-green-400">
+                            <CheckCircle2 size={13} className="text-status-pass-fg flex-shrink-0" />
+                            <span className="text-xs text-status-pass-fg">
                               Submitted{section.submittedByName ? ` by ${section.submittedByName}` : ''}
                             </span>
                           </div>
@@ -1531,14 +1531,14 @@ export default function VendorAssessmentFillPage() {
             Once submitted, you will not be able to edit your answers.
             Make sure all mandatory questions are answered.
           </p>
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-surface-overlay text-sm">
-            <CheckCircle2 size={14} className="text-green-400 flex-shrink-0" />
+          <div className="flex items-center gap-2 p-3 rounded-card bg-surface-overlay text-sm">
+            <CheckCircle2 size={14} className="text-status-pass-fg flex-shrink-0" />
             <span className="text-text-secondary">
               {answered} of {totalQ} questions answered ({pct}%)
             </span>
           </div>
           <textarea
-            className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+            className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             rows={3}
             placeholder="Submission remarks (optional)"
             value={submitRemarks}

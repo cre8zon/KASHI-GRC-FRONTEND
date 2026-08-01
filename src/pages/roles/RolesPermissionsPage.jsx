@@ -194,7 +194,7 @@ function RoleForm({ side: defaultSide, onSubmit, isPending, onClose }) {
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">Side *</label>
           <select value={form.side} onChange={e => set('side', e.target.value)}
-            className="h-8 rounded-md border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {SIDES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
@@ -204,7 +204,7 @@ function RoleForm({ side: defaultSide, onSubmit, isPending, onClose }) {
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">Level</label>
           <select value={form.level} onChange={e => set('level', e.target.value)}
-            className="h-8 rounded-md border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
         </div>
@@ -212,9 +212,9 @@ function RoleForm({ side: defaultSide, onSubmit, isPending, onClose }) {
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">Type</label>
           <button onClick={() => set('isSystem', !form.isSystem)} type="button"
             className={cn(
-              'h-8 flex items-center gap-2 px-3 rounded-md border text-xs font-medium transition-colors',
+              'h-8 flex items-center gap-2 px-3 rounded-ctl border text-xs font-medium transition-colors',
               form.isSystem
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                ? 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg'
                 : 'border-border text-text-muted hover:bg-surface-overlay'
             )}>
             <Lock size={12} />
@@ -233,14 +233,14 @@ function RoleForm({ side: defaultSide, onSubmit, isPending, onClose }) {
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">
             Permissions
             {form.permissionIds.length > 0 && (
-              <span className="ml-2 px-1.5 py-0.5 rounded bg-brand-500/15 text-brand-400 text-[10px]">
+              <span className="ml-2 px-1.5 py-0.5 rounded bg-brand-500/15 text-brand-ink text-[10px]">
                 {form.permissionIds.length} selected
               </span>
             )}
           </label>
           {form.permissionIds.length > 0 && (
             <button onClick={() => set('permissionIds', [])}
-              className="text-[10px] text-text-muted hover:text-red-400 transition-colors">
+              className="text-[10px] text-text-muted hover:text-status-fail-fg transition-colors">
               Clear all
             </button>
           )}
@@ -249,9 +249,9 @@ function RoleForm({ side: defaultSide, onSubmit, isPending, onClose }) {
           <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
           <input value={permSearch} onChange={e => setPermSearch(e.target.value)}
             placeholder="Search permissions…"
-            className="h-7 w-full pl-7 pr-3 rounded-md border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="h-7 w-full pl-7 pr-3 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
-        <div className="border border-border rounded-lg overflow-hidden max-h-52 overflow-y-auto">
+        <div className="border border-border rounded-card overflow-hidden max-h-52 overflow-y-auto">
           {Object.entries(grouped).map(([group, perms]) => (
             <div key={group}>
               <div className="px-3 py-1.5 bg-surface-overlay border-b border-border/50 sticky top-0">
@@ -263,13 +263,13 @@ function RoleForm({ side: defaultSide, onSubmit, isPending, onClose }) {
                   <button key={p.id} onClick={() => togglePerm(p.id)} type="button"
                     className={cn(
                       'w-full flex items-center justify-between px-3 py-2 text-left border-b border-border/30 transition-colors',
-                      selected ? 'bg-brand-500/8 text-brand-400' : 'hover:bg-surface-overlay text-text-secondary'
+                      selected ? 'bg-brand-500/8 text-brand-ink' : 'hover:bg-surface-overlay text-text-secondary'
                     )}>
                     <div>
                       <span className="text-xs font-mono">{p.code}</span>
                       <span className="text-[10px] text-text-muted ml-2">{p.name}</span>
                     </div>
-                    {selected && <Check size={11} className="shrink-0 text-brand-400" />}
+                    {selected && <Check size={11} className="shrink-0 text-brand-ink" />}
                   </button>
                 )
               })}
@@ -336,9 +336,9 @@ function RolePermissionEditor({ role, onClose }) {
   return (
     <div className="flex flex-col gap-3">
       {/* Role info */}
-      <div className="flex items-center gap-3 p-3 bg-surface-overlay rounded-lg border border-border">
-        <div className="w-8 h-8 rounded-lg bg-brand-500/20 flex items-center justify-center shrink-0">
-          <Shield size={14} className="text-brand-400" />
+      <div className="flex items-center gap-3 p-3 bg-surface-overlay rounded-card border border-border">
+        <div className="w-8 h-8 rounded-card bg-brand-500/20 flex items-center justify-center shrink-0">
+          <Shield size={14} className="text-brand-ink" />
         </div>
         <div>
           <p className="text-sm font-medium text-text-primary">{role.name || role.roleName}</p>
@@ -348,7 +348,7 @@ function RolePermissionEditor({ role, onClose }) {
           </div>
         </div>
         <div className="ml-auto text-right">
-          <p className="text-xs font-semibold text-brand-400">{selected.size}</p>
+          <p className="text-xs font-semibold text-brand-ink">{selected.size}</p>
           <p className="text-[10px] text-text-muted">selected</p>
         </div>
       </div>
@@ -357,10 +357,10 @@ function RolePermissionEditor({ role, onClose }) {
         <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
         <input value={permSearch} onChange={e => setPermSearch(e.target.value)}
           placeholder="Search permissions…"
-          className="h-7 w-full pl-7 pr-3 rounded-md border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="h-7 w-full pl-7 pr-3 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
 
-      <div className="border border-border rounded-lg overflow-hidden max-h-80 overflow-y-auto">
+      <div className="border border-border rounded-card overflow-hidden max-h-80 overflow-y-auto">
         {Object.entries(grouped).map(([group, perms]) => (
           <div key={group}>
             <div className="px-3 py-1.5 bg-surface-overlay border-b border-border/50 sticky top-0 flex items-center justify-between">
@@ -373,7 +373,7 @@ function RolePermissionEditor({ role, onClose }) {
                   ids.forEach(id => allSel ? next.delete(id) : next.add(id))
                   return next
                 })
-              }} className="text-[10px] text-text-muted hover:text-brand-400 transition-colors">
+              }} className="text-[10px] text-text-muted hover:text-brand-ink transition-colors">
                 {perms.every(p => selected.has(p.id)) ? 'Deselect all' : 'Select all'}
               </button>
             </div>
@@ -383,13 +383,13 @@ function RolePermissionEditor({ role, onClose }) {
                 <button key={p.id} onClick={() => toggle(p.id)} type="button"
                   className={cn(
                     'w-full flex items-center justify-between px-3 py-2 text-left border-b border-border/30 transition-colors',
-                    sel ? 'bg-brand-500/8 text-brand-400' : 'hover:bg-surface-overlay text-text-secondary'
+                    sel ? 'bg-brand-500/8 text-brand-ink' : 'hover:bg-surface-overlay text-text-secondary'
                   )}>
                   <div>
                     <span className="text-xs font-mono">{p.code}</span>
                     <span className="text-[10px] text-text-muted ml-2">{p.name}</span>
                   </div>
-                  {sel && <Check size={11} className="shrink-0 text-brand-400" />}
+                  {sel && <Check size={11} className="shrink-0 text-brand-ink" />}
                 </button>
               )
             })}
@@ -443,7 +443,7 @@ function RolesPanel({ tenantId, side, canManage }) {
       {isLoading && (
         <div className="space-y-2">
           {[1,2,3].map(i => (
-            <div key={i} className="h-14 rounded-lg bg-surface-overlay animate-pulse" />
+            <div key={i} className="h-14 rounded-card bg-surface-overlay animate-pulse" />
           ))}
         </div>
       )}
@@ -454,15 +454,15 @@ function RolesPanel({ tenantId, side, canManage }) {
           const isSystem = role.is_system || role.isSystem
           return (
             <div key={id}
-              className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-border bg-surface-raised hover:border-border-subtle transition-colors group">
+              className="flex items-center justify-between px-3 py-2.5 rounded-card border border-border bg-surface-raised hover:border-border-subtle transition-colors group">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className={cn(
-                  'w-7 h-7 rounded-md flex items-center justify-center shrink-0',
-                  isSystem ? 'bg-amber-500/10' : 'bg-brand-500/10'
+                  'w-7 h-7 rounded-ctl flex items-center justify-center shrink-0',
+                  isSystem ? 'bg-status-warn-bg' : 'bg-brand-500/10'
                 )}>
                   {isSystem
-                    ? <Lock size={12} className="text-amber-400" />
-                    : <Shield size={12} className="text-brand-400" />}
+                    ? <Lock size={12} className="text-status-warn-fg" />
+                    : <Shield size={12} className="text-brand-ink" />}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -489,14 +489,14 @@ function RolesPanel({ tenantId, side, canManage }) {
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 {canManage && (
                   <button onClick={() => setEditPerms(role)} title="Edit permissions"
-                    className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+                    className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
                     <Key size={11} />
                   </button>
                 )}
                 {canManage && !isSystem && (
                   <button onClick={() => setDeleteTarget({ id, name: role.name || role.roleName })}
                     title="Delete role"
-                    className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                    className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
                     <Trash2 size={11} />
                   </button>
                 )}
@@ -598,7 +598,7 @@ function PermissionsPanel({ canManage }) {
         <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search permissions…"
-          className="h-7 w-full pl-7 pr-3 rounded-md border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="h-7 w-full pl-7 pr-3 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
 
       {isLoading && (
@@ -618,14 +618,14 @@ function PermissionsPanel({ canManage }) {
             <div className="flex flex-col gap-1">
               {perms.map(p => (
                 <div key={p.id}
-                  className="flex items-center justify-between px-3 py-2 rounded-md border border-border bg-surface-raised hover:border-border-subtle transition-colors group">
+                  className="flex items-center justify-between px-3 py-2 rounded-ctl border border-border bg-surface-raised hover:border-border-subtle transition-colors group">
                   <div className="min-w-0">
                     <p className="text-xs font-mono text-text-primary truncate">{p.code}</p>
                     <p className="text-[10px] text-text-muted truncate">{p.name}</p>
                   </div>
                   {canManage && (
                     <button onClick={() => setDeleteTarget({ id: p.id, name: p.code })}
-                      className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0 ml-2">
+                      className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors opacity-0 group-hover:opacity-100 shrink-0 ml-2">
                       <Trash2 size={10} />
                     </button>
                   )}
@@ -716,7 +716,7 @@ export default function RolesPermissionsPage({ side = 'ORGANIZATION' }) {
                     className={cn(
                       'px-3 py-2 text-xs font-medium border-b-2 transition-colors -mb-px',
                       activeSide === s
-                        ? 'border-brand-500 text-brand-400'
+                        ? 'border-brand-500 text-brand-ink'
                         : 'border-transparent text-text-muted hover:text-text-secondary'
                     )}>
                     {s}

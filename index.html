@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light" data-brand="sage">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" id="favicon-link" href="/favicon.svg" />
@@ -7,95 +7,274 @@
     <title>KashiGRC</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
-      /* ── Primitive tokens — brand scale (overridden by applyBranding()) ── */
+      /* ══ Calm v3 tokens — RGB triplets, consumed as rgb(var(--x) / <alpha>) ══ */
+
+      /* ── Brand scale — pastel Sage default; applyBrandPreset()/tenant
+            branding overrides at runtime ── */
       :root {
-        --color-brand-50:   224 242 254;
-        --color-brand-100:  186 230 253;
-        --color-brand-200:  125 211 252;
-        --color-brand-300:  56  189 248;
-        --color-brand-400:  14  165 233;
-        --color-brand-500:  2   132 199;
-        --color-brand-600:  3   105 161;
-        --color-brand-700:  7   89  133;
-        --color-brand-800:  12  74  110;
-        --color-brand-900:  12  61  89;
-        --color-accent:     124 58  237;
+        --color-brand-50:  249 252 250;
+        --color-brand-100: 239 247 242;
+        --color-brand-200: 227 241 233;
+        --color-brand-300: 211 234 220;
+        --color-brand-400: 193 225 206;
+        --color-brand-500: 175 216 192;   /* #AFD8C0 pastel sage */
+        --color-brand-600: 145 180 163;
+        --color-brand-700: 116 144 134;
+        --color-brand-800:  86 107 105;
+        --color-brand-900:  60  75  79;   /* deep sage ink — text on pastel */
+        --color-accent:      2 195 154;   /* mint */
+
+        /* Shape */
+        --radius-badge: 999px;
+        --radius-ctl:   8px;
+        --radius-card:  12px;
+        --radius-modal: 16px;
+
+        /* Charts (categorical — data-viz only, never status) */
+        --chart-1:#0E7C86; --chart-2:#4C6A92; --chart-3:#02C39A; --chart-4:#C9822E;
+        --chart-5:#7A5FA8; --chart-6:#B75D69; --chart-7:#5B8DB8; --chart-8:#8B8E63;
+
+        /* Reports (PRINT-STABLE — never theme-dependent) */
+        --rpt-ink:#1A2233; --rpt-muted:#5A6B80; --rpt-border:#D9E0E8; --rpt-paper:#FAFBFD;
+        --rpt-pass-fg:#166534; --rpt-pass-bg:#DCFCE7; --rpt-pass-bd:#16A34A;
+        --rpt-warn-fg:#92400E; --rpt-warn-bg:#FEF3C7; --rpt-warn-bd:#D97706;
+        --rpt-high-fg:#9A3412; --rpt-high-bg:#FED7AA; --rpt-high-bd:#EA580C;
+        --rpt-crit-fg:#991B1B; --rpt-crit-bg:#FEE2E2; --rpt-crit-bd:#DC2626;
+        --rpt-accent:#1D4ED8;  --rpt-accent-bg:#EFF6FF;
+        --rpt-white:#FFFFFF;   --rpt-bg-soft:#F3F4F6;
+
+        /* Dark-sidebar option (intentional dark chrome on light theme) */
+        --sidebar-dark: #0E1F33;
+
+        /* Constant "on dark chrome" ink — identical in BOTH themes, because
+           the dark sidebar stays dark in light mode. Used by bg-on-dark/10,
+           text-on-dark, etc. Never swap these per theme. */
+        --color-on-dark:      255 255 255;
+        --color-on-dark-inv:    0   0   0;
       }
 
-      /* ── Dark theme (default) ── */
+      /* ── LIGHT theme (default) ── */
       :root,
-      [data-theme="dark"] {
-        --color-surface:         15  23  42;
-        --color-surface-raised:  22  33  56;
-        --color-surface-overlay: 30  41  59;
-        --color-border:          51  65  85;
-        --color-border-subtle:   30  41  59;
-        --color-text-primary:    241 245 249;
-        --color-text-secondary:  148 163 184;
-        --color-text-muted:      100 116 139;
-        --color-text-inverse:    15  23  42;
-        --color-sidebar:         10  15  30;
-        --scrollbar-color:       51 65 85;
-      }
-
-      /* ── Light theme ── */
       [data-theme="light"] {
-        --color-surface:         248 250 252;
+        /* Brand INK — brand-coloured text/icons. Flips per theme so the same
+           class reads on white cards AND on dark surfaces. Never use a raw
+           light shade (brand-300/400) as text: on a pastel scale it is
+           invisible on light backgrounds. */
+        --color-brand-ink: var(--color-brand-800);
+        --color-surface:         247 249 251;
         --color-surface-raised:  255 255 255;
-        --color-surface-overlay: 241 245 249;
-        --color-border:          226 232 240;
-        --color-border-subtle:   241 245 249;
-        --color-text-primary:    15  23  42;
-        --color-text-secondary:  71  85  105;
-        --color-text-muted:      148 163 184;
+        --color-surface-overlay: 241 244 248;
+        --color-surface-inset:   237 241 245;
+        --color-border:          232 237 242;
+        --color-border-subtle:   239 242 246;
+        --color-border-strong:   198 208 220;
+        --color-text-primary:     22  40  60;
+        --color-text-secondary:   60  79 102;
+        --color-text-muted:      100 119 142;
+        --color-text-faint:      113 131 155;
         --color-text-inverse:    255 255 255;
         --color-sidebar:         255 255 255;
         --scrollbar-color:       203 213 225;
+
+        --color-status-pass-bg: 228 244 234; --color-status-pass-fg:  23 113  73;
+        --color-status-fail-bg: 252 234 234; --color-status-fail-fg: 179  49  47;
+        --color-status-warn-bg: 251 241 220; --color-status-warn-fg: 150  97  10;
+        --color-status-info-bg: 226 241 243; --color-status-info-fg:  14 109 119;
+        --color-status-pending-bg: 238 241 245; --color-status-pending-fg: 85 100 122;
+        --color-status-tag-bg:  238 236 248; --color-status-tag-fg:   93  79 179;
+
+        --shadow-elevated: 0 1px 2px rgb(14 31 51 / .05), 0 4px 14px rgb(14 31 51 / .06);
+        --shadow-hover:    0 2px 4px rgb(14 31 51 / .06), 0 10px 24px rgb(14 31 51 / .09);
+        --shadow-overlay:  0 12px 40px rgb(14 31 51 / .16);
+
+        --glass-bg:    rgb(255 255 255 / .66);
+        --glass-bg-hi: rgb(255 255 255 / .82);
+        --glass-bd:    rgb(255 255 255 / .75);
+        --glass-blur:  18px;
+        /* Frosted content cards (Option B) — translucent so the wash shows
+           through, but opaque enough to keep dense text readable. */
+        --card-bg:     rgb(255 255 255 / .48);
+        --card-bd:     rgb(255 255 255 / .65);
+        --card-blur:   18px;
+        /* Frosted form fields — translucent so they sit ON the glass card
+           instead of punching an opaque white hole in it. */
+        --field-bg:      rgb(255 255 255 / .45);
+        --field-bd:      rgb(255 255 255 / .55);
+        --field-bg-focus:rgb(255 255 255 / .80);
+        --field-blur:    12px;
       }
 
-      /* ── System: dark OS ── */
+      /* ── DARK theme ── */
+      [data-theme="dark"] {
+        --color-brand-ink: var(--color-brand-300);
+        --color-surface:          15  27  41;
+        --color-surface-raised:   21  36  53;
+        --color-surface-overlay:  28  46  66;
+        --color-surface-inset:    18  32  49;
+        --color-border:           36  55  76;
+        --color-border-subtle:    26  42  60;
+        --color-border-strong:    53  80 107;
+        --color-text-primary:    233 239 246;
+        --color-text-secondary:  188 201 216;
+        --color-text-muted:      132 150 171;
+        --color-text-faint:       93 113 136;
+        --color-text-inverse:     15  27  41;
+        --color-sidebar:          10  15  30;
+        --scrollbar-color:        51  65  85;
+
+        --color-status-pass-bg:  21  56  38; --color-status-pass-fg: 138 211 166;
+        --color-status-fail-bg:  61  30  32; --color-status-fail-fg: 235 162 162;
+        --color-status-warn-bg:  59  44  18; --color-status-warn-fg: 231 193 121;
+        --color-status-info-bg:  18  51  57; --color-status-info-fg: 133 203 211;
+        --color-status-pending-bg: 30 44 61; --color-status-pending-fg: 174 188 206;
+        --color-status-tag-bg:   40  35  73; --color-status-tag-fg:  188 177 238;
+
+        --shadow-elevated: 0 1px 2px rgb(0 0 0 / .3), 0 4px 14px rgb(0 0 0 / .25);
+        --shadow-hover:    0 2px 4px rgb(0 0 0 / .3), 0 10px 24px rgb(0 0 0 / .35);
+        --shadow-overlay:  0 16px 44px rgb(0 0 0 / .5);
+
+        --glass-bg:    rgb(16 30 46 / .62);
+        --glass-bg-hi: rgb(16 30 46 / .82);
+        --glass-bd:    rgb(255 255 255 / .08);
+        --card-bg:     rgb(21 36 53 / .55);
+        --card-bd:     rgb(255 255 255 / .07);
+        --card-blur:   16px;
+        --field-bg:      rgb(12 20 32 / .45);
+        --field-bd:      rgb(255 255 255 / .08);
+        --field-bg-focus:rgb(12 20 32 / .80);
+        --field-blur:    12px;
+
+        --mesh-1:#12211F; --mesh-2:#111A26; --mesh-3:#141E2C; --mesh-4:#181826;
+      }
+
+      /* ── System theme follows OS ── */
       @media (prefers-color-scheme: dark) {
         [data-theme="system"] {
-          --color-surface:         15  23  42;
-          --color-surface-raised:  22  33  56;
-          --color-surface-overlay: 30  41  59;
-          --color-border:          51  65  85;
-          --color-border-subtle:   30  41  59;
-          --color-text-primary:    241 245 249;
-          --color-text-secondary:  148 163 184;
-          --color-text-muted:      100 116 139;
-          --color-text-inverse:    15  23  42;
-          --color-sidebar:         10  15  30;
-          --scrollbar-color:       51 65 85;
+          --color-brand-ink: var(--color-brand-300);
+          --color-surface:15 27 41; --color-surface-raised:21 36 53;
+          --color-surface-overlay:28 46 66; --color-surface-inset:18 32 49;
+          --color-border:36 55 76; --color-border-subtle:26 42 60; --color-border-strong:53 80 107;
+          --color-text-primary:233 239 246; --color-text-secondary:188 201 216;
+          --color-text-muted:132 150 171; --color-text-faint:93 113 136;
+          --color-text-inverse:15 27 41; --color-sidebar:10 15 30; --scrollbar-color:51 65 85;
+          --color-status-pass-bg:21 56 38; --color-status-pass-fg:138 211 166;
+          --color-status-fail-bg:61 30 32; --color-status-fail-fg:235 162 162;
+          --color-status-warn-bg:59 44 18; --color-status-warn-fg:231 193 121;
+          --color-status-info-bg:18 51 57; --color-status-info-fg:133 203 211;
+          --color-status-pending-bg:30 44 61; --color-status-pending-fg:174 188 206;
+          --color-status-tag-bg:40 35 73; --color-status-tag-fg:188 177 238;
+          --shadow-elevated:0 1px 2px rgb(0 0 0 / .3),0 4px 14px rgb(0 0 0 / .25);
+          --shadow-hover:0 2px 4px rgb(0 0 0 / .3),0 10px 24px rgb(0 0 0 / .35);
+          --shadow-overlay:0 16px 44px rgb(0 0 0 / .5);
+          --glass-bg:rgb(16 30 46 / .62); --glass-bg-hi:rgb(16 30 46 / .82); --glass-bd:rgb(255 255 255 / .08);
+          --card-bg:rgb(21 36 53 / .55); --card-bd:rgb(255 255 255 / .07); --card-blur:16px;
+          --field-bg:rgb(12 20 32 / .45); --field-bd:rgb(255 255 255 / .08); --field-bg-focus:rgb(12 20 32 / .80); --field-blur:12px;
+          --mesh-1:#12211F; --mesh-2:#111A26; --mesh-3:#141E2C; --mesh-4:#181826;
+        }
+      }
+      @media (prefers-color-scheme: light) {
+        [data-theme="system"] {
+          --color-brand-ink: var(--color-brand-800);
+          --color-surface:247 249 251; --color-surface-raised:255 255 255;
+          --color-surface-overlay:241 244 248; --color-surface-inset:237 241 245;
+          --color-border:232 237 242; --color-border-subtle:239 242 246; --color-border-strong:198 208 220;
+          --color-text-primary:22 40 60; --color-text-secondary:60 79 102;
+          --color-text-muted:100 119 142; --color-text-faint:113 131 155;
+          --color-text-inverse:255 255 255; --color-sidebar:255 255 255; --scrollbar-color:203 213 225;
+          --color-status-pass-bg:228 244 234; --color-status-pass-fg:23 113 73;
+          --color-status-fail-bg:252 234 234; --color-status-fail-fg:179 49 47;
+          --color-status-warn-bg:251 241 220; --color-status-warn-fg:150 97 10;
+          --color-status-info-bg:226 241 243; --color-status-info-fg:14 109 119;
+          --color-status-pending-bg:238 241 245; --color-status-pending-fg:85 100 122;
+          --color-status-tag-bg:238 236 248; --color-status-tag-fg:93 79 179;
+          --shadow-elevated:0 1px 2px rgb(14 31 51 / .05),0 4px 14px rgb(14 31 51 / .06);
+          --shadow-hover:0 2px 4px rgb(14 31 51 / .06),0 10px 24px rgb(14 31 51 / .09);
+          --shadow-overlay:0 12px 40px rgb(14 31 51 / .16);
+          --glass-bg:rgb(255 255 255 / .66); --glass-bg-hi:rgb(255 255 255 / .82); --glass-bd:rgb(255 255 255 / .75);
+          --card-bg:rgb(255 255 255 / .55); --card-bd:rgb(255 255 255 / .70); --card-blur:16px;
+          --field-bg:rgb(255 255 255 / .45); --field-bd:rgb(255 255 255 / .55); --field-bg-focus:rgb(255 255 255 / .80); --field-blur:12px;
+          --mesh-1:#9BD3B8; --mesh-2:#C5E4D2; --mesh-3:#DCEBF4; --mesh-4:#E8E4F5;
         }
       }
 
-      /* ── System: light OS ── */
-      @media (prefers-color-scheme: light) {
-        [data-theme="system"] {
-          --color-surface:         248 250 252;
-          --color-surface-raised:  255 255 255;
-          --color-surface-overlay: 241 245 249;
-          --color-border:          226 232 240;
-          --color-border-subtle:   241 245 249;
-          --color-text-primary:    15  23  42;
-          --color-text-secondary:  71  85  105;
-          --color-text-muted:      148 163 184;
-          --color-text-inverse:    255 255 255;
-          --color-sidebar:         255 255 255;
-          --scrollbar-color:       203 213 225;
-        }
+      /* ── Mesh wash colours ──────────────────────────────────────────
+         DEDICATED colours, deeper than the button pastel. Glassmorphism
+         needs real depth behind it (2026 best practice); the button scale
+         is too near-white to register. A 4-blob mesh covers the whole
+         viewport, so there is no white centre on wide screens.
+         mesh-1 leans brand, the rest are harmonised neighbours. */
+      :root, [data-theme="light"], [data-theme="system"] {
+        --mesh-1: #9BD3B8;  /* brand-leaning green */
+        --mesh-2: #C5E4D2;  /* soft mint           */
+        --mesh-3: #DCEBF4;  /* cool blue tint      */
+        --mesh-4: #E8E4F5;  /* faint lilac         */
+      }
+
+      /* ── Alias layer: short names used by policy styles, reports,
+            charts, and inline style props ── */
+      :root, [data-theme="light"], [data-theme="dark"], [data-theme="system"] {
+        --surface:         rgb(var(--color-surface));
+        --surface-raised:  rgb(var(--color-surface-raised));
+        --surface-overlay: rgb(var(--color-surface-overlay));
+        --surface-inset:   rgb(var(--color-surface-inset));
+        --border:          rgb(var(--color-border));
+        --border-subtle:   rgb(var(--color-border-subtle));
+        --text-primary:    rgb(var(--color-text-primary));
+        --text-secondary:  rgb(var(--color-text-secondary));
+        --text-muted:      rgb(var(--color-text-muted));
+        --text-faint:      rgb(var(--color-text-faint));
+        --status-pass-fg:  rgb(var(--color-status-pass-fg));
+        --status-pass-bg:  rgb(var(--color-status-pass-bg));
+        --status-fail-fg:  rgb(var(--color-status-fail-fg));
+        --status-fail-bg:  rgb(var(--color-status-fail-bg));
+        --status-warn-fg:  rgb(var(--color-status-warn-fg));
+        --status-warn-bg:  rgb(var(--color-status-warn-bg));
+        --status-info-fg:  rgb(var(--color-status-info-fg));
+        --status-info-bg:  rgb(var(--color-status-info-bg));
+        --status-tag-fg:   rgb(var(--color-status-tag-fg));
+        --status-tag-bg:   rgb(var(--color-status-tag-bg));
+        --status-pending-fg: rgb(var(--color-status-pending-fg));
+        --status-pending-bg: rgb(var(--color-status-pending-bg));
       }
 
       * { box-sizing: border-box; margin: 0; padding: 0; }
       html, body, #root { height: 100%; }
       body {
-        font-family: 'DM Sans', system-ui, sans-serif;
-        background-color: rgb(var(--color-surface));
+        font-family: 'Albert Sans', system-ui, sans-serif;
+        background:
+          radial-gradient(50% 55% at 12% 8%,  var(--mesh-1), transparent 70%),
+          radial-gradient(45% 50% at 88% 15%, var(--mesh-3), transparent 68%),
+          radial-gradient(55% 60% at 70% 95%, var(--mesh-2), transparent 70%),
+          radial-gradient(40% 45% at 30% 80%, var(--mesh-4), transparent 65%),
+          rgb(var(--color-surface));
+        background-attachment: fixed;
         color: rgb(var(--color-text-primary));
         -webkit-font-smoothing: antialiased;
+        font-feature-settings: 'tnum' 1;
+      }
+
+      /* Dark theme: tighter, dimmer mesh so text-bearing centre stays dark.
+         Corner blobs only, fading fast, low spread. */
+      [data-theme="dark"] body,
+      html[data-theme="dark"] body {
+        background:
+          radial-gradient(38% 42% at 8% 4%,   var(--mesh-1), transparent 55%),
+          radial-gradient(34% 38% at 94% 10%, var(--mesh-3), transparent 52%),
+          radial-gradient(42% 46% at 78% 98%, var(--mesh-2), transparent 55%),
+          rgb(var(--color-surface));
+        background-attachment: fixed;
+      }
+      @media (prefers-color-scheme: dark) {
+        [data-theme="system"] body {
+          background:
+            radial-gradient(38% 42% at 8% 4%,   var(--mesh-1), transparent 55%),
+            radial-gradient(34% 38% at 94% 10%, var(--mesh-3), transparent 52%),
+            radial-gradient(42% 46% at 78% 98%, var(--mesh-2), transparent 55%),
+            rgb(var(--color-surface));
+          background-attachment: fixed;
+        }
       }
 
       /* Scrollbar adapts to theme */
@@ -104,6 +283,60 @@
       ::-webkit-scrollbar-thumb { background: rgb(var(--scrollbar-color)); border-radius: 3px; }
       ::-webkit-scrollbar-thumb:hover { background: rgb(var(--color-border)); }
     </style>
+    <script>
+      /* One-time theme migration — runs before ANY module (useTheme reads
+         localStorage at import time, so this must be an inline head script).
+
+         Bump VERSION to force a fresh reset for every user again later. */
+      (function () {
+        var KEY = 'kashi_theme_migration', VERSION = 'v3-calm-2';
+        try {
+          if (localStorage.getItem(KEY) !== VERSION) {
+            ['kashi_theme', 'kashi_sidebar_theme',
+             'kashi_brand_preset'].forEach(function (k) { localStorage.removeItem(k) });
+            localStorage.setItem(KEY, VERSION);
+            /* Clearing localStorage is not enough: the DB holds pre-v3 prefs
+               (ui_app_theme etc.) and bootstrap would restore them ~300ms in.
+               This flag tells useUIConfig to PUSH the new defaults up once. */
+            localStorage.setItem('kashi_theme_reset_pending', '1');
+          }
+        } catch (e) {}
+
+        /* Paint the saved brand preset BEFORE React renders, to stop a flash of
+           the default sage/white sidebar + mesh on reload. Mirrors
+           scaleFromHex() + applyBrandPreset() in brandPresets.js. The bundle
+           re-applies the same values a moment later (idempotent). */
+        try {
+          var PRESETS = {
+            sage:'#AFD8C0', mint:'#A9E2D2', seafoam:'#A5DDE0', sky:'#B9D4F0',
+            periwinkle:'#C0C8F2', lilac:'#D3C8F0', mauve:'#E2C4E6', blush:'#F2C3D2',
+            coral:'#F3C1B8', peach:'#F5CFA9', butter:'#F0DFA8', pistachio:'#CFE3A9'
+          };
+          var key = localStorage.getItem('kashi_brand_preset');
+          var hex = (key && PRESETS[key]) || localStorage.getItem('kashi_sidebar_color');
+          if (hex && /^#?[0-9a-fA-F]{6}$/.test(hex)) {
+            hex = hex.replace('#','');
+            var base = { r:parseInt(hex.slice(0,2),16), g:parseInt(hex.slice(2,4),16), b:parseInt(hex.slice(4,6),16) };
+            var white = { r:255,g:255,b:255 }, dark = { r:10,g:15,b:30 };
+            var lerp = function(a,b,t){ return Math.round(a+(b-a)*t) };
+            var mix = function(c1,c2,t){ return lerp(c1.r,c2.r,t)+' '+lerp(c1.g,c2.g,t)+' '+lerp(c1.b,c2.b,t) };
+            var scale = {
+              50:mix(base,white,0.92),100:mix(base,white,0.80),200:mix(base,white,0.65),
+              300:mix(base,white,0.45),400:mix(base,white,0.22),500:base.r+' '+base.g+' '+base.b,
+              600:mix(base,dark,0.18),700:mix(base,dark,0.36),800:mix(base,dark,0.54),900:mix(base,dark,0.70)
+            };
+            var root = document.documentElement;
+            for (var sh in scale) root.style.setProperty('--color-brand-'+sh, scale[sh]);
+            if (key) root.setAttribute('data-brand', key);
+            /* Light mesh follows the brand (same shades as applyBranding). */
+            root.style.setProperty('--mesh-1','rgb('+scale[400]+')');
+            root.style.setProperty('--mesh-2','rgb('+scale[200]+')');
+            root.style.setProperty('--mesh-3','rgb('+scale[300]+')');
+            root.style.setProperty('--mesh-4','rgb('+scale[100]+')');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

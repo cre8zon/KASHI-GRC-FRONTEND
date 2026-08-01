@@ -30,27 +30,27 @@ import { auditApi }    from '../../api/audit.api'
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const STATUS_COLOR = {
-  COMPLETED:   'text-green-400',
-  IN_PROGRESS: 'text-brand-400',
+  COMPLETED:   'text-status-pass-fg',
+  IN_PROGRESS: 'text-brand-ink',
   PENDING:     'text-text-muted',
-  CANCELLED:   'text-red-400',
+  CANCELLED:   'text-status-fail-fg',
   PLANNING:    'text-text-muted',
-  FIELDWORK:   'text-brand-400',
-  CLOSED:      'text-green-400',
+  FIELDWORK:   'text-brand-ink',
+  CLOSED:      'text-status-pass-fg',
 }
 
 const RATING_CONFIG = {
-  EFFECTIVE:           { label: 'Effective',           color: 'text-green-400',  bg: 'bg-green-500/10  border-green-500/30'  },
-  PARTIALLY_EFFECTIVE: { label: 'Partially Effective', color: 'text-amber-400',  bg: 'bg-amber-500/10  border-amber-500/30'  },
-  INEFFECTIVE:         { label: 'Ineffective',         color: 'text-red-400',    bg: 'bg-red-500/10    border-red-500/30'    },
+  EFFECTIVE:           { label: 'Effective',           color: 'text-status-pass-fg',  bg: 'bg-status-pass-bg  border-status-pass-bd'  },
+  PARTIALLY_EFFECTIVE: { label: 'Partially Effective', color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg  border-status-warn-bd'  },
+  INEFFECTIVE:         { label: 'Ineffective',         color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg    border-status-fail-bd'    },
   NOT_RATED:           { label: 'Not Rated',           color: 'text-text-muted', bg: 'bg-surface-overlay border-border'      },
 }
 
 const RISK_CONFIG = {
-  LOW:      { color: 'text-green-400',  bg: 'bg-green-500/10  border-green-500/30',  dot: 'bg-green-400',  trend: TrendingDown },
-  MEDIUM:   { color: 'text-amber-400',  bg: 'bg-amber-500/10  border-amber-500/30',  dot: 'bg-amber-400',  trend: Minus },
-  HIGH:     { color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/30', dot: 'bg-orange-400', trend: TrendingUp },
-  CRITICAL: { color: 'text-red-400',    bg: 'bg-red-500/10    border-red-500/30',    dot: 'bg-red-400',    trend: TrendingUp },
+  LOW:      { color: 'text-status-pass-fg',  bg: 'bg-status-pass-bg  border-status-pass-bd',  dot: 'bg-status-pass-bg',  trend: TrendingDown },
+  MEDIUM:   { color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg  border-status-warn-bd',  dot: 'bg-status-warn-bg',  trend: Minus },
+  HIGH:     { color: 'text-status-warn-fg', bg: 'bg-status-warn-bg border-status-warn-bd', dot: 'bg-status-warn-bg', trend: TrendingUp },
+  CRITICAL: { color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg    border-status-fail-bd',    dot: 'bg-status-fail-bg',    trend: TrendingUp },
 }
 
 // ── Module registry ────────────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ const MODULE_REGISTRY = [
     label:       'Third-Party Risk',
     sublabel:    'Vendor assessments & compliance',
     icon:        Shield,
-    color:       'text-brand-400',
+    color:       'text-brand-ink',
     bg:          'bg-brand-500/10 border-brand-500/20',
     activeBg:    'bg-brand-500/15 border-brand-500/40',
     status:      'live',
@@ -71,9 +71,9 @@ const MODULE_REGISTRY = [
     label:       'Audit Management',
     sublabel:    'Internal audits & findings',
     icon:        BookOpen,
-    color:       'text-purple-400',
-    bg:          'bg-purple-500/10 border-purple-500/20',
-    activeBg:    'bg-purple-500/15 border-purple-500/40',
+    color:       'text-status-tag-fg',
+    bg:          'bg-status-tag-bg border-status-tag-bd',
+    activeBg:    'bg-status-tag-bg border-status-tag-bd',
     status:      'live',
     detailRoute: (id) => `/audit/engagements/${id}/report`,
   },
@@ -82,9 +82,9 @@ const MODULE_REGISTRY = [
     label:       'Audit Programmes',
     sublabel:    'Project instances & programme health',
     icon:        FolderKanban,
-    color:       'text-indigo-400',
-    bg:          'bg-indigo-500/10 border-indigo-500/20',
-    activeBg:    'bg-indigo-500/15 border-indigo-500/40',
+    color:       'text-status-tag-fg',
+    bg:          'bg-status-tag-bg border-status-tag-bd',
+    activeBg:    'bg-status-tag-bg border-status-tag-bd',
     status:      'live',
     dashboardRoute: (instanceId) => `/audit/programme/${instanceId}/dashboard`,
     reportRoute:    (instanceId) => `/audit/programme/${instanceId}/report`,
@@ -94,9 +94,9 @@ const MODULE_REGISTRY = [
     label:    'Issue Tracking',
     sublabel: 'Remediation & issue management',
     icon:     AlertTriangle,
-    color:    'text-amber-400',
-    bg:       'bg-amber-500/10 border-amber-500/20',
-    activeBg: 'bg-amber-500/15 border-amber-500/40',
+    color:    'text-status-warn-fg',
+    bg:       'bg-status-warn-bg border-status-warn-bd',
+    activeBg: 'bg-status-warn-bg border-status-warn-bd',
     status:   'coming_soon',
   },
   {
@@ -104,9 +104,9 @@ const MODULE_REGISTRY = [
     label:    'Controls Library',
     sublabel: 'Control assessments & gaps',
     icon:     Lock,
-    color:    'text-cyan-400',
-    bg:       'bg-cyan-500/10 border-cyan-500/20',
-    activeBg: 'bg-cyan-500/15 border-cyan-500/40',
+    color:    'text-status-info-fg',
+    bg:       'bg-status-info-bg border-status-info-bd',
+    activeBg: 'bg-status-info-bg border-status-info-bd',
     status:   'coming_soon',
   },
   {
@@ -114,17 +114,17 @@ const MODULE_REGISTRY = [
     label:    'Risk Register',
     sublabel: 'Risk identification & treatment',
     icon:     BarChart3,
-    color:    'text-rose-400',
-    bg:       'bg-rose-500/10 border-rose-500/20',
-    activeBg: 'bg-rose-500/15 border-rose-500/40',
+    color:    'text-status-fail-fg',
+    bg:       'bg-status-fail-bg border-status-fail-bd',
+    activeBg: 'bg-status-fail-bg border-status-fail-bd',
     status:   'coming_soon',
   },
 ]
 
 // ── Shared components ─────────────────────────────────────────────────────────
 function ComplianceBar({ pct, size = 'sm' }) {
-  const color = pct >= 80 ? 'bg-green-500' : pct >= 60 ? 'bg-amber-500' : 'bg-red-500'
-  const textColor = pct >= 80 ? 'text-green-400' : pct >= 60 ? 'text-amber-400' : 'text-red-400'
+  const color = pct >= 80 ? 'bg-status-pass-bg' : pct >= 60 ? 'bg-status-warn-bg' : 'bg-status-fail-bg'
+  const textColor = pct >= 80 ? 'text-status-pass-fg' : pct >= 60 ? 'text-status-warn-fg' : 'text-status-fail-fg'
   return (
     <div className="flex items-center gap-2">
       <div className={cn('rounded-full bg-surface-overlay overflow-hidden',
@@ -191,18 +191,18 @@ function TPRMStats({ assessments }) {
     : null
 
   const stats = [
-    { label: 'Assessments',     value: total,           color: 'text-brand-400',  icon: FileText },
-    { label: 'Critical',        value: byRisk.CRITICAL, color: 'text-red-400',    icon: XCircle },
-    { label: 'High risk',       value: byRisk.HIGH,     color: 'text-orange-400', icon: AlertTriangle },
-    { label: 'Low / Medium',    value: (byRisk.LOW||0)+(byRisk.MEDIUM||0), color: 'text-green-400', icon: CheckCircle2 },
-    { label: 'Avg compliance',  value: avgPct != null ? `${avgPct}%` : '—', color: 'text-brand-400', icon: Activity },
-    { label: 'Open remediations', value: openRem, color: openRem > 0 ? 'text-amber-400' : 'text-green-400', icon: Clock },
+    { label: 'Assessments',     value: total,           color: 'text-brand-ink',  icon: FileText },
+    { label: 'Critical',        value: byRisk.CRITICAL, color: 'text-status-fail-fg',    icon: XCircle },
+    { label: 'High risk',       value: byRisk.HIGH,     color: 'text-status-warn-fg', icon: AlertTriangle },
+    { label: 'Low / Medium',    value: (byRisk.LOW||0)+(byRisk.MEDIUM||0), color: 'text-status-pass-fg', icon: CheckCircle2 },
+    { label: 'Avg compliance',  value: avgPct != null ? `${avgPct}%` : '—', color: 'text-brand-ink', icon: Activity },
+    { label: 'Open remediations', value: openRem, color: openRem > 0 ? 'text-status-warn-fg' : 'text-status-pass-fg', icon: Clock },
   ]
 
   return (
     <div className="grid grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
       {stats.map(s => (
-        <div key={s.label} className="bg-surface border border-border rounded-xl px-3 py-3">
+        <div key={s.label} className="bg-surface border border-border rounded-card px-3 py-3">
           <div className="flex items-center gap-1.5 mb-1.5">
             <s.icon size={11} className={s.color}/>
             <span className="text-[9px] text-text-muted uppercase tracking-wide leading-none">{s.label}</span>
@@ -224,7 +224,7 @@ function TPRMReportCard({ assessment, detailRoute }) {
   return (
     <div
       onClick={() => navigate(detailRoute(assessment.assessmentId))}
-      className="group bg-surface border border-border rounded-xl overflow-hidden
+      className="group bg-surface border border-border rounded-card overflow-hidden
         hover:border-brand-500/40 hover:shadow-lg hover:shadow-brand-500/5
         transition-all duration-200 cursor-pointer"
     >
@@ -255,7 +255,7 @@ function TPRMReportCard({ assessment, detailRoute }) {
         flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className={cn('flex items-center gap-1 text-[10px]',
-            remed > 0 ? 'text-amber-400' : 'text-green-400')}>
+            remed > 0 ? 'text-status-warn-fg' : 'text-status-pass-fg')}>
             {remed > 0
               ? <><AlertTriangle size={9}/>{remed} open</>
               : <><CheckCircle2 size={9}/>Clean</>}
@@ -303,15 +303,15 @@ function TPRMPanel({ module }) {
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"/>
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search vendor or template…"
-            className="w-full pl-8 pr-3 py-2 text-sm bg-surface border border-border rounded-lg
+            className="w-full pl-8 pr-3 py-2 text-sm bg-surface border border-border rounded-card
               text-text-primary placeholder-text-muted focus:outline-none focus:border-brand-500/50"/>
         </div>
         <div className="flex items-center gap-1">
           {['all','CRITICAL','HIGH','MEDIUM','LOW','unrated'].map(r => (
             <button key={r} onClick={() => setRisk(r)}
-              className={cn('text-[10px] font-medium px-2.5 py-1.5 rounded-lg border transition-colors capitalize',
+              className={cn('text-[10px] font-medium px-2.5 py-1.5 rounded-card border transition-colors capitalize',
                 riskFilter === r
-                  ? 'bg-brand-500/15 border-brand-500/40 text-brand-400'
+                  ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
                   : 'border-border text-text-muted hover:text-text-secondary hover:border-brand-500/20')}>
               {r === 'all' ? 'All' : r.charAt(0) + r.slice(1).toLowerCase()}
             </button>
@@ -359,18 +359,18 @@ function AuditStats({ engagements }) {
     : null
 
   const stats = [
-    { label: 'Engagements',    value: total,                           color: 'text-purple-400', icon: BookOpen },
-    { label: 'Active',         value: active,                          color: 'text-brand-400',  icon: Activity },
-    { label: 'Completed',      value: closed,                          color: 'text-green-400',  icon: CheckCircle2 },
-    { label: 'Open findings',  value: findings,                        color: findings > 0 ? 'text-amber-400' : 'text-green-400', icon: AlertTriangle },
-    { label: 'Avg compliance', value: avgPassed != null ? `${avgPassed}%` : '—', color: 'text-purple-400', icon: BarChart2 },
-    { label: 'Frameworks',     value: new Set(engagements.map(e => e.frameworkRef).filter(Boolean)).size, color: 'text-cyan-400', icon: Shield },
+    { label: 'Engagements',    value: total,                           color: 'text-status-tag-fg', icon: BookOpen },
+    { label: 'Active',         value: active,                          color: 'text-brand-ink',  icon: Activity },
+    { label: 'Completed',      value: closed,                          color: 'text-status-pass-fg',  icon: CheckCircle2 },
+    { label: 'Open findings',  value: findings,                        color: findings > 0 ? 'text-status-warn-fg' : 'text-status-pass-fg', icon: AlertTriangle },
+    { label: 'Avg compliance', value: avgPassed != null ? `${avgPassed}%` : '—', color: 'text-status-tag-fg', icon: BarChart2 },
+    { label: 'Frameworks',     value: new Set(engagements.map(e => e.frameworkRef).filter(Boolean)).size, color: 'text-status-info-fg', icon: Shield },
   ]
 
   return (
     <div className="grid grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
       {stats.map(s => (
-        <div key={s.label} className="bg-surface border border-border rounded-xl px-3 py-3">
+        <div key={s.label} className="bg-surface border border-border rounded-card px-3 py-3">
           <div className="flex items-center gap-1.5 mb-1.5">
             <s.icon size={11} className={s.color}/>
             <span className="text-[9px] text-text-muted uppercase tracking-wide leading-none">{s.label}</span>
@@ -393,8 +393,8 @@ function AuditEngagementCard({ engagement, detailRoute }) {
   return (
     <div
       onClick={() => navigate(detailRoute(engagement.id))}
-      className="group bg-surface border border-border rounded-xl overflow-hidden
-        hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-500/5
+      className="group bg-surface border border-border rounded-card overflow-hidden
+        hover:border-status-tag-bd hover:shadow-lg hover:shadow-elevated
         transition-all duration-200 cursor-pointer"
     >
       {/* Header */}
@@ -407,7 +407,7 @@ function AuditEngagementCard({ engagement, detailRoute }) {
             </p>
           </div>
           <div className="flex items-center gap-2 pl-[20px]">
-            <span className="text-[10px] font-mono text-purple-400/70 bg-purple-500/10 px-1.5 py-0.5 rounded">
+            <span className="text-[10px] font-mono text-status-tag-fg bg-status-tag-bg px-1.5 py-0.5 rounded">
               {engagement.frameworkRef || 'UNKNOWN'}
             </span>
             <span className="text-[10px] text-text-muted">{engagement.engagementRef}</span>
@@ -427,14 +427,14 @@ function AuditEngagementCard({ engagement, detailRoute }) {
       {/* Stats row */}
       <div className="px-4 pb-3 flex items-center gap-4">
         <span className="text-[10px] text-text-muted">
-          <span className="text-green-400 font-mono font-semibold">{passed}</span>
+          <span className="text-status-pass-fg font-mono font-semibold">{passed}</span>
           <span className="text-text-muted/60">/{total}</span> passed
         </span>
         {failed > 0 && (
-          <span className="text-[10px] text-red-400 font-mono font-semibold">{failed} failed</span>
+          <span className="text-[10px] text-status-fail-fg font-mono font-semibold">{failed} failed</span>
         )}
         {openFindings > 0 && (
-          <span className="text-[10px] text-amber-400 flex items-center gap-1">
+          <span className="text-[10px] text-status-warn-fg flex items-center gap-1">
             <AlertTriangle size={9}/>{openFindings} finding{openFindings !== 1 ? 's' : ''}
           </span>
         )}
@@ -475,7 +475,7 @@ function AuditPanel({ module }) {
   if (isLoading) return (
     <div className="flex items-center justify-center py-24">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 rounded-full border-2 border-purple-500/30 border-t-purple-500 animate-spin"/>
+        <div className="w-8 h-8 rounded-full border-2 border-status-tag-bd border-t-purple-500 animate-spin"/>
         <p className="text-sm text-text-muted">Loading audit reports…</p>
       </div>
     </div>
@@ -491,17 +491,17 @@ function AuditPanel({ module }) {
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"/>
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search engagement or framework…"
-            className="w-full pl-8 pr-3 py-2 text-sm bg-surface border border-border rounded-lg
-              text-text-primary placeholder-text-muted focus:outline-none focus:border-purple-500/50"/>
+            className="w-full pl-8 pr-3 py-2 text-sm bg-surface border border-border rounded-card
+              text-text-primary placeholder-text-muted focus:outline-none focus:border-status-tag-bd"/>
         </div>
         {frameworks.length > 0 && (
           <div className="flex items-center gap-1">
             {['all', ...frameworks].map(f => (
               <button key={f} onClick={() => setFramework(f)}
-                className={cn('text-[10px] font-medium px-2.5 py-1.5 rounded-lg border transition-colors',
+                className={cn('text-[10px] font-medium px-2.5 py-1.5 rounded-card border transition-colors',
                   frameworkFilter === f
-                    ? 'bg-purple-500/15 border-purple-500/40 text-purple-400'
-                    : 'border-border text-text-muted hover:border-purple-500/20')}>
+                    ? 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg'
+                    : 'border-border text-text-muted hover:border-status-tag-bd')}>
                 {f === 'all' ? 'All' : f}
               </button>
             ))}
@@ -510,10 +510,10 @@ function AuditPanel({ module }) {
         <div className="flex items-center gap-1">
           {['all','PLANNING','FIELDWORK','CLOSED'].map(s => (
             <button key={s} onClick={() => setStatus(s)}
-              className={cn('text-[10px] font-medium px-2.5 py-1.5 rounded-lg border transition-colors capitalize',
+              className={cn('text-[10px] font-medium px-2.5 py-1.5 rounded-card border transition-colors capitalize',
                 statusFilter === s
-                  ? 'bg-purple-500/15 border-purple-500/40 text-purple-400'
-                  : 'border-border text-text-muted hover:border-purple-500/20')}>
+                  ? 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg'
+                  : 'border-border text-text-muted hover:border-status-tag-bd')}>
               {s === 'all' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
             </button>
           ))}
@@ -546,14 +546,14 @@ function ComingSoonPanel({ module }) {
   const Icon = module.icon
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className={cn('w-16 h-16 rounded-2xl border flex items-center justify-center mb-4', module.bg)}>
+      <div className={cn('w-16 h-16 rounded-modal border flex items-center justify-center mb-4', module.bg)}>
         <Icon size={28} className={module.color}/>
       </div>
       <p className="text-base font-semibold text-text-primary mb-1">{module.label}</p>
       <p className="text-sm text-text-muted mb-4 max-w-xs">{module.sublabel}</p>
       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
         bg-surface-overlay border border-border text-[11px] text-text-muted">
-        <Sparkles size={10} className="text-brand-400"/>
+        <Sparkles size={10} className="text-brand-ink"/>
         Coming soon — module in development
       </div>
     </div>
@@ -566,10 +566,10 @@ function ModuleTab({ module, active, onClick }) {
   return (
     <button onClick={onClick}
       className={cn(
-        'flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all duration-150',
+        'flex items-center gap-2.5 px-3 py-2.5 rounded-card border text-left transition-all duration-150',
         active ? module.activeBg : 'border-transparent hover:border-border hover:bg-surface-overlay/50'
       )}>
-      <div className={cn('w-8 h-8 rounded-lg border flex items-center justify-center shrink-0',
+      <div className={cn('w-8 h-8 rounded-card border flex items-center justify-center shrink-0',
         active ? module.activeBg : module.bg)}>
         <Icon size={15} className={module.color}/>
       </div>
@@ -586,7 +586,7 @@ function ModuleTab({ module, active, onClick }) {
             </span>
           )}
           {module.status === 'live' && (
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0"/>
+            <span className="w-1.5 h-1.5 rounded-full bg-status-pass-bg shrink-0"/>
           )}
         </div>
         <p className="text-[10px] text-text-muted truncate">{module.sublabel}</p>
@@ -614,14 +614,14 @@ function ProgrammeInstanceCard({ instance, module }) {
   const status   = instance.status ?? 'IN_PROGRESS'
 
   const STATUS_COLOR = {
-    IN_PROGRESS: 'text-brand-400 bg-brand-500/10 border-brand-500/20',
-    COMPLETED:   'text-green-400 bg-green-500/10 border-green-500/20',
-    ON_HOLD:     'text-amber-400 bg-amber-500/10 border-amber-500/20',
-    CANCELLED:   'text-red-400 bg-red-500/10 border-red-500/20',
+    IN_PROGRESS: 'text-brand-ink bg-brand-500/10 border-brand-500/20',
+    COMPLETED:   'text-status-pass-fg bg-status-pass-bg border-status-pass-bd',
+    ON_HOLD:     'text-status-warn-fg bg-status-warn-bg border-status-warn-bd',
+    CANCELLED:   'text-status-fail-fg bg-status-fail-bg border-status-fail-bd',
   }
 
   return (
-    <div className="bg-surface border border-border rounded-xl overflow-hidden hover:border-indigo-500/40 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-200">
+    <div className="bg-surface border border-border rounded-card overflow-hidden hover:border-status-tag-bd hover:shadow-lg hover:shadow-elevated transition-all duration-200">
       <div
         onClick={() => navigate(module.reportRoute(instance.id))}
         className="px-4 pt-4 pb-3 flex items-start justify-between gap-3 cursor-pointer"
@@ -634,7 +634,7 @@ function ProgrammeInstanceCard({ instance, module }) {
             </p>
           </div>
           <div className="flex items-center gap-2 pl-[20px]">
-            <span className="text-[10px] font-mono text-indigo-400/70 bg-indigo-500/10 px-1.5 py-0.5 rounded">
+            <span className="text-[10px] font-mono text-status-tag-fg bg-status-tag-bg px-1.5 py-0.5 rounded">
               {instance.instanceRef || instance.projectRefSnapshot || '—'}
             </span>
             <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded border', STATUS_COLOR[status] || STATUS_COLOR.IN_PROGRESS)}>
@@ -649,10 +649,10 @@ function ProgrammeInstanceCard({ instance, module }) {
         <div className="px-4 pb-2 cursor-pointer" onClick={() => navigate(module.reportRoute(instance.id))}>
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] text-text-muted">Control compliance</span>
-            <span className={cn('text-[11px] font-bold tabular-nums', pct >= 80 ? 'text-green-400' : pct >= 50 ? 'text-amber-400' : 'text-red-400')}>{pct}%</span>
+            <span className={cn('text-[11px] font-bold tabular-nums', pct >= 80 ? 'text-status-pass-fg' : pct >= 50 ? 'text-status-warn-fg' : 'text-status-fail-fg')}>{pct}%</span>
           </div>
           <div className="h-1.5 bg-surface-overlay rounded-full overflow-hidden">
-            <div className={cn('h-full rounded-full transition-all', pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500')}
+            <div className={cn('h-full rounded-full transition-all', pct >= 80 ? 'bg-status-pass-bg' : pct >= 50 ? 'bg-status-warn-bg' : 'bg-status-fail-bg')}
               style={{ width: `${pct}%` }}/>
           </div>
         </div>
@@ -664,18 +664,18 @@ function ProgrammeInstanceCard({ instance, module }) {
         </span>
         {total > 0 && (
           <span className="flex items-center gap-1 text-[10px] text-text-muted">
-            <CheckCircle2 size={10} className="text-green-400"/>{passed}/{total}
+            <CheckCircle2 size={10} className="text-status-pass-fg"/>{passed}/{total}
           </span>
         )}
         {findings > 0 && (
-          <span className="flex items-center gap-1 text-[10px] text-amber-400">
+          <span className="flex items-center gap-1 text-[10px] text-status-warn-fg">
             <AlertTriangle size={10}/>{findings}
           </span>
         )}
         {/* Secondary: dashboard link */}
         <button
           onClick={(e) => { e.stopPropagation(); navigate(module.dashboardRoute(instance.id)) }}
-          className="ml-auto text-[10px] text-text-muted hover:text-indigo-400 transition-colors flex items-center gap-0.5"
+          className="ml-auto text-[10px] text-text-muted hover:text-status-tag-fg transition-colors flex items-center gap-0.5"
         >
           <BarChart2 size={9}/> Dashboard
         </button>
@@ -703,7 +703,7 @@ function ProgrammesPanel({ module }) {
   if (isLoading) return (
     <div className="flex items-center justify-center py-24">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin"/>
+        <div className="w-8 h-8 rounded-full border-2 border-status-tag-bd border-t-indigo-500 animate-spin"/>
         <p className="text-sm text-text-muted">Loading programme reports…</p>
       </div>
     </div>
@@ -714,12 +714,12 @@ function ProgrammesPanel({ module }) {
       {/* Summary stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
-          { label: 'Programmes',   value: instances.length, color: 'text-indigo-400', icon: FolderKanban },
-          { label: 'Active',       value: active,           color: 'text-brand-400',  icon: Activity },
-          { label: 'Completed',    value: completed,        color: 'text-green-400',  icon: CheckCircle2 },
-          { label: 'Avg compliance', value: totalCtrl > 0 ? `${Math.round(passedCtrl / totalCtrl * 100)}%` : '—', color: 'text-indigo-400', icon: BarChart2 },
+          { label: 'Programmes',   value: instances.length, color: 'text-status-tag-fg', icon: FolderKanban },
+          { label: 'Active',       value: active,           color: 'text-brand-ink',  icon: Activity },
+          { label: 'Completed',    value: completed,        color: 'text-status-pass-fg',  icon: CheckCircle2 },
+          { label: 'Avg compliance', value: totalCtrl > 0 ? `${Math.round(passedCtrl / totalCtrl * 100)}%` : '—', color: 'text-status-tag-fg', icon: BarChart2 },
         ].map(s => (
-          <div key={s.label} className="bg-surface border border-border rounded-xl px-3 py-3">
+          <div key={s.label} className="bg-surface border border-border rounded-card px-3 py-3">
             <div className="flex items-center gap-1.5 mb-1.5">
               <s.icon size={11} className={s.color}/>
               <span className="text-[9px] text-text-muted uppercase tracking-wide leading-none">{s.label}</span>
@@ -735,8 +735,8 @@ function ProgrammesPanel({ module }) {
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"/>
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search programme…"
-            className="w-full pl-8 pr-3 py-2 text-sm bg-surface border border-border rounded-lg
-              text-text-primary placeholder-text-muted focus:outline-none focus:border-indigo-500/50"/>
+            className="w-full pl-8 pr-3 py-2 text-sm bg-surface border border-border rounded-card
+              text-text-primary placeholder-text-muted focus:outline-none focus:border-status-tag-bd"/>
         </div>
         <span className="text-[11px] text-text-muted ml-auto shrink-0">
           {filtered.length} of {instances.length}
@@ -800,7 +800,7 @@ export default function ReportsPage() {
       <main className="flex-1 overflow-y-auto">
         <div className="px-6 py-5 border-b border-border bg-surface sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center', mod.bg)}>
+            <div className={cn('w-9 h-9 rounded-card border flex items-center justify-center', mod.bg)}>
               <Icon size={17} className={mod.color}/>
             </div>
             <div>
@@ -808,8 +808,8 @@ export default function ReportsPage() {
               <p className="text-xs text-text-muted">{mod.sublabel}</p>
             </div>
             {mod.status === 'live' && (
-              <div className="ml-auto flex items-center gap-1.5 text-[10px] text-green-400 font-medium">
-                <Circle size={6} className="fill-green-400"/>Live data
+              <div className="ml-auto flex items-center gap-1.5 text-[10px] text-status-pass-fg font-medium">
+                <Circle size={6} className="fill-status-pass-fg"/>Live data
               </div>
             )}
           </div>

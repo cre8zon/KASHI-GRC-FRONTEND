@@ -27,20 +27,20 @@ function CreateScreenModal({ onClose, onCreate }) {
     >
       <div className="space-y-4">
         <div>
-          <label className="text-xs font-medium text-text-secondary block mb-1">Screen key <span className="text-red-400">*</span></label>
+          <label className="text-xs font-medium text-text-secondary block mb-1">Screen key <span className="text-status-fail-fg">*</span></label>
           <input value={key} onChange={e => setKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
             placeholder="e.g. vendor_question_item"
             autoFocus
-            className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="text-xs font-medium text-text-secondary block mb-2">Screen type</label>
           <div className="grid grid-cols-2 gap-2">
             {Object.values(SCREEN_TYPES).map(t => (
               <button key={t.key} onClick={() => setType(t.key)}
-                className={cn('flex items-start gap-2.5 p-3 rounded-lg border text-left transition-all',
+                className={cn('flex items-start gap-2.5 p-3 rounded-card border text-left transition-all',
                   type === t.key ? 'border-brand-500 bg-brand-500/8' : 'border-border hover:border-border-strong')}>
-                <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border', t.color)}>
+                <div className={cn('w-7 h-7 rounded-card flex items-center justify-center shrink-0 border', t.color)}>
                   <t.icon size={13} />
                 </div>
                 <div>

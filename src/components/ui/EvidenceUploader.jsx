@@ -46,19 +46,19 @@ const ALLOWED_TYPES = new Set([
 ])
 
 const MIME_LABELS = {
-  'application/pdf':                  { label: 'PDF',   color: 'text-red-400'    },
-  'image/jpeg':                       { label: 'JPG',   color: 'text-amber-400'  },
-  'image/png':                        { label: 'PNG',   color: 'text-blue-400'   },
-  'image/gif':                        { label: 'GIF',   color: 'text-purple-400' },
-  'image/tiff':                       { label: 'TIFF',  color: 'text-purple-400' },
-  'image/heic':                       { label: 'HEIC',  color: 'text-purple-400' },
-  'image/webp':                       { label: 'WebP',  color: 'text-teal-400'   },
-  'text/csv':                         { label: 'CSV',   color: 'text-green-400'  },
-  'application/vnd.ms-excel':         { label: 'XLS',   color: 'text-green-400'  },
+  'application/pdf':                  { label: 'PDF',   color: 'text-status-fail-fg'    },
+  'image/jpeg':                       { label: 'JPG',   color: 'text-status-warn-fg'  },
+  'image/png':                        { label: 'PNG',   color: 'text-status-info-fg'   },
+  'image/gif':                        { label: 'GIF',   color: 'text-status-tag-fg' },
+  'image/tiff':                       { label: 'TIFF',  color: 'text-status-tag-fg' },
+  'image/heic':                       { label: 'HEIC',  color: 'text-status-tag-fg' },
+  'image/webp':                       { label: 'WebP',  color: 'text-brand-ink'   },
+  'text/csv':                         { label: 'CSV',   color: 'text-status-pass-fg'  },
+  'application/vnd.ms-excel':         { label: 'XLS',   color: 'text-status-pass-fg'  },
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-                                      { label: 'XLSX',  color: 'text-green-400'  },
+                                      { label: 'XLSX',  color: 'text-status-pass-fg'  },
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-                                      { label: 'DOCX',  color: 'text-blue-400'   },
+                                      { label: 'DOCX',  color: 'text-status-info-fg'   },
   'application/zip':                  { label: 'ZIP',   color: 'text-text-muted' },
 }
 
@@ -77,7 +77,7 @@ function DocumentRow({ doc, entityType, entityId, linkType, canRemove, compact, 
 
   return (
     <div className={cn(
-      'flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-border',
+      'flex items-start gap-2.5 px-3 py-2.5 rounded-card border border-border',
       'bg-surface-overlay/40 transition-colors group',
       doc.documentId && onPreview
         ? 'cursor-pointer hover:bg-brand-500/5 hover:border-brand-500/30'
@@ -101,21 +101,21 @@ function DocumentRow({ doc, entityType, entityId, linkType, canRemove, compact, 
             {doc.title || doc.fileName}
           </span>
           {doc.version > 1 && (
-            <span className="text-[9px] px-1 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">
+            <span className="text-[9px] px-1 py-0.5 rounded bg-brand-500/10 text-brand-ink border border-brand-500/20">
               v{doc.version}
             </span>
           )}
           {doc.linkType === 'REFERENCE' && (
-            <span className="text-[9px] px-1 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center gap-0.5">
+            <span className="text-[9px] px-1 py-0.5 rounded bg-status-tag-bg text-status-tag-fg border border-status-tag-bd flex items-center gap-0.5">
               <Link size={7} /> reused
             </span>
           )}
           {isReport && reportData.compliancePct != null && (
             <span className={cn(
               'text-[9px] px-1.5 py-0.5 rounded font-medium border',
-              reportData.compliancePct >= 80 ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-              reportData.compliancePct >= 60 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                              'bg-red-500/10   text-red-400   border-red-500/20'
+              reportData.compliancePct >= 80 ? 'bg-status-pass-bg text-status-pass-fg border-status-pass-bd' :
+              reportData.compliancePct >= 60 ? 'bg-status-warn-bg text-status-warn-fg border-status-warn-bd' :
+                                              'bg-status-fail-bg   text-status-fail-fg   border-status-fail-bd'
             )}>
               {reportData.compliancePct?.toFixed(1)}%
             </span>
@@ -130,7 +130,7 @@ function DocumentRow({ doc, entityType, entityId, linkType, canRemove, compact, 
             <span className="capitalize">{reportData.triggerEvent.toLowerCase().replace(/_/g, ' ')}</span>
           )}
           {isReport && reportData.openRemediationCount > 0 && (
-            <span className="text-amber-400">{reportData.openRemediationCount} open item(s)</span>
+            <span className="text-status-warn-fg">{reportData.openRemediationCount} open item(s)</span>
           )}
           {doc.notes && <span className="italic opacity-70">{doc.notes}</span>}
         </div>
@@ -140,7 +140,7 @@ function DocumentRow({ doc, entityType, entityId, linkType, canRemove, compact, 
       <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
         {/* Preview hint — subtle eye icon always visible */}
         {doc.documentId && onPreview && (
-          <span className="p-1 text-text-muted/40 group-hover:text-brand-400 transition-colors" title="Click row to preview">
+          <span className="p-1 text-text-muted/40 group-hover:text-brand-ink transition-colors" title="Click row to preview">
             <Eye size={12} />
           </span>
         )}
@@ -164,7 +164,7 @@ function DocumentRow({ doc, entityType, entityId, linkType, canRemove, compact, 
             }}
             disabled={removing}
             title="Remove link"
-            className="p-1 rounded hover:bg-red-500/10 text-text-muted hover:text-red-400 transition-colors"
+            className="p-1 rounded hover:bg-status-fail-bg text-text-muted hover:text-status-fail-fg transition-colors"
           >
             {removing ? <Loader2 size={12} className="animate-spin"/> : <Trash2 size={12}/>}
           </button>
@@ -202,10 +202,10 @@ function DropZone({ onFiles, disabled }) {
       onDrop={(e) => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files) }}
       onClick={() => !disabled && inputRef.current?.click()}
       className={cn(
-        'flex flex-col items-center gap-1.5 px-4 py-4 rounded-lg border-2 border-dashed',
+        'flex flex-col items-center gap-1.5 px-4 py-4 rounded-card border-2 border-dashed',
         'text-center cursor-pointer transition-colors select-none',
         dragging
-          ? 'border-brand-500 bg-brand-500/5 text-brand-400'
+          ? 'border-brand-500 bg-brand-500/5 text-brand-ink'
           : 'border-border hover:border-brand-500/40 hover:bg-surface-overlay/50 text-text-muted',
         disabled && 'opacity-50 pointer-events-none'
       )}
@@ -237,9 +237,9 @@ function DropZone({ onFiles, disabled }) {
 function UploadProgressBar({ fileName, progress, done, error }) {
   return (
     <div className={cn(
-      'px-3 py-2 rounded-lg border text-xs',
-      error   ? 'border-red-500/30 bg-red-500/5 text-red-400' :
-      done    ? 'border-green-500/30 bg-green-500/5 text-green-400' :
+      'px-3 py-2 rounded-card border text-xs',
+      error   ? 'border-status-fail-bd bg-status-fail-bg text-status-fail-fg' :
+      done    ? 'border-status-pass-bd bg-status-pass-bg text-status-pass-fg' :
                 'border-border bg-surface-overlay/40 text-text-secondary'
     )}>
       <div className="flex items-center justify-between gap-2 mb-1">
@@ -331,7 +331,7 @@ export default function EvidenceUploader({
       {canUpload && compact && (
         <label className={cn(
           'inline-flex items-center gap-1.5 text-xs text-text-muted',
-          'hover:text-brand-400 cursor-pointer transition-colors',
+          'hover:text-brand-ink cursor-pointer transition-colors',
           isUploading && 'opacity-50 pointer-events-none'
         )}>
           <Upload size={11}/>

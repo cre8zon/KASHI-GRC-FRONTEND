@@ -138,7 +138,7 @@ function RuleModal({ rule, onClose }) {
             value={form.questionTag}
             onChange={e => set('questionTag', e.target.value.toUpperCase())}
             placeholder="e.g. MFA, ENCRYPTION, IRP…"
-            className="w-full h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono"
+            className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono"
           />
           <datalist id="tag-suggestions">
             {SUGGESTED_TAGS.map(t => <option key={t} value={t} />)}
@@ -154,7 +154,7 @@ function RuleModal({ rule, onClose }) {
           <div>
             <label className="text-xs text-text-muted mb-1 block">Condition Type *</label>
             <select value={form.conditionType} onChange={e => set('conditionType', e.target.value)}
-              className="w-full h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+              className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               {CONDITION_TYPES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
             {ctConfig && <p className="text-[10px] text-text-muted mt-1">{ctConfig.hint}</p>}
@@ -165,7 +165,7 @@ function RuleModal({ rule, onClose }) {
                 onChange={e => set('conditionValue', e.target.value)}
                 placeholder={ctConfig.hint} />
             ) : (
-              <div className="p-3 mt-5 rounded-lg bg-surface-overlay border border-border">
+              <div className="p-3 mt-5 rounded-card bg-surface-overlay border border-border">
                 <p className="text-[11px] text-text-muted">{ctConfig?.hint || 'No value needed'}</p>
               </div>
             )}
@@ -176,7 +176,7 @@ function RuleModal({ rule, onClose }) {
         <div>
           <label className="text-xs text-text-muted mb-1 block">Blueprint (finding to raise) *</label>
           <select value={form.blueprintCode} onChange={e => set('blueprintCode', e.target.value)}
-            className="w-full h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             <option value="">Select a blueprint…</option>
             {blueprints.map(b => (
               <option key={b.blueprintCode} value={b.blueprintCode}>
@@ -185,7 +185,7 @@ function RuleModal({ rule, onClose }) {
             ))}
           </select>
           {selectedBp && (
-            <div className="mt-2 p-2.5 rounded-lg bg-surface-overlay border border-border">
+            <div className="mt-2 p-2.5 rounded-card bg-surface-overlay border border-border">
               <div className="flex items-center gap-2">
                 <Badge value={selectedBp.defaultPriority} label={selectedBp.defaultPriority}
                   colorTag={PRIORITY_COLOR[selectedBp.defaultPriority]||'gray'} />
@@ -205,7 +205,7 @@ function RuleModal({ rule, onClose }) {
           <div>
             <label className="text-xs text-text-muted mb-1 block">Priority Override</label>
             <select value={form.priorityOverride} onChange={e => set('priorityOverride', e.target.value)}
-              className="w-full h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+              className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">Use blueprint default</option>
               {['LOW','MEDIUM','HIGH','CRITICAL'].map(p => <option key={p} value={p}>{p}</option>)}
             </select>
@@ -262,11 +262,11 @@ export default function GuardRulesAdminPage() {
       <div className="grid grid-cols-4 gap-3 px-6 pt-4">
         {[
           { label: 'Total Rules',  value: rules.length,  color: 'text-text-primary' },
-          { label: 'Active',       value: activeCount,   color: 'text-green-400' },
+          { label: 'Active',       value: activeCount,   color: 'text-status-pass-fg' },
           { label: 'Inactive',     value: inactiveCount, color: 'text-text-muted' },
-          { label: 'Unique Tags',  value: new Set(rules.map(r=>r.questionTag)).size, color: 'text-brand-400' },
+          { label: 'Unique Tags',  value: new Set(rules.map(r=>r.questionTag)).size, color: 'text-brand-ink' },
         ].map(s => (
-          <div key={s.label} className="p-3 rounded-lg border border-border bg-surface-raised text-center">
+          <div key={s.label} className="p-3 rounded-card border border-border bg-surface-raised text-center">
             <p className={cn('text-2xl font-bold', s.color)}>{s.value}</p>
             <p className="text-[10px] text-text-muted uppercase tracking-wide mt-0.5">{s.label}</p>
           </div>
@@ -279,13 +279,13 @@ export default function GuardRulesAdminPage() {
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search by question or blueprint…"
-            className="w-full h-8 pl-8 pr-3 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 pl-8 pr-3 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
-        <div className="flex items-center gap-1 bg-surface-raised border border-border rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-surface-raised border border-border rounded-card p-1">
           {['ALL','ACTIVE','INACTIVE'].map(f => (
             <button key={f} onClick={() => setActiveFilter(f)}
-              className={cn('text-xs px-3 py-1 rounded-md transition-colors',
-                activeFilter === f ? 'bg-brand-500/10 text-brand-400 font-medium' : 'text-text-muted hover:text-text-secondary')}>
+              className={cn('text-xs px-3 py-1 rounded-ctl transition-colors',
+                activeFilter === f ? 'bg-brand-500/10 text-brand-ink font-medium' : 'text-text-muted hover:text-text-secondary')}>
               {f}
             </button>
           ))}
@@ -294,7 +294,7 @@ export default function GuardRulesAdminPage() {
 
       {/* Rules table */}
       <div className="px-6 py-4">
-        <div className="rounded-xl border border-border overflow-hidden">
+        <div className="rounded-card border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-surface-raised">
@@ -319,7 +319,7 @@ export default function GuardRulesAdminPage() {
                 return (
                   <tr key={rule.id} className={cn('hover:bg-surface-overlay/40 transition-colors', !rule.isActive && 'opacity-50')}>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-xs bg-brand-500/10 text-brand-400">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-xs bg-brand-500/10 text-brand-ink">
                         {rule.questionTag}
                       </span>
                     </td>
@@ -338,7 +338,7 @@ export default function GuardRulesAdminPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="font-mono text-[11px] text-brand-400">{rule.blueprintCode}</p>
+                      <p className="font-mono text-[11px] text-brand-ink">{rule.blueprintCode}</p>
                       <p className="text-[10px] text-text-muted truncate max-w-[160px]">{rule.blueprintTitle}</p>
                     </td>
                     <td className="px-4 py-3">
@@ -349,15 +349,15 @@ export default function GuardRulesAdminPage() {
                     </td>
                     <td className="px-4 py-3">
                       {rule.isGlobal
-                        ? <span className="text-[10px] text-blue-400">Global</span>
-                        : <span className="text-[10px] text-purple-400">Tenant</span>
+                        ? <span className="text-[10px] text-status-info-fg">Global</span>
+                        : <span className="text-[10px] text-status-tag-fg">Tenant</span>
                       }
                     </td>
                     <td className="px-4 py-3">
                       <button onClick={() => toggleRule(rule.id)}
                         className="transition-colors">
                         {rule.isActive
-                          ? <ToggleRight size={20} className="text-green-400" />
+                          ? <ToggleRight size={20} className="text-status-pass-fg" />
                           : <ToggleLeft  size={20} className="text-text-muted" />
                         }
                       </button>
@@ -365,12 +365,12 @@ export default function GuardRulesAdminPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
                         <button onClick={() => setEditTarget(rule)}
-                          className="p-1.5 rounded hover:bg-surface-overlay text-text-muted hover:text-brand-400 transition-colors">
+                          className="p-1.5 rounded hover:bg-surface-overlay text-text-muted hover:text-brand-ink transition-colors">
                           <Pencil size={12} />
                         </button>
                         {!rule.isGlobal && (
                           <button onClick={() => setDeleteTarget(rule)}
-                            className="p-1.5 rounded hover:bg-surface-overlay text-text-muted hover:text-red-400 transition-colors">
+                            className="p-1.5 rounded hover:bg-surface-overlay text-text-muted hover:text-status-fail-fg transition-colors">
                             <Trash2 size={12} />
                           </button>
                         )}

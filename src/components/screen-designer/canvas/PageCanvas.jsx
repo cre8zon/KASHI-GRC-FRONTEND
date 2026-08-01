@@ -19,11 +19,11 @@ function PageCanvas({ screen, selectedElement, onSelectElement, actions }) {
       </div>
       <CanvasCard label="Page layout" hint="configure the primary content area">
         <div className="flex gap-3 p-3 min-h-40">
-          <div className="flex-1 border border-dashed border-border rounded-lg p-3 flex items-center justify-center text-[10px] text-text-muted cursor-pointer hover:border-brand-500/40 hover:text-brand-400 transition-colors"
+          <div className="flex-1 border border-dashed border-border rounded-card p-3 flex items-center justify-center text-[10px] text-text-muted cursor-pointer hover:border-brand-500/40 hover:text-brand-ink transition-colors"
             onClick={() => onSelectElement({ type: 'page_main', screenKey: screen.key })}>
             Primary content area
           </div>
-          <div className="w-44 border border-dashed border-border rounded-lg p-3 flex items-center justify-center text-[10px] text-text-muted cursor-pointer hover:border-brand-500/40 hover:text-brand-400 transition-colors"
+          <div className="w-44 border border-dashed border-border rounded-card p-3 flex items-center justify-center text-[10px] text-text-muted cursor-pointer hover:border-brand-500/40 hover:text-brand-ink transition-colors"
             onClick={() => onSelectElement({ type: 'page_sidebar', screenKey: screen.key })}>
             Sidebar
           </div>

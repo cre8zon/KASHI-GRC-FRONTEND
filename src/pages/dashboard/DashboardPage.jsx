@@ -35,7 +35,7 @@ export default function DashboardPage() {
       {/* Greeting */}
       <div>
         <h1 className="text-xl font-semibold text-text-primary">
-          Good {getGreeting()}, <span className="text-brand-400">{fullName?.split(' ')[0]}</span>
+          Good {getGreeting()}, <span className="text-brand-ink">{fullName?.split(' ')[0]}</span>
         </h1>
         <p className="text-sm text-text-muted mt-0.5">
           {pendingCount > 0
@@ -48,7 +48,7 @@ export default function DashboardPage() {
       {widgetsLoading ? (
         <div className="grid grid-cols-4 gap-4">
           {[1,2,3,4].map(i => (
-            <div key={i} className="h-28 rounded-xl border border-border bg-surface-raised animate-pulse" />
+            <div key={i} className="h-28 rounded-card border border-border bg-surface-raised animate-pulse" />
           ))}
         </div>
       ) : widgets.length > 0 ? (
@@ -62,7 +62,7 @@ export default function DashboardPage() {
           subtitle="Pending approvals and actions assigned to you"
           actions={
             pendingCount > 0 && (
-              <span className="flex items-center gap-1.5 text-xs font-mono text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded-full">
+              <span className="flex items-center gap-1.5 text-xs font-mono text-brand-ink bg-brand-500/10 px-2 py-0.5 rounded-full">
                 <ListTodo size={11} /> {pendingCount}
               </span>
             )
@@ -76,7 +76,7 @@ export default function DashboardPage() {
         <CardHeader
           title="My Action Items"
           subtitle="Open obligations requiring your attention"
-          actions={<Flag size={14} className="text-amber-400" />}
+          actions={<Flag size={14} className="text-status-warn-fg" />}
         />
         <CardBody className="p-0">
           <ActionItemsWidget />
@@ -97,19 +97,19 @@ function ActionItemsWidget() {
     .slice(0, 5)
 
   const PRIORITY_DOT = {
-    CRITICAL: 'bg-red-400', HIGH: 'bg-amber-400',
-    MEDIUM: 'bg-blue-400', LOW: 'bg-surface-overlay border border-border'
+    CRITICAL: 'bg-status-fail-bg', HIGH: 'bg-status-warn-bg',
+    MEDIUM: 'bg-status-info-bg', LOW: 'bg-surface-overlay border border-border'
   }
 
   if (isLoading) return (
     <div className="p-4 space-y-2">
-      {[1,2,3].map(i => <div key={i} className="h-10 animate-pulse bg-surface-overlay rounded-lg" />)}
+      {[1,2,3].map(i => <div key={i} className="h-10 animate-pulse bg-surface-overlay rounded-card" />)}
     </div>
   )
 
   if (!open.length) return (
     <div className="flex flex-col items-center justify-center py-8 gap-2">
-      <Flag size={20} className="text-green-400" />
+      <Flag size={20} className="text-status-pass-fg" />
       <p className="text-xs text-text-muted">No open action items</p>
     </div>
   )
@@ -128,7 +128,7 @@ function ActionItemsWidget() {
       {items.filter(i => i.status === 'OPEN' || i.status === 'IN_PROGRESS').length > 5 && (
         <div className="px-4 py-2.5">
           <button onClick={() => navigate('/action-items')}
-            className="text-xs text-brand-400 hover:text-brand-300 transition-colors">
+            className="text-xs text-brand-ink hover:text-brand-ink transition-colors">
             View all {items.filter(i => i.status === 'OPEN' || i.status === 'IN_PROGRESS').length} items →
           </button>
         </div>

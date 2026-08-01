@@ -84,43 +84,43 @@ function unwrapResult(res) {
 const ROW_TYPES = [
   {
     type:  'TEMPLATE',
-    color: 'text-purple-400',
+    color: 'text-status-tag-fg',
     note:  'First row — sets template name, framework_ref, audit_type. Resets section stack.',
     cols:  'name · description · framework_ref · audit_type',
   },
   {
     type:  'SECTION',
-    color: 'text-blue-400',
+    color: 'text-status-info-fg',
     note:  'level= drives tree depth (0=root category, 1=sub-group, 2=criterion). section_code for SOC 2 e.g. CC6.1',
     cols:  'level · name · section_code · framework_ref · description',
   },
   {
     type:  'CONTROL',
-    color: 'text-cyan-400',
+    color: 'text-status-info-fg',
     note:  'Attached to the deepest current section. control_code must be unique per tenant.',
     cols:  'name · control_code · test_type · control_tag · weight · is_mandatory',
   },
   {
     type:  'TEST',
-    color: 'text-green-400',
+    color: 'text-status-pass-fg',
     note:  'Audit test in the library. test_ref auto-generated if blank.',
     cols:  'name · test_ref · automation_type · frequency · control_tag · test_procedure · evidence_guidance',
   },
   {
     type:  'CONTROL_TEST_MAPPING',
-    color: 'text-amber-400',
+    color: 'text-status-warn-fg',
     note:  'Links a control to a test. Both must exist in the CSV before this row.',
     cols:  'control_code · test_ref · is_required · mapping_note',
   },
   {
     type:  'POLICY',
-    color: 'text-rose-400',
+    color: 'text-status-fail-fg',
     note:  'Policy in the library (status=DRAFT). policy_ref auto-generated if blank.',
     cols:  'name (=title) · policy_ref · content_type · review_frequency_months · owner_team · control_tags · framework_refs',
   },
   {
     type:  'POLICY_CONTROL_MAPPING',
-    color: 'text-orange-400',
+    color: 'text-status-warn-fg',
     note:  'Links a policy to a control. Both must exist before this row.',
     cols:  'policy_ref · control_code · mapping_note',
   },
@@ -221,7 +221,7 @@ export function AuditCsvImportModal({ open, onClose, onImported }) {
         <div className="flex flex-col gap-4">
 
           {/* Row type reference — collapsible */}
-          <div className="rounded-lg border border-border overflow-hidden">
+          <div className="rounded-card border border-border overflow-hidden">
             <button
               onClick={() => setRefOpen(o => !o)}
               className="w-full flex items-center justify-between px-4 py-2.5
@@ -234,7 +234,7 @@ export function AuditCsvImportModal({ open, onClose, onImported }) {
                 <button
                   onMouseDown={(e) => { e.stopPropagation(); downloadExample() }}
                   className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px]
-                             text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors"
+                             text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors"
                 >
                   <Download size={11} /> Example CSV
                 </button>
@@ -263,7 +263,7 @@ export function AuditCsvImportModal({ open, onClose, onImported }) {
 
                 {/* Import order hint */}
                 <div className="px-4 py-2.5 bg-brand-500/3">
-                  <p className="text-[10px] text-brand-400 font-medium">
+                  <p className="text-[10px] text-brand-ink font-medium">
                     Import order: TEMPLATE → SECTION → CONTROL → TEST →
                     CONTROL_TEST_MAPPING → POLICY → POLICY_CONTROL_MAPPING
                   </p>
@@ -283,24 +283,24 @@ export function AuditCsvImportModal({ open, onClose, onImported }) {
             onDrop={handleDrop}
             onClick={() => fileRef.current?.click()}
             className={cn(
-              'border-2 border-dashed rounded-lg p-8 flex flex-col items-center gap-3',
+              'border-2 border-dashed rounded-card p-8 flex flex-col items-center gap-3',
               'cursor-pointer transition-colors',
               selectedFile
-                ? 'border-green-500/40 bg-green-500/5'
+                ? 'border-status-pass-bd bg-status-pass-bg'
                 : dragOver
                   ? 'border-brand-500 bg-brand-500/5'
                   : 'border-border hover:border-border-subtle hover:bg-surface-overlay',
             )}
           >
-            <div className="w-12 h-12 rounded-xl bg-surface-overlay flex items-center justify-center">
+            <div className="w-12 h-12 rounded-card bg-surface-overlay flex items-center justify-center">
               {selectedFile
-                ? <CheckCircle2 size={22} className="text-green-400" />
+                ? <CheckCircle2 size={22} className="text-status-pass-fg" />
                 : <Upload size={22} className="text-text-muted" />}
             </div>
             <div className="text-center">
               {selectedFile ? (
                 <>
-                  <p className="text-sm font-medium text-green-400">{selectedFile.name}</p>
+                  <p className="text-sm font-medium text-status-pass-fg">{selectedFile.name}</p>
                   <p className="text-xs text-text-muted mt-1">
                     {(selectedFile.size / 1024).toFixed(1)} KB · Click to choose a different file
                   </p>
@@ -337,8 +337,8 @@ export function AuditCsvImportModal({ open, onClose, onImported }) {
       {/* ── Stage 2: Importing ───────────────────────────────────────────────── */}
       {stage === 'importing' && (
         <div className="flex flex-col items-center gap-6 py-10">
-          <div className="w-16 h-16 rounded-2xl bg-brand-500/10 flex items-center justify-center">
-            <Loader2 size={28} className="text-brand-400 animate-spin" />
+          <div className="w-16 h-16 rounded-modal bg-brand-500/10 flex items-center justify-center">
+            <Loader2 size={28} className="text-brand-ink animate-spin" />
           </div>
           <div className="text-center">
             <p className="text-sm font-semibold text-text-primary">Importing on server…</p>
@@ -360,15 +360,15 @@ export function AuditCsvImportModal({ open, onClose, onImported }) {
           {/* Summary header */}
           <div className="flex items-center gap-3">
             <div className={cn(
-              'w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
-              result.fatalError ? 'bg-red-500/10'
-              : errCount > 0   ? 'bg-amber-500/10'
-              :                   'bg-green-500/10',
+              'w-12 h-12 rounded-card flex items-center justify-center shrink-0',
+              result.fatalError ? 'bg-status-fail-bg'
+              : errCount > 0   ? 'bg-status-warn-bg'
+              :                   'bg-status-pass-bg',
             )}>
               {result.fatalError || errCount > 0
                 ? <AlertCircle size={22} className={result.fatalError
-                    ? 'text-red-400' : 'text-amber-400'} />
-                : <CheckCircle2 size={22} className="text-green-400" />}
+                    ? 'text-status-fail-fg' : 'text-status-warn-fg'} />
+                : <CheckCircle2 size={22} className="text-status-pass-fg" />}
             </div>
             <div>
               <p className="text-sm font-semibold text-text-primary">
@@ -387,12 +387,12 @@ export function AuditCsvImportModal({ open, onClose, onImported }) {
             <div className="grid grid-cols-3 gap-3">
               {[
                 { label: 'Total rows', value: result.totalRows,   color: 'text-text-secondary' },
-                { label: 'Succeeded', value: result.successCount, color: 'text-green-400' },
+                { label: 'Succeeded', value: result.successCount, color: 'text-status-pass-fg' },
                 { label: 'Failed',    value: result.failureCount,
-                  color: result.failureCount ? 'text-red-400' : 'text-text-muted' },
+                  color: result.failureCount ? 'text-status-fail-fg' : 'text-text-muted' },
               ].map(({ label, value, color }) => (
                 <div key={label}
-                  className="p-3 bg-surface-overlay rounded-lg border border-border text-center">
+                  className="p-3 bg-surface-overlay rounded-card border border-border text-center">
                   <p className={cn('text-xl font-bold font-mono', color)}>{value ?? 0}</p>
                   <p className="text-xs text-text-muted mt-0.5">{label}</p>
                 </div>
@@ -402,15 +402,15 @@ export function AuditCsvImportModal({ open, onClose, onImported }) {
 
           {/* Import log */}
           {result.log?.length > 0 && (
-            <div className="max-h-64 overflow-y-auto rounded-lg border border-border
+            <div className="max-h-64 overflow-y-auto rounded-card border border-border
                             bg-surface-overlay p-3 flex flex-col gap-0.5 font-mono text-xs">
               {result.log.map((entry, i) => (
                 <div key={i} className={cn(
                   'flex items-start gap-2',
                   entry.status === 'SUCCESS' && 'text-text-secondary',
-                  entry.status === 'ERROR'   && 'text-red-400',
-                  entry.status === 'WARNING' && 'text-amber-400',
-                  entry.status === 'INFO'    && 'text-brand-400',
+                  entry.status === 'ERROR'   && 'text-status-fail-fg',
+                  entry.status === 'WARNING' && 'text-status-warn-fg',
+                  entry.status === 'INFO'    && 'text-brand-ink',
                 )}>
                   {entry.status === 'SUCCESS' && <CheckCircle2 size={11} className="mt-0.5 shrink-0" />}
                   {entry.status === 'ERROR'   && <XCircle      size={11} className="mt-0.5 shrink-0" />}

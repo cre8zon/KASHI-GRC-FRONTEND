@@ -116,8 +116,8 @@ export default function AuditorPortalPage() {
       }
     >
       {/* ── Portal notice ───────────────────────────────────────────── */}
-      <div className="mx-6 mt-4 flex items-center gap-3 px-4 py-2.5 rounded-lg bg-brand-500/5 border border-brand-500/20">
-        <Shield size={14} className="text-brand-400 shrink-0" />
+      <div className="mx-6 mt-4 flex items-center gap-3 px-4 py-2.5 rounded-card bg-brand-500/5 border border-brand-500/20">
+        <Shield size={14} className="text-brand-ink shrink-0" />
         <p className="text-xs text-text-secondary">
           You are viewing the <span className="font-medium text-text-primary">external auditor portal</span>.
           Only findings you raised or that are assigned to you are visible here.
@@ -127,12 +127,12 @@ export default function AuditorPortalPage() {
       {/* ── Stats row ───────────────────────────────────────────────── */}
       <div className="px-6 mt-4 grid grid-cols-4 gap-3">
         {[
-          { label: 'Open findings',     value: openCount,     icon: AlertTriangle, color: 'text-amber-400' },
-          { label: 'Pending response',  value: pendingCount,  icon: Clock,         color: 'text-blue-400'  },
-          { label: 'Resolved',          value: resolvedCount, icon: CheckCircle2,  color: 'text-green-400' },
+          { label: 'Open findings',     value: openCount,     icon: AlertTriangle, color: 'text-status-warn-fg' },
+          { label: 'Pending response',  value: pendingCount,  icon: Clock,         color: 'text-status-info-fg'  },
+          { label: 'Resolved',          value: resolvedCount, icon: CheckCircle2,  color: 'text-status-pass-fg' },
           { label: 'Total raised',      value: findings.length, icon: FileText,    color: 'text-text-muted'},
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="p-3 rounded-lg border border-border bg-surface-overlay">
+          <div key={label} className="p-3 rounded-card border border-border bg-surface-overlay">
             <div className="flex items-center gap-1.5 mb-1">
               <Icon size={12} className={color} />
               <span className="text-[10px] text-text-muted">{label}</span>
@@ -167,7 +167,7 @@ export default function AuditorPortalPage() {
 
       {/* ── Findings table ──────────────────────────────────────────── */}
       <div className="px-6 mt-4 pb-6">
-        <div className="border border-border rounded-lg overflow-hidden">
+        <div className="border border-border rounded-card overflow-hidden">
           {isLoading ? (
             <div className="flex items-center justify-center py-12 text-xs text-text-muted">Loading findings…</div>
           ) : filtered.length === 0 ? (
@@ -193,7 +193,7 @@ export default function AuditorPortalPage() {
                   <tr key={finding.id}
                     onClick={() => navigate(`/module/ISSUE/${finding.id}`)}
                     className="hover:bg-brand-500/3 cursor-pointer transition-colors">
-                    <td className="px-3 py-2.5 font-mono text-brand-400">{finding.issueRef}</td>
+                    <td className="px-3 py-2.5 font-mono text-brand-ink">{finding.issueRef}</td>
                     <td className="px-3 py-2.5 max-w-72">
                       <p className="font-medium text-text-primary truncate">{finding.title}</p>
                       {finding.category && <p className="text-text-muted text-[10px]">{finding.category.replace(/_/g,' ')}</p>}
@@ -212,12 +212,12 @@ export default function AuditorPortalPage() {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => navigate(`/module/ISSUE/${finding.id}?tab=evidence`)}
-                          className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-400 border border-border hover:border-brand-500/40 rounded px-1.5 py-0.5 transition-colors">
+                          className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-ink border border-border hover:border-brand-500/40 rounded px-1.5 py-0.5 transition-colors">
                           <Upload size={10} /> Evidence
                         </button>
                         <button
                           onClick={() => navigate(`/module/ISSUE/${finding.id}?tab=comments`)}
-                          className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-400 border border-border hover:border-brand-500/40 rounded px-1.5 py-0.5 transition-colors">
+                          className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-ink border border-border hover:border-brand-500/40 rounded px-1.5 py-0.5 transition-colors">
                           <MessageSquare size={10} /> Comment
                         </button>
                       </div>
@@ -231,19 +231,19 @@ export default function AuditorPortalPage() {
       </div>
 
       {/* ── Auditor guide ────────────────────────────────────────────── */}
-      <div className="mx-6 mb-6 p-4 rounded-lg border border-border bg-surface-overlay space-y-2">
+      <div className="mx-6 mb-6 p-4 rounded-card border border-border bg-surface-overlay space-y-2">
         <p className="text-xs font-semibold text-text-primary">How this portal works</p>
         <div className="grid grid-cols-3 gap-3 text-[10px] text-text-secondary">
           <div className="flex items-start gap-2">
-            <AlertTriangle size={12} className="text-amber-400 shrink-0 mt-0.5" />
+            <AlertTriangle size={12} className="text-status-warn-fg shrink-0 mt-0.5" />
             <span><strong className="text-text-primary">Raise a finding</strong> — click "Raise finding" to document a control failure, gap, or observation from your audit.</span>
           </div>
           <div className="flex items-start gap-2">
-            <Upload size={12} className="text-brand-400 shrink-0 mt-0.5" />
+            <Upload size={12} className="text-brand-ink shrink-0 mt-0.5" />
             <span><strong className="text-text-primary">Upload evidence</strong> — click Evidence on any finding to upload test results, screenshots, or supporting documents.</span>
           </div>
           <div className="flex items-start gap-2">
-            <CheckCircle2 size={12} className="text-green-400 shrink-0 mt-0.5" />
+            <CheckCircle2 size={12} className="text-status-pass-fg shrink-0 mt-0.5" />
             <span><strong className="text-text-primary">Validate remediation</strong> — once the org responds, you'll be asked to validate their evidence and mark the finding resolved.</span>
           </div>
         </div>

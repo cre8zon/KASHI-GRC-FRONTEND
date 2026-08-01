@@ -92,7 +92,7 @@ function ToolBtn({ icon: Icon, title, active, onClick, disabled }) {
       className={cn(
         'flex items-center justify-center w-7 h-7 rounded transition-colors',
         active
-          ? 'bg-brand-500/20 text-brand-400'
+          ? 'bg-brand-500/20 text-brand-ink'
           : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay',
         disabled && 'opacity-30 cursor-not-allowed',
       )}
@@ -235,7 +235,7 @@ export default function PolicyEditorPage() {
           >
             <ArrowLeft size={15} />
           </button>
-          <FileText size={14} className="text-brand-400" />
+          <FileText size={14} className="text-brand-ink" />
           <span className="text-sm font-semibold text-text-primary truncate max-w-[400px]">
             {policy.title || 'Untitled policy'}
           </span>
@@ -244,7 +244,7 @@ export default function PolicyEditorPage() {
             <span className="text-[10px] text-text-muted font-mono">v{policy.version}</span>
           )}
           {isDirty && (
-            <span className="text-[10px] text-amber-400 italic">Unsaved changes</span>
+            <span className="text-[10px] text-status-warn-fg italic">Unsaved changes</span>
           )}
         </div>
       }
@@ -253,9 +253,9 @@ export default function PolicyEditorPage() {
           <button
             onClick={() => setHistoryOpen(o => !o)}
             className={cn(
-              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-colors',
+              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-ctl text-xs transition-colors',
               historyOpen
-                ? 'bg-brand-500/10 text-brand-400 border border-brand-500/30'
+                ? 'bg-brand-500/10 text-brand-ink border border-brand-500/30'
                 : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay border border-transparent',
             )}
           >
@@ -263,7 +263,7 @@ export default function PolicyEditorPage() {
           </button>
           <button
             onClick={() => setPreviewMode(o => !o)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-ctl text-xs
                        text-text-muted hover:text-text-secondary hover:bg-surface-overlay
                        border border-transparent transition-colors"
           >
@@ -321,7 +321,7 @@ export default function PolicyEditorPage() {
                 <ToolBtn icon={Link2}        title="Insert link"     active={editor?.isActive('link') || linkMenuOpen} onClick={() => { setLinkInput(editor?.getAttributes('link').href || ''); setLinkMenuOpen(o => !o) }} />
                 {linkMenuOpen && (
                   <div className="absolute top-full left-0 mt-1 z-50 flex items-center gap-1 p-1.5
-                                  bg-surface border border-border rounded-lg shadow-lg">
+                                  bg-surface border border-border rounded-card shadow-lg">
                     <input
                       autoFocus
                       value={linkInput}
@@ -331,7 +331,7 @@ export default function PolicyEditorPage() {
                       className="w-48 px-2 py-1 text-xs bg-surface-overlay border border-border rounded outline-none
                                  text-text-primary placeholder:text-text-muted focus:border-brand-500/50"
                     />
-                    <button onClick={applyLink} className="px-2 py-1 text-[10px] bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded hover:bg-brand-500/20">Apply</button>
+                    <button onClick={applyLink} className="px-2 py-1 text-[10px] bg-brand-500/10 text-brand-ink border border-brand-500/20 rounded hover:bg-brand-500/20">Apply</button>
                     {editor?.isActive('link') && (
                       <ToolBtn icon={Link2Off} title="Remove link" onClick={() => { editor.chain().focus().unsetLink().run(); setLinkMenuOpen(false) }} />
                     )}
@@ -343,8 +343,8 @@ export default function PolicyEditorPage() {
 
           {/* Read-only banner */}
           {isReadOnly && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/5 border-b border-amber-500/20
-                            text-xs text-amber-400 shrink-0">
+            <div className="flex items-center gap-2 px-4 py-2 bg-status-warn-bg border-b border-status-warn-bd
+                            text-xs text-status-warn-fg shrink-0">
               <AlertTriangle size={12} />
               This policy is {policy.status?.toLowerCase()} — editing is disabled.
             </div>
@@ -353,7 +353,7 @@ export default function PolicyEditorPage() {
           {/* Bubble menu — appears on text selection */}
           {editor && !isReadOnly && (
             <BubbleMenu editor={editor} options={{ placement: 'top', offset: 6 }}
-              className="flex items-center gap-0.5 p-1 bg-surface border border-border rounded-lg shadow-lg">
+              className="flex items-center gap-0.5 p-1 bg-surface border border-border rounded-card shadow-lg">
               <ToolBtn icon={Bold}      title="Bold"      active={editor.isActive('bold')}      onClick={() => editor.chain().focus().toggleBold().run()} />
               <ToolBtn icon={Italic}    title="Italic"    active={editor.isActive('italic')}    onClick={() => editor.chain().focus().toggleItalic().run()} />
               <ToolBtn icon={Underline} title="Underline" active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()} />
@@ -422,7 +422,7 @@ export default function PolicyEditorPage() {
                         </span>
                         {i === 0 && (
                           <span className="text-[9px] px-1.5 py-0.5 rounded bg-brand-500/10
-                                           border border-brand-500/20 text-brand-400 font-medium">
+                                           border border-brand-500/20 text-brand-ink font-medium">
                             Current
                           </span>
                         )}

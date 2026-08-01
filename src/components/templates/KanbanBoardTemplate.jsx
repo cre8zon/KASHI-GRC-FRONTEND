@@ -49,10 +49,10 @@ import toast from 'react-hot-toast'
 // ─── Priority config ──────────────────────────────────────────────────────────
 
 const PRIORITY_DOT = {
-  CRITICAL: 'bg-red-400',
-  HIGH:     'bg-amber-400',
-  MEDIUM:   'bg-blue-400',
-  LOW:      'bg-gray-400',
+  CRITICAL: 'bg-status-fail-bg',
+  HIGH:     'bg-status-warn-bg',
+  MEDIUM:   'bg-status-info-bg',
+  LOW:      'bg-surface-inset',
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -129,7 +129,7 @@ export function KanbanBoardTemplate({
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-48">
-      <Loader2 size={20} className="animate-spin text-brand-400" />
+      <Loader2 size={20} className="animate-spin text-brand-ink" />
     </div>
   )
 
@@ -141,7 +141,7 @@ export function KanbanBoardTemplate({
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search records…"
-            className="h-7 pl-8 pr-3 w-48 text-xs bg-surface-overlay border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="h-7 pl-8 pr-3 w-48 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div className="flex items-center gap-3 ml-auto">
           {statuses.map(s => (
@@ -207,7 +207,7 @@ function KanbanColumn({ col, width, children, isDragOver, canDrop, onDragOver, o
         </div>
         {onCreateClick && (
           <button onClick={onCreateClick}
-            className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+            className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
             <Plus size={12} />
           </button>
         )}
@@ -219,15 +219,15 @@ function KanbanColumn({ col, width, children, isDragOver, canDrop, onDragOver, o
         onDragLeave={onDragLeave}
         onDrop={onDrop}
         className={cn(
-          'flex-1 overflow-y-auto rounded-xl border-2 border-dashed transition-all p-1.5 space-y-2',
+          'flex-1 overflow-y-auto rounded-card border-2 border-dashed transition-all p-1.5 space-y-2',
           isDragOver && canDrop  ? 'border-brand-500 bg-brand-500/5' : '',
-          isDragOver && !canDrop ? 'border-red-500/40 bg-red-500/5' : '',
+          isDragOver && !canDrop ? 'border-status-fail-bd bg-status-fail-bg' : '',
           !isDragOver ? 'border-transparent' : '',
         )}
       >
         {children}
         {isDragOver && !canDrop && (
-          <div className="flex items-center gap-1.5 px-3 py-2 text-[10px] text-red-400">
+          <div className="flex items-center gap-1.5 px-3 py-2 text-[10px] text-status-fail-fg">
             <AlertTriangle size={10} /> Transition not allowed
           </div>
         )}
@@ -245,7 +245,7 @@ function KanbanCard({ record, renderCard, onClick, onDragStart, onDragEnd }) {
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onClick={onClick}
-      className="bg-surface-raised border border-border rounded-lg cursor-pointer hover:border-brand-500/30 hover:shadow-elevated transition-all active:opacity-60 active:scale-95 select-none"
+      className="bg-surface-raised border border-border rounded-card cursor-pointer hover:border-brand-500/30 hover:shadow-elevated transition-all active:opacity-60 active:scale-95 select-none"
     >
       {renderCard
         ? renderCard(record)
@@ -280,7 +280,7 @@ export function DefaultKanbanCard({ record }) {
         )}
         {record.dueDate && (
           <div className={cn('flex items-center gap-1 text-[10px] ml-auto',
-            new Date(record.dueDate) < new Date() ? 'text-red-400' : 'text-text-muted')}>
+            new Date(record.dueDate) < new Date() ? 'text-status-fail-fg' : 'text-text-muted')}>
             <Calendar size={10} />
             <span>{formatDate(record.dueDate)}</span>
           </div>

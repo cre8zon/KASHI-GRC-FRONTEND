@@ -25,18 +25,18 @@ import toast from 'react-hot-toast'
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const SEVERITY = {
-  CRITICAL:      { label: 'Critical',     color: 'text-red-400',    bg: 'bg-red-500/15',    border: 'border-red-500/30' },
-  HIGH:          { label: 'High',         color: 'text-orange-400', bg: 'bg-orange-500/15', border: 'border-orange-500/30' },
-  MEDIUM:        { label: 'Medium',       color: 'text-amber-400',  bg: 'bg-amber-500/15',  border: 'border-amber-500/30' },
-  LOW:           { label: 'Low',          color: 'text-blue-400',   bg: 'bg-blue-500/15',   border: 'border-blue-500/30' },
+  CRITICAL:      { label: 'Critical',     color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg',    border: 'border-status-fail-bd' },
+  HIGH:          { label: 'High',         color: 'text-status-warn-fg', bg: 'bg-status-warn-bg', border: 'border-status-warn-bd' },
+  MEDIUM:        { label: 'Medium',       color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg',  border: 'border-status-warn-bd' },
+  LOW:           { label: 'Low',          color: 'text-status-info-fg',   bg: 'bg-status-info-bg',   border: 'border-status-info-bd' },
   INFORMATIONAL: { label: 'Info',         color: 'text-text-muted', bg: 'bg-surface-overlay',border: 'border-border' },
 }
 
 const STATUS = {
-  OPEN:               { label: 'Open',              icon: AlertTriangle, color: 'text-amber-400'  },
-  IN_REMEDIATION:     { label: 'In remediation',    icon: RefreshCw,     color: 'text-blue-400'   },
-  PENDING_VALIDATION: { label: 'Pending validation',icon: Clock,         color: 'text-indigo-400' },
-  CLOSED:             { label: 'Closed',            icon: CheckCircle2,  color: 'text-green-400'  },
+  OPEN:               { label: 'Open',              icon: AlertTriangle, color: 'text-status-warn-fg'  },
+  IN_REMEDIATION:     { label: 'In remediation',    icon: RefreshCw,     color: 'text-status-info-fg'   },
+  PENDING_VALIDATION: { label: 'Pending validation',icon: Clock,         color: 'text-status-tag-fg' },
+  CLOSED:             { label: 'Closed',            icon: CheckCircle2,  color: 'text-status-pass-fg'  },
   ACCEPTED_RISK:      { label: 'Risk accepted',     icon: Shield,        color: 'text-text-muted' },
 }
 
@@ -96,7 +96,7 @@ function EscalateButton({ findingId, linkedIssueId, engagementId }) {
     return (
       <button
         onClick={(e) => { e.stopPropagation(); navigate(`/module/issue/${linkedIssueId}`) }}
-        className="flex items-center gap-1 text-[9px] text-brand-400 hover:underline"
+        className="flex items-center gap-1 text-[9px] text-brand-ink hover:underline"
       >
         <Link size={9} />ISS #{linkedIssueId}
       </button>
@@ -109,7 +109,7 @@ function EscalateButton({ findingId, linkedIssueId, engagementId }) {
       disabled={isPending}
       className={cn(
         'flex items-center gap-1 text-[9px] px-2 py-0.5 rounded border',
-        'border-brand-500/40 text-brand-400 bg-brand-500/5 hover:bg-brand-500/10',
+        'border-brand-500/40 text-brand-ink bg-brand-500/5 hover:bg-brand-500/10',
         'disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
       )}
     >
@@ -215,10 +215,10 @@ export function EngagementFindingsTab({ engagementId, canEscalate = true }) {
       {/* Stats bar */}
       <div className="px-4 py-2.5 border-b border-border/40 flex items-center gap-4 text-[10px] text-text-muted flex-wrap">
         <span className="font-medium text-text-primary">{all.length} findings</span>
-        {openCount > 0 && <span className="text-amber-400">{openCount} open</span>}
-        {remCount > 0  && <span className="text-blue-400">{remCount} in remediation</span>}
-        {closedCount > 0 && <span className="text-green-400">{closedCount} closed</span>}
-        {escalatedCount > 0 && <span className="text-brand-400">{escalatedCount} escalated to issue</span>}
+        {openCount > 0 && <span className="text-status-warn-fg">{openCount} open</span>}
+        {remCount > 0  && <span className="text-status-info-fg">{remCount} in remediation</span>}
+        {closedCount > 0 && <span className="text-status-pass-fg">{closedCount} closed</span>}
+        {escalatedCount > 0 && <span className="text-brand-ink">{escalatedCount} escalated to issue</span>}
         <button onClick={() => refetch()} className="ml-auto text-text-muted hover:text-text-primary">
           <RefreshCw size={11} />
         </button>
@@ -234,7 +234,7 @@ export function EngagementFindingsTab({ engagementId, canEscalate = true }) {
               className={cn(
                 'text-[10px] px-2 py-0.5 rounded-full border transition-colors whitespace-nowrap',
                 filter === f
-                  ? 'border-brand-500/60 bg-brand-500/10 text-brand-400'
+                  ? 'border-brand-500/60 bg-brand-500/10 text-brand-ink'
                   : 'border-border text-text-muted hover:text-text-primary',
               )}
             >
@@ -246,13 +246,13 @@ export function EngagementFindingsTab({ engagementId, canEscalate = true }) {
 
       {/* Compliance score hint */}
       {all.length > 0 && (
-        <div className="px-4 py-2 border-b border-border/20 flex items-start gap-2 bg-amber-500/5">
-          <Info size={11} className="text-amber-400 shrink-0 mt-0.5" />
+        <div className="px-4 py-2 border-b border-border/20 flex items-start gap-2 bg-status-warn-bg">
+          <Info size={11} className="text-status-warn-fg shrink-0 mt-0.5" />
           <p className="text-[10px] text-text-muted leading-relaxed">
             Open findings reduce the compliance score. Each finding escalated to an Issue follows the
             <span className="text-text-secondary"> Issue Remediation workflow</span> — once the Issue
             is closed, the linked finding closes automatically and the score improves.
-            {closedCount > 0 && <span className="text-green-400"> {closedCount} finding{closedCount > 1 ? 's' : ''} resolved.</span>}
+            {closedCount > 0 && <span className="text-status-pass-fg"> {closedCount} finding{closedCount > 1 ? 's' : ''} resolved.</span>}
           </p>
         </div>
       )}

@@ -99,7 +99,7 @@ function TreeNode({ node, depth, treeConfig, onRowClick }) {
     <div>
       <div
         className={cn(
-          'flex items-center gap-2 py-2 pr-4 rounded-md transition-colors group cursor-pointer',
+          'flex items-center gap-2 py-2 pr-4 rounded-ctl transition-colors group cursor-pointer',
           'hover:bg-surface-overlay',
           depth === 0 && 'font-medium',
         )}
@@ -181,7 +181,7 @@ function TreeSkeleton() {
       {[0, 1, 2, 0, 1, 1, 2, 0].map((depth, i) => (
         <div
           key={i}
-          className="h-8 rounded-md bg-surface-overlay animate-pulse"
+          className="h-8 rounded-ctl bg-surface-overlay animate-pulse"
           style={{ marginLeft: `${16 + depth * 20}px` }}
         />
       ))}
@@ -236,7 +236,7 @@ export default function EntityTreeView({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-surface-raised overflow-hidden">
+    <div className="rounded-card border border-border bg-surface-raised overflow-hidden">
       {/* Column header strip */}
       <div className="flex items-center px-4 py-2 border-b border-border bg-surface-overlay">
         <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">

@@ -13,12 +13,12 @@ import toast from 'react-hot-toast'
 // ─── Tier style map (purely visual — no score ranges) ────────────────────────
 
 const TIER_STYLE = {
-  LOW:      { accent: 'text-green-400',  bg: 'bg-green-500/5',  border: 'border-green-500/20',  dot: 'bg-green-400',  badge: 'bg-green-500/15 text-green-400 border border-green-500/25',  bar: 'bg-green-500',  ring: 'focus:ring-green-500/40'  },
-  MEDIUM:   { accent: 'text-yellow-400', bg: 'bg-yellow-500/5', border: 'border-yellow-500/20', dot: 'bg-yellow-400', badge: 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/25', bar: 'bg-yellow-500', ring: 'focus:ring-yellow-500/40' },
-  HIGH:     { accent: 'text-amber-400',  bg: 'bg-amber-500/5',  border: 'border-amber-500/20',  dot: 'bg-amber-400',  badge: 'bg-amber-500/15 text-amber-400 border border-amber-500/25',  bar: 'bg-amber-500',  ring: 'focus:ring-amber-500/40'  },
-  CRITICAL: { accent: 'text-red-400',    bg: 'bg-red-500/5',    border: 'border-red-500/20',    dot: 'bg-red-400',    badge: 'bg-red-500/15 text-red-400 border border-red-500/25',         bar: 'bg-red-500',    ring: 'focus:ring-red-500/40'    },
+  LOW:      { accent: 'text-status-pass-fg',  bg: 'bg-status-pass-bg',  border: 'border-status-pass-bd',  dot: 'bg-status-pass-fg',  badge: 'bg-status-pass-bg text-status-pass-fg border border-status-pass-bd',  bar: 'bg-status-pass-fg',  ring: 'focus:ring-status-pass-bd'  },
+  MEDIUM:   { accent: 'text-status-warn-fg', bg: 'bg-status-warn-bg', border: 'border-status-warn-bd', dot: 'bg-status-warn-fg', badge: 'bg-status-warn-bg text-status-warn-fg border border-status-warn-bd', bar: 'bg-status-warn-fg', ring: 'focus:ring-status-warn-bd' },
+  HIGH:     { accent: 'text-status-warn-fg',  bg: 'bg-status-warn-bg',  border: 'border-status-warn-bd',  dot: 'bg-status-warn-fg',  badge: 'bg-status-warn-bg text-status-warn-fg border border-status-warn-bd',  bar: 'bg-status-fail-fg/75',  ring: 'focus:ring-status-warn-bd'  },
+  CRITICAL: { accent: 'text-status-fail-fg',    bg: 'bg-status-fail-bg',    border: 'border-status-fail-bd',    dot: 'bg-status-fail-fg',    badge: 'bg-status-fail-bg text-status-fail-fg border border-status-fail-bd',         bar: 'bg-status-fail-fg',    ring: 'focus:ring-status-fail-bd'    },
 }
-const DEFAULT_STYLE = { accent: 'text-brand-400', bg: 'bg-brand-500/5', border: 'border-brand-500/20', dot: 'bg-brand-400', badge: 'bg-brand-500/15 text-brand-400 border border-brand-500/25', bar: 'bg-brand-500', ring: 'focus:ring-brand-500/40' }
+const DEFAULT_STYLE = { accent: 'text-brand-ink', bg: 'bg-brand-500/5', border: 'border-brand-500/20', dot: 'bg-brand-400', badge: 'bg-brand-500/15 text-brand-ink border border-brand-500/25', bar: 'bg-brand-500', ring: 'focus:ring-brand-500/40' }
 const tierStyle = (label) => TIER_STYLE[label] || DEFAULT_STYLE
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ function TierCard({ tier, rangeError, publishedTemplates, onChange, isFirst, isL
   const usedElsewhere = (idx) => tier.templateIds.filter((v, i) => i !== idx && v !== '')
 
   return (
-    <div className={cn('rounded-xl border overflow-hidden', rangeError ? 'border-red-500/40' : style.border, style.bg)}>
+    <div className={cn('rounded-card border overflow-hidden', rangeError ? 'border-status-fail-bd' : style.border, style.bg)}>
       {/* Header — label + editable range */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 gap-3 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap gap-y-1 min-w-0">
@@ -137,7 +137,7 @@ function TierCard({ tier, rangeError, publishedTemplates, onChange, isFirst, isL
                 className={cn(
                   'w-16 h-6 text-center font-mono text-xs rounded border bg-surface-raised text-text-primary',
                   'focus:outline-none focus:ring-1 focus:ring-brand-500/50',
-                  rangeError ? 'border-red-500/40' : 'border-border'
+                  rangeError ? 'border-status-fail-bd' : 'border-border'
                 )}
               />
             )}
@@ -155,14 +155,14 @@ function TierCard({ tier, rangeError, publishedTemplates, onChange, isFirst, isL
                 className={cn(
                   'w-16 h-6 text-center font-mono text-xs rounded border bg-surface-raised text-text-primary',
                   'focus:outline-none focus:ring-1 focus:ring-brand-500/50',
-                  rangeError ? 'border-red-500/40' : 'border-border'
+                  rangeError ? 'border-status-fail-bd' : 'border-border'
                 )}
               />
             )}
           </div>
 
           {rangeError && (
-            <span className="text-[10px] text-red-400 flex items-center gap-1">
+            <span className="text-[10px] text-status-fail-fg flex items-center gap-1">
               <AlertCircle size={10} /> {rangeError}
             </span>
           )}
@@ -182,7 +182,7 @@ function TierCard({ tier, rangeError, publishedTemplates, onChange, isFirst, isL
       <div className="px-4 py-3 flex flex-col gap-2">
         {tier.templateIds.length === 0 && (
           <button onClick={addSlot}
-            className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-border rounded-lg text-xs text-text-muted hover:text-text-secondary hover:border-border-subtle transition-colors">
+            className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-border rounded-card text-xs text-text-muted hover:text-text-secondary hover:border-border-subtle transition-colors">
             <Plus size={12} /> Assign a template to this tier
           </button>
         )}
@@ -195,9 +195,9 @@ function TierCard({ tier, rangeError, publishedTemplates, onChange, isFirst, isL
               </span>
               <select value={tplId} onChange={e => updateSlot(idx, e.target.value)}
                 className={cn(
-                  'flex-1 h-8 appearance-none pl-3 pr-2 rounded-md border text-xs text-text-primary',
+                  'flex-1 h-8 appearance-none pl-3 pr-2 rounded-ctl border text-xs text-text-primary',
                   'bg-surface-raised focus:outline-none focus:ring-1 transition-colors',
-                  !tplId ? 'border-red-500/40' : 'border-border', style.ring,
+                  !tplId ? 'border-status-fail-bd' : 'border-border', style.ring,
                 )}>
                 <option value="">Select template…</option>
                 {publishedTemplates.map(t => (
@@ -208,7 +208,7 @@ function TierCard({ tier, rangeError, publishedTemplates, onChange, isFirst, isL
                 ))}
               </select>
               <button onClick={() => removeSlot(idx)}
-                className="h-8 w-8 flex items-center justify-center rounded-md text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+                className="h-8 w-8 flex items-center justify-center rounded-ctl text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors shrink-0"
                 title="Remove this option">
                 <Trash2 size={12} />
               </button>
@@ -280,7 +280,7 @@ export default function RiskMappingPage() {
       subtitle="Configure score boundaries and templates for each risk tier. Changes take effect on the next vendor assessment."
       actions={
         <div className="flex items-center gap-2">
-          {dirty && <span className="text-xs text-amber-400">Unsaved changes</span>}
+          {dirty && <span className="text-xs text-status-warn-fg">Unsaved changes</span>}
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={handleReset} title="Discard unsaved changes" />
           <Button size="sm" icon={Save} loading={saving}
             disabled={(!dirty && !isValid) || !publishedTemplates.length}
@@ -293,8 +293,8 @@ export default function RiskMappingPage() {
       <div className="px-6 py-4 flex flex-col gap-6 max-w-3xl">
 
         {/* Explainer */}
-        <div className="flex items-start gap-3 p-4 bg-surface-overlay rounded-lg border border-border">
-          <Layers size={15} className="text-brand-400 mt-0.5 shrink-0" />
+        <div className="flex items-start gap-3 p-4 bg-surface-overlay rounded-card border border-border">
+          <Layers size={15} className="text-brand-ink mt-0.5 shrink-0" />
           <div className="text-xs text-text-muted leading-relaxed space-y-1.5">
             <p>
               <span className="text-text-secondary font-medium">Score-based assignment — </span>
@@ -305,7 +305,7 @@ export default function RiskMappingPage() {
             <p>
               <span className="text-text-secondary font-medium">1 template → </span>auto-assigned.
               &nbsp;<span className="text-text-secondary font-medium">2+ templates → </span>
-              the <span className="text-brand-400 font-medium">Org Owner / Org Admin</span> picks one before the assessment starts.
+              the <span className="text-brand-ink font-medium">Org Owner / Org Admin</span> picks one before the assessment starts.
             </p>
           </div>
         </div>
@@ -314,7 +314,7 @@ export default function RiskMappingPage() {
         {tiers.length > 0 && (
           <div>
             <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-2">Range preview</p>
-            <div className="h-6 w-full rounded-lg overflow-hidden flex text-[10px] font-bold text-white">
+            <div className="h-6 w-full rounded-card overflow-hidden flex text-[10px] font-bold text-on-dark">
               {tiers.map(tier => {
                 const style = tierStyle(tier.label)
                 const width = Math.max(0, ((tier.maxScore - tier.minScore) / totalRange) * 100)
@@ -337,12 +337,12 @@ export default function RiskMappingPage() {
         {/* Tier cards */}
         {loading ? (
           <div className="flex flex-col gap-4">
-            {[1,2,3,4].map(i => <div key={i} className="h-28 rounded-xl bg-surface-overlay animate-pulse" />)}
+            {[1,2,3,4].map(i => <div key={i} className="h-28 rounded-card bg-surface-overlay animate-pulse" />)}
           </div>
         ) : tiers.length === 0 ? (
-          <div className="flex items-start gap-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-            <AlertCircle size={14} className="text-amber-400 mt-0.5 shrink-0" />
-            <p className="text-xs text-amber-400">No mappings saved yet.</p>
+          <div className="flex items-start gap-3 p-3 bg-status-warn-bg border border-status-warn-bd rounded-card">
+            <AlertCircle size={14} className="text-status-warn-fg mt-0.5 shrink-0" />
+            <p className="text-xs text-status-warn-fg">No mappings saved yet.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
@@ -362,7 +362,7 @@ export default function RiskMappingPage() {
 
         {/* Validation panel */}
         {!loading && tiers.length > 0 && (
-          <div className="p-4 rounded-lg border border-border bg-surface-overlay">
+          <div className="p-4 rounded-card border border-border bg-surface-overlay">
             <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">Validation</p>
             <div className="flex flex-col gap-2">
               {[
@@ -374,13 +374,13 @@ export default function RiskMappingPage() {
               ].map(({ pass, label }, i) => (
                 <div key={i} className="flex items-center gap-2">
                   {pass
-                    ? <CheckCircle2 size={13} className="text-green-400 shrink-0" />
-                    : <XCircle     size={13} className="text-red-400 shrink-0" />}
-                  <span className={cn('text-xs', pass ? 'text-text-secondary' : 'text-red-400')}>{label}</span>
+                    ? <CheckCircle2 size={13} className="text-status-pass-fg shrink-0" />
+                    : <XCircle     size={13} className="text-status-fail-fg shrink-0" />}
+                  <span className={cn('text-xs', pass ? 'text-text-secondary' : 'text-status-fail-fg')}>{label}</span>
                 </div>
               ))}
             </div>
-            <p className={cn('text-xs mt-3 flex items-center gap-1.5', isValid ? 'text-green-400' : 'text-amber-400')}>
+            <p className={cn('text-xs mt-3 flex items-center gap-1.5', isValid ? 'text-status-pass-fg' : 'text-status-warn-fg')}>
               {isValid
                 ? <><CheckCircle2 size={12} /> All checks passed — ready to save</>
                 : <><AlertCircle  size={12} /> Fix the issues above before saving</>}
@@ -392,7 +392,7 @@ export default function RiskMappingPage() {
         {!loading && tiers.some(t => t.templateIds.filter(Boolean).length > 0) && (
           <div>
             <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-2">Summary</p>
-            <div className="rounded-lg border border-border overflow-hidden">
+            <div className="rounded-card border border-border overflow-hidden">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border bg-surface-overlay">
@@ -413,13 +413,13 @@ export default function RiskMappingPage() {
                         <td className="px-3 py-2 font-mono text-text-muted">{tier.minScore}–{tier.maxScore}</td>
                         <td className="px-3 py-2 text-text-secondary">
                           {names.length === 0
-                            ? <span className="text-red-400/70 italic">Not configured</span>
+                            ? <span className="text-status-fail-fg italic">Not configured</span>
                             : names.map((n, ni) => <span key={ni}>{ni > 0 && <span className="text-text-muted mx-1">·</span>}{n}</span>)}
                         </td>
                         <td className="px-3 py-2">
                           {names.length === 0 ? <span className="text-text-muted">—</span>
                             : names.length === 1 ? <span className="text-text-muted">Auto-assigned</span>
-                            : <span className="text-brand-400 font-medium">Admin selects</span>}
+                            : <span className="text-brand-ink font-medium">Admin selects</span>}
                         </td>
                       </tr>
                     )
@@ -431,9 +431,9 @@ export default function RiskMappingPage() {
         )}
 
         {publishedTemplates.length === 0 && !loadingTemplates && (
-          <div className="flex items-start gap-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-            <AlertCircle size={14} className="text-amber-400 mt-0.5 shrink-0" />
-            <p className="text-xs text-amber-400">Publish at least one assessment template before configuring mappings.</p>
+          <div className="flex items-start gap-3 p-3 bg-status-warn-bg border border-status-warn-bd rounded-card">
+            <AlertCircle size={14} className="text-status-warn-fg mt-0.5 shrink-0" />
+            <p className="text-xs text-status-warn-fg">Publish at least one assessment template before configuring mappings.</p>
           </div>
         )}
       </div>

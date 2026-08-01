@@ -21,10 +21,10 @@ import toast          from 'react-hot-toast'
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 const STATUS_CFG = {
-  AUTOMATION_VERIFIED: { icon: CheckCircle2, color: 'text-green-400',   bg: 'bg-green-500/10',    label: 'Verified'       },
-  ACCEPTED:            { icon: CheckCircle2, color: 'text-green-400',   bg: 'bg-green-500/10',    label: 'Accepted'       },
-  PENDING_REVIEW:      { icon: Clock,        color: 'text-amber-400',   bg: 'bg-amber-500/10',    label: 'Pending review' },
-  REJECTED:            { icon: XCircle,      color: 'text-red-400',     bg: 'bg-red-500/10',      label: 'Rejected'       },
+  AUTOMATION_VERIFIED: { icon: CheckCircle2, color: 'text-status-pass-fg',   bg: 'bg-status-pass-bg',    label: 'Verified'       },
+  ACCEPTED:            { icon: CheckCircle2, color: 'text-status-pass-fg',   bg: 'bg-status-pass-bg',    label: 'Accepted'       },
+  PENDING_REVIEW:      { icon: Clock,        color: 'text-status-warn-fg',   bg: 'bg-status-warn-bg',    label: 'Pending review' },
+  REJECTED:            { icon: XCircle,      color: 'text-status-fail-fg',     bg: 'bg-status-fail-bg',      label: 'Rejected'       },
   EXPIRED:             { icon: RefreshCw,    color: 'text-text-muted',  bg: 'bg-surface-overlay', label: 'Expired'        },
 }
 
@@ -44,7 +44,7 @@ function StatusBadge({ status }) {
 function Section({ icon: Icon, label, accent, badge, children }) {
   return (
     <div className={cn(
-      'border rounded-xl overflow-hidden',
+      'border rounded-card overflow-hidden',
       accent ? 'border-brand-500/25' : 'border-border'
     )}>
       <div className={cn(
@@ -53,20 +53,20 @@ function Section({ icon: Icon, label, accent, badge, children }) {
       )}>
         <div className={cn(
           'flex items-center justify-center w-5 h-5 rounded',
-          accent ? 'bg-brand-500/15 text-brand-400' : 'bg-surface text-text-secondary border border-border'
+          accent ? 'bg-brand-500/15 text-brand-ink' : 'bg-surface text-text-secondary border border-border'
         )}>
           <Icon size={10} />
         </div>
         <span className={cn(
           'text-[11px] font-semibold',
-          accent ? 'text-brand-400' : 'text-text-secondary'
+          accent ? 'text-brand-ink' : 'text-text-secondary'
         )}>
           {label}
         </span>
         {badge != null && (
           <span className={cn(
             'ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-medium',
-            accent ? 'bg-brand-500/15 text-brand-400' : 'bg-surface-overlay text-text-muted'
+            accent ? 'bg-brand-500/15 text-brand-ink' : 'bg-surface-overlay text-text-muted'
           )}>
             {badge}
           </span>
@@ -81,7 +81,7 @@ function AutomatedRow({ link, onAccept, onReject, canReview }) {
   const record = link.record || {}
   return (
     <div className="flex items-start gap-3 py-2.5 border-b border-border/20 last:border-0">
-      <Zap size={12} className="shrink-0 mt-0.5 text-brand-400" />
+      <Zap size={12} className="shrink-0 mt-0.5 text-brand-ink" />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium text-text-primary truncate">
           {record.title || `Integration check #${link.evidenceRecordId}`}
@@ -103,11 +103,11 @@ function AutomatedRow({ link, onAccept, onReject, canReview }) {
       {canReview && link.status === 'PENDING_REVIEW' && (
         <div className="flex items-center gap-1 shrink-0 mt-0.5">
           <button onClick={() => onAccept(link.id)}
-            className="text-[9px] px-2 py-0.5 rounded-md bg-green-500/10 text-green-400 hover:bg-green-500/20 font-medium">
+            className="text-[9px] px-2 py-0.5 rounded-ctl bg-status-pass-bg text-status-pass-fg hover:bg-status-pass-bg font-medium">
             Accept
           </button>
           <button onClick={() => onReject(link.id)}
-            className="text-[9px] px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 font-medium">
+            className="text-[9px] px-2 py-0.5 rounded-ctl bg-status-fail-bg text-status-fail-fg hover:bg-status-fail-bg font-medium">
             Reject
           </button>
         </div>
@@ -128,7 +128,7 @@ export function TestInstanceEvidenceTab({ testInstanceId, vc = {} }) {
   if (isAuditee) {
     return (
       <div className="max-w-2xl">
-        <div className="rounded-xl border border-border/40 bg-surface-overlay/30 px-4 py-8 flex flex-col items-center gap-2 text-center">
+        <div className="rounded-card border border-border/40 bg-surface-overlay/30 px-4 py-8 flex flex-col items-center gap-2 text-center">
           <FlaskConical size={20} className="text-text-muted opacity-40" />
           <p className="text-sm font-medium text-text-secondary">Test work papers</p>
           <p className="text-xs text-text-muted max-w-xs leading-relaxed">
@@ -166,9 +166,9 @@ export function TestInstanceEvidenceTab({ testInstanceId, vc = {} }) {
     <div className="flex flex-col gap-3 pb-6 max-w-2xl">
 
       {/* Guide */}
-      <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3.5">
+      <div className="rounded-card border border-status-warn-bd bg-status-warn-bg p-3.5">
         <div className="flex items-start gap-2.5">
-          <FlaskConical size={13} className="shrink-0 text-amber-400 mt-0.5" />
+          <FlaskConical size={13} className="shrink-0 text-status-warn-fg mt-0.5" />
           <div className="space-y-1.5 text-[11px] text-text-secondary leading-relaxed">
             <p className="font-medium text-text-primary">Test work papers</p>
             <p>
@@ -176,11 +176,11 @@ export function TestInstanceEvidenceTab({ testInstanceId, vc = {} }) {
               Files attached here serve as your audit evidence for how this test was performed.
             </p>
             <p className="text-text-muted">
-              Recording <span className="font-medium text-green-400">PASS</span> will mark all
+              Recording <span className="font-medium text-status-pass-fg">PASS</span> will mark all
               {' '}<span className="font-medium text-text-primary">required</span> mapped controls as
-              {' '}<span className="font-medium text-green-400">Effective</span>.
-              Recording <span className="font-medium text-red-400">FAIL</span> marks them
-              {' '}<span className="font-medium text-red-400">Ineffective</span> and raises findings.
+              {' '}<span className="font-medium text-status-pass-fg">Effective</span>.
+              Recording <span className="font-medium text-status-fail-fg">FAIL</span> marks them
+              {' '}<span className="font-medium text-status-fail-fg">Ineffective</span> and raises findings.
             </p>
           </div>
         </div>
@@ -211,7 +211,7 @@ export function TestInstanceEvidenceTab({ testInstanceId, vc = {} }) {
           </div>
         </Section>
       ) : (
-        <div className="border border-dashed border-border/50 rounded-xl px-4 py-4 flex items-center gap-3 text-[11px] text-text-muted">
+        <div className="border border-dashed border-border/50 rounded-card px-4 py-4 flex items-center gap-3 text-[11px] text-text-muted">
           <Zap size={13} className="shrink-0 text-border" />
           <span>
             <span className="font-medium text-text-secondary">No automated evidence yet.</span>

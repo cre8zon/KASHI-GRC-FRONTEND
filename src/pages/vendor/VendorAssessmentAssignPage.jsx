@@ -93,16 +93,16 @@ function UserPicker({ label, value, onChange, filterRole }) {
     <div className="flex flex-col gap-1">
       <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">{label}</label>
       {value ? (
-        <div className="flex items-center gap-2 p-2 rounded-md border border-brand-500/30 bg-brand-500/5">
+        <div className="flex items-center gap-2 p-2 rounded-ctl border border-brand-500/30 bg-brand-500/5">
           <div className="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0">
-            <span className="text-[10px] font-bold text-brand-400">{initials(value.fullName || value.email)}</span>
+            <span className="text-[10px] font-bold text-brand-ink">{initials(value.fullName || value.email)}</span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-text-primary truncate">{value.fullName || '—'}</p>
             <p className="text-[10px] text-text-muted truncate">{value.email}</p>
           </div>
           <button onClick={() => onChange(null)}
-            className="text-text-muted hover:text-red-400 transition-colors">
+            className="text-text-muted hover:text-status-fail-fg transition-colors">
             <X size={12} />
           </button>
         </div>
@@ -114,10 +114,10 @@ function UserPicker({ label, value, onChange, filterRole }) {
             onChange={e => { setSearch(e.target.value); setOpen(true) }}
             onFocus={() => setOpen(true)}
             placeholder="Search by name or email…"
-            className="h-8 w-full pl-8 pr-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-8 w-full pl-8 pr-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
           {open && users.length > 0 && (
-            <div className="absolute z-10 top-full left-0 right-0 mt-1 rounded-md border border-border bg-surface shadow-lg overflow-hidden">
+            <div className="absolute z-10 top-full left-0 right-0 mt-1 rounded-ctl border border-border bg-surface shadow-lg overflow-hidden">
               {users.map(u => (
                 <button key={u.id} onClick={() => select(u)}
                   className="w-full flex items-center gap-2 px-3 py-2 hover:bg-surface-overlay text-left transition-colors">
@@ -166,14 +166,14 @@ function VRMAssignView({ taskId, stepInstanceId, onDone }) {
   if (delegated && !editing) {
     return (
       <div className="space-y-3">
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-green-500/5 border border-green-500/20">
-          <CheckCircle2 size={16} className="text-green-400 flex-shrink-0" />
+        <div className="flex items-center gap-3 p-3 rounded-card bg-status-pass-bg border border-status-pass-bd">
+          <CheckCircle2 size={16} className="text-status-pass-fg flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-xs text-text-muted">Delegated to</p>
             <p className="text-sm font-medium text-text-primary">{delegated.fullName || delegated.email}</p>
           </div>
           <button onClick={() => setEditing(true)}
-            className="text-xs text-text-muted hover:text-brand-400 px-2 py-1 rounded border border-border hover:border-brand-500/30 transition-colors">
+            className="text-xs text-text-muted hover:text-brand-ink px-2 py-1 rounded border border-border hover:border-brand-500/30 transition-colors">
             Change
           </button>
         </div>
@@ -266,16 +266,16 @@ function CISOAssignView({ assessment, taskId, stepInstanceId, onDone }) {
         const editing  = editingSection === sid
         const isThisLoading = loadingSection === sid  // only THIS section spins
         return (
-          <div key={sid} className="p-3 rounded-lg border border-border bg-surface-overlay/30">
+          <div key={sid} className="p-3 rounded-card border border-border bg-surface-overlay/30">
             <p className="text-sm font-medium text-text-primary mb-2">{section.sectionName}</p>
             {assigned && !editing ? (
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 flex-1 min-w-0 px-2 py-1.5 rounded bg-green-500/5 border border-green-500/20">
-                  <CheckCircle2 size={12} className="text-green-400 flex-shrink-0" />
+                <div className="flex items-center gap-2 flex-1 min-w-0 px-2 py-1.5 rounded bg-status-pass-bg border border-status-pass-bd">
+                  <CheckCircle2 size={12} className="text-status-pass-fg flex-shrink-0" />
                   <span className="text-xs text-text-primary truncate">{assigned.fullName || assigned.email}</span>
                 </div>
                 <button onClick={() => { setEditingSection(sid); setAssignments(a => ({ ...a, [sid]: assigned })) }}
-                  className="text-xs text-text-muted hover:text-brand-400 px-2 py-1 rounded border border-border hover:border-brand-500/30 flex-shrink-0 transition-colors">
+                  className="text-xs text-text-muted hover:text-brand-ink px-2 py-1 rounded border border-border hover:border-brand-500/30 flex-shrink-0 transition-colors">
                   Change
                 </button>
               </div>
@@ -356,7 +356,7 @@ function ResponderAssignView({ assessment, taskId, stepInstanceId, onDone }) {
           </p>
           {(section.questions || []).map(q => (
             <div key={q.questionInstanceId}
-              className="mb-2 p-3 rounded-lg border border-border bg-surface-overlay/30">
+              className="mb-2 p-3 rounded-card border border-border bg-surface-overlay/30">
               <p className="text-xs text-text-primary mb-2">{q.questionText}</p>
               <div className="flex items-end gap-2">
                 <div className="flex-1">
@@ -591,12 +591,12 @@ export default function VendorAssessmentAssignPage() {
         </div>
         {/* Access mode badge */}
         {access.mode === 'OBSERVER' && (
-          <span className="text-[10px] font-medium px-2 py-1 rounded bg-purple-500/10 text-purple-400">
+          <span className="text-[10px] font-medium px-2 py-1 rounded bg-status-tag-bg text-status-tag-fg">
             Observer
           </span>
         )}
         {access.mode === 'COMPLETED' && (
-          <span className="text-[10px] font-medium px-2 py-1 rounded bg-green-500/10 text-green-400">
+          <span className="text-[10px] font-medium px-2 py-1 rounded bg-status-pass-bg text-status-pass-fg">
             Completed
           </span>
         )}
@@ -605,7 +605,7 @@ export default function VendorAssessmentAssignPage() {
       {/* Observer / completed banner */}
       {(access.mode === 'OBSERVER' || access.mode === 'COMPLETED') && access.reason && (
         <div className="max-w-2xl mx-auto px-4 pt-4">
-          <div className="px-4 py-2.5 rounded-lg border border-border bg-surface-overlay text-xs text-text-muted">
+          <div className="px-4 py-2.5 rounded-card border border-border bg-surface-overlay text-xs text-text-muted">
             {access.reason}
           </div>
         </div>
@@ -632,7 +632,7 @@ export default function VendorAssessmentAssignPage() {
                     ? 'This step has been completed. The assignments made are shown below.'
                     : 'You have read-only access to this step.'}
                 </p>
-                <div className="px-3 py-2 rounded-md border border-border bg-surface-raised text-xs text-text-muted">
+                <div className="px-3 py-2 rounded-ctl border border-border bg-surface-raised text-xs text-text-muted">
                   Step status: <span className="text-text-primary font-medium">{access.stepStatus}</span>
                 </div>
               </div>

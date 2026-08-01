@@ -53,15 +53,15 @@ export const useNotificationToast = () => {
         duration: 5000,
         icon: '🔔',
         style: {
-          background: 'var(--color-surface-raised, #1e1e2e)',
-          color: 'var(--color-text-primary, #e2e8f0)',
-          border: '1px solid var(--color-border, #334155)',
-          borderLeft: '3px solid var(--color-brand-400, #818cf8)',
-          borderRadius: '10px',
+          background: 'var(--surface-raised)',
+          color: 'var(--text-primary)',
+          border: '1px solid var(--border)',
+          borderLeft: '3px solid rgb(var(--color-brand-600))',
+          borderRadius: 'var(--radius-ctl)',
           fontSize: '12px',
           maxWidth: '360px',
           padding: '10px 14px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+          boxShadow: '0 4px 16px rgb(var(--color-on-dark-inv) / 0.25)',
         },
       })
       _seenIds.add(n.id)

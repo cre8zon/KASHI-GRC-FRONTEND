@@ -12,9 +12,9 @@ import { cn } from '../../../lib/cn'
 
 function StatCard({ icon: Icon, label, value, sub, color, onClick }) {
   return (
-    <div onClick={onClick} className={cn('bg-surface-raised border border-border rounded-xl p-4 flex items-start gap-3', onClick && 'cursor-pointer hover:border-brand-500/30 transition-colors')}>
-      <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center shrink-0', color)}>
-        <Icon size={18} strokeWidth={1.75} className="text-white" />
+    <div onClick={onClick} className={cn('bg-surface-raised border border-border rounded-card p-4 flex items-start gap-3', onClick && 'cursor-pointer hover:border-brand-500/30 transition-colors')}>
+      <div className={cn('w-10 h-10 rounded-card flex items-center justify-center shrink-0', color)}>
+        <Icon size={18} strokeWidth={1.75} className="text-on-dark" />
       </div>
       <div>
         <p className="text-xs text-text-muted font-medium uppercase tracking-wide">{label}</p>
@@ -78,7 +78,7 @@ export default function TenantListPage() {
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} placeholder="Search tenants…"
-              className="h-8 pl-8 pr-3 w-52 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
           <Button size="sm" icon={Plus} onClick={() => navigate('/tenants/new')}>Create Tenant</Button>
@@ -88,12 +88,12 @@ export default function TenantListPage() {
       <div className="flex flex-col h-full">
         <div className="grid grid-cols-4 gap-4 px-6 pt-5 pb-4">
           {isLoading
-            ? [1,2,3,4].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)
+            ? [1,2,3,4].map(i => <Skeleton key={i} className="h-20 rounded-card" />)
             : <>
-              <StatCard icon={Building2}    label="Total Tenants" value={all.length} sub="All organizations" color="bg-blue-500"  onClick={() => setStatusFilter('')} />
-              <StatCard icon={CheckCircle2} label="Active"        value={active}     sub="Live tenants"      color="bg-green-500" onClick={() => setStatusFilter('ACTIVE')} />
-              <StatCard icon={Clock}        label="Trial Period"  value={trial}       sub="30-day trial"      color="bg-amber-500" onClick={() => setStatusFilter('TRIAL')} />
-              <StatCard icon={PauseCircle}  label="Suspended"     value={suspended}   sub="Access restricted" color="bg-red-500"   onClick={() => setStatusFilter('SUSPENDED')} />
+              <StatCard icon={Building2}    label="Total Tenants" value={all.length} sub="All organizations" color="bg-status-info-bg"  onClick={() => setStatusFilter('')} />
+              <StatCard icon={CheckCircle2} label="Active"        value={active}     sub="Live tenants"      color="bg-status-pass-bg" onClick={() => setStatusFilter('ACTIVE')} />
+              <StatCard icon={Clock}        label="Trial Period"  value={trial}       sub="30-day trial"      color="bg-status-warn-bg" onClick={() => setStatusFilter('TRIAL')} />
+              <StatCard icon={PauseCircle}  label="Suspended"     value={suspended}   sub="Access restricted" color="bg-status-fail-bg"   onClick={() => setStatusFilter('SUSPENDED')} />
             </>
           }
         </div>
@@ -101,8 +101,8 @@ export default function TenantListPage() {
           <span className="text-xs font-semibold text-text-muted uppercase tracking-wide mr-1">Filter by:</span>
           {FILTER_TABS.map(tab => (
             <button key={tab.key} onClick={() => { setStatusFilter(tab.key); setPage(1) }}
-              className={cn('px-3 py-1 rounded-md text-xs font-medium transition-colors',
-                statusFilter === tab.key ? 'bg-brand-500 text-white' : 'bg-surface-overlay text-text-secondary hover:text-text-primary')}>
+              className={cn('px-3 py-1 rounded-ctl text-xs font-medium transition-colors',
+                statusFilter === tab.key ? 'bg-brand-500 text-brand-900' : 'bg-surface-overlay text-text-secondary hover:text-text-primary')}>
               {tab.label}
             </button>
           ))}

@@ -146,7 +146,7 @@ function SetupStep({ done, label }) {
     <span className={cn(
       'flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border font-medium',
       done
-        ? 'bg-green-500/10 border-green-500/20 text-green-400'
+        ? 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg'
         : 'bg-surface-overlay border-border text-text-muted'
     )}>
       {done ? <CheckCircle2 size={9} /> : <AlertCircle size={9} />}
@@ -157,14 +157,14 @@ function SetupStep({ done, label }) {
 
 function StatCard({ icon: Icon, label, value, sub, accent = 'brand' }) {
   const accentClasses = {
-    brand:  'text-brand-400 bg-brand-500/10',
-    red:    'text-red-400 bg-red-500/10',
-    green:  'text-green-400 bg-green-500/10',
-    amber:  'text-amber-400 bg-amber-500/10',
+    brand:  'text-brand-ink bg-brand-500/10',
+    red:    'text-status-fail-fg bg-status-fail-bg',
+    green:  'text-status-pass-fg bg-status-pass-bg',
+    amber:  'text-status-warn-fg bg-status-warn-bg',
   }
   return (
-    <div className="rounded-lg border border-border bg-surface-raised p-4 flex items-center gap-3">
-      <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center shrink-0', accentClasses[accent])}>
+    <div className="rounded-card border border-border bg-surface-raised p-4 flex items-center gap-3">
+      <div className={cn('w-9 h-9 rounded-card flex items-center justify-center shrink-0', accentClasses[accent])}>
         <Icon size={16} />
       </div>
       <div className="min-w-0">
@@ -227,11 +227,11 @@ function CreateVrmModal({ open, onClose, vendor, onCreated }) {
         </div>
       }>
       <div className="flex flex-col gap-4">
-        <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg flex items-start gap-2">
-          <AlertCircle size={13} className="text-amber-400 shrink-0 mt-0.5" />
+        <div className="p-3 bg-status-warn-bg border border-status-warn-bd rounded-card flex items-start gap-2">
+          <AlertCircle size={13} className="text-status-warn-fg shrink-0 mt-0.5" />
           <p className="text-xs text-text-muted">
             This person will be assigned the{' '}
-            <span className="text-amber-400 font-medium">VENDOR_VRM</span> role and linked to{' '}
+            <span className="text-status-warn-fg font-medium">VENDOR_VRM</span> role and linked to{' '}
             <span className="text-text-secondary font-medium">{vendor?.name}</span>.
           </p>
         </div>
@@ -287,10 +287,10 @@ function VendorSetupBanner({ vendor, onRefresh }) {
   const [selecting,         setSelecting]         = useState(false)
 
   const TIER_COLOR = {
-    LOW:      'text-green-400',
-    MEDIUM:   'text-yellow-400',
-    HIGH:     'text-amber-400',
-    CRITICAL: 'text-red-400',
+    LOW:      'text-status-pass-fg',
+    MEDIUM:   'text-status-warn-fg',
+    HIGH:     'text-status-warn-fg',
+    CRITICAL: 'text-status-fail-fg',
   }
 
   const invalidate = () => {
@@ -360,10 +360,10 @@ function VendorSetupBanner({ vendor, onRefresh }) {
   // If workflow running but there IS a pending template selection — show only the picker
   if (hasVrm && hasWorkflow && hasPendingSelection) {
     return (
-      <div className="rounded-lg border border-brand-500/30 bg-brand-500/5 overflow-hidden">
+      <div className="rounded-card border border-brand-500/30 bg-brand-500/5 overflow-hidden">
         <div className="px-4 py-3 flex items-center gap-2 border-b border-brand-500/20">
-          <FileText size={14} className="text-brand-400 shrink-0" />
-          <span className="text-xs font-semibold text-brand-400 uppercase tracking-wide">
+          <FileText size={14} className="text-brand-ink shrink-0" />
+          <span className="text-xs font-semibold text-brand-ink uppercase tracking-wide">
             Assessment Template Selection Required
           </span>
           <span className={cn('ml-1 text-[10px] font-semibold uppercase', TIER_COLOR[pendingSelection.riskTierLabel] || 'text-text-muted')}>
@@ -389,7 +389,7 @@ function VendorSetupBanner({ vendor, onRefresh }) {
                   key={tpl.templateId}
                   onClick={() => { setChosenTemplateId(tpl.templateId); setSelectConfirming(false) }}
                   className={cn(
-                    'w-full text-left px-3 py-2.5 rounded-lg border text-xs transition-all',
+                    'w-full text-left px-3 py-2.5 rounded-card border text-xs transition-all',
                     isChosen
                       ? 'border-brand-500 bg-brand-500/10'
                       : 'border-border bg-surface-raised hover:border-brand-500/40'
@@ -401,7 +401,7 @@ function VendorSetupBanner({ vendor, onRefresh }) {
                         'w-3.5 h-3.5 rounded-full border-2 shrink-0 flex items-center justify-center',
                         isChosen ? 'border-brand-500 bg-brand-500' : 'border-border'
                       )}>
-                        {isChosen && <div className="w-1 h-1 rounded-full bg-white" />}
+                        {isChosen && <div className="w-1 h-1 rounded-full bg-surface-raised" />}
                       </div>
                       <span className="font-medium text-text-primary truncate">{tpl.name}</span>
                     </div>
@@ -424,7 +424,7 @@ function VendorSetupBanner({ vendor, onRefresh }) {
               Confirm selection
             </Button>
           ) : (
-            <div className="flex flex-col gap-2 p-3 rounded-lg bg-surface-overlay border border-border">
+            <div className="flex flex-col gap-2 p-3 rounded-card bg-surface-overlay border border-border">
               <p className="text-xs text-text-secondary">
                 Confirm: instantiate{' '}
                 <span className="font-semibold text-text-primary">
@@ -450,12 +450,12 @@ function VendorSetupBanner({ vendor, onRefresh }) {
 
   return (
     <>
-      <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 overflow-hidden">
+      <div className="rounded-card border border-status-warn-bd bg-status-warn-bg overflow-hidden">
         <button onClick={() => setExpanded(e => !e)}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-amber-500/5 transition-colors">
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-status-warn-bg transition-colors">
           <div className="flex items-center gap-2">
-            <AlertCircle size={14} className="text-amber-400 shrink-0" />
-            <span className="text-xs font-semibold text-amber-400 uppercase tracking-wide">
+            <AlertCircle size={14} className="text-status-warn-fg shrink-0" />
+            <span className="text-xs font-semibold text-status-warn-fg uppercase tracking-wide">
               Vendor Setup Incomplete
             </span>
             <div className="flex items-center gap-1.5 ml-2">
@@ -463,17 +463,17 @@ function VendorSetupBanner({ vendor, onRefresh }) {
               <SetupStep done={hasWorkflow} label="Workflow"  />
             </div>
           </div>
-          {expanded ? <ChevronDown size={13} className="text-amber-400/60" /> : <ChevronRight size={13} className="text-amber-400/60" />}
+          {expanded ? <ChevronDown size={13} className="text-status-warn-fg" /> : <ChevronRight size={13} className="text-status-warn-fg" />}
         </button>
 
         {expanded && (
-          <div className="px-4 pb-4 flex flex-col border-t border-amber-500/20">
+          <div className="px-4 pb-4 flex flex-col border-t border-status-warn-bd">
             <div className="flex items-start justify-between py-3 gap-4">
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
-                  <UserPlus size={12} className="text-brand-400 shrink-0" />
+                  <UserPlus size={12} className="text-brand-ink shrink-0" />
                   {hasVrm ? 'VRM User Created' : 'Create VRM User'}
-                  {hasVrm && <span className="text-[10px] text-green-400 font-normal">✓ User #{vendor.vrmUserId}</span>}
+                  {hasVrm && <span className="text-[10px] text-status-pass-fg font-normal">✓ User #{vendor.vrmUserId}</span>}
                 </p>
                 <p className="text-[11px] text-text-muted mt-0.5">
                   {hasVrm
@@ -486,12 +486,12 @@ function VendorSetupBanner({ vendor, onRefresh }) {
                 {!hasVrm && <Button size="sm" variant="secondary" icon={UserPlus} onClick={() => setShowCreateVrm(true)}>Create VRM User</Button>}
               </div>
             </div>
-            <div className="flex items-start justify-between py-3 gap-4 border-t border-amber-500/10">
+            <div className="flex items-start justify-between py-3 gap-4 border-t border-status-warn-bd">
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
-                  <RefreshCw size={12} className="text-brand-400 shrink-0" />
+                  <RefreshCw size={12} className="text-brand-ink shrink-0" />
                   {hasWorkflow ? 'Workflow Running' : 'Start Workflow'}
-                  {hasWorkflow && <span className="text-[10px] text-green-400 font-normal">✓ Instance #{vendor.activeWorkflowInstanceId}</span>}
+                  {hasWorkflow && <span className="text-[10px] text-status-pass-fg font-normal">✓ Instance #{vendor.activeWorkflowInstanceId}</span>}
                 </p>
                 <p className="text-[11px] text-text-muted mt-0.5">
                   {hasWorkflow
@@ -500,7 +500,7 @@ function VendorSetupBanner({ vendor, onRefresh }) {
                 </p>
                 {!hasWorkflow && (
                   <select value={selectedWfId} onChange={e => setSelectedWfId(e.target.value)}
-                    className="mt-2 h-7 w-full max-w-xs rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    className="mt-2 h-7 w-full max-w-xs rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                     <option value="">Select workflow…</option>
                     {activeWorkflows.map(w => (
                       <option key={w.id} value={w.id}>{w.name} (v{w.version})</option>
@@ -559,7 +559,7 @@ function OverviewTab({ vendor, screenConfig, assessments, actionItems }) {
                 <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">{label}</p>
                 {isLink && value
                   ? <a href={value} target="_blank" rel="noopener noreferrer"
-                      className="text-sm text-brand-400 hover:underline flex items-center gap-1 truncate">
+                      className="text-sm text-brand-ink hover:underline flex items-center gap-1 truncate">
                       {value} <ExternalLink size={10} className="shrink-0" />
                     </a>
                   : <p className="text-sm text-text-primary truncate">{value || '—'}</p>
@@ -581,13 +581,13 @@ function OverviewTab({ vendor, screenConfig, assessments, actionItems }) {
 
 // ─── Task status helpers ──────────────────────────────────────────────────────
 const TASK_STATUS_STYLE = {
-  PENDING:    { label: 'Pending',    cls: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
-  APPROVED:   { label: 'Approved',   cls: 'bg-green-500/10 text-green-400 border-green-500/20' },
-  REJECTED:   { label: 'Rejected',   cls: 'bg-red-500/10 text-red-400 border-red-500/20' },
-  DELEGATED:  { label: 'Delegated',  cls: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
-  REASSIGNED: { label: 'Reassigned', cls: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
+  PENDING:    { label: 'Pending',    cls: 'bg-status-warn-bg text-status-warn-fg border-status-warn-bd' },
+  APPROVED:   { label: 'Approved',   cls: 'bg-status-pass-bg text-status-pass-fg border-status-pass-bd' },
+  REJECTED:   { label: 'Rejected',   cls: 'bg-status-fail-bg text-status-fail-fg border-status-fail-bd' },
+  DELEGATED:  { label: 'Delegated',  cls: 'bg-status-tag-bg text-status-tag-fg border-status-tag-bd' },
+  REASSIGNED: { label: 'Reassigned', cls: 'bg-status-info-bg text-status-info-fg border-status-info-bd' },
   EXPIRED:    { label: 'Expired',    cls: 'bg-surface-overlay text-text-muted border-border' },
-  IN_PROGRESS:{ label: 'In Progress',cls: 'bg-brand-500/10 text-brand-400 border-brand-500/20' },
+  IN_PROGRESS:{ label: 'In Progress',cls: 'bg-brand-500/10 text-brand-ink border-brand-500/20' },
 }
 
 // ─── Assessment Phase definitions ────────────────────────────────────────────
@@ -666,7 +666,7 @@ function AssessmentPhaseTracker({ assessmentStatus, currentStepOrder }) {
   const { activePhaseId, doneAll, cancelled } = resolvePhase(assessmentStatus, currentStepOrder)
 
   if (cancelled) return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-overlay border border-border">
+    <div className="flex items-center gap-2 px-3 py-2 rounded-card bg-surface-overlay border border-border">
       <XCircle size={13} className="text-text-muted shrink-0" />
       <span className="text-xs text-text-muted">Assessment cancelled</span>
     </div>
@@ -690,25 +690,25 @@ function AssessmentPhaseTracker({ assessmentStatus, currentStepOrder }) {
             <div key={phase.id} className="flex items-center shrink-0">
               {/* Phase node */}
               <div className={cn(
-                'flex flex-col items-center gap-1 px-3 py-2 rounded-lg border text-center min-w-[90px] transition-colors',
+                'flex flex-col items-center gap-1 px-3 py-2 rounded-card border text-center min-w-[90px] transition-colors',
                 isActive ? 'bg-brand-500/10 border-brand-500/40'
-                  : isDone  ? 'bg-green-500/5 border-green-500/20'
+                  : isDone  ? 'bg-status-pass-bg border-status-pass-bd'
                   : 'bg-surface-raised border-border opacity-50'
               )}>
                 {/* Status dot */}
                 <div className={cn(
                   'w-4 h-4 rounded-full flex items-center justify-center shrink-0',
                   isActive ? 'bg-brand-500'
-                    : isDone  ? 'bg-green-500'
+                    : isDone  ? 'bg-status-pass-bg'
                     : 'bg-border'
                 )}>
-                  {isDone && <Check size={9} className="text-white" />}
-                  {isActive && <div className="w-2 h-2 rounded-full bg-white animate-pulse" />}
+                  {isDone && <Check size={9} className="text-on-dark" />}
+                  {isActive && <div className="w-2 h-2 rounded-full bg-surface-raised animate-pulse" />}
                 </div>
                 <span className={cn(
                   'text-[9px] font-semibold uppercase tracking-wide leading-tight',
-                  isActive ? 'text-brand-400'
-                    : isDone  ? 'text-green-400'
+                  isActive ? 'text-brand-ink'
+                    : isDone  ? 'text-status-pass-fg'
                     : 'text-text-muted'
                 )}>
                   {phase.label}
@@ -718,7 +718,7 @@ function AssessmentPhaseTracker({ assessmentStatus, currentStepOrder }) {
               {!isLast && (
                 <div className={cn(
                   'h-px w-4 shrink-0',
-                  isDone ? 'bg-green-500/40' : 'bg-border'
+                  isDone ? 'bg-status-pass-bg' : 'bg-border'
                 )} />
               )}
             </div>
@@ -755,7 +755,7 @@ function AssessmentSectionAccordion({ sections = [] }) {
         return (
           <div key={s.sectionInstanceId}
             className={cn(
-              'rounded-lg border transition-colors overflow-hidden',
+              'rounded-card border transition-colors overflow-hidden',
               isOpen ? 'border-brand-500/30' : 'border-border'
             )}>
             {/* Section header — always visible */}
@@ -766,9 +766,9 @@ function AssessmentSectionAccordion({ sections = [] }) {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-medium text-text-primary truncate">{s.sectionName}</span>
                   {submitted
-                    ? <span className="text-[9px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20 font-semibold">Submitted</span>
+                    ? <span className="text-[9px] px-1.5 py-0.5 rounded bg-status-pass-bg text-status-pass-fg border border-status-pass-bd font-semibold">Submitted</span>
                     : total > 0
-                      ? <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">In progress</span>
+                      ? <span className="text-[9px] px-1.5 py-0.5 rounded bg-status-warn-bg text-status-warn-fg border border-status-warn-bd">In progress</span>
                       : <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface-overlay text-text-muted border border-border">Unstarted</span>
                   }
                 </div>
@@ -782,10 +782,10 @@ function AssessmentSectionAccordion({ sections = [] }) {
                 <div className="w-16 h-1.5 rounded-full bg-surface-overlay overflow-hidden">
                   <div className={cn(
                     'h-full rounded-full transition-all',
-                    submitted ? 'bg-green-500' : 'bg-brand-500'
+                    submitted ? 'bg-status-pass-bg' : 'bg-brand-500'
                   )} style={{ width: `${pct}%` }} />
                 </div>
-                <span className="text-[10px] font-mono text-brand-400">{pct}%</span>
+                <span className="text-[10px] font-mono text-brand-ink">{pct}%</span>
                 {isOpen ? <ChevronDown size={11} className="text-text-muted" /> : <ChevronRight size={11} className="text-text-muted" />}
               </div>
             </button>
@@ -796,9 +796,9 @@ function AssessmentSectionAccordion({ sections = [] }) {
                 {s.questions.map((q, qi) => {
                   const hasResp = q.response != null || q.hasResponse
                   const verdict = q.reviewVerdict // PASS / PARTIAL / FAIL
-                  const verdictStyle = verdict === 'PASS'    ? 'text-green-400'
-                                     : verdict === 'PARTIAL' ? 'text-amber-400'
-                                     : verdict === 'FAIL'    ? 'text-red-400'
+                  const verdictStyle = verdict === 'PASS'    ? 'text-status-pass-fg'
+                                     : verdict === 'PARTIAL' ? 'text-status-warn-fg'
+                                     : verdict === 'FAIL'    ? 'text-status-fail-fg'
                                      : null
                   return (
                     <div key={q.questionInstanceId}
@@ -819,14 +819,14 @@ function AssessmentSectionAccordion({ sections = [] }) {
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {q.isMandatory && (
-                          <span className="text-[9px] text-red-400/70">*</span>
+                          <span className="text-[9px] text-status-fail-fg">*</span>
                         )}
                         {verdictStyle && (
                           <span className={cn('text-[9px] font-semibold', verdictStyle)}>{verdict}</span>
                         )}
                         <div className={cn(
                           'w-2 h-2 rounded-full shrink-0',
-                          hasResp ? 'bg-green-500' : 'bg-border'
+                          hasResp ? 'bg-status-pass-bg' : 'bg-border'
                         )} title={hasResp ? 'Answered' : 'Unanswered'} />
                       </div>
                     </div>
@@ -872,7 +872,7 @@ function AssessmentDetailCard({ assessment, riskMappings, onCancel, workflowProg
 
   return (
     <div className={cn(
-      'rounded-lg border transition-colors overflow-hidden',
+      'rounded-card border transition-colors overflow-hidden',
       expanded ? 'border-brand-500/30' : 'border-border'
     )}>
       {/* Card header */}
@@ -886,7 +886,7 @@ function AssessmentDetailCard({ assessment, riskMappings, onCancel, workflowProg
             <Badge value={assessment.status} label={assessment.status}
               colorTag={ASSESSMENT_STATUS_COLOR[assessment.status] || 'gray'} />
             {mapping?.tierLabel && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-warn-bg text-status-warn-fg border border-status-warn-bd font-medium">
                 {mapping.tierLabel}
               </span>
             )}
@@ -901,7 +901,7 @@ function AssessmentDetailCard({ assessment, riskMappings, onCancel, workflowProg
               <div className="h-full rounded-full bg-brand-500 transition-all duration-500"
                 style={{ width: `${pct}%` }} />
             </div>
-            <span className="text-[10px] font-mono text-brand-400 shrink-0">{pct}%</span>
+            <span className="text-[10px] font-mono text-brand-ink shrink-0">{pct}%</span>
             <span className="text-[10px] text-text-muted shrink-0">
               {assessment.progress?.answered ?? 0}/{assessment.progress?.totalQuestions ?? 0} answered
             </span>
@@ -911,7 +911,7 @@ function AssessmentDetailCard({ assessment, riskMappings, onCancel, workflowProg
           {isStale && (
             <button onClick={() => onCancel(assessment)}
               title="Cancel stale assessment"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
               <XCircle size={14} />
             </button>
           )}
@@ -946,7 +946,7 @@ function AssessmentDetailCard({ assessment, riskMappings, onCancel, workflowProg
               { label: 'Answered',           value: assessment.progress?.answered ?? 0 },
               { label: 'Mandatory',          value: assessment.progress?.mandatoryQuestions ?? 0 },
             ].map(({ label, value }) => (
-              <div key={label} className="rounded-lg border border-border bg-surface-raised px-3 py-2 text-center">
+              <div key={label} className="rounded-card border border-border bg-surface-raised px-3 py-2 text-center">
                 <p className="text-[10px] text-text-muted">{label}</p>
                 <p className="text-lg font-bold text-text-primary tabular-nums">{value}</p>
               </div>
@@ -960,7 +960,7 @@ function AssessmentDetailCard({ assessment, riskMappings, onCancel, workflowProg
             </p>
             {detailLoading
               ? <div className="space-y-1.5">
-                  {[1,2,3].map(i => <div key={i} className="h-10 rounded-lg bg-surface-overlay animate-pulse" />)}
+                  {[1,2,3].map(i => <div key={i} className="h-10 rounded-card bg-surface-overlay animate-pulse" />)}
                 </div>
               : <AssessmentSectionAccordion sections={sections} />
             }
@@ -989,7 +989,7 @@ function AssessmentsTab({ vendorId, vendorRiskScore, workflowProgress }) {
 
   if (isLoading) return (
     <div className="space-y-3">
-      {[1, 2].map(i => <div key={i} className="h-20 rounded-lg bg-surface-overlay animate-pulse" />)}
+      {[1, 2].map(i => <div key={i} className="h-20 rounded-card bg-surface-overlay animate-pulse" />)}
     </div>
   )
 
@@ -997,13 +997,13 @@ function AssessmentsTab({ vendorId, vendorRiskScore, workflowProgress }) {
     <>
       {/* Risk tier banner */}
       {matchingMapping && (
-        <div className="mb-4 px-3 py-2.5 rounded-lg border border-border bg-surface-raised flex items-center gap-3">
-          <Shield size={13} className="text-brand-400 shrink-0" />
+        <div className="mb-4 px-3 py-2.5 rounded-card border border-border bg-surface-raised flex items-center gap-3">
+          <Shield size={13} className="text-brand-ink shrink-0" />
           <p className="text-xs text-text-muted">
             Risk score{' '}
             <span className="font-mono text-text-primary">{vendorRiskScore}</span>
             {' → '}
-            <span className="text-amber-400 font-medium">{matchingMapping.tierLabel}</span>
+            <span className="text-status-warn-fg font-medium">{matchingMapping.tierLabel}</span>
             {' '}tier ({matchingMapping.minScore}–{matchingMapping.maxScore})
           </p>
         </div>
@@ -1073,7 +1073,7 @@ function SectionsStatusPanel({ assessmentId }) {
     <div className="space-y-2">
       {sections.map(s => (
         <div key={s.sectionInstanceId}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-surface-raised">
+          className="flex items-center gap-3 px-3 py-2.5 rounded-card border border-border bg-surface-raised">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-text-primary truncate">{s.sectionName}</p>
             <p className="text-[10px] text-text-muted mt-0.5">
@@ -1082,16 +1082,16 @@ function SectionsStatusPanel({ assessmentId }) {
           </div>
           {s.submittedAt ? (
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-pass-bg text-status-pass-fg border border-status-pass-bd">
                 Submitted
               </span>
               <button onClick={() => reopen(s.sectionInstanceId)} disabled={reopening}
-                className="text-[10px] text-text-muted hover:text-brand-400 px-1.5 py-0.5 rounded border border-border hover:border-brand-500/30 transition-colors">
+                className="text-[10px] text-text-muted hover:text-brand-ink px-1.5 py-0.5 rounded border border-border hover:border-brand-500/30 transition-colors">
                 Reopen
               </button>
             </div>
           ) : (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-warn-bg text-status-warn-fg border border-status-warn-bd shrink-0">
               {s.assignedUserId ? 'In progress' : 'Unassigned'}
             </span>
           )}
@@ -1159,7 +1159,7 @@ function WorkflowTab({ vendor, activeAssessmentId, progressData }) {
               className={cn(
                 'text-xs px-3 py-2 border-b-2 -mb-px transition-colors',
                 subTab === t.id
-                  ? 'border-brand-500 text-brand-400 font-medium'
+                  ? 'border-brand-500 text-brand-ink font-medium'
                   : 'border-transparent text-text-muted hover:text-text-secondary'
               )}>
               {t.label}
@@ -1177,7 +1177,7 @@ function WorkflowTab({ vendor, activeAssessmentId, progressData }) {
         {/* Tasks — flat list of all tasks across visited steps */}
         {subTab === 'tasks' && (
           isLoading
-            ? <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 animate-pulse bg-surface-overlay rounded-lg" />)}</div>
+            ? <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 animate-pulse bg-surface-overlay rounded-card" />)}</div>
             : allTasks.length === 0
               ? (
                 <div className="flex flex-col items-center justify-center py-10 gap-2 text-center">
@@ -1193,7 +1193,7 @@ function WorkflowTab({ vendor, activeAssessmentId, progressData }) {
                     return (
                       <div key={task.taskId}
                         className={cn(
-                          'flex items-start gap-3 px-4 py-3 rounded-lg border transition-colors',
+                          'flex items-start gap-3 px-4 py-3 rounded-card border transition-colors',
                           style.cls,
                           isCoordinator && 'opacity-60'
                         )}>
@@ -1201,7 +1201,7 @@ function WorkflowTab({ vendor, activeAssessmentId, progressData }) {
                         <div className={cn(
                           'w-7 h-7 rounded-full border flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5',
                           isCoordinator
-                            ? 'bg-purple-500/10 border-purple-500/30 text-purple-400'
+                            ? 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg'
                             : 'bg-surface-overlay border-border text-text-secondary'
                         )}>
                           {(task.assignedUserName || '?').slice(0, 2).toUpperCase()}
@@ -1219,7 +1219,7 @@ function WorkflowTab({ vendor, activeAssessmentId, progressData }) {
                               </span>
                             )}
                             {isCoordinator && (
-                              <span className="text-[9px] px-1 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 font-medium">
+                              <span className="text-[9px] px-1 py-0.5 rounded bg-status-tag-bg text-status-tag-fg border border-status-tag-bd font-medium">
                                 coordinator
                               </span>
                             )}
@@ -1230,7 +1230,7 @@ function WorkflowTab({ vendor, activeAssessmentId, progressData }) {
                             {task.side && (
                               <span className={cn(
                                 'ml-1.5 text-[9px] font-medium',
-                                task.side === 'VENDOR' ? 'text-purple-400' : 'text-blue-400'
+                                task.side === 'VENDOR' ? 'text-status-tag-fg' : 'text-status-info-fg'
                               )}>
                                 · {task.side === 'ORGANIZATION' ? 'Org' : 'Vendor'}
                               </span>
@@ -1292,21 +1292,21 @@ function TeamTab({ vendorId, vendor }) {
         <p className="text-sm text-text-muted">{users.length} team member{users.length !== 1 ? 's' : ''}</p>
         <Link
           to={`/vendor/users?vendorId=${vendorId}`}
-          className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 transition-colors">
+          className="flex items-center gap-1.5 text-xs text-brand-ink hover:text-brand-ink transition-colors">
           Manage Team <ExternalLink size={11} />
         </Link>
       </div>
 
       {isLoading ? (
         <div className="space-y-2">
-          {[1,2,3].map(i => <div key={i} className="h-14 rounded-lg bg-surface-overlay animate-pulse" />)}
+          {[1,2,3].map(i => <div key={i} className="h-14 rounded-card bg-surface-overlay animate-pulse" />)}
         </div>
       ) : !users.length ? (
         <div className="flex flex-col items-center justify-center py-12 gap-2">
           <Users size={24} className="text-text-muted" />
           <p className="text-sm text-text-muted">No vendor team members yet.</p>
           <Link to={`/vendor/users?vendorId=${vendorId}`}
-            className="text-xs text-brand-400 hover:underline mt-1">
+            className="text-xs text-brand-ink hover:underline mt-1">
             Invite vendor users →
           </Link>
         </div>
@@ -1314,9 +1314,9 @@ function TeamTab({ vendorId, vendor }) {
         <div className="space-y-2">
           {users.map(u => (
             <div key={u.userId || u.id}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-surface-raised">
+              className="flex items-center gap-3 px-3 py-2.5 rounded-card border border-border bg-surface-raised">
               <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0">
-                <span className="text-[10px] font-bold text-brand-400">
+                <span className="text-[10px] font-bold text-brand-ink">
                   {(u.fullName || u.email || '?').slice(0, 2).toUpperCase()}
                 </span>
               </div>
@@ -1327,7 +1327,7 @@ function TeamTab({ vendorId, vendor }) {
               <div className="flex items-center gap-1.5 shrink-0">
                 {(u.roles || []).slice(0, 2).map(r => (
                   <span key={r.id || r.roleId}
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20 font-mono">
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-ink border border-brand-500/20 font-mono">
                     {r.roleName || r.name}
                   </span>
                 ))}
@@ -1351,7 +1351,7 @@ function ContractsTab({ vendorId }) {
 
   if (isLoading) return (
     <div className="space-y-2">
-      {[1,2].map(i => <div key={i} className="h-16 rounded-lg bg-surface-overlay animate-pulse" />)}
+      {[1,2].map(i => <div key={i} className="h-16 rounded-card bg-surface-overlay animate-pulse" />)}
     </div>
   )
 
@@ -1366,7 +1366,7 @@ function ContractsTab({ vendorId }) {
     <div className="space-y-3">
       {contracts.map(c => (
         <div key={c.contractId}
-          className="rounded-lg border border-border bg-surface-raised p-4">
+          className="rounded-card border border-border bg-surface-raised p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-text-primary truncate">
@@ -1376,7 +1376,7 @@ function ContractsTab({ vendorId }) {
               <div className="flex items-center gap-3 mt-1 flex-wrap text-[10px] text-text-muted">
                 {c.startDate  && <span>Start: {formatDate(c.startDate)}</span>}
                 {c.endDate    && <span>End: {formatDate(c.endDate)}</span>}
-                {c.renewalDate && <span className="text-amber-400">Renewal: {formatDate(c.renewalDate)}</span>}
+                {c.renewalDate && <span className="text-status-warn-fg">Renewal: {formatDate(c.renewalDate)}</span>}
                 {c.contractValue && <span className="text-text-secondary font-medium">{c.contractValue}</span>}
               </div>
             </div>
@@ -1396,13 +1396,13 @@ function ActionItemsTab({ vendorId }) {
 
   if (isLoading) return (
     <div className="space-y-2">
-      {[1,2,3].map(i => <div key={i} className="h-14 rounded-lg bg-surface-overlay animate-pulse" />)}
+      {[1,2,3].map(i => <div key={i} className="h-14 rounded-card bg-surface-overlay animate-pulse" />)}
     </div>
   )
 
   if (!items.length) return (
     <div className="flex flex-col items-center justify-center py-12 gap-2 text-center">
-      <CheckCircle2 size={24} className="text-green-400" />
+      <CheckCircle2 size={24} className="text-status-pass-fg" />
       <p className="text-sm text-text-muted">No action items — all clear.</p>
     </div>
   )
@@ -1413,7 +1413,7 @@ function ActionItemsTab({ vendorId }) {
     <div className="space-y-2">
       {items.map(ai => (
         <div key={ai.id}
-          className="rounded-lg border border-border bg-surface-raised px-4 py-3 flex items-start gap-3">
+          className="rounded-card border border-border bg-surface-raised px-4 py-3 flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold text-text-primary truncate">{ai.title}</p>
             {ai.description && <p className="text-[11px] text-text-muted mt-0.5 line-clamp-2">{ai.description}</p>}
@@ -1552,13 +1552,13 @@ export default function VendorDetailPage() {
                 className={cn(
                   'flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors relative',
                   activeTab === tab.id
-                    ? 'border-brand-500 text-brand-400'
+                    ? 'border-brand-500 text-brand-ink'
                     : 'border-transparent text-text-muted hover:text-text-secondary hover:border-border'
                 )}>
                 <tab.icon size={12} />
                 {tab.label}
                 {badge != null && (
-                  <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/20 leading-none">
+                  <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-status-fail-bg text-status-fail-fg border border-status-fail-bd leading-none">
                     {badge}
                   </span>
                 )}

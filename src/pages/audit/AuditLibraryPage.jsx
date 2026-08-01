@@ -168,7 +168,7 @@ function makeTemplateMutations() {
 // ─── Guard tag badge (same visual as question library) ────────────────────────
 
 const GuardTagBadge = ({ tag }) => tag
-  ? <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[10px] bg-brand-500/10 text-brand-400 border border-brand-500/20">{tag}</span>
+  ? <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[10px] bg-brand-500/10 text-brand-ink border border-brand-500/20">{tag}</span>
   : <span className="text-[10px] text-text-muted italic">—</span>
 
 // ─── Inline row action buttons ─────────────────────────────────────────────────
@@ -180,7 +180,7 @@ const RowActions = ({ onEdit, onDelete }) => (
       <Pencil size={12} />
     </button>
     <button onClick={onDelete} title="Delete"
-      className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+      className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
       <Trash2 size={12} />
     </button>
   </div>
@@ -202,27 +202,27 @@ function ControlForm({ initial, onSubmit, loading }) {
         <label className="block text-xs text-text-secondary mb-1">Control name *</label>
         <input value={form.name} onChange={e => set('name', e.target.value)}
           placeholder="e.g. User access management"
-          className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Control code</label>
           <input value={form.controlCode} onChange={e => set('controlCode', e.target.value)}
             placeholder="e.g. A.9.1.1, CC6.1, AC-1"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
           <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)}
             placeholder="e.g. ISO 27001, SOC 2"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Test type</label>
           <select value={form.testType} onChange={e => set('testType', e.target.value)}
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
@@ -233,7 +233,7 @@ function ControlForm({ initial, onSubmit, loading }) {
           </label>
           <input value={form.controlTag} onChange={e => set('controlTag', e.target.value.toUpperCase())}
             placeholder="e.g. ENCRYPTION_AT_REST, MFA"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           <p className="text-[10px] text-text-muted mt-1">
             Snapshotted at engagement creation. One rule covers all controls with this tag.
           </p>
@@ -243,7 +243,7 @@ function ControlForm({ initial, onSubmit, loading }) {
         <label className="block text-xs text-text-secondary mb-1">Description</label>
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3}
           placeholder="What this control tests and what evidence is expected"
-          className="w-full px-3 py-2 rounded-md border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <Button variant="primary" onClick={() => onSubmit(form)} loading={loading} disabled={!form.name.trim()}>
         {initial ? 'Update control' : 'Add control'}
@@ -267,20 +267,20 @@ function SectionForm({ initial, allRootSections, onSubmit, loading }) {
         <label className="block text-xs text-text-secondary mb-1">Section name *</label>
         <input value={form.name} onChange={e => set('name', e.target.value)}
           placeholder="e.g. A.9 — Access Control"
-          className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Section code</label>
           <input value={form.sectionCode} onChange={e => set('sectionCode', e.target.value)}
             placeholder="e.g. A.9, CC6, PR.AC"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
           <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)}
             placeholder="e.g. ISO 27001"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <div>
@@ -289,7 +289,7 @@ function SectionForm({ initial, allRootSections, onSubmit, loading }) {
           <span className="ml-1 text-text-muted font-normal">(leave blank for top-level)</span>
         </label>
         <select value={form.parentId ?? ''} onChange={e => set('parentId', e.target.value || null)}
-          className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
           <option value="">— Top-level section —</option>
           {(allRootSections ?? []).map(s => (
             <option key={s.id} value={s.id}>
@@ -301,7 +301,7 @@ function SectionForm({ initial, allRootSections, onSubmit, loading }) {
       <div>
         <label className="block text-xs text-text-secondary mb-1">Description</label>
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
-          className="w-full px-3 py-2 rounded-md border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <Button variant="primary" onClick={() => onSubmit(form)} loading={loading} disabled={!form.name.trim()}>
         {initial ? 'Update section' : 'Add section'}
@@ -344,7 +344,7 @@ function SectionTreeRow({ section, depth, onEdit, onDelete, onAddChild }) {
         <td className="py-2">
           <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
             <button onClick={() => onAddChild(section)} title="Add child section"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
               <Plus size={12} />
             </button>
             <button onClick={() => onEdit(section)} title="Edit"
@@ -352,7 +352,7 @@ function SectionTreeRow({ section, depth, onEdit, onDelete, onAddChild }) {
               <Pencil size={12} />
             </button>
             <button onClick={() => onDelete(section)} title="Delete"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
               <Trash2 size={12} />
             </button>
           </div>
@@ -378,24 +378,24 @@ function CsvResultModal({ result, onClose }) {
       <div className="flex flex-col gap-4">
         <p className="text-sm text-text-secondary">{result.summary}</p>
         <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-lg border border-border p-3 text-center">
-            <div className="text-xl font-medium text-green-400">{ok.length}</div>
+          <div className="rounded-card border border-border p-3 text-center">
+            <div className="text-xl font-medium text-status-pass-fg">{ok.length}</div>
             <div className="text-xs text-text-muted">Imported</div>
           </div>
-          <div className="rounded-lg border border-border p-3 text-center">
-            <div className="text-xl font-medium text-amber-400">{skipped.length}</div>
+          <div className="rounded-card border border-border p-3 text-center">
+            <div className="text-xl font-medium text-status-warn-fg">{skipped.length}</div>
             <div className="text-xs text-text-muted">Skipped</div>
           </div>
-          <div className="rounded-lg border border-border p-3 text-center">
-            <div className="text-xl font-medium text-red-400">{errors.length}</div>
+          <div className="rounded-card border border-border p-3 text-center">
+            <div className="text-xl font-medium text-status-fail-fg">{errors.length}</div>
             <div className="text-xs text-text-muted">Errors</div>
           </div>
         </div>
         {[...errors, ...skipped].length > 0 && (
-          <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-surface-overlay text-xs font-mono">
+          <div className="max-h-48 overflow-y-auto rounded-card border border-border bg-surface-overlay text-xs font-mono">
             {[...errors, ...skipped].map((row, i) => (
               <div key={i} className={cn('px-3 py-1 border-b border-border last:border-0 flex gap-2 flex-wrap',
-                row.status === 'ERROR' ? 'text-red-400' : 'text-amber-400')}>
+                row.status === 'ERROR' ? 'text-status-fail-fg' : 'text-status-warn-fg')}>
                 <span className="shrink-0">Row {row.rowNum}</span>
                 <span className="shrink-0">[{row.type}]</span>
                 <span className="shrink-0">{row.name}</span>
@@ -606,16 +606,16 @@ export default function AuditLibraryPage() {
           </button>
           {row.status === 'DRAFT'
             ? <button onClick={() => TM.publish.mutate(row.id)} title="Publish"
-                className="h-6 px-2 text-[10px] rounded text-brand-400 hover:bg-brand-500/10 transition-colors">
+                className="h-6 px-2 text-[10px] rounded text-brand-ink hover:bg-brand-500/10 transition-colors">
                 Publish
               </button>
             : <button onClick={() => TM.unpublish.mutate(row.id)} title="Unpublish"
-                className="h-6 px-2 text-[10px] rounded text-amber-400 hover:bg-amber-500/10 transition-colors">
+                className="h-6 px-2 text-[10px] rounded text-status-warn-fg hover:bg-status-warn-bg transition-colors">
                 Unpublish
               </button>
           }
           <button onClick={() => setDeleteTemplate(row)} title="Delete"
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
             <Trash2 size={12} />
           </button>
         </div>
@@ -628,9 +628,9 @@ export default function AuditLibraryPage() {
   const BulkBar = ({ count, totalCount, label, loading, onDelete, onClear }) =>
     count === 0 ? null : (
       <div className="flex items-center gap-3 px-6 py-2.5 bg-brand-500/5 border-b border-brand-500/20">
-        <span className="text-xs font-medium text-brand-400">{count} {label} selected</span>
+        <span className="text-xs font-medium text-brand-ink">{count} {label} selected</span>
         <Button variant="ghost" size="xs" icon={Trash2}
-          className="text-red-400 hover:bg-red-500/10" loading={loading} onClick={onDelete}>
+          className="text-status-fail-fg hover:bg-status-fail-bg" loading={loading} onClick={onDelete}>
           Delete selected
         </Button>
         <button onClick={onClear} className="text-xs text-text-muted hover:text-text-secondary ml-auto">
@@ -652,13 +652,13 @@ export default function AuditLibraryPage() {
             <input value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); setSecPage(1); setTplPage(1) }}
               placeholder={tab === 'controls' ? 'Search controls…' : tab === 'sections' ? 'Search sections…' : 'Search templates…'}
-              className="h-8 pl-8 pr-3 w-52 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
 
           {tab === 'controls' && (
             <div className="relative">
               <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
-                className="h-8 appearance-none pl-3 pr-7 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                className="h-8 appearance-none pl-3 pr-7 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 <option value="">All types</option>
                 {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
@@ -698,12 +698,12 @@ export default function AuditLibraryPage() {
           return (
             <button key={key} onClick={() => handleTabChange(key)}
               className={cn('flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
-                tab === key ? 'border-brand-500 text-brand-400' : 'border-transparent text-text-muted hover:text-text-secondary')}>
+                tab === key ? 'border-brand-500 text-brand-ink' : 'border-transparent text-text-muted hover:text-text-secondary')}>
               <Icon size={14} />
               {label}
               {count != null && (
                 <span className={cn('ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono',
-                  tab === key ? 'bg-brand-500/15 text-brand-400' : 'bg-surface-overlay text-text-muted')}>
+                  tab === key ? 'bg-brand-500/15 text-brand-ink' : 'bg-surface-overlay text-text-muted')}>
                   {count}
                 </span>
               )}
@@ -795,7 +795,7 @@ export default function AuditLibraryPage() {
             />
             {/* CSV format hint */}
             <div className="px-6 py-4 border-t border-border">
-              <div className="rounded-lg border border-border bg-surface-overlay p-3 text-[10px] font-mono text-text-muted">
+              <div className="rounded-card border border-border bg-surface-overlay p-3 text-[10px] font-mono text-text-muted">
                 <p className="font-sans text-xs text-text-secondary mb-1.5">CSV row types: TEMPLATE · SECTION (with level=0..N) · CONTROL</p>
                 <p>type,level,name,section_code,control_code,test_type,control_tag,weight,is_mandatory</p>
                 <p>TEMPLATE,,"ISO 27001",,,,,,</p>
@@ -865,13 +865,13 @@ export default function AuditLibraryPage() {
                   <label className="block text-xs text-text-secondary mb-1">Template name *</label>
                   <input value={form.name} onChange={e => set('name', e.target.value)}
                     placeholder="e.g. ISO 27001 Full Audit"
-                    className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-text-secondary mb-1">Audit type</label>
                     <select value={form.auditType} onChange={e => set('auditType', e.target.value)}
-                      className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                      className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                       {AUDIT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </div>
@@ -879,7 +879,7 @@ export default function AuditLibraryPage() {
                     <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
                     <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)}
                       placeholder="ISO 27001, SOC 2…"
-                      className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
                 </div>
                 <Button variant="primary" loading={TM.create.isPending} disabled={!form.name.trim()}

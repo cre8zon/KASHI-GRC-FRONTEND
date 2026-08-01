@@ -152,8 +152,8 @@ function SectionCard({ section, taskInstanceId, viewContext, entityType, entityI
 
   return (
     <div className={cn(
-      'rounded-xl border transition-colors',
-      section.completed ? 'border-green-500/25 bg-green-500/3' : 'border-border bg-surface-raised'
+      'rounded-card border transition-colors',
+      section.completed ? 'border-status-pass-bd bg-status-pass-bg' : 'border-border bg-surface-raised'
     )}>
       {/* Section header */}
       <button
@@ -161,7 +161,7 @@ function SectionCard({ section, taskInstanceId, viewContext, entityType, entityI
         className="w-full flex items-center gap-3 px-4 py-3 text-left"
       >
         {section.completed
-          ? <CheckCircle2 size={16} className="text-green-400 shrink-0" />
+          ? <CheckCircle2 size={16} className="text-status-pass-fg shrink-0" />
           : <Circle size={16} className={cn('shrink-0', section.required ? 'text-text-muted' : 'text-text-muted/40')} />
         }
         <div className="flex-1 min-w-0">
@@ -314,13 +314,13 @@ function ItemCard({ item, section, taskInstanceId, viewContext, entityType, canE
 
   return (
     <div className={cn(
-      'rounded-lg border transition-colors',
-      isComplete ? 'border-green-500/20 bg-green-500/3 opacity-70' : 'border-border bg-surface-overlay'
+      'rounded-card border transition-colors',
+      isComplete ? 'border-status-pass-bd bg-status-pass-bg opacity-70' : 'border-border bg-surface-overlay'
     )}>
       {/* Item header row */}
       <div className="flex items-center gap-3 px-3 py-2.5">
         {isComplete
-          ? <CheckCircle2 size={14} className="text-green-400 shrink-0" />
+          ? <CheckCircle2 size={14} className="text-status-pass-fg shrink-0" />
           : <Circle size={14} className="text-text-muted shrink-0" />
         }
         <div className="flex-1 min-w-0">
@@ -337,7 +337,7 @@ function ItemCard({ item, section, taskInstanceId, viewContext, entityType, canE
 
         {/* Action item badge */}
         {item.hasOpenActionItem && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400 flex items-center gap-1 shrink-0">
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-status-warn-bg border border-status-warn-bd text-status-warn-fg flex items-center gap-1 shrink-0">
             <Flag size={9} /> Open item
           </span>
         )}
@@ -352,7 +352,7 @@ function ItemCard({ item, section, taskInstanceId, viewContext, entityType, canE
           )}
           {canDelegate && !isComplete && !itemConfig.actions?.length && (
             <button onClick={() => setAssignOpen(a => !a)}
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
               <UserPlus size={12} />
             </button>
           )}
@@ -381,9 +381,9 @@ function ItemCard({ item, section, taskInstanceId, viewContext, entityType, canE
                 className={cn(
                   'h-6 px-2 text-[10px] font-medium rounded border transition-colors',
                   {
-                    primary:   'bg-brand-500/10 border-brand-500/30 text-brand-400 hover:bg-brand-500/20',
+                    primary:   'bg-brand-500/10 border-brand-500/30 text-brand-ink hover:bg-brand-500/20',
                     secondary: 'bg-surface-overlay border-border text-text-secondary hover:bg-surface-raised',
-                    danger:    'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20',
+                    danger:    'bg-status-fail-bg border-status-fail-bd text-status-fail-fg hover:bg-status-fail-bg',
                   }[action.variant] || 'bg-surface-overlay border-border text-text-secondary'
                 )}>
                 {isComplete_ && completeMut.isPending ? '…' : action.label}
@@ -470,7 +470,7 @@ function SectionAssignmentPanel({
   })
 
   return (
-    <div className="p-3 rounded-lg bg-surface-overlay border border-border">
+    <div className="p-3 rounded-card bg-surface-overlay border border-border">
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-medium text-text-secondary">Section assignment</p>
         <span className="text-xs text-text-muted">{assigneesCompleted}/{assigneesTotal} done</span>
@@ -524,15 +524,15 @@ function UserSearchInput({ onSelect, loading, onCancel }) {
         onChange={e => search(e.target.value)}
         placeholder="Search users…"
         autoFocus
-        className="w-full h-7 px-2.5 text-xs bg-surface-raised border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+        className="w-full h-7 px-2.5 text-xs bg-surface-raised border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
       />
       {searching && <Loader2 size={13} className="animate-spin text-text-muted" />}
       {results.map(u => (
         <button key={u.id}
           onClick={() => { onSelect(u.id); setQuery(''); setResults([]) }}
           disabled={loading}
-          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs text-left hover:bg-surface-raised transition-colors">
-          <div className="w-5 h-5 rounded-full bg-brand-500/20 flex items-center justify-center text-[9px] font-bold text-brand-400 shrink-0">
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-ctl text-xs text-left hover:bg-surface-raised transition-colors">
+          <div className="w-5 h-5 rounded-full bg-brand-500/20 flex items-center justify-center text-[9px] font-bold text-brand-ink shrink-0">
             {(u.firstName?.[0] || '?').toUpperCase()}
           </div>
           <div>

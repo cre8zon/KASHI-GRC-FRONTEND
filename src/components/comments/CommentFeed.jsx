@@ -18,16 +18,16 @@ import toast                            from 'react-hot-toast'
 
 const TYPE_CONFIG = {
   COMMENT:          { label: null,                 bg: 'bg-surface-raised border border-border', icon: null,          iconColor: '' },
-  REVISION_REQUEST: { label: 'Revision requested', bg: 'bg-amber-500/8 border-l-2 border-amber-500/40', icon: AlertTriangle, iconColor: 'text-amber-400' },
-  RESOLVED:         { label: 'Resolved',           bg: 'bg-green-500/8 border-l-2 border-green-500/40',  icon: CheckCircle2,  iconColor: 'text-green-400'  },
-  REMEDIATION:      { label: 'Remediation',        bg: 'bg-red-500/8 border-l-2 border-red-500/30',     icon: AlertTriangle, iconColor: 'text-red-400'    },
+  REVISION_REQUEST: { label: 'Revision requested', bg: 'bg-status-warn-bg border-l-2 border-status-warn-bd', icon: AlertTriangle, iconColor: 'text-status-warn-fg' },
+  RESOLVED:         { label: 'Resolved',           bg: 'bg-status-pass-bg border-l-2 border-status-pass-bd',  icon: CheckCircle2,  iconColor: 'text-status-pass-fg'  },
+  REMEDIATION:      { label: 'Remediation',        bg: 'bg-status-fail-bg border-l-2 border-status-fail-bd',     icon: AlertTriangle, iconColor: 'text-status-fail-fg'    },
   SYSTEM:           { label: null,                 bg: '',                                              icon: null,          iconColor: '' },
 }
 
 const VISIBILITY_CONFIG = {
-  INTERNAL:        { icon: Lock,   color: 'text-purple-400', label: 'Org internal'    },
-  VENDOR_INTERNAL: { icon: Lock,   color: 'text-teal-400',   label: 'Vendor internal' },
-  CISO_ONLY:       { icon: Shield, color: 'text-indigo-400', label: 'CISO only'       },
+  INTERNAL:        { icon: Lock,   color: 'text-status-tag-fg', label: 'Org internal'    },
+  VENDOR_INTERNAL: { icon: Lock,   color: 'text-brand-ink',   label: 'Vendor internal' },
+  CISO_ONLY:       { icon: Shield, color: 'text-status-tag-fg', label: 'CISO only'       },
 }
 
 /**
@@ -83,7 +83,7 @@ function RevisionReplyThread({ comment, questionInstanceId }) {
   })
 
   return (
-    <div className="mt-1 border-t border-white/5 pl-7">
+    <div className="mt-1 border-t border-on-dark/5 pl-7">
       <button type="button" onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1.5 text-[10px] text-text-muted/60 hover:text-text-secondary transition-colors py-1">
         <MessageSquare size={9} />
@@ -121,7 +121,7 @@ function RevisionReplyThread({ comment, questionInstanceId }) {
           <div className="flex justify-end">
             <button type="button" disabled={!draft.trim() || isPending}
               onClick={() => post()}
-              className="text-[10px] font-medium px-2 py-1 rounded bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 transition-colors disabled:opacity-40">
+              className="text-[10px] font-medium px-2 py-1 rounded bg-brand-500/20 text-brand-ink hover:bg-brand-500/30 transition-colors disabled:opacity-40">
               {isPending ? 'Sending…' : 'Send'}
             </button>
           </div>
@@ -153,10 +153,10 @@ function CommentBubble({ comment, onResolve, currentUserId, questionInstanceId }
   }
 
   return (
-    <div className={cn('rounded-lg px-3 py-2.5 space-y-1.5', tc.bg)}>
+    <div className={cn('rounded-card px-3 py-2.5 space-y-1.5', tc.bg)}>
       <div className="flex items-center gap-2 flex-wrap">
         <div className="w-5 h-5 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-          <span className="text-[9px] font-bold text-brand-400">
+          <span className="text-[9px] font-bold text-brand-ink">
             {(comment.createdByName || '?')[0].toUpperCase()}
           </span>
         </div>
@@ -183,7 +183,7 @@ function CommentBubble({ comment, onResolve, currentUserId, questionInstanceId }
       {comment.commentType === 'REVISION_REQUEST' && isRequester && (
         <div className="pl-7">
           <button type="button" onClick={() => onResolve(comment.id)}
-            className="text-[10px] text-green-400/70 hover:text-green-400 flex items-center gap-1 transition-colors">
+            className="text-[10px] text-status-pass-fg hover:text-status-pass-fg flex items-center gap-1 transition-colors">
             <CheckCircle2 size={10} />Mark resolved
           </button>
         </div>
@@ -249,10 +249,10 @@ function CommentInput({ onSubmit, adding, showVisibility, showType }) {
           className="flex-1"
         />
         <button onClick={submit} disabled={!text.trim() || adding}
-          className="w-8 h-8 flex items-center justify-center rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-40 transition-colors flex-shrink-0 mb-px">
+          className="w-8 h-8 flex items-center justify-center rounded-card bg-brand-500 hover:bg-brand-600 disabled:opacity-40 transition-colors flex-shrink-0 mb-px">
           {adding
-            ? <Loader2 size={14} className="animate-spin text-white" />
-            : <Send size={14} className="text-white" />}
+            ? <Loader2 size={14} className="animate-spin text-on-dark" />
+            : <Send size={14} className="text-on-dark" />}
         </button>
       </div>
     </div>

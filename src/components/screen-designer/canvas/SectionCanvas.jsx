@@ -47,17 +47,17 @@ function SectionCanvas({ screen, selectedElement, onSelectElement, actions, layo
         onClick={() => onSelectElement({ type: 'item_list', label: 'Item list', screenKey: screen.key })}>
         <div className="p-3 space-y-1.5">
           {MOCK_ITEMS.map(item => (
-            <div key={item.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface border border-border hover:border-brand-500/30 transition-colors">
+            <div key={item.id} className="flex items-center gap-3 px-3 py-2 rounded-card bg-surface border border-border hover:border-brand-500/30 transition-colors">
               <div className={cn('w-4 h-4 rounded-full flex items-center justify-center shrink-0',
-                item.status === 'COMPLETED' ? 'bg-green-500/20 border border-green-500/40' : 'border border-border')}>
-                {item.status === 'COMPLETED' && <CheckCircle2 size={10} className="text-green-400" />}
+                item.status === 'COMPLETED' ? 'bg-status-pass-bg border border-status-pass-bd' : 'border border-border')}>
+                {item.status === 'COMPLETED' && <CheckCircle2 size={10} className="text-status-pass-fg" />}
               </div>
               <span className="text-xs text-text-primary flex-1 font-medium">{item.itemLabel}</span>
-              {item.hasOpenActionItem && <AlertTriangle size={10} className="text-amber-400" />}
+              {item.hasOpenActionItem && <AlertTriangle size={10} className="text-status-warn-fg" />}
               {item.assignedToUserName && <span className="text-[9px] text-text-muted">{item.assignedToUserName}</span>}
             </div>
           ))}
-          <div className="flex items-center gap-1.5 px-3 py-1 text-[9px] text-brand-400 hover:text-brand-300 cursor-pointer">
+          <div className="flex items-center gap-1.5 px-3 py-1 text-[9px] text-brand-ink hover:text-brand-ink cursor-pointer">
             <ArrowRight size={10} /> Configure item card in itemScreenKey →
           </div>
         </div>
@@ -67,7 +67,7 @@ function SectionCanvas({ screen, selectedElement, onSelectElement, actions, layo
       <CanvasCard label="Actions" hint="click a button to configure it">
         <div className="flex items-center gap-2 p-3 flex-wrap">
           {actions.length === 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-text-muted w-full py-3 justify-center border border-dashed border-border rounded-md">
+            <div className="flex items-center gap-1.5 text-xs text-text-muted w-full py-3 justify-center border border-dashed border-border rounded-ctl">
               <Plus size={12} /> Add action buttons in Inspector →
             </div>
           )}
@@ -75,15 +75,15 @@ function SectionCanvas({ screen, selectedElement, onSelectElement, actions, layo
             <button key={action.id}
               onClick={e => { e.stopPropagation(); onSelectElement({ type: 'action', id: action.id, data: action, screenKey: screen.key }) }}
               className={cn(
-                'px-4 py-1.5 rounded-md text-xs font-medium border transition-all',
+                'px-4 py-1.5 rounded-ctl text-xs font-medium border transition-all',
                 selectedElement?.type === 'action' && selectedElement?.id === action.id
                   ? 'ring-2 ring-brand-500/60 scale-105'
                   : 'hover:scale-105',
                 {
-                  primary:   'bg-brand-500/10 border-brand-500/40 text-brand-400',
+                  primary:   'bg-brand-500/10 border-brand-500/40 text-brand-ink',
                   secondary: 'bg-surface-overlay border-border text-text-secondary',
-                  danger:    'bg-red-500/10 border-red-500/40 text-red-400',
-                  warning:   'bg-amber-500/10 border-amber-500/40 text-amber-400',
+                  danger:    'bg-status-fail-bg border-status-fail-bd text-status-fail-fg',
+                  warning:   'bg-status-warn-bg border-status-warn-bd text-status-warn-fg',
                   ghost:     'bg-transparent border-border/40 text-text-muted',
                 }[action.variant] || 'bg-surface-overlay border-border text-text-secondary'
               )}>
@@ -92,7 +92,7 @@ function SectionCanvas({ screen, selectedElement, onSelectElement, actions, layo
           ))}
           <button
             onClick={e => { e.stopPropagation(); onSelectElement({ type: 'new_action', screenKey: screen.key }) }}
-            className="px-3 py-1.5 rounded-md text-xs text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 transition-colors">
+            className="px-3 py-1.5 rounded-ctl text-xs text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-ink transition-colors">
             + Add action
           </button>
         </div>

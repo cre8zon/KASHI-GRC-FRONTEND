@@ -21,8 +21,8 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
       {/* Table */}
       <CanvasCard label="Table" hint="click a column header to configure it">
         {/* Preview banner — makes clear these are not real records */}
-        <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border bg-amber-500/5">
-          <span className="text-[9px] text-amber-400/80 font-medium">⚠ Preview data</span>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border bg-status-warn-bg">
+          <span className="text-[9px] text-status-warn-fg font-medium">⚠ Preview data</span>
           <span className="text-[9px] text-text-muted">— column values below are mock examples, not real records. Configure columns using the column headers.</span>
         </div>
         <div className="overflow-x-auto">
@@ -33,7 +33,7 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
                   <th key={col.key}
                     onClick={() => onSelectElement({ type: 'column', data: col, screenKey: screen.key })}
                     className={cn('text-left px-3 py-2.5 text-xs font-semibold text-text-secondary cursor-pointer hover:text-text-primary hover:bg-brand-500/5 transition-colors',
-                      selectedElement?.type === 'column' && selectedElement?.data?.key === col.key ? 'bg-brand-500/10 text-brand-400' : '')}>
+                      selectedElement?.type === 'column' && selectedElement?.data?.key === col.key ? 'bg-brand-500/10 text-brand-ink' : '')}>
                     <div className="flex items-center gap-1">
                       {/* Primary columns render bolder in the header too */}
                       <span className={cn(col.isPrimary && 'font-bold text-text-primary', col.monoFont && 'font-mono')}>
@@ -48,7 +48,7 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
                     </div>
                   </th>
                 ))}
-                <th className="px-3 py-2 cursor-pointer text-text-muted hover:text-brand-400"
+                <th className="px-3 py-2 cursor-pointer text-text-muted hover:text-brand-ink"
                   onClick={() => onSelectElement({ type: 'new_column', screenKey: screen.key })}>
                   <Plus size={11} />
                 </th>
@@ -86,7 +86,7 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
       {/* Toolbar actions — renders real configured actions, not a hardcoded button */}
       <CanvasCard label="Toolbar actions" hint="click a button to configure it · click + to add">
         <div className="flex items-center gap-2 p-3 flex-wrap">
-          <div className="flex-1 h-8 bg-background border border-border rounded-md flex items-center px-2.5 gap-2 min-w-32">
+          <div className="flex-1 h-8 bg-background border border-border rounded-ctl flex items-center px-2.5 gap-2 min-w-32">
             <Search size={12} className="text-text-muted" />
             <span className="text-xs text-text-muted">Search…</span>
           </div>
@@ -94,22 +94,22 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
             <button key={action.id}
               onClick={e => { e.stopPropagation(); onSelectElement({ type: 'action', id: action.id, data: action, screenKey: screen.key }) }}
               className={cn(
-                'flex items-center gap-1.5 h-7 px-3 rounded-md text-[10px] font-medium border transition-all hover:scale-105',
+                'flex items-center gap-1.5 h-7 px-3 rounded-ctl text-[10px] font-medium border transition-all hover:scale-105',
                 selectedElement?.id === action.id ? 'ring-2 ring-brand-500/60' : '',
                 {
-                  primary:   'bg-brand-500 text-white border-brand-600',
+                  primary:   'bg-brand-500 text-brand-900 border-brand-600',
                   secondary: 'bg-surface-overlay border-border text-text-secondary',
-                  danger:    'bg-red-500/10 border-red-500/40 text-red-400',
-                  warning:   'bg-amber-500/10 border-amber-500/40 text-amber-400',
+                  danger:    'bg-status-fail-bg border-status-fail-bd text-status-fail-fg',
+                  warning:   'bg-status-warn-bg border-status-warn-bd text-status-warn-fg',
                   ghost:     'bg-transparent border-border/40 text-text-muted',
-                }[action.variant] || 'bg-brand-500 text-white border-brand-600'
+                }[action.variant] || 'bg-brand-500 text-brand-900 border-brand-600'
               )}>
               <Plus size={11} /> {action.label}
             </button>
           ))}
           <button
             onClick={() => onSelectElement({ type: 'new_action', screenKey: screen.key })}
-            className="flex items-center gap-1.5 h-7 px-3 border border-dashed border-border text-text-muted hover:border-brand-500/40 hover:text-brand-400 rounded-md text-[10px] transition-colors">
+            className="flex items-center gap-1.5 h-7 px-3 border border-dashed border-border text-text-muted hover:border-brand-500/40 hover:text-brand-ink rounded-ctl text-[10px] transition-colors">
             <Plus size={11} /> Add button
           </button>
         </div>

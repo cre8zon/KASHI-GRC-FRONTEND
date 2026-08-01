@@ -106,23 +106,23 @@ function PolicyContentModal({ policyInstance, engagementId, onClose }) {
 
         {/* Content */}
         {policyInstance.contentTypeSnapshot === 'EXTERNAL_URL' ? (
-          <div className="flex items-center gap-3 p-4 rounded-lg border border-border bg-surface-overlay">
-            <ExternalLink size={16} className="text-brand-400 shrink-0" />
+          <div className="flex items-center gap-3 p-4 rounded-card border border-border bg-surface-overlay">
+            <ExternalLink size={16} className="text-brand-ink shrink-0" />
             <div>
               <p className="text-sm text-text-primary">External policy document</p>
               <a
                 href={fullPolicy?.externalUrlSnapshot ?? policyInstance.externalUrlSnapshot}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-brand-400 hover:underline break-all"
+                className="text-xs text-brand-ink hover:underline break-all"
               >
                 {fullPolicy?.externalUrlSnapshot ?? policyInstance.externalUrlSnapshot}
               </a>
             </div>
           </div>
         ) : policyInstance.contentTypeSnapshot === 'PDF_UPLOAD' ? (
-          <div className="flex items-center gap-3 p-4 rounded-lg border border-border bg-surface-overlay">
-            <FileText size={16} className="text-brand-400 shrink-0" />
+          <div className="flex items-center gap-3 p-4 rounded-card border border-border bg-surface-overlay">
+            <FileText size={16} className="text-brand-ink shrink-0" />
             <div>
               <p className="text-sm text-text-primary">PDF policy document</p>
               <p className="text-xs text-text-muted">View via the Evidence tab</p>
@@ -130,7 +130,7 @@ function PolicyContentModal({ policyInstance, engagementId, onClose }) {
           </div>
         ) : (
           /* RICH_TEXT */
-          <div className="max-h-[50vh] overflow-y-auto rounded-lg border border-border p-4 bg-surface-raised">
+          <div className="max-h-[50vh] overflow-y-auto rounded-card border border-border p-4 bg-surface-raised">
             <div
               className="prose prose-sm prose-invert max-w-none text-sm text-text-secondary leading-relaxed"
               dangerouslySetInnerHTML={{
@@ -175,16 +175,16 @@ function PolicyRow({ policy, engagementId, access }) {
   })
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
+    <div className="border border-border rounded-card overflow-hidden">
       {/* Header */}
       <button
         onClick={() => setExpanded(e => !e)}
         className="w-full flex items-start gap-3 p-3 hover:bg-surface-overlay transition-colors text-left"
       >
         <ReviewIcon size={15} className={cn('mt-0.5 shrink-0', {
-          'text-green-400': policy.reviewResult === 'ADEQUATE',
-          'text-amber-400': policy.reviewResult === 'ADEQUATE_WITH_GAPS',
-          'text-red-400':   policy.reviewResult === 'INADEQUATE',
+          'text-status-pass-fg': policy.reviewResult === 'ADEQUATE',
+          'text-status-warn-fg': policy.reviewResult === 'ADEQUATE_WITH_GAPS',
+          'text-status-fail-fg':   policy.reviewResult === 'INADEQUATE',
           'text-text-muted': !policy.reviewResult || policy.reviewResult === 'NOT_REVIEWED',
         })} />
 
@@ -204,7 +204,7 @@ function PolicyRow({ policy, engagementId, access }) {
             <Badge colorTag={mappingCfg.color} size="sm">{mappingCfg.label}</Badge>
             <Badge colorTag={reviewCfg.color} size="sm">{reviewCfg.label}</Badge>
             {isOverdue && (
-              <span className="flex items-center gap-1 text-[10px] text-amber-400">
+              <span className="flex items-center gap-1 text-[10px] text-status-warn-fg">
                 <AlertTriangle size={9} /> Review overdue
               </span>
             )}
@@ -221,7 +221,7 @@ function PolicyRow({ policy, engagementId, access }) {
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={e => { e.stopPropagation(); setViewPolicy(true) }}
-            className="flex items-center gap-1 text-[10px] text-brand-400 border border-brand-500/30 rounded px-2 py-1 hover:bg-brand-500/10 transition-colors"
+            className="flex items-center gap-1 text-[10px] text-brand-ink border border-brand-500/30 rounded px-2 py-1 hover:bg-brand-500/10 transition-colors"
           >
             <Eye size={10} /> View
           </button>
@@ -283,10 +283,10 @@ function PolicyRow({ policy, engagementId, access }) {
                         'flex items-center gap-1.5 px-2 py-1.5 rounded border text-[11px] font-medium transition-all text-left',
                         reviewResult === value
                           ? {
-                              ADEQUATE:           'border-green-500/40 bg-green-500/10 text-green-400',
-                              ADEQUATE_WITH_GAPS: 'border-amber-500/40 bg-amber-500/10 text-amber-400',
-                              INADEQUATE:         'border-red-500/40   bg-red-500/10   text-red-400',
-                              NOT_APPLICABLE:     'border-gray-500/30  bg-gray-500/8   text-text-muted',
+                              ADEQUATE:           'border-status-pass-bd bg-status-pass-bg text-status-pass-fg',
+                              ADEQUATE_WITH_GAPS: 'border-status-warn-bd bg-status-warn-bg text-status-warn-fg',
+                              INADEQUATE:         'border-status-fail-bd   bg-status-fail-bg   text-status-fail-fg',
+                              NOT_APPLICABLE:     'border-border  bg-surface-inset   text-text-muted',
                             }[value]
                           : 'border-border bg-surface-overlay text-text-muted hover:opacity-80',
                         !access.canRecordTestResult && 'cursor-default opacity-60',
@@ -306,7 +306,7 @@ function PolicyRow({ policy, engagementId, access }) {
                   onChange={e => { setAuditorNotes(e.target.value); setDirty(true) }}
                   rows={2}
                   placeholder="Notes on policy adequacy…"
-                  className="w-full px-3 py-2 rounded-md border border-border bg-surface-raised text-xs
+                  className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-xs
                              text-text-primary placeholder:text-text-muted resize-none
                              focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
@@ -360,8 +360,8 @@ export default function AuditPoliciesTab({ control, engagementId, access }) {
 
       {/* Coverage summary */}
       {policyList.length > 0 && (
-        <div className="flex items-start gap-2 p-3 rounded-lg border border-border bg-surface-overlay text-xs text-text-secondary">
-          <FileText size={14} className="text-brand-400 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 p-3 rounded-card border border-border bg-surface-overlay text-xs text-text-secondary">
+          <FileText size={14} className="text-brand-ink shrink-0 mt-0.5" />
           <div>
             <span className="font-medium text-text-primary">{policyList.length} policy{policyList.length !== 1 ? 'ies' : ''}</span>
             {' '}cover this control.{' '}
@@ -381,7 +381,7 @@ export default function AuditPoliciesTab({ control, engagementId, access }) {
       {isLoading ? (
         <div className="flex flex-col gap-2">
           {[1, 2].map(i => (
-            <div key={i} className="h-16 rounded-lg bg-surface-overlay animate-pulse" />
+            <div key={i} className="h-16 rounded-card bg-surface-overlay animate-pulse" />
           ))}
         </div>
       ) : policyList.length === 0 ? (
@@ -413,11 +413,11 @@ export default function AuditPoliciesTab({ control, engagementId, access }) {
       {policyList.length > 0 && (
         <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
           {[
-            { label: 'Adequate',    value: policyList.filter(p => p.reviewResult === 'ADEQUATE').length,       color: 'text-green-400' },
-            { label: 'With gaps',   value: policyList.filter(p => p.reviewResult === 'ADEQUATE_WITH_GAPS').length, color: 'text-amber-400' },
-            { label: 'Inadequate',  value: policyList.filter(p => p.reviewResult === 'INADEQUATE').length,     color: 'text-red-400'   },
+            { label: 'Adequate',    value: policyList.filter(p => p.reviewResult === 'ADEQUATE').length,       color: 'text-status-pass-fg' },
+            { label: 'With gaps',   value: policyList.filter(p => p.reviewResult === 'ADEQUATE_WITH_GAPS').length, color: 'text-status-warn-fg' },
+            { label: 'Inadequate',  value: policyList.filter(p => p.reviewResult === 'INADEQUATE').length,     color: 'text-status-fail-fg'   },
           ].map(s => (
-            <div key={s.label} className="text-center p-2 rounded-lg border border-border bg-surface-overlay">
+            <div key={s.label} className="text-center p-2 rounded-card border border-border bg-surface-overlay">
               <div className={cn('text-lg font-bold font-mono', s.color)}>{s.value}</div>
               <div className="text-[10px] text-text-muted">{s.label}</div>
             </div>

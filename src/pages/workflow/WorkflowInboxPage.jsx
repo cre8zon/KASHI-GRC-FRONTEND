@@ -29,7 +29,7 @@ function FilterChip({ label, value, options, onChange }) {
             className={cn(
               'text-[11px] px-2 py-0.5 rounded transition-colors',
               value === opt
-                ? 'bg-brand-500/20 text-brand-400 font-medium'
+                ? 'bg-brand-500/20 text-brand-ink font-medium'
                 : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay'
             )}>
             {opt === 'ALL' ? 'All' : opt.charAt(0) + opt.slice(1).toLowerCase()}
@@ -89,7 +89,7 @@ export default function WorkflowInboxPage() {
             size="xs"
             icon={Filter}
             onClick={() => setShowFilters(f => !f)}
-            className={hasActiveFilter ? 'text-brand-400' : ''}>
+            className={hasActiveFilter ? 'text-brand-ink' : ''}>
             {hasActiveFilter ? `Filtered (${[roleFilter, actionFilter, priorityFilter].filter(f => f !== 'ALL').length})` : 'Filter'}
           </Button>
           {hasActiveFilter && (
@@ -98,7 +98,7 @@ export default function WorkflowInboxPage() {
             </Button>
           )}
           {/* View toggle */}
-          <div className="flex items-center gap-1 bg-surface-overlay rounded-md p-0.5">
+          <div className="flex items-center gap-1 bg-surface-overlay rounded-ctl p-0.5">
             <Button variant={view === 'cards' ? 'secondary' : 'ghost'} size="xs" icon={LayoutGrid} onClick={() => setView('cards')} />
             <Button variant={view === 'table' ? 'secondary' : 'ghost'} size="xs" icon={List} onClick={() => setView('table')} />
           </div>

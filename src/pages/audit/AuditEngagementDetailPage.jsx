@@ -135,7 +135,7 @@ function SectionNode({ node, engagementId, depth = 0 }) {
     <div>
       <div
         className={cn(
-          'flex items-center gap-2 py-2 px-3 rounded-md transition-colors',
+          'flex items-center gap-2 py-2 px-3 rounded-ctl transition-colors',
           'hover:bg-surface-overlay cursor-pointer',
           isLocked && 'opacity-70',
         )}
@@ -218,9 +218,9 @@ function ControlRow({ control, engagementId }) {
   return (
     <div className="flex items-start gap-3 py-3 px-4 border-b border-border last:border-0 hover:bg-surface-overlay transition-colors">
       <Icon size={16} className={cn('mt-0.5 shrink-0', {
-        'text-green-400':  control.testResult === 'EFFECTIVE',
-        'text-amber-400':  control.testResult === 'PARTIALLY_EFFECTIVE',
-        'text-red-400':    control.testResult === 'INEFFECTIVE',
+        'text-status-pass-fg':  control.testResult === 'EFFECTIVE',
+        'text-status-warn-fg':  control.testResult === 'PARTIALLY_EFFECTIVE',
+        'text-status-fail-fg':    control.testResult === 'INEFFECTIVE',
         'text-text-muted': !control.testResult || control.testResult === 'NOT_TESTED' || control.testResult === 'NOT_APPLICABLE',
       })} />
       <div className="flex-1 min-w-0">
@@ -264,7 +264,7 @@ function OverviewTab({ engagement, stats, workflowProgress }) {
   const breakdown = stats?.resultBreakdown ?? {}
   const total     = engagement?.totalControls ?? 0
   const StatCard  = ({ label, value, color }) => (
-    <div className="rounded-lg border border-border bg-surface-raised p-3">
+    <div className="rounded-card border border-border bg-surface-raised p-3">
       <div className={cn('text-2xl font-medium tabular-nums', color ?? 'text-text-primary')}>{value ?? 0}</div>
       <div className="text-xs text-text-muted mt-0.5">{label}</div>
     </div>
@@ -273,9 +273,9 @@ function OverviewTab({ engagement, stats, workflowProgress }) {
     <div className="flex flex-col gap-5">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard label="Total controls" value={total} />
-        <StatCard label="Tested" value={engagement?.testedControls} color="text-blue-400" />
-        <StatCard label="Effective" value={breakdown.EFFECTIVE} color="text-green-400" />
-        <StatCard label="Findings" value={engagement?.openFindingCount} color="text-red-400" />
+        <StatCard label="Tested" value={engagement?.testedControls} color="text-status-info-fg" />
+        <StatCard label="Effective" value={breakdown.EFFECTIVE} color="text-status-pass-fg" />
+        <StatCard label="Findings" value={engagement?.openFindingCount} color="text-status-fail-fg" />
       </div>
       {total > 0 && (
         <div>
@@ -317,7 +317,7 @@ export default function AuditEngagementDetailPage() {
     return (
       <PageLayout title="Loading…">
         <div className="px-6 py-8 flex flex-col gap-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-16 rounded-lg bg-surface-overlay animate-pulse" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-16 rounded-card bg-surface-overlay animate-pulse" />)}
         </div>
       </PageLayout>
     )
@@ -359,7 +359,7 @@ export default function AuditEngagementDetailPage() {
         )}
 
         {tab === 'Sections' && (
-          <div className="rounded-lg border border-border bg-surface-raised divide-y divide-border overflow-hidden">
+          <div className="rounded-card border border-border bg-surface-raised divide-y divide-border overflow-hidden">
             {tree.length === 0 ? (
               <p className="p-4 text-sm text-text-muted">No sections. Did you select a template?</p>
             ) : (
@@ -371,7 +371,7 @@ export default function AuditEngagementDetailPage() {
         )}
 
         {tab === 'Controls' && (
-          <div className="rounded-lg border border-border bg-surface-raised overflow-hidden">
+          <div className="rounded-card border border-border bg-surface-raised overflow-hidden">
             {!controls?.length ? (
               <p className="p-4 text-sm text-text-muted">No controls. Create an engagement with a template.</p>
             ) : (

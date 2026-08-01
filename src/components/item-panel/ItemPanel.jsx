@@ -95,7 +95,7 @@ export function ItemPanel({
                 <Icon size={11} />
                 {label}
                 {badge && (
-                  <span className="text-[9px] font-bold px-1 rounded-full bg-amber-500/20 text-amber-400">
+                  <span className="text-[9px] font-bold px-1 rounded-full bg-status-warn-bg text-status-warn-fg">
                     {badge}
                   </span>
                 )}
@@ -122,13 +122,13 @@ export function ItemPanel({
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium border-b-2 -mb-px transition-colors',
                     activeTab === id
-                      ? 'border-brand-500 text-brand-400'
+                      ? 'border-brand-500 text-brand-ink'
                       : 'border-transparent text-text-muted hover:text-text-secondary'
                   )}>
                   <Icon size={11} />
                   {label}
                   {badge && (
-                    <span className="text-[9px] font-bold px-1 rounded-full bg-amber-500/20 text-amber-400">
+                    <span className="text-[9px] font-bold px-1 rounded-full bg-status-warn-bg text-status-warn-fg">
                       {badge}
                     </span>
                   )}

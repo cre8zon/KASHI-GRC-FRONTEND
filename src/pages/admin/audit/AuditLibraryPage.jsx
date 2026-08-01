@@ -418,7 +418,7 @@ function useDeleteSectionFromLibrary(templateId) {
 // ─── Guard tag badge ───────────────────────────────────────────────────────────
 
 const GuardTagBadge = ({ tag }) => tag
-  ? <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[10px] bg-brand-500/10 text-brand-400 border border-brand-500/20">{tag}</span>
+  ? <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[10px] bg-brand-500/10 text-brand-ink border border-brand-500/20">{tag}</span>
   : <span className="text-[10px] text-text-muted italic">—</span>
 
 // ─── Inline row action buttons ─────────────────────────────────────────────────
@@ -430,7 +430,7 @@ const RowActions = ({ onEdit, onDelete }) => (
       <Pencil size={12} />
     </button>
     <button onClick={onDelete} title="Delete"
-      className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+      className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
       <Trash2 size={12} />
     </button>
   </div>
@@ -452,27 +452,27 @@ function ControlForm({ initial, onSubmit, loading }) {
         <label className="block text-xs text-text-secondary mb-1">Control name *</label>
         <input value={form.name} onChange={e => set('name', e.target.value)}
           placeholder="e.g. User access management"
-          className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Control code</label>
           <input value={form.controlCode} onChange={e => set('controlCode', e.target.value)}
             placeholder="e.g. A.9.1.1, CC6.1, AC-1"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
           <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)}
             placeholder="e.g. ISO 27001, SOC 2"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Test type</label>
           <select value={form.testType} onChange={e => set('testType', e.target.value)}
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
@@ -483,14 +483,14 @@ function ControlForm({ initial, onSubmit, loading }) {
           </label>
           <input value={form.controlTag} onChange={e => set('controlTag', e.target.value.toUpperCase())}
             placeholder="e.g. ENCRYPTION_AT_REST, MFA"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <div>
         <label className="block text-xs text-text-secondary mb-1">Description</label>
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3}
           placeholder="What this control tests and what evidence is expected"
-          className="w-full px-3 py-2 rounded-md border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <Button variant="primary" onClick={() => onSubmit(form)} loading={loading} disabled={!form.name.trim()}>
         {initial ? 'Update control' : 'Add control'}
@@ -514,20 +514,20 @@ function SectionForm({ initial, allRootSections, onSubmit, loading }) {
         <label className="block text-xs text-text-secondary mb-1">Section name *</label>
         <input value={form.name} onChange={e => set('name', e.target.value)}
           placeholder="e.g. A.9 — Access Control"
-          className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Section code</label>
           <input value={form.sectionCode} onChange={e => set('sectionCode', e.target.value)}
             placeholder="e.g. A.9, CC6, PR.AC"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
           <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)}
             placeholder="e.g. ISO 27001"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <div>
@@ -536,7 +536,7 @@ function SectionForm({ initial, allRootSections, onSubmit, loading }) {
           <span className="ml-1 text-text-muted font-normal">(leave blank for top-level)</span>
         </label>
         <select value={form.parentId ?? ''} onChange={e => set('parentId', e.target.value || null)}
-          className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
           <option value="">— Top-level section —</option>
           {(allRootSections ?? []).map(s => (
             <option key={s.id} value={s.id}>
@@ -548,7 +548,7 @@ function SectionForm({ initial, allRootSections, onSubmit, loading }) {
       <div>
         <label className="block text-xs text-text-secondary mb-1">Description</label>
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
-          className="w-full px-3 py-2 rounded-md border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <Button variant="primary" onClick={() => onSubmit(form)} loading={loading} disabled={!form.name.trim()}>
         {initial ? 'Update section' : 'Add section'}
@@ -597,7 +597,7 @@ function SectionControlsPanel({ sectionId, sectionName }) {
       {/* Controls list */}
       {isLoading ? (
         <div className="flex items-center justify-center py-4">
-          <Loader2 size={16} className="text-brand-400 animate-spin" />
+          <Loader2 size={16} className="text-brand-ink animate-spin" />
         </div>
       ) : controls.length === 0 ? (
         <div className="px-4 py-4 text-center">
@@ -629,7 +629,7 @@ function SectionControlsPanel({ sectionId, sectionName }) {
                     </span>
                   )}
                   {ctrl.mandatory && (
-                    <span className="text-[10px] text-red-400 font-medium">Required</span>
+                    <span className="text-[10px] text-status-fail-fg font-medium">Required</span>
                   )}
                   {ctrl.controlTag && <GuardTagBadge tag={ctrl.controlTag} />}
                 </div>
@@ -637,7 +637,7 @@ function SectionControlsPanel({ sectionId, sectionName }) {
               <button
                 onClick={() => setRemoveTarget(ctrl)}
                 title="Remove from section"
-                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100">
+                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors opacity-0 group-hover:opacity-100">
                 <Trash2 size={11} />
               </button>
             </div>
@@ -716,7 +716,7 @@ function StandaloneControlPickerModal({ open, sectionId, sectionName, existingCo
         <div className="flex items-center justify-between">
           <p className="text-xs text-text-muted">
             {selected
-              ? <span className="text-brand-400">"{selected.name.slice(0, 50)}{selected.name.length > 50 ? '…' : ''}" selected</span>
+              ? <span className="text-brand-ink">"{selected.name.slice(0, 50)}{selected.name.length > 50 ? '…' : ''}" selected</span>
               : 'No control selected'}
           </p>
           <div className="flex gap-2">
@@ -732,16 +732,16 @@ function StandaloneControlPickerModal({ open, sectionId, sectionName, existingCo
             <div className="relative flex-1">
               <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search controls…"
-                className="h-7 pl-8 pr-3 w-full rounded-md border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="h-7 pl-8 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
-              className="h-7 appearance-none pl-2 pr-6 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+              className="h-7 appearance-none pl-2 pr-6 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">All types</option>
               {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
-          <div className="flex-1 overflow-y-auto rounded-lg border border-border divide-y divide-border">
-            {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>}
+          <div className="flex-1 overflow-y-auto rounded-card border border-border divide-y divide-border">
+            {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>}
             {!isLoading && filtered.length === 0 && (
               <div className="flex flex-col items-center justify-center py-10">
                 <Shield size={20} className="text-text-muted mb-2" />
@@ -765,7 +765,7 @@ function StandaloneControlPickerModal({ open, sectionId, sectionName, existingCo
                     {c.controlTag && <GuardTagBadge tag={c.controlTag} />}
                   </div>
                 </div>
-                {selected?.id === c.id && <CheckCircle2 size={14} className="text-brand-400 shrink-0 mt-0.5" />}
+                {selected?.id === c.id && <CheckCircle2 size={14} className="text-brand-ink shrink-0 mt-0.5" />}
               </button>
             ))}
           </div>
@@ -773,7 +773,7 @@ function StandaloneControlPickerModal({ open, sectionId, sectionName, existingCo
 
         {/* Right: config panel */}
         <div className="w-52 shrink-0">
-          <div className="p-3 rounded-lg bg-surface-overlay border border-border">
+          <div className="p-3 rounded-card bg-surface-overlay border border-border">
             <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">Mapping config</p>
             {!selected ? (
               <p className="text-xs text-text-muted">Select a control on the left.</p>
@@ -789,13 +789,13 @@ function StandaloneControlPickerModal({ open, sectionId, sectionName, existingCo
                 <div>
                   <label className="text-[11px] font-medium text-text-secondary uppercase tracking-wide block mb-1">Weight</label>
                   <input type="number" value={weight} onChange={e => setWeight(e.target.value)} placeholder="1.0"
-                    className="h-7 w-full rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="h-7 w-full rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <button type="button" onClick={() => setMandatory(m => !m)}
                     className={cn('relative inline-flex h-4 w-7 items-center rounded-full transition-colors shrink-0',
                       mandatory ? 'bg-brand-500' : 'bg-surface-raised border border-border')}>
-                    <span className={cn('inline-block h-3 w-3 transform rounded-full bg-white transition-transform',
+                    <span className={cn('inline-block h-3 w-3 transform rounded-full bg-surface-raised transition-transform',
                       mandatory ? 'translate-x-3.5' : 'translate-x-0.5')} />
                   </button>
                   <span className="text-xs text-text-primary">Mandatory</span>
@@ -856,16 +856,16 @@ function SectionToTemplateModal({ section, onClose }) {
       }>
       <div className="flex flex-col gap-3">
         {!isRoot && (
-          <div className="flex items-start gap-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-            <AlertCircle size={13} className="text-amber-400 mt-0.5 shrink-0" />
-            <p className="text-xs text-amber-400/80 leading-relaxed">
-              Only <span className="font-semibold text-amber-400">root sections</span> (depth 0, no parent)
+          <div className="flex items-start gap-2 p-3 bg-status-warn-bg border border-status-warn-bd rounded-card">
+            <AlertCircle size={13} className="text-status-warn-fg mt-0.5 shrink-0" />
+            <p className="text-xs text-status-warn-fg leading-relaxed">
+              Only <span className="font-semibold text-status-warn-fg">root sections</span> (depth 0, no parent)
               can be mapped to templates. This section has a parent and cannot be used as a template root.
             </p>
           </div>
         )}
 
-        <div className="p-3 rounded-lg border border-border bg-surface-overlay">
+        <div className="p-3 rounded-card border border-border bg-surface-overlay">
           <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wide mb-1">Section being mapped</p>
           <div className="flex items-center gap-2">
             {section.sectionCode && (
@@ -883,12 +883,12 @@ function SectionToTemplateModal({ section, onClose }) {
             <div className="relative">
               <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search templates…"
-                className="h-8 pl-8 pr-3 w-full rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="h-8 pl-8 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
-            <div className="max-h-64 overflow-y-auto rounded-lg border border-border divide-y divide-border">
+            <div className="max-h-64 overflow-y-auto rounded-card border border-border divide-y divide-border">
               {isLoading && (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 size={18} className="text-brand-400 animate-spin" />
+                  <Loader2 size={18} className="text-brand-ink animate-spin" />
                 </div>
               )}
               {!isLoading && filtered.length === 0 && (
@@ -910,7 +910,7 @@ function SectionToTemplateModal({ section, onClose }) {
                       <p className="text-[10px] text-text-muted mt-0.5">{t.frameworkRef}</p>
                     )}
                   </div>
-                  {selected?.id === t.id && <CheckCircle2 size={14} className="text-brand-400 shrink-0" />}
+                  {selected?.id === t.id && <CheckCircle2 size={14} className="text-brand-ink shrink-0" />}
                 </button>
               ))}
             </div>
@@ -965,8 +965,8 @@ function SectionTreeRow({ section, depth, onEdit, onDelete, onAddChild }) {
               className={cn(
                 'h-6 w-6 flex items-center justify-center rounded transition-colors',
                 showControls
-                  ? 'text-brand-400 bg-brand-500/10'
-                  : 'text-text-muted hover:text-brand-400 hover:bg-brand-500/10'
+                  ? 'text-brand-ink bg-brand-500/10'
+                  : 'text-text-muted hover:text-brand-ink hover:bg-brand-500/10'
               )}>
               <Shield size={12} />
             </button>
@@ -978,13 +978,13 @@ function SectionTreeRow({ section, depth, onEdit, onDelete, onAddChild }) {
               className={cn(
                 'h-6 w-6 flex items-center justify-center rounded transition-colors',
                 isRoot
-                  ? 'text-text-muted hover:text-brand-400 hover:bg-brand-500/10'
+                  ? 'text-text-muted hover:text-brand-ink hover:bg-brand-500/10'
                   : 'text-text-muted/30 cursor-not-allowed'
               )}>
               <Link2 size={12} />
             </button>
             <button onClick={() => onAddChild(section)} title="Add child section"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
               <Plus size={12} />
             </button>
             <button onClick={() => onEdit(section)} title="Edit"
@@ -992,7 +992,7 @@ function SectionTreeRow({ section, depth, onEdit, onDelete, onAddChild }) {
               <Pencil size={12} />
             </button>
             <button onClick={() => onDelete(section)} title="Delete"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
               <Trash2 size={12} />
             </button>
           </div>
@@ -1073,7 +1073,7 @@ function CsvImportModal({ open, onClose, onImported }) {
 
       {stage === 'upload' && (
         <div className="flex flex-col gap-4">
-          <div className="rounded-lg border border-border overflow-hidden">
+          <div className="rounded-card border border-border overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2.5 bg-surface-overlay border-b border-border">
               <span className="text-xs font-semibold text-text-secondary">CSV row format</span>
               <Button variant="secondary" size="xs" icon={Download} onClick={downloadCsvTemplate}>Download Example</Button>
@@ -1089,9 +1089,9 @@ SECTION  1      "A.6 — Org…"       A.6           ← back to level 1`}
             </pre>
             <div className="px-4 py-2 bg-surface-overlay border-t border-border flex gap-6 flex-wrap">
               {[
-                { label: 'TEMPLATE', color: 'text-purple-400', note: 'first row — template name + framework' },
-                { label: 'SECTION',  color: 'text-blue-400',   note: 'level= drives tree depth (0=root, 1=child…)' },
-                { label: 'CONTROL',  color: 'text-cyan-400',   note: 'attaches to deepest current section' },
+                { label: 'TEMPLATE', color: 'text-status-tag-fg', note: 'first row — template name + framework' },
+                { label: 'SECTION',  color: 'text-status-info-fg',   note: 'level= drives tree depth (0=root, 1=child…)' },
+                { label: 'CONTROL',  color: 'text-status-info-fg',   note: 'attaches to deepest current section' },
               ].map(({ label, color, note }) => (
                 <span key={label} className="text-[10px] text-text-muted">
                   <span className={cn('font-mono font-bold', color)}>{label}</span> — {note}
@@ -1105,16 +1105,16 @@ SECTION  1      "A.6 — Org…"       A.6           ← back to level 1`}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             onClick={() => fileRef.current?.click()}
-            className={cn('border-2 border-dashed rounded-lg p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors',
-              selectedFile ? 'border-green-500/40 bg-green-500/5' :
+            className={cn('border-2 border-dashed rounded-card p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors',
+              selectedFile ? 'border-status-pass-bd bg-status-pass-bg' :
               dragOver ? 'border-brand-500 bg-brand-500/5' :
               'border-border hover:border-border-subtle hover:bg-surface-overlay')}>
-            <div className="w-12 h-12 rounded-xl bg-surface-overlay flex items-center justify-center">
-              {selectedFile ? <CheckCircle2 size={22} className="text-green-400" /> : <Upload size={22} className="text-text-muted" />}
+            <div className="w-12 h-12 rounded-card bg-surface-overlay flex items-center justify-center">
+              {selectedFile ? <CheckCircle2 size={22} className="text-status-pass-fg" /> : <Upload size={22} className="text-text-muted" />}
             </div>
             <div className="text-center">
               {selectedFile ? (
-                <><p className="text-sm font-medium text-green-400">{selectedFile.name}</p><p className="text-xs text-text-muted mt-1">{(selectedFile.size / 1024).toFixed(1)} KB · Click to choose a different file</p></>
+                <><p className="text-sm font-medium text-status-pass-fg">{selectedFile.name}</p><p className="text-xs text-text-muted mt-1">{(selectedFile.size / 1024).toFixed(1)} KB · Click to choose a different file</p></>
               ) : (
                 <><p className="text-sm font-medium text-text-primary">Drop your CSV here, or click to browse</p><p className="text-xs text-text-muted mt-1">.csv files only — parsed server-side</p></>
               )}
@@ -1131,8 +1131,8 @@ SECTION  1      "A.6 — Org…"       A.6           ← back to level 1`}
 
       {stage === 'importing' && (
         <div className="flex flex-col items-center gap-6 py-8">
-          <div className="w-16 h-16 rounded-2xl bg-brand-500/10 flex items-center justify-center">
-            <Loader2 size={28} className="text-brand-400 animate-spin" />
+          <div className="w-16 h-16 rounded-modal bg-brand-500/10 flex items-center justify-center">
+            <Loader2 size={28} className="text-brand-ink animate-spin" />
           </div>
           <div className="text-center">
             <p className="text-sm font-semibold text-text-primary">Importing on server…</p>
@@ -1145,11 +1145,11 @@ SECTION  1      "A.6 — Org…"       A.6           ← back to level 1`}
       {stage === 'done' && result && (
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
-              result.fatalError ? 'bg-red-500/10' : errCount > 0 ? 'bg-amber-500/10' : 'bg-green-500/10')}>
+            <div className={cn('w-12 h-12 rounded-card flex items-center justify-center shrink-0',
+              result.fatalError ? 'bg-status-fail-bg' : errCount > 0 ? 'bg-status-warn-bg' : 'bg-status-pass-bg')}>
               {result.fatalError || errCount > 0
-                ? <AlertCircle size={22} className={result.fatalError ? 'text-red-400' : 'text-amber-400'} />
-                : <CheckCircle2 size={22} className="text-green-400" />}
+                ? <AlertCircle size={22} className={result.fatalError ? 'text-status-fail-fg' : 'text-status-warn-fg'} />
+                : <CheckCircle2 size={22} className="text-status-pass-fg" />}
             </div>
             <div>
               <p className="text-sm font-semibold text-text-primary">
@@ -1162,10 +1162,10 @@ SECTION  1      "A.6 — Org…"       A.6           ← back to level 1`}
             <div className="grid grid-cols-3 gap-3">
               {[
                 { label: 'Total rows', value: result.totalRows,   color: 'text-text-secondary' },
-                { label: 'Succeeded', value: result.successCount, color: 'text-green-400' },
-                { label: 'Failed',    value: result.failureCount, color: result.failureCount ? 'text-red-400' : 'text-text-muted' },
+                { label: 'Succeeded', value: result.successCount, color: 'text-status-pass-fg' },
+                { label: 'Failed',    value: result.failureCount, color: result.failureCount ? 'text-status-fail-fg' : 'text-text-muted' },
               ].map(({ label, value, color }) => (
-                <div key={label} className="p-3 bg-surface-overlay rounded-lg border border-border text-center">
+                <div key={label} className="p-3 bg-surface-overlay rounded-card border border-border text-center">
                   <p className={cn('text-xl font-bold font-mono', color)}>{value ?? 0}</p>
                   <p className="text-xs text-text-muted mt-0.5">{label}</p>
                 </div>
@@ -1173,13 +1173,13 @@ SECTION  1      "A.6 — Org…"       A.6           ← back to level 1`}
             </div>
           )}
           {result.log?.length > 0 && (
-            <div className="max-h-56 overflow-y-auto rounded-lg border border-border bg-surface-overlay p-3 flex flex-col gap-0.5 font-mono text-xs">
+            <div className="max-h-56 overflow-y-auto rounded-card border border-border bg-surface-overlay p-3 flex flex-col gap-0.5 font-mono text-xs">
               {result.log.map((entry, i) => (
                 <div key={i} className={cn('flex items-start gap-2',
                   entry.status === 'SUCCESS' && 'text-text-secondary',
-                  entry.status === 'ERROR'   && 'text-red-400',
-                  entry.status === 'WARNING' && 'text-amber-400',
-                  entry.status === 'INFO'    && 'text-brand-400')}>
+                  entry.status === 'ERROR'   && 'text-status-fail-fg',
+                  entry.status === 'WARNING' && 'text-status-warn-fg',
+                  entry.status === 'INFO'    && 'text-brand-ink')}>
                   {entry.status === 'SUCCESS' && <CheckCircle2 size={11} className="mt-0.5 shrink-0" />}
                   {entry.status === 'ERROR'   && <XCircle      size={11} className="mt-0.5 shrink-0" />}
                   {entry.status === 'WARNING' && <AlertCircle  size={11} className="mt-0.5 shrink-0" />}
@@ -1265,10 +1265,10 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
 
       {/* Mode tabs */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex gap-1 p-1 rounded-lg bg-surface-overlay border border-border w-fit">
+        <div className="flex gap-1 p-1 rounded-card bg-surface-overlay border border-border w-fit">
           {[{ key: 'pick', label: 'Pick from library' }, { key: 'create', label: 'Create new' }].map(t => (
             <button key={t.key} onClick={() => setMode(t.key)}
-              className={cn('px-3 py-1.5 text-xs rounded-md font-medium transition-colors flex items-center gap-1',
+              className={cn('px-3 py-1.5 text-xs rounded-ctl font-medium transition-colors flex items-center gap-1',
                 mode === t.key ? 'bg-surface-raised text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary')}>
               {t.key === 'create' && <Plus size={11} />}{t.label}
             </button>
@@ -1276,7 +1276,7 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
         </div>
         {mode === 'create' && (
           <div className="flex items-center gap-2 text-[11px] text-text-muted">
-            <span className="flex items-center justify-center h-4 w-4 rounded-full bg-brand-500 text-white text-[9px] font-bold">1</span>
+            <span className="flex items-center justify-center h-4 w-4 rounded-full bg-brand-500 text-brand-900 text-[9px] font-bold">1</span>
             <span className="text-text-secondary font-medium">Fill details</span>
             <span>→</span>
             <span className="flex items-center justify-center h-4 w-4 rounded-full bg-surface-overlay border border-border text-[9px] font-bold">2</span>
@@ -1290,10 +1290,10 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
           <div className="relative">
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search sections…"
-              className="h-8 pl-8 pr-3 w-full rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
-          <div className="max-h-72 overflow-y-auto rounded-lg border border-border divide-y divide-border">
-            {isLoading && <div className="flex items-center justify-center py-10"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>}
+          <div className="max-h-72 overflow-y-auto rounded-card border border-border divide-y divide-border">
+            {isLoading && <div className="flex items-center justify-center py-10"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>}
             {!isLoading && filtered.length === 0 && (
               <div className="flex flex-col items-center justify-center py-10">
                 <BookOpen size={20} className="text-text-muted mb-2" />
@@ -1312,7 +1312,7 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
                   </div>
                   {s.frameworkRef && <p className="text-[10px] text-text-muted mt-0.5">{s.frameworkRef}</p>}
                 </div>
-                {selected?.id === s.id && <CheckCircle2 size={14} className="text-brand-400 shrink-0" />}
+                {selected?.id === s.id && <CheckCircle2 size={14} className="text-brand-ink shrink-0" />}
               </button>
             ))}
           </div>
@@ -1324,23 +1324,23 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
           <div>
             <label className="block text-xs text-text-secondary mb-1">Section name *</label>
             <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. A — Organisational Controls"
-              className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-text-secondary mb-1">Section code</label>
               <input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="e.g. A, CC6"
-                className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
               <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
               <input value={newFw} onChange={e => setNewFw(e.target.value)} placeholder="e.g. ISO 27001"
-                className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
-          <div className="flex items-start gap-2 p-3 bg-brand-500/5 border border-brand-500/20 rounded-lg">
-            <AlertCircle size={12} className="text-brand-400 mt-0.5 shrink-0" />
-            <p className="text-[11px] text-brand-400/80 leading-relaxed">Creates a new root section in the library and maps it to this template immediately.</p>
+          <div className="flex items-start gap-2 p-3 bg-brand-500/5 border border-brand-500/20 rounded-card">
+            <AlertCircle size={12} className="text-brand-ink mt-0.5 shrink-0" />
+            <p className="text-[11px] text-brand-ink/80 leading-relaxed">Creates a new root section in the library and maps it to this template immediately.</p>
           </div>
         </div>
       )}
@@ -1483,19 +1483,19 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
   // ── Shared Test/Policy link panels (used in both pick right-panel and step-2) ──
   const testLinkPanelJsx = (
     <div className="flex flex-col gap-2">
-      <div className="rounded-lg border border-border divide-y divide-border">
-        {loadingLinkedTests && <div className="flex justify-center py-3"><Loader2 size={13} className="text-brand-400 animate-spin" /></div>}
+      <div className="rounded-card border border-border divide-y divide-border">
+        {loadingLinkedTests && <div className="flex justify-center py-3"><Loader2 size={13} className="text-brand-ink animate-spin" /></div>}
         {!loadingLinkedTests && linkedTests.length === 0 && <p className="text-[11px] text-text-muted px-3 py-3">No tests linked yet.</p>}
         {!loadingLinkedTests && linkedTests.map(t => {
           const id = t.id ?? t.testId
           return (
             <div key={id} className="flex items-center gap-2 px-2 py-1.5 group">
               <div className="flex-1 min-w-0">
-                {t.testRef && <span className="font-mono text-[9px] text-brand-400 mr-1">{t.testRef}</span>}
+                {t.testRef && <span className="font-mono text-[9px] text-brand-ink mr-1">{t.testRef}</span>}
                 <span className="text-[11px] text-text-primary line-clamp-1">{t.testName ?? t.name}</span>
               </div>
               <button onClick={() => unlinkTest(id)} disabled={unlinkingTest}
-                className="h-4 w-4 flex items-center justify-center rounded text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+                className="h-4 w-4 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg opacity-0 group-hover:opacity-100 transition-all">
                 <Trash2 size={9} />
               </button>
             </div>
@@ -1504,7 +1504,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
       </div>
       {/* Link existing */}
       <button onClick={() => { setShowTestPicker(v => !v); setShowCreateTestStep2(false) }}
-        className="flex items-center gap-1 text-[11px] text-brand-400 hover:text-brand-300">
+        className="flex items-center gap-1 text-[11px] text-brand-ink hover:text-brand-ink">
         <Plus size={10} /> {showTestPicker ? 'Hide' : 'Link existing test'}
       </button>
       {showTestPicker && (
@@ -1514,8 +1514,8 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
             <input value={testSearch} onChange={e => setTestSearch(e.target.value)} placeholder="Search tests…"
               className="h-6 pl-5 pr-2 w-full rounded border border-border bg-surface-raised text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
-          <div className="max-h-32 overflow-y-auto rounded-lg border border-border divide-y divide-border">
-            {loadingAllTests && <div className="flex justify-center py-3"><Loader2 size={12} className="text-brand-400 animate-spin" /></div>}
+          <div className="max-h-32 overflow-y-auto rounded-card border border-border divide-y divide-border">
+            {loadingAllTests && <div className="flex justify-center py-3"><Loader2 size={12} className="text-brand-ink animate-spin" /></div>}
             {!loadingAllTests && availableTests.length === 0 && <p className="text-[11px] text-text-muted px-2 py-2">No available tests.</p>}
             {!loadingAllTests && availableTests.map(t => {
               const id = t.id ?? t.testId
@@ -1523,7 +1523,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                 <button key={id} onClick={() => linkTest(id)} disabled={linkingTest}
                   className="w-full text-left flex items-center gap-2 px-2 py-1.5 hover:bg-surface-overlay transition-colors">
                   <div className="flex-1 min-w-0">
-                    {t.testRef && <span className="font-mono text-[9px] text-brand-400 mr-1">{t.testRef}</span>}
+                    {t.testRef && <span className="font-mono text-[9px] text-brand-ink mr-1">{t.testRef}</span>}
                     <span className="text-[11px] text-text-primary line-clamp-1">{t.testName ?? t.name}</span>
                   </div>
                   <Plus size={9} className="text-text-muted shrink-0" />
@@ -1535,11 +1535,11 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
       )}
       {/* Create new test */}
       <button onClick={() => { setShowCreateTestStep2(v => !v); setShowTestPicker(false) }}
-        className="flex items-center gap-1 text-[11px] text-brand-400 hover:text-brand-300">
+        className="flex items-center gap-1 text-[11px] text-brand-ink hover:text-brand-ink">
         <Plus size={10} /> {showCreateTestStep2 ? 'Hide' : 'Create new test'}
       </button>
       {showCreateTestStep2 && (
-        <div className="flex flex-col gap-2 p-2 rounded-lg border border-border bg-surface-overlay">
+        <div className="flex flex-col gap-2 p-2 rounded-card border border-border bg-surface-overlay">
           <input value={nt2Name} onChange={e => setNt2Name(e.target.value)} placeholder="Test name *"
             className="h-6 px-2 w-full rounded border border-border bg-surface-raised text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           <div className="grid grid-cols-2 gap-1.5">
@@ -1558,7 +1558,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
           </select>
           <button onClick={() => createAndLinkTestStep2({ name: nt2Name.trim(), testRef: nt2Ref.trim() || null, frequency: nt2Freq || null, automationType: nt2Auto })}
             disabled={!nt2Name.trim() || creatingTestStep2}
-            className="h-6 px-3 rounded text-[11px] font-medium bg-brand-500 text-white disabled:opacity-50 hover:bg-brand-600 transition-colors flex items-center justify-center gap-1">
+            className="h-6 px-3 rounded text-[11px] font-medium bg-brand-500 text-brand-900 disabled:opacity-50 hover:bg-brand-600 transition-colors flex items-center justify-center gap-1">
             {creatingTestStep2 ? <Loader2 size={10} className="animate-spin" /> : <Plus size={10} />}
             Create &amp; Link
           </button>
@@ -1569,19 +1569,19 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
 
   const policyLinkPanelJsx = (
     <div className="flex flex-col gap-2">
-      <div className="rounded-lg border border-border divide-y divide-border">
-        {loadingLinkedPolicies && <div className="flex justify-center py-3"><Loader2 size={13} className="text-brand-400 animate-spin" /></div>}
+      <div className="rounded-card border border-border divide-y divide-border">
+        {loadingLinkedPolicies && <div className="flex justify-center py-3"><Loader2 size={13} className="text-brand-ink animate-spin" /></div>}
         {!loadingLinkedPolicies && linkedPolicies.length === 0 && <p className="text-[11px] text-text-muted px-3 py-3">No policies linked yet.</p>}
         {!loadingLinkedPolicies && linkedPolicies.map(p => {
           const id = p.id ?? p.policyId
           return (
             <div key={id} className="flex items-center gap-2 px-2 py-1.5 group">
               <div className="flex-1 min-w-0">
-                {p.policyRef && <span className="font-mono text-[9px] text-brand-400 mr-1">{p.policyRef}</span>}
+                {p.policyRef && <span className="font-mono text-[9px] text-brand-ink mr-1">{p.policyRef}</span>}
                 <span className="text-[11px] text-text-primary line-clamp-1">{p.title}</span>
               </div>
               <button onClick={() => unlinkPolicy(id)} disabled={unlinkingPolicy}
-                className="h-4 w-4 flex items-center justify-center rounded text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+                className="h-4 w-4 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg opacity-0 group-hover:opacity-100 transition-all">
                 <Trash2 size={9} />
               </button>
             </div>
@@ -1589,7 +1589,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
         })}
       </div>
       <button onClick={() => setShowPolPicker(v => !v)}
-        className="flex items-center gap-1 text-[11px] text-brand-400 hover:text-brand-300">
+        className="flex items-center gap-1 text-[11px] text-brand-ink hover:text-brand-ink">
         <Plus size={10} /> {showPolPicker ? 'Hide' : 'Link a policy'}
       </button>
       {showPolPicker && (
@@ -1599,8 +1599,8 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
             <input value={polSearch} onChange={e => setPolSearch(e.target.value)} placeholder="Search policies…"
               className="h-6 pl-5 pr-2 w-full rounded border border-border bg-surface-raised text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
-          <div className="max-h-32 overflow-y-auto rounded-lg border border-border divide-y divide-border">
-            {loadingAllPolicies && <div className="flex justify-center py-3"><Loader2 size={12} className="text-brand-400 animate-spin" /></div>}
+          <div className="max-h-32 overflow-y-auto rounded-card border border-border divide-y divide-border">
+            {loadingAllPolicies && <div className="flex justify-center py-3"><Loader2 size={12} className="text-brand-ink animate-spin" /></div>}
             {!loadingAllPolicies && availablePolicies.length === 0 && <p className="text-[11px] text-text-muted px-2 py-2">No available policies.</p>}
             {!loadingAllPolicies && availablePolicies.map(p => {
               const id = p.id ?? p.policyId
@@ -1608,7 +1608,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                 <button key={id} onClick={() => linkPolicy(id)} disabled={linkingPolicy}
                   className="w-full text-left flex items-center gap-2 px-2 py-1.5 hover:bg-surface-overlay transition-colors">
                   <div className="flex-1 min-w-0">
-                    {p.policyRef && <span className="font-mono text-[9px] text-brand-400 mr-1">{p.policyRef}</span>}
+                    {p.policyRef && <span className="font-mono text-[9px] text-brand-ink mr-1">{p.policyRef}</span>}
                     <span className="text-[11px] text-text-primary line-clamp-1">{p.title}</span>
                   </div>
                   <Plus size={9} className="text-text-muted shrink-0" />
@@ -1624,7 +1624,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
   // ── Right panel: Config / Tests / Policies tabs (pick mode) ──
   const rightPanelJsx = (
     <div className="w-56 shrink-0 flex flex-col gap-2">
-      <div className="flex gap-0.5 p-0.5 rounded-md bg-surface-overlay border border-border">
+      <div className="flex gap-0.5 p-0.5 rounded-ctl bg-surface-overlay border border-border">
         {[{ key: 'config', label: 'Config' }, { key: 'tests', label: 'Tests' }, { key: 'policies', label: 'Policies' }].map(t => (
           <button key={t.key} onClick={() => setRightTab(t.key)}
             className={cn('flex-1 py-1 text-[10px] rounded font-medium transition-colors',
@@ -1633,7 +1633,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
           </button>
         ))}
       </div>
-      <div className="flex-1 p-3 rounded-lg bg-surface-overlay border border-border overflow-y-auto" style={{ maxHeight: '360px' }}>
+      <div className="flex-1 p-3 rounded-card bg-surface-overlay border border-border overflow-y-auto" style={{ maxHeight: '360px' }}>
 
         {/* ── Config tab ── */}
         {rightTab === 'config' && (
@@ -1651,13 +1651,13 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                 <div>
                   <label className="text-[11px] font-medium text-text-secondary uppercase tracking-wide block mb-1">Weight</label>
                   <input type="number" value={weight} onChange={e => setWeight(e.target.value)} placeholder="1.0"
-                    className="h-7 w-full rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="h-7 w-full rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <button type="button" onClick={() => setMandatory(m => !m)}
                     className={cn('relative inline-flex h-4 w-7 items-center rounded-full transition-colors shrink-0',
                       mandatory ? 'bg-brand-500' : 'bg-surface-raised border border-border')}>
-                    <span className={cn('inline-block h-3 w-3 transform rounded-full bg-white transition-transform',
+                    <span className={cn('inline-block h-3 w-3 transform rounded-full bg-surface-raised transition-transform',
                       mandatory ? 'translate-x-3.5' : 'translate-x-0.5')} />
                   </button>
                   <span className="text-xs text-text-primary">Mandatory</span>
@@ -1699,12 +1699,12 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
         <div className="flex items-center justify-between">
           <p className="text-xs text-text-muted">
             {createdControl
-              ? <span className="text-green-400">✓ "{createdControl.name}" created and mapped</span>
+              ? <span className="text-status-pass-fg">✓ "{createdControl.name}" created and mapped</span>
               : mode === 'pick'
                 ? selected
-                  ? <span className="text-brand-400">"{selected.name.slice(0, 50)}{selected.name.length > 50 ? '…' : ''}" selected</span>
+                  ? <span className="text-brand-ink">"{selected.name.slice(0, 50)}{selected.name.length > 50 ? '…' : ''}" selected</span>
                   : 'No control selected'
-                : <span className="text-brand-400">New control will be created and mapped</span>}
+                : <span className="text-brand-ink">New control will be created and mapped</span>}
           </p>
           <div className="flex gap-2">
             {createdControl
@@ -1730,12 +1730,12 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
               <span className="flex items-center justify-center h-4 w-4 rounded-full bg-surface-overlay border border-border text-[9px] font-bold line-through opacity-50">1</span>
               <span className="line-through opacity-50">Fill details</span>
               <span>→</span>
-              <span className="flex items-center justify-center h-4 w-4 rounded-full bg-brand-500 text-white text-[9px] font-bold">2</span>
+              <span className="flex items-center justify-center h-4 w-4 rounded-full bg-brand-500 text-brand-900 text-[9px] font-bold">2</span>
               <span className="text-text-secondary font-medium">Link tests &amp; policies</span>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-green-500/5 border border-green-500/20">
-            <CheckCircle2 size={16} className="text-green-400 shrink-0" />
+          <div className="flex items-center gap-3 p-3 rounded-card bg-status-pass-bg border border-status-pass-bd">
+            <CheckCircle2 size={16} className="text-status-pass-fg shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-text-primary">
                 {createdControl.name}
@@ -1764,10 +1764,10 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
       ) : (
         <>
           {/* Mode tabs */}
-          <div className="flex gap-1 mb-4 p-1 rounded-lg bg-surface-overlay border border-border w-fit">
+          <div className="flex gap-1 mb-4 p-1 rounded-card bg-surface-overlay border border-border w-fit">
             {[{ key: 'pick', label: 'Pick from library' }, { key: 'create', label: 'Create new' }].map(t => (
               <button key={t.key} onClick={() => setMode(t.key)}
-                className={cn('px-3 py-1.5 text-xs rounded-md font-medium transition-colors flex items-center gap-1',
+                className={cn('px-3 py-1.5 text-xs rounded-ctl font-medium transition-colors flex items-center gap-1',
                   mode === t.key ? 'bg-surface-raised text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary')}>
                 {t.key === 'create' && <Plus size={11} />}{t.label}
               </button>
@@ -1781,16 +1781,16 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                   <div className="relative flex-1">
                     <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                     <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search controls…"
-                      className="h-7 pl-8 pr-3 w-full rounded-md border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="h-7 pl-8 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
                   <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
-                    className="h-7 appearance-none pl-2 pr-6 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    className="h-7 appearance-none pl-2 pr-6 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                     <option value="">All types</option>
                     {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </div>
-                <div className="flex-1 overflow-y-auto rounded-lg border border-border divide-y divide-border">
-                  {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>}
+                <div className="flex-1 overflow-y-auto rounded-card border border-border divide-y divide-border">
+                  {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>}
                   {!isLoading && filtered.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-10">
                       <Shield size={20} className="text-text-muted mb-2" />
@@ -1815,7 +1815,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                           {c.controlTag && <GuardTagBadge tag={c.controlTag} />}
                         </div>
                       </div>
-                      {selected?.id === c.id && <CheckCircle2 size={14} className="text-brand-400 shrink-0 mt-0.5" />}
+                      {selected?.id === c.id && <CheckCircle2 size={14} className="text-brand-ink shrink-0 mt-0.5" />}
                     </button>
                   ))}
                 </div>
@@ -1830,58 +1830,58 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                 <div>
                   <label className="block text-xs text-text-secondary mb-1">Control name *</label>
                   <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. User access management"
-                    className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-text-secondary mb-1">Control code</label>
                     <input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="e.g. CC6.1, A.9.1.1"
-                      className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
                   <div>
                     <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
                     <input value={newFw} onChange={e => setNewFw(e.target.value)} placeholder="e.g. SOC 2, ISO 27001"
-                      className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-text-secondary mb-1">Test type</label>
                     <select value={newType} onChange={e => setNewType(e.target.value)}
-                      className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                      className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                       {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs text-text-secondary mb-1">Guard tag</label>
                     <input value={newTag} onChange={e => setNewTag(e.target.value.toUpperCase())} placeholder="e.g. MFA, ENCRYPTION"
-                      className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs text-text-secondary mb-1">Description</label>
                   <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} rows={2}
-                    className="w-full px-3 py-2 rounded-md border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
-                <div className="flex items-start gap-2 p-3 bg-brand-500/5 border border-brand-500/20 rounded-lg">
-                  <AlertCircle size={12} className="text-brand-400 mt-0.5 shrink-0" />
-                  <p className="text-[11px] text-brand-400/80 leading-relaxed">Control will be added to the library and immediately mapped into this section. You can link tests and policies on the next step.</p>
+                <div className="flex items-start gap-2 p-3 bg-brand-500/5 border border-brand-500/20 rounded-card">
+                  <AlertCircle size={12} className="text-brand-ink mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-brand-ink/80 leading-relaxed">Control will be added to the library and immediately mapped into this section. You can link tests and policies on the next step.</p>
                 </div>
               </div>
               <div className="w-56 shrink-0">
-                <div className="p-3 rounded-lg bg-surface-overlay border border-border">
+                <div className="p-3 rounded-card bg-surface-overlay border border-border">
                   <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">Mapping config</p>
                   <div className="flex flex-col gap-3">
                     <div>
                       <label className="text-[11px] font-medium text-text-secondary uppercase tracking-wide block mb-1">Weight</label>
                       <input type="number" value={weight} onChange={e => setWeight(e.target.value)} placeholder="1.0"
-                        className="h-7 w-full rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                        className="h-7 w-full rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                     </div>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <button type="button" onClick={() => setMandatory(m => !m)}
                         className={cn('relative inline-flex h-4 w-7 items-center rounded-full transition-colors shrink-0',
                           mandatory ? 'bg-brand-500' : 'bg-surface-raised border border-border')}>
-                        <span className={cn('inline-block h-3 w-3 transform rounded-full bg-white transition-transform',
+                        <span className={cn('inline-block h-3 w-3 transform rounded-full bg-surface-raised transition-transform',
                           mandatory ? 'translate-x-3.5' : 'translate-x-0.5')} />
                       </button>
                       <span className="text-xs text-text-primary">Mandatory</span>
@@ -1936,11 +1936,11 @@ function EditSectionModal({ section, templateId, onClose }) {
         </div>
       }>
       <div className="flex flex-col gap-4">
-        <div className="flex items-start gap-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-          <AlertCircle size={13} className="text-amber-400 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-400/80 leading-relaxed">
+        <div className="flex items-start gap-2 p-3 bg-status-warn-bg border border-status-warn-bd rounded-card">
+          <AlertCircle size={13} className="text-status-warn-fg mt-0.5 shrink-0" />
+          <p className="text-xs text-status-warn-fg leading-relaxed">
             This edits the{' '}
-            <span className="font-semibold text-amber-400">shared library section</span> — changes
+            <span className="font-semibold text-status-warn-fg">shared library section</span> — changes
             will appear in every template that uses it.
           </p>
         </div>
@@ -1948,20 +1948,20 @@ function EditSectionModal({ section, templateId, onClose }) {
           <label className="block text-xs text-text-secondary mb-1">Section name *</label>
           <input value={name} onChange={e => { setName(e.target.value); setError('') }}
             placeholder={displayName || 'Section name'}
-            className={cn('w-full h-9 px-3 rounded-md border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500',
-              error ? 'border-red-500/50' : 'border-border')} />
-          {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
+            className={cn('w-full h-9 px-3 rounded-ctl border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500',
+              error ? 'border-status-fail-bd' : 'border-border')} />
+          {error && <p className="text-xs text-status-fail-fg mt-1">{error}</p>}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-text-secondary mb-1">Section code</label>
             <input value={sectionCode} onChange={e => setCode(e.target.value)} placeholder="e.g. A.9"
-              className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
             <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
             <input value={frameworkRef} onChange={e => setFw(e.target.value)} placeholder="e.g. ISO 27001"
-              className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
         </div>
       </div>
@@ -2024,7 +2024,7 @@ function AddChildSectionModal({ open, parentSection, templateId, onClose }) {
             value={form.name}
             onChange={e => set('name', e.target.value)}
             placeholder="e.g. A.5.1 — IS Policies"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -2034,7 +2034,7 @@ function AddChildSectionModal({ open, parentSection, templateId, onClose }) {
               value={form.sectionCode}
               onChange={e => set('sectionCode', e.target.value)}
               placeholder="e.g. A.5.1"
-              className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
           <div>
@@ -2043,7 +2043,7 @@ function AddChildSectionModal({ open, parentSection, templateId, onClose }) {
               value={form.frameworkRef}
               onChange={e => set('frameworkRef', e.target.value)}
               placeholder="e.g. ISO 27001"
-              className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
         </div>
@@ -2235,7 +2235,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                 <Weight size={10} /> {control.weight}
               </span>
             )}
-            {control.mandatory && <span className="text-xs text-red-400 font-medium">Required</span>}
+            {control.mandatory && <span className="text-xs text-status-fail-fg font-medium">Required</span>}
             {control.controlTag && <GuardTagBadge tag={control.controlTag} />}
           </div>
           {control.description && (
@@ -2249,7 +2249,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
               <Pencil size={12} />
             </button>
             <button onClick={() => setShowRemove(true)}
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10">
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg">
               <Trash2 size={12} />
             </button>
           </div>
@@ -2268,14 +2268,14 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
         }>
 
         {/* Tab strip */}
-        <div className="flex gap-1 p-1 rounded-lg bg-surface-overlay border border-border w-fit mb-5">
+        <div className="flex gap-1 p-1 rounded-card bg-surface-overlay border border-border w-fit mb-5">
           {[
             { key: 'details',  label: 'Details & Mapping' },
             { key: 'tests',    label: `Tests${linkedTests.length ? ` (${linkedTests.length})` : ''}` },
             { key: 'policies', label: `Policies${linkedPolicies.length ? ` (${linkedPolicies.length})` : ''}` },
           ].map(t => (
             <button key={t.key} onClick={() => setEditTab(t.key)}
-              className={cn('px-3 py-1.5 text-xs rounded-md font-medium transition-colors',
+              className={cn('px-3 py-1.5 text-xs rounded-ctl font-medium transition-colors',
                 editTab === t.key ? 'bg-surface-raised text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary')}>
               {t.label}
             </button>
@@ -2285,11 +2285,11 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
         {/* ── Details & Mapping tab ── */}
         {editTab === 'details' && (
           <div className="flex flex-col gap-5">
-            <div className="flex items-start gap-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-              <AlertCircle size={13} className="text-amber-400 mt-0.5 shrink-0" />
-              <p className="text-xs text-amber-400/80 leading-relaxed">
+            <div className="flex items-start gap-2 p-3 bg-status-warn-bg border border-status-warn-bd rounded-card">
+              <AlertCircle size={13} className="text-status-warn-fg mt-0.5 shrink-0" />
+              <p className="text-xs text-status-warn-fg leading-relaxed">
                 Changes to name, code, test type, and guard tag update the{' '}
-                <span className="font-semibold text-amber-400">shared library control</span> — reflected in
+                <span className="font-semibold text-status-warn-fg">shared library control</span> — reflected in
                 every template that uses it. Weight and mandatory status are specific to this section.
               </p>
             </div>
@@ -2299,40 +2299,40 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
               <div>
                 <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Control name *</label>
                 <input value={libName} onChange={e => { setLibName(e.target.value); setLibErrors({}) }}
-                  className={cn('w-full h-9 px-3 rounded-md border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500',
-                    libErrors.libName ? 'border-red-500/50' : 'border-border')} />
-                {libErrors.libName && <p className="text-xs text-red-400 mt-1">{libErrors.libName}</p>}
+                  className={cn('w-full h-9 px-3 rounded-ctl border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500',
+                    libErrors.libName ? 'border-status-fail-bd' : 'border-border')} />
+                {libErrors.libName && <p className="text-xs text-status-fail-fg mt-1">{libErrors.libName}</p>}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Control code</label>
                   <input value={libCode} onChange={e => setLibCode(e.target.value)} placeholder="e.g. A.9.1.1"
-                    className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Framework ref</label>
                   <input value={libFw} onChange={e => setLibFw(e.target.value)} placeholder="e.g. ISO 27001"
-                    className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Test type</label>
                   <select value={libTestType} onChange={e => setLibTestType(e.target.value)}
-                    className="h-9 w-full appearance-none pl-3 pr-8 rounded-md border border-border text-sm text-text-primary bg-surface-raised focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    className="h-9 w-full appearance-none pl-3 pr-8 rounded-ctl border border-border text-sm text-text-primary bg-surface-raised focus:outline-none focus:ring-1 focus:ring-brand-500">
                     {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Guard tag</label>
                   <input value={libTag} onChange={e => setLibTag(e.target.value.toUpperCase())} placeholder="e.g. MFA, ENCRYPTION"
-                    className="h-9 w-full rounded-md border border-border bg-surface-raised px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="h-9 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
               </div>
               <div>
                 <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Description</label>
                 <textarea rows={2} value={libDesc} onChange={e => setLibDesc(e.target.value)}
-                  className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </div>
             </div>
 
@@ -2347,13 +2347,13 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                 <div>
                   <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Weight</label>
                   <input type="number" value={mapWeight} onChange={e => setMapWeight(e.target.value)} placeholder="1.0"
-                    className="h-9 w-full rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="h-9 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <label className="flex items-center gap-3 cursor-pointer pt-5">
                   <button type="button" onClick={() => setMapMandatory(m => !m)}
                     className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0',
                       mapMandatory ? 'bg-brand-500' : 'bg-surface-raised border border-border')}>
-                    <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform',
+                    <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-surface-raised transition-transform',
                       mapMandatory ? 'translate-x-4' : 'translate-x-0.5')} />
                   </button>
                   <span className="text-sm text-text-primary">Mandatory</span>
@@ -2368,9 +2368,9 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
           <div className="flex flex-col gap-3">
             {/* Linked tests list */}
             {loadingLT ? (
-              <div className="flex justify-center py-6"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>
+              <div className="flex justify-center py-6"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>
             ) : (
-              <div className="rounded-lg border border-border divide-y divide-border">
+              <div className="rounded-card border border-border divide-y divide-border">
                 {linkedTests.length === 0 && (
                   <p className="text-sm text-text-muted px-4 py-4">No tests linked to this control yet.</p>
                 )}
@@ -2382,11 +2382,11 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                       {!isEditing ? (
                         <div className="flex items-center gap-3 px-4 py-2.5 group hover:bg-surface-overlay transition-colors">
                           <div className="flex-1 min-w-0">
-                            {t.testRef && <span className="font-mono text-[10px] text-brand-400 mr-1.5">{t.testRef}</span>}
+                            {t.testRef && <span className="font-mono text-[10px] text-brand-ink mr-1.5">{t.testRef}</span>}
                             <span className="text-sm text-text-primary">{t.testName ?? t.name}</span>
                             {t.frequency && <span className="text-[10px] text-text-muted ml-2">{t.frequency}</span>}
                             {t.automationType && t.automationType !== 'MANUAL' && (
-                              <span className="text-[10px] text-brand-400 ml-1.5">{t.automationType}</span>
+                              <span className="text-[10px] text-brand-ink ml-1.5">{t.automationType}</span>
                             )}
                           </div>
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
@@ -2395,7 +2395,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                               <Pencil size={11} />
                             </button>
                             <button onClick={() => unlinkTest(id)} disabled={unlinkingTest} title="Unlink"
-                              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10">
+                              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg">
                               <Trash2 size={11} />
                             </button>
                           </div>
@@ -2404,17 +2404,17 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                         <div className="px-4 py-3 bg-surface-overlay flex flex-col gap-2">
                           <input value={etName} onChange={e => setEtName(e.target.value)}
                             placeholder="Test name *"
-                            className="w-full h-8 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                            className="w-full h-8 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                           <div className="grid grid-cols-3 gap-2">
                             <input value={etRef} onChange={e => setEtRef(e.target.value)} placeholder="Ref"
-                              className="h-7 px-2 rounded-md border border-border bg-surface-raised text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                              className="h-7 px-2 rounded-ctl border border-border bg-surface-raised text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                             <select value={etFreq} onChange={e => setEtFreq(e.target.value)}
-                              className="h-7 px-2 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                              className="h-7 px-2 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                               <option value="">Frequency</option>
                               {freqOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                             </select>
                             <select value={etAuto} onChange={e => setEtAuto(e.target.value)}
-                              className="h-7 px-2 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                              className="h-7 px-2 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                               <option value="MANUAL">Manual</option>
                               <option value="AUTOMATED">Automated</option>
                             </select>
@@ -2427,7 +2427,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                             <button
                               onClick={() => updateTest({ id, data: { name: etName.trim(), testRef: etRef.trim() || null, frequency: etFreq || null, automationType: etAuto } })}
                               disabled={!etName.trim() || updatingTest}
-                              className="px-3 py-1 text-xs font-medium bg-brand-500 text-white rounded disabled:opacity-50 hover:bg-brand-600 transition-colors flex items-center gap-1">
+                              className="px-3 py-1 text-xs font-medium bg-brand-500 text-brand-900 rounded disabled:opacity-50 hover:bg-brand-600 transition-colors flex items-center gap-1">
                               {updatingTest ? <Loader2 size={10} className="animate-spin" /> : null}
                               Save
                             </button>
@@ -2443,7 +2443,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
             {/* Link existing test */}
             <div className="border-t border-border pt-3 flex flex-col gap-2">
               <button onClick={() => { setShowTestPicker(v => !v); setShowCreateTest(false) }}
-                className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-medium">
+                className="flex items-center gap-1.5 text-xs text-brand-ink hover:text-brand-ink font-medium">
                 <Plus size={12} /> {showTestPicker ? 'Hide picker' : 'Link existing test'}
               </button>
               {showTestPicker && (
@@ -2451,10 +2451,10 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                   <div className="relative">
                     <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                     <input value={testSearch} onChange={e => setTestSearch(e.target.value)} placeholder="Search library tests…"
-                      className="h-7 pl-7 pr-3 w-full rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="h-7 pl-7 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
-                  <div className="max-h-40 overflow-y-auto rounded-lg border border-border divide-y divide-border">
-                    {loadingAT && <div className="flex justify-center py-4"><Loader2 size={14} className="text-brand-400 animate-spin" /></div>}
+                  <div className="max-h-40 overflow-y-auto rounded-card border border-border divide-y divide-border">
+                    {loadingAT && <div className="flex justify-center py-4"><Loader2 size={14} className="text-brand-ink animate-spin" /></div>}
                     {!loadingAT && availableTests.length === 0 && <p className="text-xs text-text-muted px-3 py-3">No available tests.</p>}
                     {!loadingAT && availableTests.map(t => {
                       const id = t.id ?? t.testId
@@ -2462,7 +2462,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                         <button key={id} onClick={() => linkTest(id)} disabled={linkingTest}
                           className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-surface-overlay transition-colors">
                           <div className="flex-1 min-w-0">
-                            {t.testRef && <span className="font-mono text-[10px] text-brand-400 mr-1.5">{t.testRef}</span>}
+                            {t.testRef && <span className="font-mono text-[10px] text-brand-ink mr-1.5">{t.testRef}</span>}
                             <span className="text-xs text-text-primary line-clamp-1">{t.testName ?? t.name}</span>
                           </div>
                           <Plus size={10} className="text-text-muted shrink-0" />
@@ -2477,26 +2477,26 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
             {/* Create new test */}
             <div className="border-t border-border pt-3 flex flex-col gap-2">
               <button onClick={() => { setShowCreateTest(v => !v); setShowTestPicker(false) }}
-                className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-medium">
+                className="flex items-center gap-1.5 text-xs text-brand-ink hover:text-brand-ink font-medium">
                 <Plus size={12} /> {showCreateTest ? 'Hide' : 'Create new test and link'}
               </button>
               {showCreateTest && (
-                <div className="flex flex-col gap-3 p-3 rounded-lg border border-border bg-surface-overlay">
+                <div className="flex flex-col gap-3 p-3 rounded-card border border-border bg-surface-overlay">
                   <div>
                     <label className="block text-xs text-text-secondary mb-1">Test name *</label>
                     <input value={ntName} onChange={e => setNtName(e.target.value)} placeholder="e.g. Review access logs"
-                      className="w-full h-8 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="w-full h-8 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label className="block text-xs text-text-secondary mb-1">Test ref</label>
                       <input value={ntRef} onChange={e => setNtRef(e.target.value)} placeholder="e.g. T-01"
-                        className="w-full h-8 px-2 rounded-md border border-border bg-surface-raised text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                        className="w-full h-8 px-2 rounded-ctl border border-border bg-surface-raised text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                     </div>
                     <div>
                       <label className="block text-xs text-text-secondary mb-1">Frequency</label>
                       <select value={ntFreq} onChange={e => setNtFreq(e.target.value)}
-                        className="w-full h-8 px-2 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                        className="w-full h-8 px-2 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                         <option value="">Frequency</option>
                         {freqOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
@@ -2504,7 +2504,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                     <div>
                       <label className="block text-xs text-text-secondary mb-1">Automation</label>
                       <select value={ntAuto} onChange={e => setNtAuto(e.target.value)}
-                        className="w-full h-8 px-2 rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                        className="w-full h-8 px-2 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                         <option value="MANUAL">Manual</option>
                         <option value="AUTOMATED">Automated</option>
                       </select>
@@ -2524,9 +2524,9 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
         {editTab === 'policies' && (
           <div className="flex flex-col gap-3">
             {loadingLP ? (
-              <div className="flex justify-center py-6"><Loader2 size={18} className="text-brand-400 animate-spin" /></div>
+              <div className="flex justify-center py-6"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>
             ) : (
-              <div className="rounded-lg border border-border divide-y divide-border">
+              <div className="rounded-card border border-border divide-y divide-border">
                 {linkedPolicies.length === 0 && (
                   <p className="text-sm text-text-muted px-4 py-4">No policies linked to this control yet.</p>
                 )}
@@ -2535,12 +2535,12 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                   return (
                     <div key={id} className="flex items-center gap-3 px-4 py-2.5 group hover:bg-surface-overlay transition-colors">
                       <div className="flex-1 min-w-0">
-                        {p.policyRef && <span className="font-mono text-[10px] text-brand-400 mr-1.5">{p.policyRef}</span>}
+                        {p.policyRef && <span className="font-mono text-[10px] text-brand-ink mr-1.5">{p.policyRef}</span>}
                         <span className="text-sm text-text-primary">{p.title}</span>
                         {p.status && <span className="text-[10px] text-text-muted ml-2">{p.status}</span>}
                       </div>
                       <button onClick={() => unlinkPolicy(id)} disabled={unlinkingPolicy} title="Unlink"
-                        className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all">
+                        className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg opacity-0 group-hover:opacity-100 transition-all">
                         <Trash2 size={11} />
                       </button>
                     </div>
@@ -2551,7 +2551,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
 
             <div className="border-t border-border pt-3 flex flex-col gap-2">
               <button onClick={() => setShowPolPicker(v => !v)}
-                className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-medium">
+                className="flex items-center gap-1.5 text-xs text-brand-ink hover:text-brand-ink font-medium">
                 <Plus size={12} /> {showPolPicker ? 'Hide picker' : 'Link a policy'}
               </button>
               {showPolPicker && (
@@ -2559,10 +2559,10 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                   <div className="relative">
                     <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                     <input value={polSearch} onChange={e => setPolSearch(e.target.value)} placeholder="Search library policies…"
-                      className="h-7 pl-7 pr-3 w-full rounded-md border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="h-7 pl-7 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
-                  <div className="max-h-48 overflow-y-auto rounded-lg border border-border divide-y divide-border">
-                    {loadingAP && <div className="flex justify-center py-4"><Loader2 size={14} className="text-brand-400 animate-spin" /></div>}
+                  <div className="max-h-48 overflow-y-auto rounded-card border border-border divide-y divide-border">
+                    {loadingAP && <div className="flex justify-center py-4"><Loader2 size={14} className="text-brand-ink animate-spin" /></div>}
                     {!loadingAP && availablePolicies.length === 0 && <p className="text-xs text-text-muted px-3 py-3">No available policies.</p>}
                     {!loadingAP && availablePolicies.map(p => {
                       const id = p.id ?? p.policyId
@@ -2570,7 +2570,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                         <button key={id} onClick={() => linkPolicy(id)} disabled={linkingPolicy}
                           className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-surface-overlay transition-colors">
                           <div className="flex-1 min-w-0">
-                            {p.policyRef && <span className="font-mono text-[10px] text-brand-400 mr-1.5">{p.policyRef}</span>}
+                            {p.policyRef && <span className="font-mono text-[10px] text-brand-ink mr-1.5">{p.policyRef}</span>}
                             <span className="text-xs text-text-primary line-clamp-1">{p.title}</span>
                           </div>
                           <Plus size={10} className="text-text-muted shrink-0" />
@@ -2661,7 +2661,7 @@ function InteractiveChildSection({ node, depth, templateId, isPublished }) {
             <button
               onClick={() => setShowAddChild(true)}
               title="Add child section"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors"
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors"
             >
               <Plus size={11} />
             </button>
@@ -2673,14 +2673,14 @@ function InteractiveChildSection({ node, depth, templateId, isPublished }) {
                 nextOrder:   controls.length + 1,
               })}
               title="Add control"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors"
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors"
             >
               <Shield size={11} />
             </button>
             <button
               onClick={() => setShowDelete(true)}
               title="Delete section from library"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors"
             >
               <Trash2 size={11} />
             </button>
@@ -2807,12 +2807,12 @@ function SectionBlock({ node, index, templateId, isPublished, expanded, onToggle
   const subtotalCount = countSubtreeControls(node)
 
   return (
-    <div className="rounded-lg border border-border bg-surface-raised overflow-hidden">
+    <div className="rounded-card border border-border bg-surface-raised overflow-hidden">
       <div className="flex items-center">
         <button onClick={onToggle}
           className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-surface-overlay transition-colors text-left">
-          <div className="w-6 h-6 rounded-md bg-brand-500/10 flex items-center justify-center shrink-0">
-            <span className="text-xs font-bold text-brand-400">{index + 1}</span>
+          <div className="w-6 h-6 rounded-ctl bg-brand-500/10 flex items-center justify-center shrink-0">
+            <span className="text-xs font-bold text-brand-ink">{index + 1}</span>
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -2836,11 +2836,11 @@ function SectionBlock({ node, index, templateId, isPublished, expanded, onToggle
             </button>
             {/* NEW: Add child section directly from root section header */}
             <button onClick={() => setShowAddChild(true)} title="Add child section"
-              className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+              className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
               <Plus size={13} />
             </button>
             <button onClick={onRemove} title="Remove from template"
-              className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+              className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
               <Trash2 size={13} />
             </button>
           </div>
@@ -2953,7 +2953,7 @@ function AuditTemplateBuilder({ templateId, onBack }) {
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-full">
-      <Loader2 size={24} className="text-brand-400 animate-spin" />
+      <Loader2 size={24} className="text-brand-ink animate-spin" />
     </div>
   )
 
@@ -2964,7 +2964,7 @@ function AuditTemplateBuilder({ templateId, onBack }) {
       <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
           <button onClick={onBack}
-            className="h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
+            className="h-7 w-7 flex items-center justify-center rounded-ctl text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
             <ArrowLeft size={15} />
           </button>
           <div>
@@ -2996,7 +2996,7 @@ function AuditTemplateBuilder({ templateId, onBack }) {
           )}
           {isPublished && (
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 text-xs text-green-400">
+              <div className="flex items-center gap-1.5 text-xs text-status-pass-fg">
                 <CheckCircle2 size={14} /> Published
               </div>
               <Button variant="secondary" size="sm" icon={ArrowLeft} loading={unpublishing} onClick={() => unpublish(templateId)}>
@@ -3036,7 +3036,7 @@ function AuditTemplateBuilder({ templateId, onBack }) {
             ))}
             {!isPublished && (
               <button onClick={() => setShowAddSection(true)}
-                className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-border rounded-lg text-sm text-text-muted hover:text-text-secondary hover:border-border-subtle transition-colors">
+                className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-border rounded-card text-sm text-text-muted hover:text-text-secondary hover:border-border-subtle transition-colors">
                 <Plus size={14} /> Add Root Section from Library
               </button>
             )}
@@ -3118,26 +3118,26 @@ function TemplateMetaForm({ template, templateId, onClose }) {
       <div>
         <label className="block text-xs text-text-secondary mb-1">Template name *</label>
         <input value={form.templateName} onChange={e => set('templateName', e.target.value)}
-          className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Audit type</label>
           <select value={form.auditType} onChange={e => set('auditType', e.target.value)}
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {AUDIT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
           <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)} placeholder="ISO 27001, SOC 2…"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <div>
         <label className="block text-xs text-text-secondary mb-1">Description</label>
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
-          className="w-full px-3 py-2 rounded-md border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <Button variant="primary" loading={isPending} disabled={!form.templateName.trim()}
         onClick={() => update({ id: templateId, data: form })}>
@@ -3169,20 +3169,20 @@ function CreateTemplateForm({ onClose, onCreated }) {
       <div>
         <label className="block text-xs text-text-secondary mb-1">Template name *</label>
         <input value={form.templateName} onChange={e => set('templateName', e.target.value)} placeholder="e.g. ISO 27001 Full Audit"
-          className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Audit type</label>
           <select value={form.auditType} onChange={e => set('auditType', e.target.value)}
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {AUDIT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
           <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)} placeholder="ISO 27001, SOC 2…"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <Button variant="primary" loading={isPending} disabled={!form.templateName.trim()} onClick={() => create(form)}>
@@ -3223,26 +3223,26 @@ function EditTemplateRowForm({ template, onClose }) {
       <div>
         <label className="block text-xs text-text-secondary mb-1">Template name *</label>
         <input value={form.templateName} onChange={e => set('templateName', e.target.value)}
-          className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Audit type</label>
           <select value={form.auditType} onChange={e => set('auditType', e.target.value)}
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {AUDIT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
           <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)} placeholder="ISO 27001, SOC 2…"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <div>
         <label className="block text-xs text-text-secondary mb-1">Description</label>
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
-          className="w-full px-3 py-2 rounded-md border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <Button variant="primary" loading={isPending} disabled={!form.templateName.trim()}
         onClick={() => update({ id: template.id, data: form })}>
@@ -3354,14 +3354,14 @@ function AuditProjectBuilder({ projectId, onBack }) {
   const visibility  = project?.visibility ?? 'GLOBAL'
 
   const VISIBILITY_OPTIONS = [
-    { key: 'GLOBAL',   label: 'Global',   desc: 'All organisations',   color: 'text-green-400 border-green-500/30 bg-green-500/10' },
-    { key: 'SPECIFIC', label: 'Specific', desc: 'Named tenants only',  color: 'text-brand-400 border-brand-500/30 bg-brand-500/10' },
-    { key: 'PLATFORM', label: 'Platform', desc: 'Platform admin only', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
+    { key: 'GLOBAL',   label: 'Global',   desc: 'All organisations',   color: 'text-status-pass-fg border-status-pass-bd bg-status-pass-bg' },
+    { key: 'SPECIFIC', label: 'Specific', desc: 'Named tenants only',  color: 'text-brand-ink border-brand-500/30 bg-brand-500/10' },
+    { key: 'PLATFORM', label: 'Platform', desc: 'Platform admin only', color: 'text-status-warn-fg border-status-warn-bd bg-status-warn-bg' },
   ]
 
   if (projLoading) return (
     <div className="flex items-center justify-center h-full">
-      <Loader2 size={24} className="text-brand-400 animate-spin" />
+      <Loader2 size={24} className="text-brand-ink animate-spin" />
     </div>
   )
 
@@ -3385,7 +3385,7 @@ function AuditProjectBuilder({ projectId, onBack }) {
             )}
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-xs font-mono text-text-muted">{project?.projectRef}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${isPublished ? 'bg-green-500/10 text-green-400' : 'bg-surface-overlay text-text-muted'}`}>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${isPublished ? 'bg-status-pass-bg text-status-pass-fg' : 'bg-surface-overlay text-text-muted'}`}>
                 {isPublished ? 'PUBLISHED' : 'DRAFT'}
               </span>
               {(() => { const v = VISIBILITY_OPTIONS.find(o => o.key === visibility); return v ? <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${v.color}`}>{v.label}</span> : null })()}
@@ -3417,7 +3417,7 @@ function AuditProjectBuilder({ projectId, onBack }) {
         <div className="px-6 py-3 border-b border-border bg-surface-raised">
           <textarea value={editForm?.description ?? ''} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
             rows={2} placeholder="Description (optional)"
-            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+            className="w-full rounded-ctl border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
         </div>
       )}
       {!editMode && project?.description && (
@@ -3432,7 +3432,7 @@ function AuditProjectBuilder({ projectId, onBack }) {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wide">Visibility</h3>
             {visibility === 'SPECIFIC' && (
-              <button onClick={() => setShowTenants(t => !t)} className="text-xs text-brand-400 hover:text-brand-300 transition-colors">
+              <button onClick={() => setShowTenants(t => !t)} className="text-xs text-brand-ink hover:text-brand-ink transition-colors">
                 {showTenants ? 'Hide tenants' : `Manage tenants (${accessList.length})`}
               </button>
             )}
@@ -3440,7 +3440,7 @@ function AuditProjectBuilder({ projectId, onBack }) {
           <div className="flex gap-2">
             {VISIBILITY_OPTIONS.map(opt => (
               <button key={opt.key} onClick={() => visibilityMut.mutate(opt.key)} disabled={visibilityMut.isPending}
-                className={`flex-1 py-2 px-3 rounded-md border text-xs font-medium transition-colors text-left ${visibility === opt.key ? opt.color : 'border-border text-text-muted hover:text-text-secondary'}`}>
+                className={`flex-1 py-2 px-3 rounded-ctl border text-xs font-medium transition-colors text-left ${visibility === opt.key ? opt.color : 'border-border text-text-muted hover:text-text-secondary'}`}>
                 <div className="font-semibold">{opt.label}</div>
                 <div className="text-[10px] opacity-70 mt-0.5">{opt.desc}</div>
               </button>
@@ -3454,14 +3454,14 @@ function AuditProjectBuilder({ projectId, onBack }) {
                   const t = allTenants.find(t => (t.id ?? t.tenantId) === a.tenantId)
                   const label = t?.name ?? t?.tenantName ?? `Tenant #${a.tenantId}`
                   return (
-                    <div key={a.id} className="flex items-center justify-between px-3 py-2 rounded-md bg-surface-overlay text-xs">
+                    <div key={a.id} className="flex items-center justify-between px-3 py-2 rounded-ctl bg-surface-overlay text-xs">
                       <span className="text-text-primary">{label}</span>
-                      <button onClick={() => revokeMut.mutate(a.tenantId)} disabled={revokeMut.isPending} className="text-red-400 hover:text-red-300 transition-colors ml-2">Revoke</button>
+                      <button onClick={() => revokeMut.mutate(a.tenantId)} disabled={revokeMut.isPending} className="text-status-fail-fg hover:text-status-fail-fg transition-colors ml-2">Revoke</button>
                     </div>
                   )
                 })}
               </div>
-              <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto border border-border rounded-md p-2">
+              <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto border border-border rounded-ctl p-2">
                 {allTenants.filter(t => !grantedIds.has(t.id ?? t.tenantId)).map(t => (
                   <button key={t.id ?? t.tenantId} onClick={() => grantMut.mutate(t.id ?? t.tenantId)} disabled={grantMut.isPending}
                     className="w-full text-left px-3 py-1.5 rounded text-xs hover:bg-surface-overlay transition-colors flex items-center justify-between">
@@ -3488,9 +3488,9 @@ function AuditProjectBuilder({ projectId, onBack }) {
           </div>
 
           {plannedLoading ? (
-            <div className="flex flex-col gap-2">{[1,2].map(i => <div key={i} className="h-16 rounded-lg bg-surface-overlay animate-pulse" />)}</div>
+            <div className="flex flex-col gap-2">{[1,2].map(i => <div key={i} className="h-16 rounded-card bg-surface-overlay animate-pulse" />)}</div>
           ) : !planned.length ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-2 text-text-muted border-2 border-dashed border-border rounded-lg">
+            <div className="flex flex-col items-center justify-center py-16 gap-2 text-text-muted border-2 border-dashed border-border rounded-card">
               <LayoutTemplate size={28} className="opacity-30" />
               <p className="text-sm">No templates planned yet</p>
               <Button size="sm" icon={Plus} variant="secondary" onClick={() => setShowPicker(true)} className="mt-2">Add template</Button>
@@ -3498,14 +3498,14 @@ function AuditProjectBuilder({ projectId, onBack }) {
           ) : (
             <div className="flex flex-col gap-2">
               {planned.map(pt => (
-                <div key={pt.id} className="rounded-lg border border-border p-4 flex items-start gap-3">
+                <div key={pt.id} className="rounded-card border border-border p-4 flex items-start gap-3">
                   <LayoutTemplate size={15} className="text-text-muted mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-medium">{pt.templateName}</span>
                       {pt.templateFramework && <span className="text-[10px] font-mono text-text-muted">{pt.templateFramework}</span>}
                       {pt.templateAuditType && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${pt.templateAuditType === 'INTERNAL' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${pt.templateAuditType === 'INTERNAL' ? 'bg-status-info-bg text-status-info-fg' : 'bg-status-tag-bg text-status-tag-fg'}`}>
                           {pt.templateAuditType}
                         </span>
                       )}
@@ -3513,7 +3513,7 @@ function AuditProjectBuilder({ projectId, onBack }) {
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button onClick={() => setPreviewId(pt.templateId)} className="h-7 px-2 text-[10px] rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">Preview</button>
-                    <button onClick={() => setRemoveTarget(pt)} className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 size={12} /></button>
+                    <button onClick={() => setRemoveTarget(pt)} className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors"><Trash2 size={12} /></button>
                   </div>
                 </div>
               ))}
@@ -3526,7 +3526,7 @@ function AuditProjectBuilder({ projectId, onBack }) {
         <div className="flex flex-col gap-2 p-4 max-h-96 overflow-y-auto">
           {library.filter(t => !plannedIds.has(t.id)).map(t => (
             <button key={t.id} onClick={() => addMut.mutate(t.id)} disabled={addMut.isPending}
-              className="w-full text-left rounded-lg border border-border px-4 py-3 hover:bg-surface-overlay transition-colors flex items-center justify-between gap-2">
+              className="w-full text-left rounded-card border border-border px-4 py-3 hover:bg-surface-overlay transition-colors flex items-center justify-between gap-2">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{t.name}</span>
@@ -3599,7 +3599,7 @@ function AuditProjectsLibraryTab({ onOpen }) {
             <RefreshCw size={14} />
           </button>
           <button onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-brand-500 hover:bg-brand-600 text-white rounded-md transition-colors">
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-brand-500 hover:bg-brand-600 text-brand-900 rounded-ctl transition-colors">
             <Plus size={13} /> New project
           </button>
         </div>
@@ -3607,7 +3607,7 @@ function AuditProjectsLibraryTab({ onOpen }) {
 
       {isLoading ? (
         <div className="flex flex-col gap-2">
-          {[1,2,3].map(i => <div key={i} className="h-16 rounded-lg bg-surface-overlay animate-pulse" />)}
+          {[1,2,3].map(i => <div key={i} className="h-16 rounded-card bg-surface-overlay animate-pulse" />)}
         </div>
       ) : !projects.length ? (
         <div className="flex flex-col items-center justify-center py-16 gap-2 text-text-muted">
@@ -3619,24 +3619,24 @@ function AuditProjectsLibraryTab({ onOpen }) {
         <div className="flex flex-col gap-2">
           {projects.map(p => (
             <button key={p.id} onClick={() => onOpen(p.id)}
-              className="w-full text-left rounded-lg border border-border bg-surface-raised hover:bg-surface-overlay transition-colors px-4 py-3 flex items-center justify-between gap-3">
+              className="w-full text-left rounded-card border border-border bg-surface-raised hover:bg-surface-overlay transition-colors px-4 py-3 flex items-center justify-between gap-3">
               <div className="flex items-start gap-3 min-w-0">
-                <FolderKanban size={16} className="text-brand-400 mt-0.5 shrink-0" />
+                <FolderKanban size={16} className="text-brand-ink mt-0.5 shrink-0" />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium text-text-primary">{p.name}</span>
                     <span className="text-xs font-mono text-text-muted">{p.projectRef}</span>
                     {/* Publish status */}
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${p.publishStatus === 'PUBLISHED' ? 'bg-green-500/10 text-green-400' : 'bg-surface-overlay text-text-muted'}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${p.publishStatus === 'PUBLISHED' ? 'bg-status-pass-bg text-status-pass-fg' : 'bg-surface-overlay text-text-muted'}`}>
                       {p.publishStatus ?? 'DRAFT'}
                     </span>
                     {/* Visibility */}
-                    {p.visibility === 'GLOBAL'    && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400"><Globe size={9} />Global</span>}
-                    {p.visibility === 'PLATFORM'  && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">Platform only</span>}
-                    {p.visibility === 'SPECIFIC'  && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400">Selected tenants</span>}
+                    {p.visibility === 'GLOBAL'    && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-status-info-bg text-status-info-fg"><Globe size={9} />Global</span>}
+                    {p.visibility === 'PLATFORM'  && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-status-warn-bg text-status-warn-fg">Platform only</span>}
+                    {p.visibility === 'SPECIFIC'  && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-ink">Selected tenants</span>}
                     {/* Fallback for projects without new fields (legacy) */}
                     {!p.visibility && (p.global
-                      ? <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400"><Globe size={9} />Global</span>
+                      ? <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-status-info-bg text-status-info-fg"><Globe size={9} />Global</span>
                       : <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-surface-overlay text-text-muted"><Lock size={9} />Org</span>
                     )}
                   </div>
@@ -3655,35 +3655,35 @@ function AuditProjectsLibraryTab({ onOpen }) {
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Name *</label>
             <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full rounded-ctl border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
               placeholder="e.g. SOC 2 + ISO 27001 Annual Programme 2027" />
           </div>
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Description</label>
             <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              rows={2} className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+              rows={2} className="w-full rounded-ctl border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
               placeholder="Optional description" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">Planned Start</label>
               <input type="date" value={form.plannedStart} onChange={e => setForm(f => ({ ...f, plannedStart: e.target.value }))}
-                className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full rounded-ctl border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">Planned End</label>
               <input type="date" value={form.plannedEnd} onChange={e => setForm(f => ({ ...f, plannedEnd: e.target.value }))}
-                className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full rounded-ctl border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={() => setShowCreate(false)}
-              className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary rounded-md border border-border transition-colors">
+              className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary rounded-ctl border border-border transition-colors">
               Cancel
             </button>
             <button onClick={() => createMut.mutate()}
               disabled={!form.name || createMut.isPending}
-              className="px-3 py-1.5 text-xs font-medium bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white rounded-md transition-colors">
+              className="px-3 py-1.5 text-xs font-medium bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-brand-900 rounded-ctl transition-colors">
               {createMut.isPending ? 'Creating…' : 'Create Project'}
             </button>
           </div>
@@ -3827,12 +3827,12 @@ export default function AuditLibraryPage({ defaultTab = 'projects' }) {
           </button>
           {row.status === 'DRAFT'
             ? <button onClick={() => TM.publish.mutate(row.id)} title="Publish"
-                className="h-6 px-2 text-[10px] rounded text-brand-400 hover:bg-brand-500/10 transition-colors">Publish</button>
+                className="h-6 px-2 text-[10px] rounded text-brand-ink hover:bg-brand-500/10 transition-colors">Publish</button>
             : <button onClick={() => TM.unpublish.mutate(row.id)} title="Unpublish"
-                className="h-6 px-2 text-[10px] rounded text-amber-400 hover:bg-amber-500/10 transition-colors">Unpublish</button>
+                className="h-6 px-2 text-[10px] rounded text-status-warn-fg hover:bg-status-warn-bg transition-colors">Unpublish</button>
           }
           <button onClick={() => setDeleteTemplate(row)} title="Delete"
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
             <Trash2 size={12} />
           </button>
         </div>
@@ -3852,9 +3852,9 @@ export default function AuditLibraryPage({ defaultTab = 'projects' }) {
   const BulkBar = ({ count, label, loading, onDelete, onClear }) =>
     count === 0 ? null : (
       <div className="flex items-center gap-3 px-6 py-2.5 bg-brand-500/5 border-b border-brand-500/20">
-        <span className="text-xs font-medium text-brand-400">{count} {label} selected</span>
+        <span className="text-xs font-medium text-brand-ink">{count} {label} selected</span>
         <Button variant="ghost" size="xs" icon={Trash2}
-          className="text-red-400 hover:bg-red-500/10" loading={loading} onClick={onDelete}>
+          className="text-status-fail-fg hover:bg-status-fail-bg" loading={loading} onClick={onDelete}>
           Delete selected
         </Button>
         <button onClick={onClear} className="text-xs text-text-muted hover:text-text-secondary ml-auto">Clear</button>
@@ -3880,7 +3880,7 @@ export default function AuditLibraryPage({ defaultTab = 'projects' }) {
                   tab === 'tests'     ? 'Search tests…'     :
                                         'Search policies…'
                 }
-              className="h-8 pl-8 pr-3 w-52 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
           )}
@@ -3888,7 +3888,7 @@ export default function AuditLibraryPage({ defaultTab = 'projects' }) {
           {tab === 'controls' && (
             <div className="relative">
               <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
-                className="h-8 appearance-none pl-3 pr-7 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                className="h-8 appearance-none pl-3 pr-7 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 <option value="">All types</option>
                 {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
@@ -3937,12 +3937,12 @@ export default function AuditLibraryPage({ defaultTab = 'projects' }) {
           return (
             <button key={key} onClick={() => handleTabChange(key)}
               className={cn('flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
-                tab === key ? 'border-brand-500 text-brand-400' : 'border-transparent text-text-muted hover:text-text-secondary')}>
+                tab === key ? 'border-brand-500 text-brand-ink' : 'border-transparent text-text-muted hover:text-text-secondary')}>
               <Icon size={14} />
               {label}
               {count != null && (
                 <span className={cn('ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono',
-                  tab === key ? 'bg-brand-500/15 text-brand-400' : 'bg-surface-overlay text-text-muted')}>
+                  tab === key ? 'bg-brand-500/15 text-brand-ink' : 'bg-surface-overlay text-text-muted')}>
                   {count}
                 </span>
               )}
@@ -4050,7 +4050,7 @@ export default function AuditLibraryPage({ defaultTab = 'projects' }) {
               onRowClick={(row) => setActiveTemplate(row.id)}
             />
             <div className="px-6 py-4 border-t border-border">
-              <div className="rounded-lg border border-border bg-surface-overlay p-3 text-[10px] font-mono text-text-muted">
+              <div className="rounded-card border border-border bg-surface-overlay p-3 text-[10px] font-mono text-text-muted">
                 <p className="font-sans text-xs text-text-secondary mb-1.5">
                   CSV row types: TEMPLATE · SECTION (level=0..N) · CONTROL — or click Build on any row to add sections &amp; controls manually
                 </p>
@@ -4074,7 +4074,7 @@ export default function AuditLibraryPage({ defaultTab = 'projects' }) {
               { key: 'automationType', label: 'Automation', sortable: true,  width: 110, type: 'custom',
                 render: (row) => (
                   <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded',
-                    row.automationType === 'AUTOMATED' ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400')}>
+                    row.automationType === 'AUTOMATED' ? 'bg-status-pass-bg text-status-pass-fg' : 'bg-status-warn-bg text-status-warn-fg')}>
                     {row.automationType ?? 'MANUAL'}
                   </span>
                 ),

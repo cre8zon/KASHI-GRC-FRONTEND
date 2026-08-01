@@ -55,7 +55,7 @@ export default function OrgTemplatesPage() {
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search templates…"
-              className="h-8 pl-8 pr-3 w-52 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
@@ -65,7 +65,7 @@ export default function OrgTemplatesPage() {
       {isLoading ? (
         <div className="px-6 py-4 grid grid-cols-1 gap-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-24 rounded-lg bg-surface-overlay animate-pulse" />
+            <div key={i} className="h-24 rounded-card bg-surface-overlay animate-pulse" />
           ))}
         </div>
       ) : templates.length === 0 ? (
@@ -110,11 +110,11 @@ export default function OrgTemplatesPage() {
 // ─── Template Card ────────────────────────────────────────────────────────────
 function TemplateCard({ template, onPreview }) {
   return (
-    <div className="rounded-lg border border-border bg-surface-raised hover:border-border-subtle transition-colors">
+    <div className="rounded-card border border-border bg-surface-raised hover:border-border-subtle transition-colors">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-lg bg-brand-500/10 flex items-center justify-center shrink-0">
-            <LayoutTemplate size={16} className="text-brand-400" />
+          <div className="w-9 h-9 rounded-card bg-brand-500/10 flex items-center justify-center shrink-0">
+            <LayoutTemplate size={16} className="text-brand-ink" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text-primary truncate">{template.name}</p>
@@ -154,12 +154,12 @@ function TemplatePreviewModal({ templateId, onClose }) {
     >
       {isLoading ? (
         <div className="flex flex-col gap-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-16 rounded-lg bg-surface-overlay animate-pulse" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-16 rounded-card bg-surface-overlay animate-pulse" />)}
         </div>
       ) : !template ? null : (
         <div className="flex flex-col gap-3">
           {/* Template meta */}
-          <div className="flex items-center gap-4 p-3 bg-surface-overlay rounded-lg border border-border text-xs text-text-muted">
+          <div className="flex items-center gap-4 p-3 bg-surface-overlay rounded-card border border-border text-xs text-text-muted">
             <span>Version: <span className="font-mono text-text-secondary">{template.version}</span></span>
             <span>Sections: <span className="font-mono text-text-secondary">{template.sections?.length || 0}</span></span>
             <span>Questions: <span className="font-mono text-text-secondary">{totalQuestions}</span></span>
@@ -168,13 +168,13 @@ function TemplatePreviewModal({ templateId, onClose }) {
 
           {/* Sections */}
           {(template.sections || []).map((section, sIdx) => (
-            <div key={section.sectionId} className="rounded-lg border border-border overflow-hidden">
+            <div key={section.sectionId} className="rounded-card border border-border overflow-hidden">
               <button
                 onClick={() => toggle(section.sectionId)}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-overlay transition-colors text-left"
               >
-                <div className="w-6 h-6 rounded-md bg-brand-500/10 flex items-center justify-center shrink-0">
-                  <span className="text-xs font-bold text-brand-400">{sIdx + 1}</span>
+                <div className="w-6 h-6 rounded-ctl bg-brand-500/10 flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-brand-ink">{sIdx + 1}</span>
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-text-primary">{section.name}</p>
@@ -204,7 +204,7 @@ function TemplatePreviewModal({ templateId, onClose }) {
                               <span className="text-xs text-text-muted">Weight: <span className="font-mono">{q.weight}</span></span>
                             )}
                             {q.isMandatory && (
-                              <span className="flex items-center gap-1 text-xs text-red-400">
+                              <span className="flex items-center gap-1 text-xs text-status-fail-fg">
                                 <CheckCircle2 size={10} /> Required
                               </span>
                             )}

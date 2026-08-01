@@ -27,18 +27,18 @@ import toast from 'react-hot-toast'
 // ── Config — identical to EngagementFindingsTab ───────────────────────────────
 
 const SEVERITY = {
-  CRITICAL:      { label: 'Critical', color: 'text-red-400',    bg: 'bg-red-500/15',    border: 'border-red-500/30'    },
-  HIGH:          { label: 'High',     color: 'text-orange-400', bg: 'bg-orange-500/15', border: 'border-orange-500/30' },
-  MEDIUM:        { label: 'Medium',   color: 'text-amber-400',  bg: 'bg-amber-500/15',  border: 'border-amber-500/30'  },
-  LOW:           { label: 'Low',      color: 'text-blue-400',   bg: 'bg-blue-500/15',   border: 'border-blue-500/30'   },
+  CRITICAL:      { label: 'Critical', color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg',    border: 'border-status-fail-bd'    },
+  HIGH:          { label: 'High',     color: 'text-status-warn-fg', bg: 'bg-status-warn-bg', border: 'border-status-warn-bd' },
+  MEDIUM:        { label: 'Medium',   color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg',  border: 'border-status-warn-bd'  },
+  LOW:           { label: 'Low',      color: 'text-status-info-fg',   bg: 'bg-status-info-bg',   border: 'border-status-info-bd'   },
   INFORMATIONAL: { label: 'Info',     color: 'text-text-muted', bg: 'bg-surface-overlay',border: 'border-border'       },
 }
 
 const STATUS = {
-  OPEN:               { label: 'Open',               icon: AlertTriangle, color: 'text-amber-400'  },
-  IN_REMEDIATION:     { label: 'In remediation',     icon: RefreshCw,     color: 'text-blue-400'   },
-  PENDING_VALIDATION: { label: 'Pending validation', icon: Clock,         color: 'text-indigo-400' },
-  CLOSED:             { label: 'Closed',             icon: CheckCircle2,  color: 'text-green-400'  },
+  OPEN:               { label: 'Open',               icon: AlertTriangle, color: 'text-status-warn-fg'  },
+  IN_REMEDIATION:     { label: 'In remediation',     icon: RefreshCw,     color: 'text-status-info-fg'   },
+  PENDING_VALIDATION: { label: 'Pending validation', icon: Clock,         color: 'text-status-tag-fg' },
+  CLOSED:             { label: 'Closed',             icon: CheckCircle2,  color: 'text-status-pass-fg'  },
   ACCEPTED_RISK:      { label: 'Risk accepted',      icon: Shield,        color: 'text-text-muted' },
 }
 
@@ -96,7 +96,7 @@ function EscalateButton({ findingId, linkedIssueId, projectId }) {
     return (
       <button
         onClick={(e) => { e.stopPropagation(); navigate(`/module/issue/${linkedIssueId}`) }}
-        className="flex items-center gap-1 text-[9px] text-brand-400 hover:underline"
+        className="flex items-center gap-1 text-[9px] text-brand-ink hover:underline"
       >
         <Link size={9} />ISS #{linkedIssueId}
       </button>
@@ -109,7 +109,7 @@ function EscalateButton({ findingId, linkedIssueId, projectId }) {
       disabled={isPending}
       className={cn(
         'flex items-center gap-1 text-[9px] px-2 py-0.5 rounded border',
-        'border-brand-500/40 text-brand-400 bg-brand-500/5 hover:bg-brand-500/10',
+        'border-brand-500/40 text-brand-ink bg-brand-500/5 hover:bg-brand-500/10',
         'disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
       )}
     >
@@ -151,7 +151,7 @@ function FindingRow({ finding, projectId, canEscalate }) {
           <StatusChip status={finding.status} />
           {/* Framework badge — key differentiator vs EngagementFindingsTab */}
           {finding.frameworkRef && (
-            <span className="text-[9px] font-mono text-purple-400/70 bg-purple-500/10 px-1.5 py-0.5 rounded">
+            <span className="text-[9px] font-mono text-status-tag-fg bg-status-tag-bg px-1.5 py-0.5 rounded">
               {finding.frameworkRef}
             </span>
           )}
@@ -193,7 +193,7 @@ function FrameworkGroup({ framework, findings, projectId, canEscalate, filter })
   return (
     <div>
       <div className="px-4 py-1.5 bg-surface-overlay/50 border-b border-border/40 flex items-center gap-2">
-        <span className="text-[10px] font-mono font-semibold text-purple-400/80">
+        <span className="text-[10px] font-mono font-semibold text-status-tag-fg">
           {framework}
         </span>
         <span className="text-[9px] text-text-muted">
@@ -310,10 +310,10 @@ export function ProjectFindingsTab({ projectId, canEscalate = true }) {
       {/* Stats bar */}
       <div className="px-4 py-2.5 border-b border-border/40 flex items-center gap-4 text-[10px] text-text-muted flex-wrap">
         <span className="font-medium text-text-primary">{all.length} findings</span>
-        {openCount > 0      && <span className="text-amber-400">{openCount} open</span>}
-        {remCount > 0       && <span className="text-blue-400">{remCount} in remediation</span>}
-        {closedCount > 0    && <span className="text-green-400">{closedCount} closed</span>}
-        {escalatedCount > 0 && <span className="text-brand-400">{escalatedCount} escalated</span>}
+        {openCount > 0      && <span className="text-status-warn-fg">{openCount} open</span>}
+        {remCount > 0       && <span className="text-status-info-fg">{remCount} in remediation</span>}
+        {closedCount > 0    && <span className="text-status-pass-fg">{closedCount} closed</span>}
+        {escalatedCount > 0 && <span className="text-brand-ink">{escalatedCount} escalated</span>}
 
         {/* Group toggle */}
         <button
@@ -321,7 +321,7 @@ export function ProjectFindingsTab({ projectId, canEscalate = true }) {
           className={cn(
             'ml-auto text-[9px] px-2 py-0.5 rounded border transition-colors',
             groupMode
-              ? 'border-purple-500/40 bg-purple-500/10 text-purple-400'
+              ? 'border-status-tag-bd bg-status-tag-bg text-status-tag-fg'
               : 'border-border text-text-muted hover:text-text-primary',
           )}
         >
@@ -350,7 +350,7 @@ export function ProjectFindingsTab({ projectId, canEscalate = true }) {
               className={cn(
                 'text-[10px] px-2 py-0.5 rounded-full border transition-colors whitespace-nowrap',
                 filter === f
-                  ? 'border-brand-500/60 bg-brand-500/10 text-brand-400'
+                  ? 'border-brand-500/60 bg-brand-500/10 text-brand-ink'
                   : 'border-border text-text-muted hover:text-text-primary',
               )}
             >

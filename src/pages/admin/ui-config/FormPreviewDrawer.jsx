@@ -87,7 +87,7 @@ export function FormPreviewDrawer({ form, onClose }) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+        className="fixed inset-0 z-40 bg-on-dark-inv/40 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -98,17 +98,17 @@ export function FormPreviewDrawer({ form, onClose }) {
         <div className="flex items-start justify-between px-5 py-4 border-b border-border shrink-0">
           <div>
             <div className="flex items-center gap-2">
-              <Eye size={14} className="text-brand-400" />
+              <Eye size={14} className="text-brand-ink" />
               <h2 className="text-sm font-semibold text-text-primary">Form preview</h2>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <code className="text-[11px] font-mono text-brand-400">{form.formKey}</code>
+              <code className="text-[11px] font-mono text-brand-ink">{form.formKey}</code>
               <Badge value={form.httpMethod} label={form.httpMethod} colorTag="blue" />
               {form.title && <span className="text-xs text-text-muted">{form.title}</span>}
             </div>
           </div>
           <button onClick={onClose}
-            className="h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
+            className="h-7 w-7 flex items-center justify-center rounded-ctl text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
             <X size={15} />
           </button>
         </div>
@@ -116,7 +116,7 @@ export function FormPreviewDrawer({ form, onClose }) {
         {/* Toolbar */}
         <div className="flex items-center gap-2 px-5 py-2.5 border-b border-border shrink-0">
           {/* View toggle */}
-          <div className="flex items-center rounded-md border border-border overflow-hidden">
+          <div className="flex items-center rounded-ctl border border-border overflow-hidden">
             {[
               { key: 'preview', label: 'Preview', icon: Eye },
               { key: 'fields',  label: 'Fields',  icon: List },
@@ -126,7 +126,7 @@ export function FormPreviewDrawer({ form, onClose }) {
                 className={cn(
                   'flex items-center gap-1.5 px-2.5 py-1.5 text-xs transition-colors',
                   view === v.key
-                    ? 'bg-brand-500/15 text-brand-400'
+                    ? 'bg-brand-500/15 text-brand-ink'
                     : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay'
                 )}>
                 <v.icon size={11} /> {v.label}
@@ -136,13 +136,13 @@ export function FormPreviewDrawer({ form, onClose }) {
 
           {/* Device toggle (only in preview mode) */}
           {view === 'preview' && (
-            <div className="flex items-center rounded-md border border-border overflow-hidden ml-2">
+            <div className="flex items-center rounded-ctl border border-border overflow-hidden ml-2">
               {Object.entries(DEVICE_ICONS).map(([key, Icon]) => (
                 <button key={key} onClick={() => setDevice(key)}
                   className={cn(
                     'px-2.5 py-1.5 transition-colors',
                     device === key
-                      ? 'bg-brand-500/15 text-brand-400'
+                      ? 'bg-brand-500/15 text-brand-ink'
                       : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay'
                   )}>
                   <Icon size={13} />
@@ -190,9 +190,9 @@ export function FormPreviewDrawer({ form, onClose }) {
                 />
 
                 {/* Preview watermark */}
-                <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                  <Eye size={12} className="text-amber-400 shrink-0" />
-                  <p className="text-[10px] text-amber-300">
+                <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-card bg-status-warn-bg border border-status-warn-bd">
+                  <Eye size={12} className="text-status-warn-fg shrink-0" />
+                  <p className="text-[10px] text-status-warn-fg">
                     Preview mode — form submission is intercepted and logged to console. No data is saved.
                   </p>
                 </div>
@@ -234,10 +234,10 @@ function FieldsView({ formId }) {
   return (
     <div className="p-6">
       <div className="flex items-center gap-2 mb-4">
-        <Layers size={13} className="text-brand-400" />
+        <Layers size={13} className="text-brand-ink" />
         <span className="text-xs font-semibold text-text-primary">{fields.length} fields</span>
       </div>
-      <div className="border border-border rounded-lg overflow-hidden">
+      <div className="border border-border rounded-card overflow-hidden">
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-border bg-surface-overlay">
@@ -262,7 +262,7 @@ function FieldsView({ formId }) {
                   isSeparator && 'opacity-60'
                 )}>
                   <td className="px-3 py-2 text-text-muted">{f.sortOrder ?? i + 1}</td>
-                  <td className="px-3 py-2 font-mono text-brand-400">{f.fieldKey}</td>
+                  <td className="px-3 py-2 font-mono text-brand-ink">{f.fieldKey}</td>
                   <td className="px-3 py-2 text-text-primary">{f.label}</td>
                   <td className="px-3 py-2">
                     <Badge
@@ -274,7 +274,7 @@ function FieldsView({ formId }) {
                   <td className="px-3 py-2 text-text-muted">{f.gridCols || 12}/12</td>
                   <td className="px-3 py-2">
                     {f.isRequired
-                      ? <span className="text-red-400">Required</span>
+                      ? <span className="text-status-fail-fg">Required</span>
                       : <span className="text-text-muted">Optional</span>
                     }
                   </td>
@@ -298,7 +298,7 @@ function FieldsView({ formId }) {
               try { rules = JSON.parse(f.validationRulesJson) } catch {}
               return (
                 <div key={f.id} className="flex items-start gap-3 text-[11px]">
-                  <code className="font-mono text-brand-400 shrink-0 w-36">{f.fieldKey}</code>
+                  <code className="font-mono text-brand-ink shrink-0 w-36">{f.fieldKey}</code>
                   <div className="flex flex-wrap gap-1">
                     {Object.entries(rules).map(([k, v]) => (
                       <span key={k} className="px-1.5 py-0.5 rounded bg-surface-overlay border border-border text-text-muted">
@@ -353,12 +353,12 @@ function JsonView({ form }) {
         <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Form config as JSON</p>
         <button
           onClick={() => navigator.clipboard.writeText(JSON.stringify(output, null, 2))}
-          className="text-[10px] text-text-muted hover:text-brand-400 transition-colors"
+          className="text-[10px] text-text-muted hover:text-brand-ink transition-colors"
         >
           Copy
         </button>
       </div>
-      <pre className="text-[11px] font-mono text-text-secondary bg-surface-overlay border border-border rounded-lg p-4 overflow-x-auto leading-relaxed whitespace-pre-wrap">
+      <pre className="text-[11px] font-mono text-text-secondary bg-surface-overlay border border-border rounded-card p-4 overflow-x-auto leading-relaxed whitespace-pre-wrap">
         {JSON.stringify(output, null, 2)}
       </pre>
     </div>

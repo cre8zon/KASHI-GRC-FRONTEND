@@ -70,9 +70,9 @@ function flattenUsers(raw) {
 
 // ── Result config ─────────────────────────────────────────────────────────────
 const RESULTS = [
-  { value: 'EFFECTIVE',           label: 'Effective',   short: 'Pass',    color: 'text-green-400',  bg: 'bg-green-500/10',    border: 'border-green-500/30',  icon: CheckCircle2 },
-  { value: 'PARTIALLY_EFFECTIVE', label: 'Partial',     short: 'Partial', color: 'text-amber-400',  bg: 'bg-amber-500/10',    border: 'border-amber-500/30',  icon: AlertTriangle },
-  { value: 'INEFFECTIVE',         label: 'Ineffective', short: 'Fail',    color: 'text-red-400',    bg: 'bg-red-500/10',      border: 'border-red-500/30',    icon: XCircle },
+  { value: 'EFFECTIVE',           label: 'Effective',   short: 'Pass',    color: 'text-status-pass-fg',  bg: 'bg-status-pass-bg',    border: 'border-status-pass-bd',  icon: CheckCircle2 },
+  { value: 'PARTIALLY_EFFECTIVE', label: 'Partial',     short: 'Partial', color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg',    border: 'border-status-warn-bd',  icon: AlertTriangle },
+  { value: 'INEFFECTIVE',         label: 'Ineffective', short: 'Fail',    color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg',      border: 'border-status-fail-bd',    icon: XCircle },
   { value: 'NOT_APPLICABLE',      label: 'N/A',         short: 'N/A',     color: 'text-text-muted', bg: 'bg-surface-overlay', border: 'border-border',        icon: Minus },
 ]
 const RESULT_MAP = Object.fromEntries([...RESULTS,
@@ -109,27 +109,27 @@ function UserPicker({ users=[], value, onChange, loading, placeholder }) {
     <div ref={ref} className="relative inline-block" onClick={e=>e.stopPropagation()}>
       <button ref={btnRef} onClick={handleToggle} disabled={loading}
         className={cn('flex items-center gap-1 text-[10px] px-2 py-0.5 rounded border transition-all',
-          selected ? 'border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/15'
+          selected ? 'border-status-tag-bd bg-status-tag-bg text-status-tag-fg hover:bg-status-tag-bg'
                    : 'border-border bg-surface-overlay text-text-muted hover:border-border-strong hover:text-text-secondary')}>
         <Users size={9}/>{selected ? <span className="max-w-[80px] truncate">{userName(selected)}</span> : <span>{placeholder||'Assign'}</span>}
         {open?<ChevronUp size={8}/>:<ChevronDown size={8}/>}
       </button>
       {open && (
-        <div className={cn("absolute right-0 w-48 bg-surface-raised border border-border rounded-lg shadow-elevated z-50 overflow-hidden", flipUp?"bottom-full mb-1":"top-full mt-1")}>
+        <div className={cn("absolute right-0 w-48 bg-surface-raised border border-border rounded-card shadow-elevated z-50 overflow-hidden", flipUp?"bottom-full mb-1":"top-full mt-1")}>
           <div className="p-1 border-b border-border">
             <div className="flex items-center gap-1 px-2 py-0.5 bg-surface-overlay rounded text-[10px]">
               <Search size={9} className="text-text-muted"/><input autoFocus value={query} onChange={e=>setQuery(e.target.value)} onClick={e=>e.stopPropagation()} placeholder="Search…" className="flex-1 bg-transparent text-text-primary placeholder:text-text-muted outline-none"/>
             </div>
           </div>
-          {selected && <button onClick={(e)=>{e.stopPropagation();onChange(null);setOpen(false)}} className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] text-red-400 hover:bg-red-500/10"><X size={9}/> Unassign</button>}
+          {selected && <button onClick={(e)=>{e.stopPropagation();onChange(null);setOpen(false)}} className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] text-status-fail-fg hover:bg-status-fail-bg"><X size={9}/> Unassign</button>}
           <div className="max-h-40 overflow-y-auto">
             {filtered.length===0 ? <div className="px-3 py-2 text-[10px] text-text-muted text-center">No users found</div>
               : filtered.map(u=>(
                 <button key={uidOf(u)} onClick={(e)=>{e.stopPropagation();onChange(uidOf(u));setOpen(false);setQuery('')}}
-                  className={cn('w-full flex items-center gap-2 px-2.5 py-1.5 text-[10px] text-left hover:bg-surface-overlay', uidOf(u)===value?'bg-purple-500/10 text-purple-300':'text-text-secondary')}>
+                  className={cn('w-full flex items-center gap-2 px-2.5 py-1.5 text-[10px] text-left hover:bg-surface-overlay', uidOf(u)===value?'bg-status-tag-bg text-status-tag-fg':'text-text-secondary')}>
                   <div className="h-4 w-4 rounded-full bg-surface-overlay border border-border flex items-center justify-center text-[7px] font-bold shrink-0">{userInitials(u)}</div>
                   <div className="flex-1 min-w-0"><div className="truncate font-medium">{userName(u)}</div>{u.roleName&&<div className="text-[8px] text-text-muted">{u.roleName.replace(/_/g,' ')}</div>}</div>
-                  {uidOf(u)===value&&<CheckCircle2 size={9} className="text-purple-400 shrink-0"/>}
+                  {uidOf(u)===value&&<CheckCircle2 size={9} className="text-status-tag-fg shrink-0"/>}
                 </button>
               ))}
           </div>
@@ -155,11 +155,11 @@ function TestResultPicker({ currentResult, onSelect, saving }) {
         <Icon size={9}/><span>{current.short}</span>{open?<ChevronUp size={8}/>:<ChevronDown size={8}/>}
       </button>
       {open && (
-        <div className={cn("absolute right-0 w-40 bg-surface-raised border border-border rounded-lg shadow-elevated z-50 py-1", flipUp?"bottom-full mb-1":"top-full mt-1")}>
+        <div className={cn("absolute right-0 w-40 bg-surface-raised border border-border rounded-card shadow-elevated z-50 py-1", flipUp?"bottom-full mb-1":"top-full mt-1")}>
           {RESULTS.map(r=>{ const RIcon=r.icon; return (
             <button key={r.value} onClick={(e)=>{e.stopPropagation();onSelect(r.value);setOpen(false)}}
               className={cn('w-full flex items-center gap-2 px-3 py-1.5 text-[11px] hover:bg-surface-overlay', r.value===currentResult?`${r.color} ${r.bg}`:'text-text-secondary')}>
-              <RIcon size={10} className={r.color}/>{r.label}{r.value===currentResult&&<CheckCircle2 size={9} className="ml-auto text-brand-400"/>}
+              <RIcon size={10} className={r.color}/>{r.label}{r.value===currentResult&&<CheckCircle2 size={9} className="ml-auto text-brand-ink"/>}
             </button>
           )})}
           {currentResult&&currentResult!=='NOT_TESTED'&&(
@@ -190,7 +190,7 @@ function ControlDetailPanel({ ctrl, onClose, auditorUsers, auditeeUsers,
         <button onClick={onClose} className="text-text-muted hover:text-text-primary"><ChevronRight size={14} className="rotate-180"/></button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-            <span className="font-mono text-[10px] text-brand-400">{ctrl.controlCodeSnapshot}</span>
+            <span className="font-mono text-[10px] text-brand-ink">{ctrl.controlCodeSnapshot}</span>
             {ctrl.controlTagSnapshot&&<span className="text-[9px] px-1 rounded bg-surface-overlay text-text-muted">{ctrl.controlTagSnapshot}</span>}
             <ResultBadge result={ctrl.testResult} compact/>
           </div>
@@ -199,7 +199,7 @@ function ControlDetailPanel({ ctrl, onClose, auditorUsers, auditeeUsers,
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-4">
         {(canRecordResult||canAssignAuditor||canAssignAuditee||canSubmitEvidence)&&(
-          <div className="flex flex-col gap-2 p-2.5 bg-surface-overlay rounded-lg border border-border/40">
+          <div className="flex flex-col gap-2 p-2.5 bg-surface-overlay rounded-card border border-border/40">
             {canAssignAuditor && mySectionIds.has(ctrl.sectionInstanceId) && (
               <div className="flex items-center gap-1.5">
                 <span className="text-[9px] text-text-muted uppercase tracking-wide w-14 shrink-0">Auditor</span>
@@ -220,7 +220,7 @@ function ControlDetailPanel({ ctrl, onClose, auditorUsers, auditeeUsers,
               </div>
             )}
             {canSubmitEvidence&&(
-              <button onClick={()=>doSubmit()} disabled={submitting} className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 disabled:opacity-50 self-start ml-auto">
+              <button onClick={()=>doSubmit()} disabled={submitting} className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-status-pass-bg text-status-pass-fg border border-status-pass-bd hover:bg-status-pass-bg disabled:opacity-50 self-start ml-auto">
                 <CheckCheck size={10}/> Submit evidence
               </button>
             )}
@@ -235,12 +235,12 @@ function ControlDetailPanel({ ctrl, onClose, auditorUsers, auditeeUsers,
         {ctrl.failureDetail&&<F label="Failure detail" value={ctrl.failureDetail} multi red/>}
         {ctrl.assignedAuditorId&&<F label="Assigned auditor" value={auditor?userName(auditor):`User #${ctrl.assignedAuditorId}`} icon={UserCheck}/>}
         {ctrl.auditeeAssignedUserId&&<F label="Assigned auditee" value={auditee?userName(auditee):`User #${ctrl.auditeeAssignedUserId}`} icon={Users}/>}
-        {ctrl.evidenceSubmittedAt&&<div className="flex items-center gap-1.5 text-[10px] text-green-400 bg-green-500/10 px-2.5 py-1.5 rounded-lg border border-green-500/20"><CheckCheck size={12}/>Evidence submitted {new Date(ctrl.evidenceSubmittedAt).toLocaleDateString()}</div>}
+        {ctrl.evidenceSubmittedAt&&<div className="flex items-center gap-1.5 text-[10px] text-status-pass-fg bg-status-pass-bg px-2.5 py-1.5 rounded-card border border-status-pass-bd"><CheckCheck size={12}/>Evidence submitted {new Date(ctrl.evidenceSubmittedAt).toLocaleDateString()}</div>}
         {canRaiseFinding&&ctrl.testResult==='INEFFECTIVE'&&(
-          <div className="flex items-center gap-2 p-2.5 bg-red-500/5 border border-red-500/20 rounded-lg">
-            <AlertOctagon size={14} className="text-red-400 shrink-0"/>
-            <div className="flex-1 min-w-0"><p className="text-[11px] font-medium text-red-400">Control failed</p><p className="text-[9px] text-text-muted">Raise a finding to track remediation</p></div>
-            <button className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 shrink-0"><AlertOctagon size={9}/> Raise finding</button>
+          <div className="flex items-center gap-2 p-2.5 bg-status-fail-bg border border-status-fail-bd rounded-card">
+            <AlertOctagon size={14} className="text-status-fail-fg shrink-0"/>
+            <div className="flex-1 min-w-0"><p className="text-[11px] font-medium text-status-fail-fg">Control failed</p><p className="text-[9px] text-text-muted">Raise a finding to track remediation</p></div>
+            <button className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-status-fail-bg text-status-fail-fg border border-status-fail-bd hover:bg-status-fail-bg shrink-0"><AlertOctagon size={9}/> Raise finding</button>
           </div>
         )}
       </div>
@@ -252,7 +252,7 @@ function F({ label, value, multi, red, icon: Icon }) {
   return (
     <div>
       <div className="flex items-center gap-1 mb-1">{Icon&&<Icon size={9} className="text-text-muted"/>}<p className="text-[9px] text-text-muted uppercase tracking-wide">{label}</p></div>
-      <p className={cn('text-xs leading-relaxed',red?'text-red-400':'text-text-primary',!multi&&'truncate')}>{value}</p>
+      <p className={cn('text-xs leading-relaxed',red?'text-status-fail-fg':'text-text-primary',!multi&&'truncate')}>{value}</p>
     </div>
   )
 }
@@ -294,19 +294,19 @@ function ControlRow({ ctrl, engagementId, auditorUsers, auditeeUsers, auditeeUse
             className="w-3 h-3 accent-brand-500 cursor-pointer"/>
         </div>
       )}
-      <CheckSquare size={10} className={cn('shrink-0 mt-0.5',evidenceSubmitted?'text-green-400':ctrl.assignedAuditorId===currentUserId?'text-brand-400':'text-text-muted')}/>
+      <CheckSquare size={10} className={cn('shrink-0 mt-0.5',evidenceSubmitted?'text-status-pass-fg':ctrl.assignedAuditorId===currentUserId?'text-brand-ink':'text-text-muted')}/>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5">
-          {ctrl.controlCodeSnapshot&&<span className="font-mono text-[9px] text-brand-400 shrink-0">{ctrl.controlCodeSnapshot}</span>}
+          {ctrl.controlCodeSnapshot&&<span className="font-mono text-[9px] text-brand-ink shrink-0">{ctrl.controlCodeSnapshot}</span>}
           {ctrl.controlTagSnapshot&&<span className="text-[9px] px-1 rounded bg-surface-overlay text-text-muted shrink-0">{ctrl.controlTagSnapshot}</span>}
-          {evidenceSubmitted&&<span className="text-[8px] text-green-400 flex items-center gap-0.5 shrink-0"><CheckCheck size={8}/> evidence</span>}
+          {evidenceSubmitted&&<span className="text-[8px] text-status-pass-fg flex items-center gap-0.5 shrink-0"><CheckCheck size={8}/> evidence</span>}
         </div>
         <p className="text-[11px] text-text-primary line-clamp-1 group-hover:underline underline-offset-2">{ctrl.controlNameSnapshot}</p>
         {/* Assignment summary — visible always */}
         <div className="flex items-center gap-2 mt-0.5">
           {ctrl.assignedAuditorId
             ? <span className="text-[9px] text-text-muted flex items-center gap-0.5">
-                <UserCheck size={8} className="text-brand-400"/>
+                <UserCheck size={8} className="text-brand-ink"/>
                 {auditor?userName(auditor):`#${ctrl.assignedAuditorId}`}
               </span>
             : <span className="text-[9px] text-text-muted/40 flex items-center gap-0.5 italic">
@@ -315,7 +315,7 @@ function ControlRow({ ctrl, engagementId, auditorUsers, auditeeUsers, auditeeUse
               </span>}
           {ctrl.auditeeAssignedUserId
             ? <span className="text-[9px] text-text-muted flex items-center gap-0.5">
-                <Users size={8} className="text-amber-400"/>
+                <Users size={8} className="text-status-warn-fg"/>
                 {auditee?userName(auditee):`#${ctrl.auditeeAssignedUserId}`}
               </span>
             : <span className="text-[9px] text-text-muted/40 flex items-center gap-0.5 italic">
@@ -521,23 +521,23 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
           <span className="font-medium text-text-secondary">{stats.total} controls</span>
           <span className="text-border">·</span>
           {/* Evidence track */}
-          <span className={cn('flex items-center gap-1', stats.evidenceDone===stats.total&&stats.total>0?'text-green-400':'text-text-muted')}>
+          <span className={cn('flex items-center gap-1', stats.evidenceDone===stats.total&&stats.total>0?'text-status-pass-fg':'text-text-muted')}>
             <CheckCheck size={9}/>{stats.evidenceDone}/{stats.total} evidence submitted
           </span>
           {/* Test results track */}
           {(stats.effective>0||stats.ineffective>0||stats.partial>0)&&<span className="text-border">·</span>}
-          {stats.effective>0&&<span className="text-green-400">{stats.effective} effective</span>}
-          {stats.partial>0&&<span className="text-amber-400">{stats.partial} partial</span>}
-          {stats.ineffective>0&&<span className="text-red-400">{stats.ineffective} failed</span>}
+          {stats.effective>0&&<span className="text-status-pass-fg">{stats.effective} effective</span>}
+          {stats.partial>0&&<span className="text-status-warn-fg">{stats.partial} partial</span>}
+          {stats.ineffective>0&&<span className="text-status-fail-fg">{stats.ineffective} failed</span>}
           {stats.notTested>0&&stats.total>0&&(stats.effective>0||stats.ineffective>0)&&<span className="text-text-muted">{stats.notTested} not tested</span>}
           {/* Assignment track — only show when relevant */}
-          {canAssignAuditor&&<><span className="text-border">·</span><span className={cn(stats.auditorAssigned===stats.total?'text-green-400':'text-emerald-400')}>{stats.auditorAssigned}/{stats.total} auditors</span></>}
-          {canAssignAuditee&&<><span className="text-border">·</span><span className={cn(stats.auditeeAssigned===stats.total?'text-green-400':'text-purple-400')}>{stats.auditeeAssigned}/{stats.total} auditees</span></>}
+          {canAssignAuditor&&<><span className="text-border">·</span><span className={cn(stats.auditorAssigned===stats.total?'text-status-pass-fg':'text-status-pass-fg')}>{stats.auditorAssigned}/{stats.total} auditors</span></>}
+          {canAssignAuditee&&<><span className="text-border">·</span><span className={cn(stats.auditeeAssigned===stats.total?'text-status-pass-fg':'text-status-tag-fg')}>{stats.auditeeAssigned}/{stats.total} auditees</span></>}
           <div className="ml-auto flex items-center gap-2 text-[9px]">
-            {canAssignAuditor&&<span className="text-emerald-400 flex items-center gap-0.5"><UserCheck size={9}/> assign auditor</span>}
-            {canAssignAuditee&&<span className="text-purple-400 flex items-center gap-0.5"><Users size={9}/> assign auditee</span>}
-            {canRecordResult&&<span className="text-emerald-400 flex items-center gap-0.5"><CheckCircle2 size={9}/> result</span>}
-            {canSubmitEvidence&&<span className="text-green-400 flex items-center gap-0.5"><CheckCheck size={9}/> evidence</span>}
+            {canAssignAuditor&&<span className="text-status-pass-fg flex items-center gap-0.5"><UserCheck size={9}/> assign auditor</span>}
+            {canAssignAuditee&&<span className="text-status-tag-fg flex items-center gap-0.5"><Users size={9}/> assign auditee</span>}
+            {canRecordResult&&<span className="text-status-pass-fg flex items-center gap-0.5"><CheckCircle2 size={9}/> result</span>}
+            {canSubmitEvidence&&<span className="text-status-pass-fg flex items-center gap-0.5"><CheckCheck size={9}/> evidence</span>}
             {/* Result filter */}
             <select value={resultFilter} onChange={e=>setResultFilter(e.target.value)}
               className="text-[9px] bg-surface border border-border rounded px-1.5 py-0.5 text-text-secondary focus:outline-none focus:border-brand-500/50 cursor-pointer">
@@ -550,15 +550,15 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
             </select>
             {/* My view / My sections toggle — inline in the stats row */}
             {(canAssignAuditor || canAssignAuditee) ? (
-              <button onClick={()=>setMyView(v=>!v)} className={cn('flex items-center gap-1 px-2 py-0.5 rounded-md border transition-all',myView?'border-brand-500/40 bg-brand-500/10 text-brand-300':'border-border text-text-muted hover:text-text-secondary')}>
+              <button onClick={()=>setMyView(v=>!v)} className={cn('flex items-center gap-1 px-2 py-0.5 rounded-ctl border transition-all',myView?'border-brand-500/40 bg-brand-500/10 text-brand-ink':'border-border text-text-muted hover:text-text-secondary')}>
                 {myView?<Eye size={9}/>:<EyeOff size={9}/>} My view
               </button>
             ) : hasAnySectionAssignment ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-brand-500/10 text-brand-300 border border-brand-500/30">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-ctl bg-brand-500/10 text-brand-ink border border-brand-500/30">
                 <Eye size={9}/> My sections
               </span>
             ) : displayControls.length < filtered.length && displayControls.length > 0 ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-brand-500/10 text-brand-300 border border-brand-500/30">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-ctl bg-brand-500/10 text-brand-ink border border-brand-500/30">
                 <Eye size={9}/> My controls ({displayControls.length})
               </span>
             ) : null}
@@ -571,7 +571,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
             <div className="flex items-center gap-2">
               <span className="text-[9px] text-text-muted w-20 shrink-0">Evidence</span>
               <div className="flex-1 h-1.5 bg-surface-overlay rounded-full overflow-hidden">
-                <div className="h-full bg-green-500/60 rounded-full transition-all"
+                <div className="h-full bg-status-pass-bg rounded-full transition-all"
                   style={{width:`${Math.round(stats.evidenceDone/stats.total*100)}%`}}/>
               </div>
               <span className="text-[9px] text-text-muted w-8 text-right">{Math.round(stats.evidenceDone/stats.total*100)}%</span>
@@ -581,9 +581,9 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
               <div className="flex items-center gap-2">
                 <span className="text-[9px] text-text-muted w-20 shrink-0">Evaluated</span>
                 <div className="flex-1 h-1.5 bg-surface-overlay rounded-full overflow-hidden flex">
-                  <div className="h-full bg-green-500/70" style={{width:`${Math.round(stats.effective/stats.total*100)}%`}}/>
-                  <div className="h-full bg-amber-500/70" style={{width:`${Math.round(stats.partial/stats.total*100)}%`}}/>
-                  <div className="h-full bg-red-500/70" style={{width:`${Math.round(stats.ineffective/stats.total*100)}%`}}/>
+                  <div className="h-full bg-status-pass-bg" style={{width:`${Math.round(stats.effective/stats.total*100)}%`}}/>
+                  <div className="h-full bg-status-warn-bg" style={{width:`${Math.round(stats.partial/stats.total*100)}%`}}/>
+                  <div className="h-full bg-status-fail-bg" style={{width:`${Math.round(stats.ineffective/stats.total*100)}%`}}/>
                 </div>
                 <span className="text-[9px] text-text-muted w-8 text-right">{Math.round((stats.effective+stats.partial+stats.ineffective)/stats.total*100)}%</span>
               </div>
@@ -597,7 +597,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
           <span className="text-[9px] text-text-muted font-medium uppercase tracking-wide shrink-0">Filter assignable:</span>
           {canAssignAuditor && auditorRoles.length > 0 && (
             <div className="flex items-center gap-1.5">
-              <UserCheck size={9} className="text-brand-400 shrink-0"/>
+              <UserCheck size={9} className="text-brand-ink shrink-0"/>
               <select
                 value={auditorRoleFilter ?? ''}
                 onChange={e => setAuditorRoleFilter(e.target.value ? Number(e.target.value) : null)}
@@ -609,11 +609,11 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
           )}
           {canAssignAuditee && auditeeRoles.length > 0 && (
             <div className="flex items-center gap-1.5">
-              <Users size={9} className="text-amber-400 shrink-0"/>
+              <Users size={9} className="text-status-warn-fg shrink-0"/>
               <select
                 value={auditeeRoleFilter ?? ''}
                 onChange={e => setAuditeeRoleFilter(e.target.value ? Number(e.target.value) : null)}
-                className="text-[10px] bg-surface border border-border rounded px-1.5 py-0.5 text-text-secondary focus:outline-none focus:border-amber-500/50 cursor-pointer">
+                className="text-[10px] bg-surface border border-border rounded px-1.5 py-0.5 text-text-secondary focus:outline-none focus:border-status-warn-bd cursor-pointer">
                 <option value="">All auditees</option>
                 {auditeeRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
@@ -638,7 +638,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
                 onChange={toggleSelectAll}
                 className="w-3 h-3 accent-brand-500 cursor-pointer"/>
               {selectedControlIds.size > 0 && (
-                <span className="text-[9px] text-brand-400 font-medium whitespace-nowrap">
+                <span className="text-[9px] text-brand-ink font-medium whitespace-nowrap">
                   {selectedControlIds.size} selected
                 </span>
               )}
@@ -651,7 +651,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
           </div>
           {selectedControlIds.size > 0 && (
             <button onClick={()=>setShowBulkPanel(p=>!p)}
-              className="shrink-0 text-[10px] px-2 py-1 rounded bg-brand-500/15 text-brand-400 border border-brand-500/30 hover:bg-brand-500/25 whitespace-nowrap">
+              className="shrink-0 text-[10px] px-2 py-1 rounded bg-brand-500/15 text-brand-ink border border-brand-500/30 hover:bg-brand-500/25 whitespace-nowrap">
               Assign {selectedControlIds.size}…
             </button>
           )}
@@ -661,7 +661,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
       {showBulkPanel && selectedControlIds.size > 0 && (
         <div className="px-3 py-2 border-b border-brand-500/30 bg-brand-500/5 shrink-0 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold text-brand-400">
+            <span className="text-[10px] font-semibold text-brand-ink">
               Bulk assign {selectedControlIds.size} control{selectedControlIds.size !== 1 ? 's' : ''}
             </span>
             <button onClick={()=>setShowBulkPanel(false)} className="text-text-muted hover:text-text-primary"><X size={10}/></button>
@@ -688,7 +688,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
             <button
               onClick={doBulkAssign}
               disabled={bulkMut.isPending || (!bulkAuditorId && !bulkAuditeeId)}
-              className="ml-auto text-[10px] px-3 py-1 rounded bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+              className="ml-auto text-[10px] px-3 py-1 rounded bg-brand-500 text-brand-900 hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
               {bulkMut.isPending ? 'Assigning…' : 'Assign'}
             </button>
           </div>

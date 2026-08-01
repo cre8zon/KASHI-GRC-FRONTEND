@@ -43,8 +43,8 @@ const STATUS_CONFIG = {
 }
 
 const PRIORITY_COLORS = {
-  CRITICAL: 'text-red-400 bg-red-500/10',
-  HIGH:     'text-amber-400 bg-amber-500/10',
+  CRITICAL: 'text-status-fail-fg bg-status-fail-bg',
+  HIGH:     'text-status-warn-fg bg-status-warn-bg',
   MEDIUM:   'text-text-muted bg-surface-overlay',
   LOW:      'text-text-muted bg-surface-overlay/50',
 }
@@ -74,7 +74,7 @@ function MetaGrid({ items }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
       {items.map(({ label, value, mono }) => (
-        <div key={label} className="p-3 rounded-lg border border-border bg-surface-raised">
+        <div key={label} className="p-3 rounded-card border border-border bg-surface-raised">
           <p className="text-[10px] text-text-muted uppercase tracking-wide font-medium mb-0.5">{label}</p>
           <p className={cn('text-sm text-text-primary truncate', mono && 'font-mono')}>{value || '—'}</p>
         </div>
@@ -94,24 +94,24 @@ function StepTimeline({ steps }) {
           <div key={step.stepInstanceId ?? i} className="flex items-start gap-3 py-1.5">
             <div className="flex flex-col items-center shrink-0 mt-1">
               <div className={cn('w-2.5 h-2.5 rounded-full shrink-0 border',
-                isApproved ? 'bg-green-400 border-green-400' :
-                isCurrent  ? 'bg-amber-400 border-amber-400 ring-2 ring-amber-400/30 ring-offset-1 ring-offset-surface-primary' :
+                isApproved ? 'bg-status-pass-bg border-status-pass-bd' :
+                isCurrent  ? 'bg-status-warn-bg border-status-warn-bd ring-2 ring-status-warn-bd ring-offset-1 ring-offset-surface-primary' :
                              'bg-surface border-border'
               )} />
               {i < steps.length - 1 && (
-                <div className={cn('w-px mt-1 min-h-[14px]', isApproved ? 'bg-green-400/40' : 'bg-border')} />
+                <div className={cn('w-px mt-1 min-h-[14px]', isApproved ? 'bg-status-pass-bg' : 'bg-border')} />
               )}
             </div>
-            <div className={cn('flex-1 px-3 py-1.5 rounded-lg -mt-1',
-              isCurrent ? 'bg-amber-500/10' : 'bg-transparent')}>
+            <div className={cn('flex-1 px-3 py-1.5 rounded-card -mt-1',
+              isCurrent ? 'bg-status-warn-bg' : 'bg-transparent')}>
               <div className="flex items-center gap-2">
                 <p className={cn('text-xs',
-                  isCurrent  ? 'text-amber-400 font-medium' :
+                  isCurrent  ? 'text-status-warn-fg font-medium' :
                   isApproved ? 'text-text-secondary' : 'text-text-muted')}>
                   {step.stepOrder}. {step.stepName || step.name}
                 </p>
                 {isCurrent && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-medium">Current</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-warn-bg text-status-warn-fg font-medium">Current</span>
                 )}
               </div>
               {step.startedAt && isApproved && (
@@ -246,7 +246,7 @@ export default function TaskDetailPage() {
 
         {/* Remarks */}
         {task.remarks && (
-          <div className="p-4 rounded-xl border border-border bg-surface-raised">
+          <div className="p-4 rounded-card border border-border bg-surface-raised">
             <p className="text-[10px] text-text-muted uppercase tracking-wide font-medium mb-1.5">Remarks</p>
             <p className="text-sm text-text-secondary italic">"{task.remarks}"</p>
           </div>
@@ -261,7 +261,7 @@ export default function TaskDetailPage() {
                 {steps.filter(s => s.status === 'APPROVED').length} / {steps.length} steps
               </p>
             </div>
-            <div className="p-4 rounded-xl border border-border bg-surface">
+            <div className="p-4 rounded-card border border-border bg-surface">
               <StepTimeline steps={steps} />
             </div>
           </div>
@@ -273,8 +273,8 @@ export default function TaskDetailPage() {
             // Work task (FILL / REVIEW / EVALUATE / GENERATE / ACKNOWLEDGE):
             // The user must open the entity page to do actual work — the entity page
             // reads stepInstanceId from the URL and enforces the correct field access.
-            <div className="p-4 rounded-xl border border-brand-500/20 bg-brand-500/5">
-              <p className="text-sm font-medium text-brand-400 mb-1">Open the entity to complete this task</p>
+            <div className="p-4 rounded-card border border-brand-500/20 bg-brand-500/5">
+              <p className="text-sm font-medium text-brand-ink mb-1">Open the entity to complete this task</p>
               <p className="text-xs text-text-muted mb-3">
                 Your access level for this step ({task.resolvedStepAction}) has been applied.
                 Fields you can edit will be unlocked on the entity page.
@@ -286,8 +286,8 @@ export default function TaskDetailPage() {
             </div>
           ) : isActor && (
             // Pure APPROVE / ASSIGN task — inline action is fine (no content work)
-            <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
-              <p className="text-sm font-medium text-amber-400 mb-1">This task requires your approval</p>
+            <div className="p-4 rounded-card border border-status-warn-bd bg-status-warn-bg">
+              <p className="text-sm font-medium text-status-warn-fg mb-1">This task requires your approval</p>
               <p className="text-xs text-text-muted mb-3">
                 Review the details above then approve or reject.
               </p>
@@ -303,7 +303,7 @@ export default function TaskDetailPage() {
         {/* Activity — real-time comments */}
         <div>
           <p className="text-xs font-medium text-text-muted uppercase tracking-wide mb-3">Activity</p>
-          <div className="bg-surface border border-border rounded-xl p-4">
+          <div className="bg-surface border border-border rounded-card p-4">
             <TaskActivityFeed taskId={taskId} />
           </div>
         </div>

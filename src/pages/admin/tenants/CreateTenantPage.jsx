@@ -55,17 +55,17 @@ function Stepper({ current }) {
             <div className="flex flex-col items-center gap-1.5">
               <div className={cn(
                 'w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all',
-                done   ? 'bg-green-500 border-green-500'
+                done   ? 'bg-status-pass-bg border-status-pass-bd'
                 : active ? 'bg-brand-500 border-brand-500'
                 : 'bg-surface-raised border-border'
               )}>
                 {done
-                  ? <CheckCircle2 size={16} className="text-white" strokeWidth={2.5} />
-                  : <Icon size={15} className={active ? 'text-white' : 'text-text-muted'} />}
+                  ? <CheckCircle2 size={16} className="text-on-dark" strokeWidth={2.5} />
+                  : <Icon size={15} className={active ? 'text-on-dark' : 'text-text-muted'} />}
               </div>
               <span className={cn(
                 'text-[11px] font-medium whitespace-nowrap',
-                active ? 'text-brand-400' : done ? 'text-green-400' : 'text-text-muted'
+                active ? 'text-brand-ink' : done ? 'text-status-pass-fg' : 'text-text-muted'
               )}>
                 {step.label}
               </span>
@@ -73,7 +73,7 @@ function Stepper({ current }) {
             {i < STEPS.length - 1 && (
               <div className={cn(
                 'h-0.5 w-16 mx-2 mb-5 transition-colors',
-                done ? 'bg-green-500' : 'bg-border'
+                done ? 'bg-status-pass-bg' : 'bg-border'
               )} />
             )}
           </div>
@@ -87,9 +87,9 @@ function Stepper({ current }) {
 function ConfigSummary({ form, step }) {
   const plan = PLANS.find(p => p.key === form.plan)
   return (
-    <div className="rounded-xl border border-border bg-surface-raised p-4 sticky top-4 flex flex-col gap-4">
+    <div className="rounded-card border border-border bg-surface-raised p-4 sticky top-4 flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <CheckCircle2 size={14} className="text-brand-400" />
+        <CheckCircle2 size={14} className="text-brand-ink" />
         <span className="text-xs font-bold text-text-primary">Configuration Summary</span>
       </div>
 
@@ -105,7 +105,7 @@ function ConfigSummary({ form, step }) {
           <SummaryRow label="Email" value={form.adminEmail || '—'} truncate />
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-text-muted">Access</span>
-            <span className="px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 text-[10px] font-medium border border-green-500/20">
+            <span className="px-1.5 py-0.5 rounded bg-status-pass-bg text-status-pass-fg text-[10px] font-medium border border-status-pass-bd">
               Full Admin
             </span>
           </div>
@@ -116,14 +116,14 @@ function ConfigSummary({ form, step }) {
         <SummarySection title="Subscription">
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-text-muted">Plan</span>
-            <span className="px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 text-[10px] font-semibold border border-brand-500/20">
+            <span className="px-2 py-0.5 rounded bg-brand-500/10 text-brand-ink text-[10px] font-semibold border border-brand-500/20">
               {plan?.label}
             </span>
           </div>
           <SummaryRow label="Billing" value={`${plan?.price}${plan?.period}`} />
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-text-muted">Trial</span>
-            <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[10px] font-medium border border-amber-500/20">
+            <span className="px-1.5 py-0.5 rounded bg-status-warn-bg text-status-warn-fg text-[10px] font-medium border border-status-warn-bd">
               30 Days Free
             </span>
           </div>
@@ -131,10 +131,10 @@ function ConfigSummary({ form, step }) {
       )}
 
       {step === 4 && (
-        <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/20">
+        <div className="p-3 rounded-card bg-status-pass-bg border border-status-pass-bd">
           <div className="flex items-center gap-2 mb-1">
-            <CheckCircle2 size={12} className="text-green-400" />
-            <span className="text-xs font-semibold text-green-400">Ready to Deploy</span>
+            <CheckCircle2 size={12} className="text-status-pass-fg" />
+            <span className="text-xs font-semibold text-status-pass-fg">Ready to Deploy</span>
           </div>
           <p className="text-[11px] text-text-muted">
             Tenant will be immediately active with a 30-day trial.
@@ -174,19 +174,19 @@ function PlanCard({ plan, selected, onSelect }) {
   return (
     <div onClick={() => onSelect(plan.key)}
       className={cn(
-        'relative rounded-xl border-2 p-4 cursor-pointer transition-all flex flex-col',
+        'relative rounded-card border-2 p-4 cursor-pointer transition-all flex flex-col',
         selected
           ? 'border-brand-500 bg-brand-500/5'
           : 'border-border bg-surface-raised hover:border-brand-500/40'
       )}>
       {plan.tag && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-brand-500 text-white text-[10px] font-bold whitespace-nowrap">
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-brand-500 text-brand-900 text-[10px] font-bold whitespace-nowrap">
           ★ {plan.tag}
         </div>
       )}
       <div className="flex items-start justify-between mb-2">
         <h3 className="font-bold text-sm text-text-primary">{plan.label}</h3>
-        {selected && <CheckCircle2 size={16} className="text-brand-400 shrink-0" />}
+        {selected && <CheckCircle2 size={16} className="text-brand-ink shrink-0" />}
       </div>
       <div className="mb-3">
         <span className="text-2xl font-bold text-text-primary">{plan.price}</span>
@@ -195,7 +195,7 @@ function PlanCard({ plan, selected, onSelect }) {
       <ul className="flex flex-col gap-1.5 flex-1">
         {plan.features.map(f => (
           <li key={f} className="flex items-start gap-1.5 text-xs text-text-secondary">
-            <CheckCircle2 size={11} className="text-green-400 shrink-0 mt-0.5" />
+            <CheckCircle2 size={11} className="text-status-pass-fg shrink-0 mt-0.5" />
             {f}
           </li>
         ))}
@@ -203,9 +203,9 @@ function PlanCard({ plan, selected, onSelect }) {
       <button
         onClick={e => { e.stopPropagation(); onSelect(plan.key) }}
         className={cn(
-          'w-full mt-4 py-2 rounded-lg text-xs font-semibold transition-colors',
+          'w-full mt-4 py-2 rounded-card text-xs font-semibold transition-colors',
           selected
-            ? 'bg-brand-500 text-white'
+            ? 'bg-brand-500 text-brand-900'
             : 'border border-border text-text-secondary hover:text-text-primary hover:bg-surface-overlay'
         )}>
         {selected ? '✓ Selected' : `Select ${plan.label}`}
@@ -273,7 +273,7 @@ export default function CreateTenantPage() {
     )
   }
 
-  const selectCls = 'h-10 w-full rounded-lg border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500'
+  const selectCls = 'h-10 w-full rounded-card border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500'
 
   return (
     <div className="min-h-screen bg-surface">
@@ -281,7 +281,7 @@ export default function CreateTenantPage() {
       <div className="flex items-center justify-between px-6 py-3.5 border-b border-border bg-surface-raised">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/tenants')}
-            className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-surface-overlay transition-colors">
+            className="h-7 w-7 flex items-center justify-center rounded-card hover:bg-surface-overlay transition-colors">
             <ArrowLeft size={15} className="text-text-muted" />
           </button>
           <div>
@@ -290,7 +290,7 @@ export default function CreateTenantPage() {
           </div>
         </div>
         <button onClick={() => navigate('/tenants')}
-          className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-surface-overlay transition-colors">
+          className="h-7 w-7 flex items-center justify-center rounded-card hover:bg-surface-overlay transition-colors">
           <X size={15} className="text-text-muted" />
         </button>
       </div>
@@ -337,7 +337,7 @@ export default function CreateTenantPage() {
                       <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wide block mb-1.5">Description</label>
                       <textarea value={form.description} onChange={e => set('description', e.target.value)}
                         placeholder="Brief description…" rows={3}
-                        className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                        className="w-full rounded-card border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
                     </div>
                   </div>
                 </CardBody>
@@ -368,9 +368,9 @@ export default function CreateTenantPage() {
                       onChange={e => set('adminJobTitle', e.target.value)}
                       placeholder="IT Director / CISO" />
                   </div>
-                  <div className="mt-4 p-3 rounded-lg bg-brand-500/5 border border-brand-500/20">
+                  <div className="mt-4 p-3 rounded-card bg-brand-500/5 border border-brand-500/20">
                     <p className="text-xs text-text-secondary">
-                      <span className="text-brand-400 font-semibold">Note:</span> A temporary password will be auto-generated. The admin will be required to change it on first login.
+                      <span className="text-brand-ink font-semibold">Note:</span> A temporary password will be auto-generated. The admin will be required to change it on first login.
                     </p>
                   </div>
                 </CardBody>
@@ -407,7 +407,7 @@ export default function CreateTenantPage() {
                     return (
                       <div key={mod.key}
                         className={cn(
-                          'rounded-xl border-2 p-4 transition-colors',
+                          'rounded-card border-2 p-4 transition-colors',
                           form[mod.key]
                             ? 'border-brand-500/40 bg-brand-500/5'
                             : 'border-border bg-surface-raised'
@@ -415,16 +415,16 @@ export default function CreateTenantPage() {
                         <div className="flex items-start justify-between">
                           <div className="flex items-start gap-3">
                             <div className={cn(
-                              'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
+                              'w-8 h-8 rounded-card flex items-center justify-center shrink-0',
                               form[mod.key] ? 'bg-brand-500/15' : 'bg-surface-overlay'
                             )}>
-                              <Icon size={15} className={form[mod.key] ? 'text-brand-400' : 'text-text-muted'} />
+                              <Icon size={15} className={form[mod.key] ? 'text-brand-ink' : 'text-text-muted'} />
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-text-primary">{mod.label}</p>
                               <p className="text-xs text-text-muted mt-0.5">{mod.desc}</p>
                               {mod.required && (
-                                <span className="text-[10px] text-brand-400 font-medium">Required</span>
+                                <span className="text-[10px] text-brand-ink font-medium">Required</span>
                               )}
                             </div>
                           </div>
@@ -436,7 +436,7 @@ export default function CreateTenantPage() {
                               mod.required && 'cursor-default opacity-70'
                             )}>
                             <span className={cn(
-                              'inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm',
+                              'inline-block h-3.5 w-3.5 transform rounded-full bg-surface-raised transition-transform shadow-sm',
                               form[mod.key] ? 'translate-x-4' : 'translate-x-0.5'
                             )} />
                           </button>
@@ -460,7 +460,7 @@ export default function CreateTenantPage() {
                   </Button>
                 : <Button size="sm" loading={creatingTenant || creatingAdmin}
                     onClick={handleCreate}
-                    className="bg-green-600 hover:bg-green-700">
+                    className="bg-status-pass-bg hover:bg-status-pass-bg">
                     <CheckCircle2 size={14} className="mr-1.5" />
                     Create Tenant
                   </Button>

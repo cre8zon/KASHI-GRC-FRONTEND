@@ -16,7 +16,9 @@ const uiConfigSlice = createSlice({
     },
     applyBrandingLive(state, { payload }) {
       state.branding = { ...state.branding, ...payload }
-      applyBranding({ ...state.branding, ...payload })
+      // force: this is an explicit admin/user action (live preview, save),
+      // not the passive org-branding repaint that setBootstrap performs.
+      applyBranding({ ...state.branding, ...payload }, { force: true })
     },
   },
 })
@@ -33,16 +35,47 @@ const uiConfigSlice = createSlice({
  * Per-user theme (dark/light/system) is handled separately by useTheme hook
  * via data-theme attribute — it is NOT overridden here so user preference wins.
  */
-export function applyBranding(branding) {
+/**
+ * True when this user has a personal brand colour (a pastel preset click, or a
+ * Settings colour). Org branding must not repaint over a personal choice.
+ * Mirrors the sidebarTheme precedence rule already used below.
+ */
+function hasPersonalBrandChoice() {
+  try {
+    return !!localStorage.getItem('kashi_brand_preset') ||
+           !!localStorage.getItem('kashi_sidebar_color')
+  } catch { return false }
+}
+
+export function applyBranding(branding, { force = false } = {}) {
   const root = document.documentElement
 
-  if (branding.primaryColor) {
+  // setBootstrap() calls this with ORG branding on every load. Without this
+  // guard a tenant's stored primaryColor repaints --color-brand-* a few
+  // hundred ms after boot and stomps the user's pastel preset.
+  const skipBrandColor = !force && hasPersonalBrandChoice()
+
+  if (branding.primaryColor && !skipBrandColor) {
     const rgb = hexToRgb(branding.primaryColor)
     if (rgb) {
+      // Cache the winning colour so the boot-time script in index.html can
+      // paint it before React on the NEXT reload — eliminating the flash of
+      // the default sidebar/mesh. (Previously only cached under a narrow
+      // sidebarTheme condition below, so most users never got the cache.)
+      try { localStorage.setItem('kashi_sidebar_color', branding.primaryColor) } catch {}
       const scale = generateScale(rgb)
       Object.entries(scale).forEach(([shade, value]) => {
         root.style.setProperty(`--color-brand-${shade}`, value)
       })
+      // Derive the LIGHT mesh from the brand scale so the background follows
+      // whatever colour is applied (preset, tenant branding, live preview).
+      // Previously this set --wash-a/b/c, which no longer exist since the move
+      // to the 4-blob mesh — so the mesh never updated. Dark theme keeps its
+      // own fixed dim mesh via [data-theme="dark"] body in index.html.
+      root.style.setProperty('--mesh-1', `rgb(${scale[400]})`)
+      root.style.setProperty('--mesh-2', `rgb(${scale[200]})`)
+      root.style.setProperty('--mesh-3', `rgb(${scale[300]})`)
+      root.style.setProperty('--mesh-4', `rgb(${scale[100]})`)
     }
   }
 

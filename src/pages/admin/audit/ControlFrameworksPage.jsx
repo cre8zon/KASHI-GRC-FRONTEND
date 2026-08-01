@@ -61,13 +61,13 @@ function FrameworkForm({ initial, onSubmit, loading }) {
           <label className="block text-xs text-text-secondary mb-1">Framework name *</label>
           <input value={form.name} onChange={e => set('name', e.target.value)}
             placeholder="e.g. ISO 27001"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Short code *</label>
           <input value={form.code} onChange={e => set('code', e.target.value.toUpperCase())}
             placeholder="e.g. ISO27001, SOC2, NIST-CSF"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           <p className="text-[10px] text-text-muted mt-1">
             Must match the frameworkRef used in controls and sections.
           </p>
@@ -78,20 +78,20 @@ function FrameworkForm({ initial, onSubmit, loading }) {
           <label className="block text-xs text-text-secondary mb-1">Version</label>
           <input value={form.version} onChange={e => set('version', e.target.value)}
             placeholder="e.g. 2022, Rev 5, 2.0"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Website / reference URL</label>
           <input value={form.websiteUrl} onChange={e => set('websiteUrl', e.target.value)}
             placeholder="https://…"
-            className="w-full h-9 px-3 rounded-md border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <div>
         <label className="block text-xs text-text-secondary mb-1">Description</label>
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3}
           placeholder="Briefly describe what this framework covers and who it applies to"
-          className="w-full px-3 py-2 rounded-md border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <Button variant="primary" onClick={() => onSubmit(form)} loading={loading}
         disabled={!form.name.trim() || !form.code.trim()}>
@@ -141,7 +141,7 @@ export default function ControlFrameworksPage() {
     { key: 'websiteUrl',   label: 'Reference',   sortable: false, width: 80,  type: 'custom',
       render: (row) => row.websiteUrl
         ? <a href={row.websiteUrl} target="_blank" rel="noopener noreferrer"
-            className="text-xs text-brand-400 hover:underline" onClick={e => e.stopPropagation()}>
+            className="text-xs text-brand-ink hover:underline" onClick={e => e.stopPropagation()}>
             Link
           </a>
         : <span className="text-xs text-text-muted">—</span>,
@@ -155,12 +155,12 @@ export default function ControlFrameworksPage() {
           </button>
           {row.status === 'ACTIVE' && (
             <button onClick={() => FM.archive.mutate(row.id)} title="Archive"
-              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-amber-400 hover:bg-amber-500/10 transition-colors">
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-warn-fg hover:bg-status-warn-bg transition-colors">
               <Archive size={12} />
             </button>
           )}
           <button onClick={() => setDeleteItem(row)} title="Delete"
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
             <Trash2 size={12} />
           </button>
         </div>
@@ -179,7 +179,7 @@ export default function ControlFrameworksPage() {
             <input value={search}
               onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search frameworks…"
-              className="h-8 pl-8 pr-3 w-52 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
           <Button size="sm" icon={Plus} onClick={() => setShowCreate(true)}>

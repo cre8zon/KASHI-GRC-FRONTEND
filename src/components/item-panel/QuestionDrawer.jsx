@@ -57,12 +57,12 @@ import toast                     from 'react-hot-toast'
 // ── Verdict badge ──────────────────────────────────────────────────────────────
 
 const VERDICT_CFG = {
-  PASS:    { cls: 'bg-green-500/10 text-green-400 border-green-500/30',  label: 'Pass'    },
-  PARTIAL: { cls: 'bg-amber-500/10 text-amber-400 border-amber-500/30', label: 'Partial' },
-  FAIL:    { cls: 'bg-red-500/10 text-red-400 border-red-500/30',       label: 'Fail'    },
-  ACCEPTED:           { cls: 'bg-green-500/10 text-green-400 border-green-500/30',  label: 'Accepted by responder' },
-  OVERRIDDEN:         { cls: 'bg-blue-500/10 text-blue-400 border-blue-500/30',     label: 'Overridden'            },
-  REVISION_REQUESTED: { cls: 'bg-amber-500/10 text-amber-400 border-amber-500/30', label: 'Revision requested'    },
+  PASS:    { cls: 'bg-status-pass-bg text-status-pass-fg border-status-pass-bd',  label: 'Pass'    },
+  PARTIAL: { cls: 'bg-status-warn-bg text-status-warn-fg border-status-warn-bd', label: 'Partial' },
+  FAIL:    { cls: 'bg-status-fail-bg text-status-fail-fg border-status-fail-bd',       label: 'Fail'    },
+  ACCEPTED:           { cls: 'bg-status-pass-bg text-status-pass-fg border-status-pass-bd',  label: 'Accepted by responder' },
+  OVERRIDDEN:         { cls: 'bg-status-info-bg text-status-info-fg border-status-info-bd',     label: 'Overridden'            },
+  REVISION_REQUESTED: { cls: 'bg-status-warn-bg text-status-warn-fg border-status-warn-bd', label: 'Revision requested'    },
   // PENDING is the default server value before any verdict action — never show it as a badge
 }
 
@@ -126,11 +126,11 @@ function DrawerAnswerInput({ question, assessmentId }) {
     return (
       <div className="space-y-2">
         {hasSaved && !dirty ? (
-          <div className="group relative px-3 py-2.5 rounded-lg bg-green-500/5 border border-green-500/20">
+          <div className="group relative px-3 py-2.5 rounded-card bg-status-pass-bg border border-status-pass-bd">
             <p className="text-xs text-text-secondary leading-relaxed pr-12 whitespace-pre-wrap">{resp.responseText}</p>
             <button
               onClick={() => { setLocalText(resp.responseText); setDirty(true) }}
-              className="absolute right-2 top-2 text-[10px] text-text-muted hover:text-brand-400 border border-border rounded px-1.5 py-0.5 transition-colors">
+              className="absolute right-2 top-2 text-[10px] text-text-muted hover:text-brand-ink border border-border rounded px-1.5 py-0.5 transition-colors">
               Edit
             </button>
           </div>
@@ -142,13 +142,13 @@ function DrawerAnswerInput({ question, assessmentId }) {
               rows={3}
               autoFocus={dirty}
               placeholder="Type your answer…"
-              className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             />
             <div className="flex items-center gap-2">
               <button
                 disabled={!localText.trim() || isPending}
                 onClick={saveText}
-                className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded bg-brand-500/20 text-brand-300 border border-brand-500/30 hover:bg-brand-500/30 disabled:opacity-40 transition-colors">
+                className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded bg-brand-500/20 text-brand-ink border border-brand-500/30 hover:bg-brand-500/30 disabled:opacity-40 transition-colors">
                 {isPending ? <Loader2 size={10} className="animate-spin"/> : <Save size={10}/>}
                 {hasSaved ? 'Update' : 'Save'}
               </button>
@@ -159,7 +159,7 @@ function DrawerAnswerInput({ question, assessmentId }) {
                 </button>
               )}
               {justSaved && (
-                <span className="text-xs text-green-400 flex items-center gap-1">
+                <span className="text-xs text-status-pass-fg flex items-center gap-1">
                   <CheckCircle2 size={10}/> Saved
                 </span>
               )}
@@ -196,22 +196,22 @@ function DrawerAnswerInput({ question, assessmentId }) {
                 className={cn(
                   'text-xs px-2.5 py-1.5 rounded border transition-all flex items-center gap-1',
                   selected
-                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
+                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-ink font-medium'
                     : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary'
                 )}>
                 {opt.optionValue}
                 {opt.score != null && (
-                  <span className={cn('text-[10px]', selected ? 'text-brand-400/70' : 'opacity-40')}>
+                  <span className={cn('text-[10px]', selected ? 'text-brand-ink/70' : 'opacity-40')}>
                     {opt.score}pts
                   </span>
                 )}
-                {selected && <CheckCircle2 size={10} className="text-brand-400"/>}
+                {selected && <CheckCircle2 size={10} className="text-brand-ink"/>}
               </button>
             )
           })}
         </div>
         {justSaved && (
-          <span className="text-xs text-green-400 flex items-center gap-1">
+          <span className="text-xs text-status-pass-fg flex items-center gap-1">
             <CheckCircle2 size={10}/> Saved
           </span>
         )}
@@ -260,19 +260,19 @@ function DrawerAnswerInput({ question, assessmentId }) {
                 className={cn(
                   'text-xs px-2.5 py-1.5 rounded border transition-all flex items-center gap-1.5',
                   selected
-                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-300 font-medium'
+                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-ink font-medium'
                     : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary',
                   thisOptPending && 'opacity-60'
                 )}>
                 <span className={cn(
-                  'w-3 h-3 rounded-sm border flex-shrink-0 flex items-center justify-center',
+                  'w-3 h-3 rounded-ctl border flex-shrink-0 flex items-center justify-center',
                   selected ? 'bg-brand-500 border-brand-500' : 'border-current opacity-50'
                 )}>
-                  {selected && <CheckCircle2 size={9} className="text-white"/>}
+                  {selected && <CheckCircle2 size={9} className="text-on-dark"/>}
                 </span>
                 {opt.optionValue}
                 {opt.score != null && (
-                  <span className={cn('text-[10px]', selected ? 'text-brand-400/70' : 'opacity-40')}>
+                  <span className={cn('text-[10px]', selected ? 'text-brand-ink/70' : 'opacity-40')}>
                     {opt.score}pts
                   </span>
                 )}
@@ -286,7 +286,7 @@ function DrawerAnswerInput({ question, assessmentId }) {
           </p>
         )}
         {justSaved && (
-          <span className="text-xs text-green-400 flex items-center gap-1">
+          <span className="text-xs text-status-pass-fg flex items-center gap-1">
             <CheckCircle2 size={10}/> Saved
           </span>
         )}
@@ -297,9 +297,9 @@ function DrawerAnswerInput({ question, assessmentId }) {
   // ── FILE_UPLOAD — redirect to Evidence tab ────────────────────────────────
   if (question.responseType === 'FILE_UPLOAD') {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20">
-        <Paperclip size={12} className="text-amber-400 shrink-0" />
-        <p className="text-xs text-amber-300">
+      <div className="flex items-center gap-2 px-3 py-2 rounded-card bg-status-warn-bg border border-status-warn-bd">
+        <Paperclip size={12} className="text-status-warn-fg shrink-0" />
+        <p className="text-xs text-status-warn-fg">
           Upload evidence in the <span className="font-medium">Evidence tab</span> below.
         </p>
       </div>
@@ -402,7 +402,7 @@ export function QuestionDrawer({
       <div
         onClick={onClose}
         className={cn(
-          'fixed inset-0 bg-black/30 z-40 transition-opacity duration-200',
+          'fixed inset-0 bg-on-dark-inv/30 z-40 transition-opacity duration-200',
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         )}
       />
@@ -425,7 +425,7 @@ export function QuestionDrawer({
                     {question.responseType?.replace(/_/g,' ')}
                   </span>
                   {question.mandatory && (
-                    <span className="text-[9px] text-red-400 font-semibold">Required</span>
+                    <span className="text-[9px] text-status-fail-fg font-semibold">Required</span>
                   )}
                   {question.weight > 0 && (
                     <span className="text-[10px] text-text-muted font-mono">{question.weight} pts</span>
@@ -450,7 +450,7 @@ export function QuestionDrawer({
               </div>
               <button
                 onClick={onClose}
-                className="shrink-0 p-1.5 rounded-lg hover:bg-surface-overlay text-text-muted hover:text-text-primary transition-colors"
+                className="shrink-0 p-1.5 rounded-card hover:bg-surface-overlay text-text-muted hover:text-text-primary transition-colors"
               >
                 <X size={16} />
               </button>
@@ -460,14 +460,14 @@ export function QuestionDrawer({
             <div className="px-5 py-3 border-b border-border bg-surface-overlay/30 flex-shrink-0">
               {/* FILE_UPLOAD: always redirect to Evidence tab for vendor-side modes */}
               {question.responseType === 'FILE_UPLOAD' && (mode === 'contributor' || mode === 'responder') && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                  <Paperclip size={12} className="text-amber-400 shrink-0" />
-                  <span className="text-xs text-amber-300">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-card bg-status-warn-bg border border-status-warn-bd">
+                  <Paperclip size={12} className="text-status-warn-fg shrink-0" />
+                  <span className="text-xs text-status-warn-fg">
                     Use the{' '}
                     <button
                       type="button"
                       onClick={() => setActiveTab('evidence')}
-                      className="font-semibold underline underline-offset-2 hover:text-amber-200 transition-colors"
+                      className="font-semibold underline underline-offset-2 hover:text-status-warn-fg transition-colors"
                     >Evidence tab</button>
                     {' '}below to upload your file.
                   </span>
@@ -476,7 +476,7 @@ export function QuestionDrawer({
 
               {/* FILE_UPLOAD read-only (reviewer or readonly mode) */}
               {question.responseType === 'FILE_UPLOAD' && (mode === 'reviewer' || mode === 'readonly') && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-overlay/50 border border-border">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-card bg-surface-overlay/50 border border-border">
                   <Paperclip size={12} className="text-text-muted shrink-0" />
                   <p className="text-xs text-text-muted">See the <span className="font-medium">Evidence tab</span> for uploaded files.</p>
                 </div>
@@ -523,13 +523,13 @@ export function QuestionDrawer({
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-2.5 text-[11px] font-medium border-b-2 -mb-px whitespace-nowrap transition-colors',
                     activeTab === id
-                      ? 'border-brand-500 text-brand-400'
+                      ? 'border-brand-500 text-brand-ink'
                       : 'border-transparent text-text-muted hover:text-text-secondary'
                   )}>
                   <Icon size={12} />
                   {label}
                   {badge != null && badge > 0 && (
-                    <span className="text-[9px] font-bold px-1 rounded-full bg-amber-500/20 text-amber-400">
+                    <span className="text-[9px] font-bold px-1 rounded-full bg-status-warn-bg text-status-warn-fg">
                       {badge}
                     </span>
                   )}
@@ -606,27 +606,27 @@ function AnswerPreview({ question, resp }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <CheckCircle2 size={12} className="text-green-400 shrink-0" />
+        <CheckCircle2 size={12} className="text-status-pass-fg shrink-0" />
         <span className="text-[10px] text-text-muted">
           {resp.answeredByName ? `Answered by ${resp.answeredByName}` : 'Answered'}
           {resp.submittedAt && ` · ${formatDate(resp.submittedAt)}`}
         </span>
         {resp.scoreEarned != null && question.weight > 0 && (
-          <span className="text-[10px] font-mono text-green-400 ml-auto">
+          <span className="text-[10px] font-mono text-status-pass-fg ml-auto">
             {resp.scoreEarned}/{question.weight} pts
           </span>
         )}
       </div>
 
       {isFile && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20">
-          <Paperclip size={12} className="text-amber-400 shrink-0" />
-          <p className="text-xs text-amber-300/80">See the <span className="font-medium">Evidence tab</span> for uploaded files.</p>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-card bg-status-warn-bg border border-status-warn-bd">
+          <Paperclip size={12} className="text-status-warn-fg shrink-0" />
+          <p className="text-xs text-status-warn-fg">See the <span className="font-medium">Evidence tab</span> for uploaded files.</p>
         </div>
       )}
 
       {isText && resp.responseText && (
-        <div className="px-3 py-2 rounded-lg bg-surface border border-border">
+        <div className="px-3 py-2 rounded-card bg-surface border border-border">
           <p className="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap">
             {resp.responseText}
           </p>
@@ -644,7 +644,7 @@ function AnswerPreview({ question, resp }) {
                 className={cn(
                   'text-xs px-2 py-0.5 rounded border',
                   sel
-                    ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 font-medium'
+                    ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink font-medium'
                     : 'border-border text-text-muted opacity-40'
                 )}>
                 {opt.optionValue}
@@ -726,7 +726,7 @@ function InternalTab({ qiId, assessmentId, canComment, userSide, userRole }) {
   return (
     <div className="space-y-3">
       <ChannelLabel
-        color={isVendorSide ? 'text-teal-400' : 'text-purple-400'}
+        color={isVendorSide ? 'text-brand-ink' : 'text-status-tag-fg'}
         label={isVendorSide ? 'Vendor-only · never visible to org reviewer' : 'Org-only · never visible to vendor'}
         description={isVendorSide
           ? 'Responder ↔ contributor internal notes. Org reviewers cannot see this.'
@@ -781,7 +781,7 @@ function ActivityTab({ qiId }) {
 
 function ChannelLabel({ color, label, description, Icon }) {
   return (
-    <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-surface-overlay/50 border border-border/60">
+    <div className="flex items-start gap-2 px-3 py-2 rounded-card bg-surface-overlay/50 border border-border/60">
       {Icon && <Icon size={12} className={cn('shrink-0 mt-0.5', color)} />}
       <div>
         <p className={cn('text-[10px] font-semibold', color)}>{label}</p>

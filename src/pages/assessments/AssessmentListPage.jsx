@@ -42,8 +42,8 @@ const STATUS_CONFIG = {
 }
 
 const PRIORITY_CONFIG = {
-  CRITICAL: { color: 'text-red-400 bg-red-500/10', label: 'Critical' },
-  HIGH:     { color: 'text-amber-400 bg-amber-500/10', label: 'High' },
+  CRITICAL: { color: 'text-status-fail-fg bg-status-fail-bg', label: 'Critical' },
+  HIGH:     { color: 'text-status-warn-fg bg-status-warn-bg', label: 'High' },
   MEDIUM:   { color: 'text-text-muted bg-surface-overlay', label: 'Medium' },
   LOW:      { color: 'text-text-muted bg-surface-overlay/50', label: 'Low' },
 }
@@ -84,12 +84,12 @@ function AssessmentRow({ assessment, onView, isOrgSide }) {
         {/* Status */}
         <div className="flex items-center gap-1.5">
           <StatusIcon size={12} className={cn(
-            meta.color === 'green' ? 'text-green-400' :
-            meta.color === 'amber' ? 'text-amber-400' :
-            meta.color === 'red'   ? 'text-red-400'   :
-            meta.color === 'blue'  ? 'text-blue-400'  :
-            meta.color === 'purple'? 'text-purple-400' :
-            meta.color === 'indigo'? 'text-indigo-400' : 'text-text-muted'
+            meta.color === 'green' ? 'text-status-pass-fg' :
+            meta.color === 'amber' ? 'text-status-warn-fg' :
+            meta.color === 'red'   ? 'text-status-fail-fg'   :
+            meta.color === 'blue'  ? 'text-status-info-fg'  :
+            meta.color === 'purple'? 'text-status-tag-fg' :
+            meta.color === 'indigo'? 'text-status-tag-fg' : 'text-text-muted'
           )} />
           <span className="text-xs text-text-secondary">{meta.label}</span>
         </div>
@@ -98,7 +98,7 @@ function AssessmentRow({ assessment, onView, isOrgSide }) {
         <div className="flex items-center gap-2">
           <div className="w-14 h-1.5 rounded-full bg-surface-overlay overflow-hidden">
             <div className={cn('h-full rounded-full transition-all',
-              pct === 100 ? 'bg-green-500' : 'bg-brand-500')}
+              pct === 100 ? 'bg-status-pass-bg' : 'bg-brand-500')}
               style={{ width: `${pct}%` }} />
           </div>
           <span className="text-xs font-mono text-text-muted">{pct}%</span>
@@ -178,7 +178,7 @@ export default function AssessmentListPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search vendor or template…"
-              className="h-8 pl-8 pr-3 w-52 rounded-md border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
           <Button variant={showFilters ? 'secondary' : 'ghost'} size="sm" icon={SlidersHorizontal}
@@ -193,13 +193,13 @@ export default function AssessmentListPage() {
       {(activeCritical > 0 || pendingReview > 0) && (
         <div className="flex items-center gap-3 px-6 pt-4">
           {activeCritical > 0 && (
-            <div className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+            <div className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-card bg-status-fail-bg border border-status-fail-bd text-status-fail-fg">
               <AlertTriangle size={12} />
               {activeCritical} critical
             </div>
           )}
           {pendingReview > 0 && isOrgSide && (
-            <div className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400">
+            <div className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-card bg-status-tag-bg border border-status-tag-bd text-status-tag-fg">
               <Eye size={12} />
               {pendingReview} awaiting review
             </div>
@@ -212,7 +212,7 @@ export default function AssessmentListPage() {
         <div className="flex items-center gap-2 px-6 py-3 border-b border-border bg-surface-raised flex-wrap">
           <button onClick={() => { setStatus(''); setPage(1) }}
             className={cn('text-xs px-3 py-1 rounded-full border transition-colors',
-              !statusFilter ? 'border-brand-500 bg-brand-500/10 text-brand-400' : 'border-border text-text-muted hover:text-text-secondary')}>
+              !statusFilter ? 'border-brand-500 bg-brand-500/10 text-brand-ink' : 'border-border text-text-muted hover:text-text-secondary')}>
             All
           </button>
           {Object.entries(STATUS_CONFIG).map(([k, m]) => {
@@ -220,7 +220,7 @@ export default function AssessmentListPage() {
             return (
               <button key={k} onClick={() => { setStatus(s => s === k ? '' : k); setPage(1) }}
                 className={cn('flex items-center gap-1 text-xs px-3 py-1 rounded-full border transition-colors',
-                  statusFilter === k ? 'border-brand-500 bg-brand-500/10 text-brand-400' : 'border-border text-text-muted hover:text-text-secondary')}>
+                  statusFilter === k ? 'border-brand-500 bg-brand-500/10 text-brand-ink' : 'border-border text-text-muted hover:text-text-secondary')}>
                 {m.label}
                 <span className="font-mono">{counts[k]}</span>
               </button>
@@ -243,7 +243,7 @@ export default function AssessmentListPage() {
       </div>
 
       {/* List */}
-      <div className="bg-surface border border-border rounded-xl overflow-hidden mx-6 mt-4">
+      <div className="bg-surface border border-border rounded-card overflow-hidden mx-6 mt-4">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <div className="animate-spin w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full" />

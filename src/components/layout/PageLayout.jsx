@@ -5,7 +5,7 @@ export function PageLayout({ title, subtitle, actions, children, className }) {
     <div className={cn('flex flex-col h-full overflow-hidden', className)}>
       {/* Page header */}
       {(title || actions) && (
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 shrink-0">
           <div>
             {title && <h1 className="text-base font-semibold text-text-primary">{title}</h1>}
             {subtitle && <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>}

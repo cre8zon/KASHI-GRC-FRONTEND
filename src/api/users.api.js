@@ -8,7 +8,7 @@ export const usersApi = {
   remove:   (id)         => api.delete(`/v1/users/${id}`),
   suspend:  (id)         => api.patch(`/v1/users/${id}/suspend`),
   activate: (id)         => api.patch(`/v1/users/${id}/activate`),
-  changePassword: (data) => api.post('/v1/users/password', data),
+  changePassword: (data) => api.put('/v1/users/password', data),  // backend: PUT /v1/users/password
 
   /** Invite — creates user AND sends welcome email with temp password */
   invite: (data) => api.post('/v1/users', { ...data, sendWelcomeEmail: true }),

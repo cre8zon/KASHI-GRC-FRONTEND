@@ -49,20 +49,20 @@ function StepIndicator({ current }) {
             <div className="flex flex-col items-center gap-1">
               <div className={cn(
                 'w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors',
-                done   ? 'bg-green-500/20 border-green-500/40 text-green-400' :
-                active ? 'bg-brand-500/20 border-brand-500/40 text-brand-400' :
+                done   ? 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg' :
+                active ? 'bg-brand-500/20 border-brand-500/40 text-brand-ink' :
                          'bg-surface-overlay border-border text-text-muted'
               )}>
                 {done ? <CheckCircle2 size={14} /> : <Icon size={14} />}
               </div>
               <span className={cn('text-[10px] font-medium whitespace-nowrap',
-                active ? 'text-brand-400' : done ? 'text-text-secondary' : 'text-text-muted')}>
+                active ? 'text-brand-ink' : done ? 'text-text-secondary' : 'text-text-muted')}>
                 {step.label}
               </span>
             </div>
             {i < STEPS.length - 1 && (
               <div className={cn('h-px flex-1 mx-2 mb-5 transition-colors',
-                current > step.id ? 'bg-green-500/40' : 'bg-border')} />
+                current > step.id ? 'bg-status-pass-bg' : 'bg-border')} />
             )}
           </div>
         )
@@ -76,20 +76,20 @@ function SelectField({ label, value, onChange, options, error, required }) {
   return (
     <div className="flex flex-col gap-1">
       <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">
-        {label}{required && <span className="text-red-400 ml-1">*</span>}
+        {label}{required && <span className="text-status-fail-fg ml-1">*</span>}
       </label>
       <select value={value} onChange={e => onChange(e.target.value)}
         className={cn(
-          'h-8 w-full rounded-md border bg-surface-raised px-3 text-sm text-text-primary',
+          'h-8 w-full rounded-ctl border bg-surface-raised px-3 text-sm text-text-primary',
           'focus:outline-none focus:ring-1 focus:ring-brand-500 appearance-none',
-          error ? 'border-red-500/50' : 'border-border'
+          error ? 'border-status-fail-bd' : 'border-border'
         )}>
         <option value="">Select…</option>
         {options.map(o => (
           <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>
         ))}
       </select>
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-status-fail-fg">{error}</p>}
     </div>
   )
 }
@@ -252,8 +252,8 @@ export default function VendorOnboardPage() {
           <Card>
             <CardHeader title="Risk Assessment" subtitle="Risk factors used to calculate risk score and assign template" icon={Shield} />
             <CardBody className="flex flex-col gap-4">
-              <div className="p-3 bg-surface-overlay rounded-lg border border-border flex items-start gap-2">
-                <Info size={13} className="text-brand-400 shrink-0 mt-0.5" />
+              <div className="p-3 bg-surface-overlay rounded-card border border-border flex items-start gap-2">
+                <Info size={13} className="text-brand-ink shrink-0 mt-0.5" />
                 <p className="text-xs text-text-muted">
                   Risk score is calculated from these factors. The score determines which assessment template is assigned.
                   Higher data access and criticality = higher score.
@@ -289,10 +289,10 @@ export default function VendorOnboardPage() {
           <Card>
             <CardHeader title="Primary Contact" subtitle="This person becomes the Vendor Risk Manager (VENDOR_VRM) and receives a welcome email" icon={User} />
             <CardBody className="flex flex-col gap-4">
-              <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg flex items-start gap-2">
-                <AlertCircle size={13} className="text-amber-400 shrink-0 mt-0.5" />
+              <div className="p-3 bg-status-warn-bg border border-status-warn-bd rounded-card flex items-start gap-2">
+                <AlertCircle size={13} className="text-status-warn-fg shrink-0 mt-0.5" />
                 <p className="text-xs text-text-muted">
-                  A user account will be created for this contact with the <span className="text-amber-400 font-medium">VENDOR_VRM</span> role.
+                  A user account will be created for this contact with the <span className="text-status-warn-fg font-medium">VENDOR_VRM</span> role.
                   They will receive an email with a temporary password to join the platform and begin the assessment.
                 </p>
               </div>
@@ -370,8 +370,8 @@ export default function VendorOnboardPage() {
                 ))}
               </CardBody>
             </Card>
-            <div className="p-3 bg-brand-500/5 border border-brand-500/20 rounded-lg flex items-start gap-2">
-              <CheckCircle2 size={13} className="text-brand-400 shrink-0 mt-0.5" />
+            <div className="p-3 bg-brand-500/5 border border-brand-500/20 rounded-card flex items-start gap-2">
+              <CheckCircle2 size={13} className="text-brand-ink shrink-0 mt-0.5" />
               <p className="text-xs text-text-muted">
                 On submit: vendor is created, risk score calculated, assessment template assigned,
                 TPRM workflow started (Step 1 auto-executed), and welcome email sent to {form.contactEmail}.

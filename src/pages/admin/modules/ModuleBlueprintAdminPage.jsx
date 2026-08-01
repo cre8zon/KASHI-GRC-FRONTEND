@@ -152,7 +152,7 @@ export default function ModuleBlueprintAdminPage() {
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
               <input value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search modules…"
-                className="w-full pl-8 pr-3 h-7 text-xs bg-surface-overlay border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full pl-8 pr-3 h-7 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -179,7 +179,7 @@ export default function ModuleBlueprintAdminPage() {
                         : 'hover:bg-surface-overlay border-l-2 border-l-transparent'
                     )}
                   >
-                    <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold',
+                    <div className={cn('w-7 h-7 rounded-card flex items-center justify-center shrink-0 text-xs font-bold',
                       `bg-${bp.colorTag || 'blue'}-500/15 text-${bp.colorTag || 'blue'}-400`)}>
                       {(bp.displayName || bp.entityType || '?')[0]}
                     </div>
@@ -187,7 +187,7 @@ export default function ModuleBlueprintAdminPage() {
                       <div className="text-xs font-medium text-text-primary truncate">{bp.displayName}</div>
                       <div className="text-[10px] text-text-muted font-mono">{bp.entityType}</div>
                     </div>
-                    <div className={cn('w-1.5 h-1.5 rounded-full shrink-0', bp.isActive ? 'bg-green-400' : 'bg-surface-overlay border border-border')} />
+                    <div className={cn('w-1.5 h-1.5 rounded-full shrink-0', bp.isActive ? 'bg-status-pass-fg' : 'bg-surface-overlay border border-border')} />
                   </button>
                 ))
             }
@@ -199,7 +199,7 @@ export default function ModuleBlueprintAdminPage() {
           {!selected
             ? (
               <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center p-8">
-                <div className="w-16 h-16 rounded-2xl bg-surface-overlay border border-dashed border-border flex items-center justify-center">
+                <div className="w-16 h-16 rounded-modal bg-surface-overlay border border-dashed border-border flex items-center justify-center">
                   <Sparkles size={24} className="text-text-muted" />
                 </div>
                 <div>
@@ -287,7 +287,7 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
       {/* Header */}
       <div className="flex items-start justify-between px-6 py-4 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
-          <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold',
+          <div className={cn('w-10 h-10 rounded-card flex items-center justify-center text-sm font-bold',
             `bg-${bp.colorTag || 'blue'}-500/15 text-${bp.colorTag || 'blue'}-400`)}>
             {(bp.displayName || bp.entityType || '?')[0]}
           </div>
@@ -318,7 +318,7 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
             className={cn(
               'flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-md transition-colors border-b-2 -mb-px',
               tab === t.key
-                ? 'border-brand-500 text-brand-400 bg-brand-500/5'
+                ? 'border-brand-500 text-brand-ink bg-brand-500/5'
                 : 'border-transparent text-text-muted hover:text-text-secondary hover:bg-surface-overlay'
             )}>
             <t.icon size={12} /> {t.label}
@@ -337,8 +337,8 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
                 { label: 'Statuses', value: statusFlow.statuses?.length || 0, icon: GitBranch },
                 { label: 'Transitions', value: statusFlow.transitions?.length || 0, icon: ArrowRight },
               ].map(s => (
-                <div key={s.label} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-surface-overlay">
-                  <s.icon size={16} className="text-brand-400" />
+                <div key={s.label} className="flex items-center gap-3 p-3 rounded-card border border-border bg-surface-overlay">
+                  <s.icon size={16} className="text-brand-ink" />
                   <div>
                     <div className="text-sm font-semibold text-text-primary">{s.value}</div>
                     <div className="text-xs text-text-muted">{s.label}</div>
@@ -358,8 +358,8 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
                   { key: 'supportsComments', label: 'Comments', icon: MessageSquare },
                   { key: 'showInNav', label: 'Navigation', icon: Navigation },
                 ].map(c => (
-                  <div key={c.key} className={cn('flex items-center gap-2 px-3 py-2 rounded-lg border text-xs',
-                    bp[c.key] ? 'border-green-500/25 bg-green-500/5 text-green-400' : 'border-border text-text-muted')}>
+                  <div key={c.key} className={cn('flex items-center gap-2 px-3 py-2 rounded-card border text-xs',
+                    bp[c.key] ? 'border-status-pass-bd bg-status-pass-bg text-status-pass-fg' : 'border-border text-text-muted')}>
                     {bp[c.key] ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
                     <c.icon size={12} /> {c.label}
                   </div>
@@ -383,15 +383,15 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
                 <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Workflow eligibility</h3>
                 <div className="flex flex-wrap gap-1.5">
                   {bp.workflowEligibility.split(',').filter(Boolean).map(e => (
-                    <span key={e} className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 text-xs border border-purple-500/20">{e}</span>
+                    <span key={e} className="px-2 py-0.5 rounded bg-status-tag-bg text-status-tag-fg text-xs border border-status-tag-bd">{e}</span>
                   ))}
                 </div>
               </div>
             )}
 
             {/* Universal Module Page route */}
-            <div className="p-3 rounded-lg bg-brand-500/5 border border-brand-500/20">
-              <p className="text-xs font-medium text-brand-400 mb-1">Universal Module Page routes</p>
+            <div className="p-3 rounded-card bg-brand-500/5 border border-brand-500/20">
+              <p className="text-xs font-medium text-brand-ink mb-1">Universal Module Page routes</p>
               <p className="text-xs font-mono text-text-secondary">/module/{bp.entityType?.toLowerCase()} — list</p>
               <p className="text-xs font-mono text-text-secondary">/module/{bp.entityType?.toLowerCase()}/:id — detail</p>
             </div>
@@ -400,24 +400,24 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
 
         {tab === 'fields' && (
           <div className="space-y-3 max-w-3xl">
-            <div className="flex items-center gap-2 text-xs text-amber-300 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 text-xs text-status-warn-fg bg-status-warn-bg border border-status-warn-bd rounded-card px-3 py-2">
               <Info size={12} />
               Field schema is stored as JSON. Use the JSON editor below. Visual field builder coming soon.
             </div>
             {fieldsSchema.sections?.map((section, si) => (
-              <div key={si} className="border border-border rounded-lg overflow-hidden">
+              <div key={si} className="border border-border rounded-card overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-surface-overlay border-b border-border">
-                  <Layers size={12} className="text-brand-400" />
+                  <Layers size={12} className="text-brand-ink" />
                   <span className="text-xs font-semibold text-text-primary">{section.label || section.key}</span>
                   <Badge variant="gray" size="xs">{section.fields?.length || 0} fields</Badge>
                 </div>
                 <div className="divide-y divide-border">
                   {(section.fields || []).map((f, fi) => (
                     <div key={fi} className="flex items-center gap-3 px-4 py-2.5 text-xs">
-                      <code className="font-mono text-brand-400 w-36 shrink-0">{f.key}</code>
+                      <code className="font-mono text-brand-ink w-36 shrink-0">{f.key}</code>
                       <span className="text-text-secondary w-24 shrink-0">{f.type}</span>
                       <span className="text-text-muted flex-1">{f.label}</span>
-                      {f.required && <span className="text-red-400 text-[10px]">required</span>}
+                      {f.required && <span className="text-status-fail-fg text-[10px]">required</span>}
                     </div>
                   ))}
                 </div>
@@ -425,7 +425,7 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
             ))}
             <div>
               <p className="text-xs font-medium text-text-muted mb-1.5">Raw schema JSON</p>
-              <pre className="text-[11px] font-mono text-text-secondary bg-surface-overlay border border-border rounded-lg p-3 overflow-x-auto">
+              <pre className="text-[11px] font-mono text-text-secondary bg-surface-overlay border border-border rounded-card p-3 overflow-x-auto">
                 {bp.fieldsSchemaJson || '{}'}
               </pre>
             </div>
@@ -446,16 +446,16 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
               <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Transitions</h3>
               {/* Validation warnings banner */}
               {transitionIssues.length > 0 && (
-                <div className="mb-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5 space-y-1.5">
-                  <div className="flex items-center gap-1.5 text-xs font-medium text-amber-400">
+                <div className="mb-3 p-3 rounded-card border border-status-warn-bd bg-status-warn-bg space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-status-warn-fg">
                     <AlertTriangle size={12} />
                     {transitionIssues.length} transition {transitionIssues.length === 1 ? 'issue' : 'issues'} detected
                   </div>
                   {transitionIssues.map(({ transition: t, warnings }, i) => (
-                    <div key={i} className="text-[11px] text-amber-300/80 pl-4">
+                    <div key={i} className="text-[11px] text-status-warn-fg pl-4">
                       <span className="font-medium">{t.from} → {t.to} ({t.label}):</span>
                       {warnings.map((w, wi) => (
-                        <span key={wi} className="block pl-2 text-amber-400/70">⚠ {w}</span>
+                        <span key={wi} className="block pl-2 text-status-warn-fg">⚠ {w}</span>
                       ))}
                     </div>
                   ))}
@@ -466,20 +466,20 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
                   const hasIssue = transitionIssues.some(r => r.index === i)
                   return (
                     <div key={i} className={cn(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-lg border text-xs',
-                      hasIssue ? 'border-amber-500/30 bg-amber-500/5' : 'border-border'
+                      'flex items-center gap-3 px-3 py-2.5 rounded-card border text-xs',
+                      hasIssue ? 'border-status-warn-bd bg-status-warn-bg' : 'border-border'
                     )}>
                       <span className="text-text-secondary font-medium w-28 truncate">{t.from}</span>
                       <ArrowRight size={12} className="text-text-muted shrink-0" />
                       <span className="text-text-secondary font-medium w-28 truncate">{t.to}</span>
-                      <span className="text-brand-400 ml-2">{t.label}</span>
+                      <span className="text-brand-ink ml-2">{t.label}</span>
                       {t.actionKey
                         ? <code className={cn('text-[10px] font-mono px-1.5 py-0.5 rounded',
                             screenActionsRaw === undefined
                               ? 'text-text-muted bg-surface-overlay'
                               : screenActionKeys.has(t.actionKey)
-                                ? 'text-green-400 bg-green-500/10'
-                                : 'text-amber-400 bg-amber-500/10')}>
+                                ? 'text-status-pass-fg bg-status-pass-bg'
+                                : 'text-status-warn-fg bg-status-warn-bg')}>
                             {t.actionKey}
                           </code>
                         : <span className="text-[10px] text-text-muted/50 italic ml-1">no actionKey</span>
@@ -492,7 +492,7 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
             </div>
             <div>
               <p className="text-xs font-medium text-text-muted mb-1.5">Raw status flow JSON</p>
-              <pre className="text-[11px] font-mono text-text-secondary bg-surface-overlay border border-border rounded-lg p-3 overflow-x-auto">
+              <pre className="text-[11px] font-mono text-text-secondary bg-surface-overlay border border-border rounded-card p-3 overflow-x-auto">
                 {bp.statusFlowJson || '{}'}
               </pre>
             </div>
@@ -509,7 +509,7 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
               { label: 'Edit form key', value: bp.editFormKey || bp.createFormKey + ' (fallback)', hint: 'Falls back to create form key if not set' },
               { label: 'API base path', value: bp.apiBasePath, hint: 'e.g. /v1/risks' },
             ].map(r => (
-              <div key={r.label} className="flex items-start gap-3 px-4 py-3 rounded-lg border border-border">
+              <div key={r.label} className="flex items-start gap-3 px-4 py-3 rounded-card border border-border">
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium text-text-muted">{r.label}</div>
                   <div className="text-xs font-mono text-text-primary mt-0.5">{r.value || <span className="text-text-muted italic">not set</span>}</div>
@@ -527,9 +527,9 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
               'supportsWorkflow','supportsActionItems','supportsDocuments',
               'supportsComments','showInNav'
             ].some(k => !bp[k]) && (
-              <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 mb-3">
-                <span className="text-amber-400 mt-0.5 shrink-0">⚙</span>
-                <div className="text-[11px] text-amber-300/80">
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-card border border-status-warn-bd bg-status-warn-bg mb-3">
+                <span className="text-status-warn-fg mt-0.5 shrink-0">⚙</span>
+                <div className="text-[11px] text-status-warn-fg">
                   Some capabilities are disabled. The corresponding tabs will not appear on
                   detail pages for this module. Click <strong>Edit blueprint</strong> to enable them.
                 </div>
@@ -543,23 +543,23 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
               { key: 'showInNav',           label: 'Navigation',    desc: 'Module appears in the sidebar navigation', icon: Navigation },
             ].map(c => (
               <div key={c.key} className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors',
-                bp[c.key] ? 'border-green-500/25 bg-green-500/5' : 'border-border'
+                'flex items-center gap-3 px-4 py-3 rounded-card border transition-colors',
+                bp[c.key] ? 'border-status-pass-bd bg-status-pass-bg' : 'border-border'
               )}>
-                <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0',
-                  bp[c.key] ? 'bg-green-500/15' : 'bg-surface-overlay')}>
-                  <c.icon size={13} className={bp[c.key] ? 'text-green-400' : 'text-text-muted'} />
+                <div className={cn('w-7 h-7 rounded-card flex items-center justify-center shrink-0',
+                  bp[c.key] ? 'bg-status-pass-fg' : 'bg-surface-overlay')}>
+                  <c.icon size={13} className={bp[c.key] ? 'text-status-pass-fg' : 'text-text-muted'} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium text-text-primary">{c.label}</div>
                   <div className="text-[11px] text-text-muted">{c.desc}</div>
                   {!bp[c.key] && (
-                    <div className="text-[10px] text-amber-400/70 mt-0.5">
+                    <div className="text-[10px] text-status-warn-fg mt-0.5">
                       ⚙ Tab hidden on detail pages — enable to show
                     </div>
                   )}
                 </div>
-                <div className={cn('text-xs font-medium', bp[c.key] ? 'text-green-400' : 'text-text-muted')}>
+                <div className={cn('text-xs font-medium', bp[c.key] ? 'text-status-pass-fg' : 'text-text-muted')}>
                   {bp[c.key] ? 'Enabled' : 'Disabled'}
                 </div>
               </div>
@@ -607,8 +607,8 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
         ].map(t => (
           <button key={t.key} onClick={() => setFormTab(t.key)}
             className={cn(
-              'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
-              formTab === t.key ? 'bg-brand-500/15 text-brand-400' : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay'
+              'px-3 py-1.5 text-xs font-medium rounded-ctl transition-colors',
+              formTab === t.key ? 'bg-brand-500/15 text-brand-ink' : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay'
             )}>
             {t.label}
           </button>
@@ -619,18 +619,18 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-text-secondary block mb-1">Entity type <span className="text-red-400">*</span></label>
+              <label className="text-xs font-medium text-text-secondary block mb-1">Entity type <span className="text-status-fail-fg">*</span></label>
               <input value={form.entityType} onChange={e => set('entityType', e.target.value.toUpperCase().replace(/\s/g, '_'))}
                 placeholder="RISK"
                 disabled={!!initial}
-                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:opacity-50" />
+                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:opacity-50" />
               <p className="text-[10px] text-text-muted mt-0.5">UPPER_SNAKE_CASE, immutable after creation</p>
             </div>
             <div>
-              <label className="text-xs font-medium text-text-secondary block mb-1">Display name <span className="text-red-400">*</span></label>
+              <label className="text-xs font-medium text-text-secondary block mb-1">Display name <span className="text-status-fail-fg">*</span></label>
               <input value={form.displayName} onChange={e => set('displayName', e.target.value)}
                 placeholder="Risk Management"
-                className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -638,20 +638,20 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
               <label className="text-xs font-medium text-text-secondary block mb-1">Plural name</label>
               <input value={form.displayNamePlural} onChange={e => set('displayNamePlural', e.target.value)}
                 placeholder="Risks"
-                className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
-              <label className="text-xs font-medium text-text-secondary block mb-1">API base path <span className="text-red-400">*</span></label>
+              <label className="text-xs font-medium text-text-secondary block mb-1">API base path <span className="text-status-fail-fg">*</span></label>
               <input value={form.apiBasePath} onChange={e => set('apiBasePath', e.target.value)}
                 placeholder="/v1/risks"
-                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">Icon</label>
               <select value={form.icon} onChange={e => set('icon', e.target.value)}
-                className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 {ICON_OPTIONS.map(i => <option key={i} value={i}>{i}</option>)}
               </select>
             </div>
@@ -680,7 +680,7 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
                   }}
                     className={cn(
                       'px-2.5 py-1 rounded-full text-xs border transition-colors',
-                      active ? 'border-brand-500 bg-brand-500/15 text-brand-400' : 'border-border text-text-muted hover:border-border-strong'
+                      active ? 'border-brand-500 bg-brand-500/15 text-brand-ink' : 'border-border text-text-muted hover:border-border-strong'
                     )}>
                     {s}
                   </button>
@@ -692,19 +692,19 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
             <label className="text-xs font-medium text-text-secondary block mb-1">Workflow eligibility (comma-sep entity types)</label>
             <input value={form.workflowEligibility} onChange={e => set('workflowEligibility', e.target.value)}
               placeholder="RISK,RISK_ACCEPTANCE"
-              className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Sort order</label>
             <input type="number" value={form.sortOrder} onChange={e => set('sortOrder', parseInt(e.target.value) || 0)}
-              className="w-24 h-8 px-3 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-24 h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
         </div>
       )}
 
       {formTab === 'config' && (
         <div className="space-y-3">
-          <div className="text-xs text-blue-300 bg-blue-500/5 border border-blue-500/20 rounded-lg px-3 py-2 flex gap-2">
+          <div className="text-xs text-status-info-fg bg-status-info-bg border border-status-info-bd rounded-card px-3 py-2 flex gap-2">
             <Info size={12} className="mt-0.5 shrink-0" />
             These keys must match entries in the ui_forms and ui_navigation tables. The Universal Module Page will fetch them at runtime.
           </div>
@@ -719,7 +719,7 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
               <label className="text-xs font-medium text-text-secondary block mb-1">{f.label}</label>
               <input value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)}
                 placeholder={f.placeholder}
-                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
               <p className="text-[10px] text-text-muted mt-0.5">{f.hint}</p>
             </div>
           ))}
@@ -728,7 +728,7 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
 
       {formTab === 'schema' && (
         <div className="space-y-2">
-          <div className="text-xs text-amber-300 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2 flex gap-2">
+          <div className="text-xs text-status-warn-fg bg-status-warn-bg border border-status-warn-bd rounded-card px-3 py-2 flex gap-2">
             <Info size={12} className="mt-0.5 shrink-0" />
             JSON Schema defining entity fields. Sections group fields. Visual builder coming in next sprint.
           </div>
@@ -737,7 +737,7 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
             onChange={e => set('fieldsSchemaJson', e.target.value)}
             rows={16}
             spellCheck={false}
-            className="w-full px-3 py-2.5 text-xs font-mono bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+            className="w-full px-3 py-2.5 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             placeholder={JSON.stringify({ sections: [{ key: 'overview', label: 'Overview', fields: [{ key: 'title', label: 'Title', type: 'TEXT', required: true, gridCols: 12 }] }] }, null, 2)}
           />
         </div>
@@ -745,7 +745,7 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
 
       {formTab === 'status' && (
         <div className="space-y-2">
-          <div className="text-xs text-blue-300 bg-blue-500/5 border border-blue-500/20 rounded-lg px-3 py-2 flex gap-2">
+          <div className="text-xs text-status-info-fg bg-status-info-bg border border-status-info-bd rounded-card px-3 py-2 flex gap-2">
             <Info size={12} className="mt-0.5 shrink-0" />
             Define statuses and valid transitions. Each transition should have an <code className="text-[10px] font-mono bg-surface-overlay px-1 rounded">actionKey</code> matching a <code className="text-[10px] font-mono bg-surface-overlay px-1 rounded">ui_actions.action_key</code> for that screen — this gates the button so only users with an active workflow task can trigger it.
           </div>
@@ -754,7 +754,7 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
             onChange={e => set('statusFlowJson', e.target.value)}
             rows={16}
             spellCheck={false}
-            className="w-full px-3 py-2.5 text-xs font-mono bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+            className="w-full px-3 py-2.5 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             placeholder={JSON.stringify({
               statuses: ['OPEN','IN_PROGRESS','RESOLVED','CLOSED'],
               transitions: [
@@ -778,12 +778,12 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
           ].map(c => (
             <button key={c.key} onClick={() => toggle(c.key)}
               className={cn(
-                'w-full flex items-center gap-3 px-4 py-3 rounded-lg border text-left transition-colors',
-                form[c.key] ? 'border-green-500/30 bg-green-500/5' : 'border-border hover:border-border-strong'
+                'w-full flex items-center gap-3 px-4 py-3 rounded-card border text-left transition-colors',
+                form[c.key] ? 'border-status-pass-bd bg-status-pass-bg' : 'border-border hover:border-border-strong'
               )}>
-              <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
-                form[c.key] ? 'bg-green-500/15' : 'bg-surface-overlay')}>
-                <c.icon size={14} className={form[c.key] ? 'text-green-400' : 'text-text-muted'} />
+              <div className={cn('w-8 h-8 rounded-card flex items-center justify-center shrink-0',
+                form[c.key] ? 'bg-status-pass-fg' : 'bg-surface-overlay')}>
+                <c.icon size={14} className={form[c.key] ? 'text-status-pass-fg' : 'text-text-muted'} />
               </div>
               <div className="flex-1">
                 <div className="text-xs font-medium text-text-primary">{c.label}</div>
@@ -791,10 +791,10 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
               </div>
               <div className={cn(
                 'w-8 h-5 rounded-full transition-colors relative shrink-0',
-                form[c.key] ? 'bg-green-500' : 'bg-surface-overlay border border-border'
+                form[c.key] ? 'bg-status-pass-fg' : 'bg-surface-overlay border border-border'
               )}>
                 <span className={cn(
-                  'absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform',
+                  'absolute top-0.5 w-4 h-4 rounded-full bg-surface-raised transition-transform',
                   form[c.key] ? 'translate-x-3.5' : 'translate-x-0.5'
                 )} />
               </div>

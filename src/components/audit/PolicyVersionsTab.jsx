@@ -17,10 +17,10 @@ import api                from '../../config/axios.config'
  */
 
 const STATUS_STYLE = {
-  DRAFT:        'bg-slate-500/10  text-slate-400  border-slate-500/20',
-  UNDER_REVIEW: 'bg-blue-500/10   text-blue-400   border-blue-500/20',
-  APPROVED:     'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  DEPRECATED:   'bg-red-500/10    text-red-400    border-red-500/20',
+  DRAFT:        'bg-surface-inset  text-text-muted  border-border',
+  UNDER_REVIEW: 'bg-status-info-bg   text-status-info-fg   border-status-info-bd',
+  APPROVED:     'bg-status-pass-bg text-status-pass-fg border-status-pass-bd',
+  DEPRECATED:   'bg-status-fail-bg    text-status-fail-fg    border-status-fail-bd',
 }
 
 export function PolicyVersionsTab({ entity }) {
@@ -44,7 +44,7 @@ export function PolicyVersionsTab({ entity }) {
   if (isLoading) return (
     <div className="space-y-2 p-4">
       {[1, 2, 3].map(i => (
-        <div key={i} className="h-12 rounded-lg bg-surface-overlay animate-pulse" />
+        <div key={i} className="h-12 rounded-card bg-surface-overlay animate-pulse" />
       ))}
     </div>
   )
@@ -73,7 +73,7 @@ export function PolicyVersionsTab({ entity }) {
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-text-primary truncate">{v.title}</span>
               {i === 0 && (
-                <span className="text-[10px] bg-brand-500/10 text-brand-400 border border-brand-500/20
+                <span className="text-[10px] bg-brand-500/10 text-brand-ink border border-brand-500/20
                                  rounded px-1.5 py-0.5 font-medium shrink-0">
                   Latest
                 </span>
@@ -101,7 +101,7 @@ export function PolicyVersionsTab({ entity }) {
           {(v.status === 'DRAFT' || v.status === 'UNDER_REVIEW') && (
             <button
               onClick={() => navigate(`/audit/policies/${v.id}/edit`)}
-              className="text-[11px] text-brand-400 hover:text-brand-300 border border-brand-500/25
+              className="text-[11px] text-brand-ink hover:text-brand-ink border border-brand-500/25
                          hover:border-brand-500/50 rounded px-2 py-1 transition-colors shrink-0">
               Edit
             </button>

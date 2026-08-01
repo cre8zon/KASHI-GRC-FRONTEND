@@ -38,7 +38,7 @@ function SectionNode({ node, showControls, depth = 0, onSelectControl }) {
           : <span className="w-[11px]" />}
         <Layers size={10} className="text-text-muted shrink-0" />
         {sec.sectionCode && (
-          <span className="font-mono text-[10px] text-brand-400 shrink-0">{sec.sectionCode}</span>
+          <span className="font-mono text-[10px] text-brand-ink shrink-0">{sec.sectionCode}</span>
         )}
         <span className="text-xs text-text-primary truncate">{sec.name}</span>
         {controls.length > 0 && (
@@ -94,7 +94,7 @@ function ControlDetailPanel({ ctrl, onClose }) {
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5">
-            {ctrl.controlCode && <span className="font-mono text-[10px] text-brand-400">{ctrl.controlCode}</span>}
+            {ctrl.controlCode && <span className="font-mono text-[10px] text-brand-ink">{ctrl.controlCode}</span>}
             {ctrl.controlTag  && <span className="text-[9px] px-1 rounded bg-surface-overlay text-text-muted">{ctrl.controlTag}</span>}
           </div>
           <p className="text-sm font-medium text-text-primary truncate">{ctrl.name}</p>
@@ -127,7 +127,7 @@ export function TemplateSectionsTab({ templateId, view = 'sections' }) {
   const controls = useMemo(() => flatControls(rootSections), [rootSections])
 
   if (isLoading) return <div className="px-4 py-6 text-xs text-text-muted text-center">Loading…</div>
-  if (error)     return <div className="px-4 py-6 text-xs text-red-400 text-center">Error loading template</div>
+  if (error)     return <div className="px-4 py-6 text-xs text-status-fail-fg text-center">Error loading template</div>
   if (!rootSections.length) return (
     <div className="px-4 py-6 text-xs text-text-muted text-center">No sections in this template.</div>
   )
@@ -146,7 +146,7 @@ export function TemplateSectionsTab({ templateId, view = 'sections' }) {
           <CheckSquare size={10} className="text-text-muted shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-0.5">
-              {c.controlCode && <span className="font-mono text-[9px] text-brand-400">{c.controlCode}</span>}
+              {c.controlCode && <span className="font-mono text-[9px] text-brand-ink">{c.controlCode}</span>}
               {c.controlTag  && <span className="text-[9px] px-1 rounded bg-surface-overlay text-text-muted">{c.controlTag}</span>}
             </div>
             <span className="text-[11px] text-text-secondary leading-tight block">{c.name}</span>

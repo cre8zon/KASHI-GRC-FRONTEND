@@ -26,7 +26,7 @@ function ItemCardCanvas({ screen, selectedElement, onSelectElement, actions }) {
                 <p className="text-sm font-medium text-text-primary">Do you have an ISMS policy in place?</p>
                 <p className="text-xs text-text-muted mt-0.5">Section: Security Controls</p>
               </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25 font-medium">Pending</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-status-warn-bg text-status-warn-fg border border-status-warn-bd font-medium">Pending</span>
             </div>
           </CanvasCard>
 
@@ -37,7 +37,7 @@ function ItemCardCanvas({ screen, selectedElement, onSelectElement, actions }) {
             <div className="p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <label className="text-xs text-text-secondary font-medium w-24 shrink-0">Response</label>
-                <select className="flex-1 h-8 px-2 text-xs bg-white dark:bg-surface border border-border rounded text-text-primary text-sm focus:ring-1 focus:ring-brand-500 focus:outline-none">
+                <select className="flex-1 h-8 px-2 text-xs bg-surface-raised border border-border rounded text-text-primary text-sm focus:ring-1 focus:ring-brand-500 focus:outline-none">
                   <option>Select response…</option>
                   <option>Yes</option><option>No</option><option>Partial</option><option>N/A</option>
                 </select>
@@ -50,7 +50,7 @@ function ItemCardCanvas({ screen, selectedElement, onSelectElement, actions }) {
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-xs text-text-secondary font-medium w-24 shrink-0">Notes</label>
-                <textarea className="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-surface border border-border rounded text-text-primary text-sm resize-none focus:ring-1 focus:ring-brand-500 focus:outline-none" rows={2} placeholder="Add notes…" />
+                <textarea className="flex-1 px-2 py-1.5 text-xs bg-surface-raised border border-border rounded text-text-primary text-sm resize-none focus:ring-1 focus:ring-brand-500 focus:outline-none" rows={2} placeholder="Add notes…" />
               </div>
             </div>
           </CanvasCard>
@@ -64,13 +64,13 @@ function ItemCardCanvas({ screen, selectedElement, onSelectElement, actions }) {
                 className={cn(
                   'px-3 py-1.5 rounded text-xs font-medium border transition-all hover:scale-105',
                   selectedElement?.id === action.id ? 'ring-2 ring-brand-500/60' : '',
-                  { primary: 'bg-brand-500/10 border-brand-500/40 text-brand-400', secondary: 'bg-surface-overlay border-border text-text-secondary', danger: 'bg-red-500/10 border-red-500/40 text-red-400' }[action.variant] || 'bg-surface-overlay border-border text-text-secondary'
+                  { primary: 'bg-brand-500/10 border-brand-500/40 text-brand-ink', secondary: 'bg-surface-overlay border-border text-text-secondary', danger: 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg' }[action.variant] || 'bg-surface-overlay border-border text-text-secondary'
                 )}>
                 {action.label}
               </button>
             ))}
             <button onClick={() => onSelectElement({ type: 'new_action', screenKey: screen.key })}
-              className="px-2.5 py-1 rounded text-[10px] text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-400 transition-colors">
+              className="px-2.5 py-1 rounded text-[10px] text-text-muted border border-dashed border-border hover:border-brand-500/40 hover:text-brand-ink transition-colors">
               + Action
             </button>
           </div>
@@ -86,7 +86,7 @@ function ItemCardCanvas({ screen, selectedElement, onSelectElement, actions }) {
             <button key={tab}
               onClick={e => { e.stopPropagation(); onSelectElement({ type: 'side_tab', tab, screenKey: screen.key }) }}
               className={cn('px-3 py-1.5 text-[10px] border-b-2 transition-colors -mb-px',
-                i === 0 ? 'border-brand-500 text-brand-400' : 'border-transparent text-text-muted hover:text-text-secondary',
+                i === 0 ? 'border-brand-500 text-brand-ink' : 'border-transparent text-text-muted hover:text-text-secondary',
                 selectedElement?.type === 'side_tab' && selectedElement?.tab === tab ? 'ring-1 ring-brand-500/40 bg-brand-500/5 rounded-t' : '')}>
               {tab}
             </button>

@@ -4,7 +4,7 @@ export function EmptyState({ icon: Icon, title, description, action, className }
   return (
     <div className={cn('flex flex-col items-center justify-center py-16 text-center', className)}>
       {Icon && (
-        <div className="w-12 h-12 rounded-xl bg-surface-overlay flex items-center justify-center mb-4">
+        <div className="w-12 h-12 rounded-card bg-surface-overlay flex items-center justify-center mb-4">
           <Icon size={22} className="text-text-muted" strokeWidth={1.5} />
         </div>
       )}
@@ -24,9 +24,9 @@ export function PageSkeleton() {
     <div className="flex flex-col gap-4 p-6">
       <Skeleton className="h-8 w-48" />
       <div className="flex gap-3">
-        {[1,2,3,4].map(i => <Skeleton key={i} className="h-24 flex-1 rounded-lg" />)}
+        {[1,2,3,4].map(i => <Skeleton key={i} className="h-24 flex-1 rounded-card" />)}
       </div>
-      <Skeleton className="h-64 w-full rounded-lg" />
+      <Skeleton className="h-64 w-full rounded-card" />
     </div>
   )
 }

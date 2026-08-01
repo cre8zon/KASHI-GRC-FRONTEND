@@ -152,7 +152,7 @@ function RoleVisibilityEditor({ screenKey }) {
 
   return (
     <InspectorSection title="Visibility">
-      <div className="flex gap-1 p-0.5 bg-surface-overlay rounded-md border border-border mb-3">
+      <div className="flex gap-1 p-0.5 bg-surface-overlay rounded-ctl border border-border mb-3">
         {[['sides', 'Sides'], ['roles', 'Roles']].map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)}
             className={cn('flex-1 text-[10px] py-1 rounded transition-colors font-medium',
@@ -172,15 +172,15 @@ function RoleVisibilityEditor({ screenKey }) {
               <div key={s}
                 onClick={() => setAccess(prev => ({ ...prev, [s]: !allowed }))}
                 className={cn(
-                  'flex items-center justify-between px-2.5 py-2 rounded-lg border cursor-pointer transition-all text-[10px]',
-                  allowed ? 'border-green-500/25 bg-green-500/5' : 'border-border opacity-40 hover:opacity-60'
+                  'flex items-center justify-between px-2.5 py-2 rounded-card border cursor-pointer transition-all text-[10px]',
+                  allowed ? 'border-status-pass-bd bg-status-pass-bg' : 'border-border opacity-40 hover:opacity-60'
                 )}>
                 <div className="flex items-center gap-2">
-                  <div className={cn('w-1.5 h-1.5 rounded-full', allowed ? 'bg-green-400' : 'bg-border')} />
+                  <div className={cn('w-1.5 h-1.5 rounded-full', allowed ? 'bg-status-pass-fg' : 'bg-border')} />
                   <span className={allowed ? 'text-text-primary font-medium' : 'text-text-muted'}>{s}</span>
                   {!allowed && <span className="text-[9px] text-text-muted italic">hidden</span>}
                 </div>
-                <span className={cn('text-[9px] font-medium', allowed ? 'text-green-400' : 'text-text-muted')}>
+                <span className={cn('text-[9px] font-medium', allowed ? 'text-status-pass-fg' : 'text-text-muted')}>
                   {allowed ? 'Allowed' : 'Blocked'}
                 </span>
               </div>
@@ -206,7 +206,7 @@ function RoleVisibilityEditor({ screenKey }) {
                   <div className="flex items-center gap-1.5 mb-1">
                     <span className="text-[9px] font-semibold text-text-secondary uppercase tracking-wider">{side}</span>
                     {!sideAllowed && (
-                      <span className="text-[8px] text-amber-400 border border-amber-500/30 bg-amber-500/10 rounded px-1 py-0.5">
+                      <span className="text-[8px] text-status-warn-fg border border-status-warn-bd bg-status-warn-bg rounded px-1 py-0.5">
                         side blocked — roles ignored
                       </span>
                     )}
@@ -228,23 +228,23 @@ function RoleVisibilityEditor({ screenKey }) {
                           <div
                             className={cn(
                               'flex items-center justify-between px-2 py-1.5 text-[10px] transition-all',
-                              !sideAllowed ? 'cursor-not-allowed' : allowed ? 'bg-green-500/5 cursor-pointer hover:bg-green-500/8' : 'opacity-50 cursor-pointer hover:opacity-70'
+                              !sideAllowed ? 'cursor-not-allowed' : allowed ? 'bg-status-pass-bg cursor-pointer hover:bg-status-pass-bg' : 'opacity-50 cursor-pointer hover:opacity-70'
                             )}>
                             <div className="flex items-center gap-1.5 flex-1 min-w-0"
                                  onClick={() => sideAllowed && setExpandedRoleId(isExpanded ? null : role.id)}>
                               {sideAllowed && (isExpanded ? <ChevronDown size={10} className="text-text-muted shrink-0"/> : <ChevronRight size={10} className="text-text-muted shrink-0"/>)}
-                              <User size={10} className={allowed && sideAllowed ? 'text-green-400' : 'text-text-muted'} />
+                              <User size={10} className={allowed && sideAllowed ? 'text-status-pass-fg' : 'text-text-muted'} />
                               <span className={cn('truncate', allowed && sideAllowed ? 'text-text-primary' : 'text-text-muted')}>{role.name}</span>
                               {role.level && <span className="text-[8px] text-text-muted border border-border rounded px-1 shrink-0">{role.level}</span>}
                               {hasOverrides && (
-                                <span className="text-[8px] text-brand-400 border border-brand-500/30 bg-brand-500/10 rounded px-1 shrink-0">
+                                <span className="text-[8px] text-brand-ink border border-brand-500/30 bg-brand-500/10 rounded px-1 shrink-0">
                                   {tabOverrides + actionOverrides} override{tabOverrides + actionOverrides !== 1 ? 's' : ''}
                                 </span>
                               )}
                             </div>
                             <span
                               onClick={(e) => { e.stopPropagation(); sideAllowed && setRoleAccess(prev => ({ ...prev, [rKey]: !allowed })) }}
-                              className={cn('text-[9px] font-medium shrink-0 px-1.5 py-0.5 rounded', allowed && sideAllowed ? 'text-green-400 hover:bg-green-500/10' : 'text-text-muted hover:bg-surface-overlay')}>
+                              className={cn('text-[9px] font-medium shrink-0 px-1.5 py-0.5 rounded', allowed && sideAllowed ? 'text-status-pass-fg hover:bg-status-pass-bg' : 'text-text-muted hover:bg-surface-overlay')}>
                               {allowed ? 'Allowed' : 'Blocked'}
                             </span>
                           </div>
@@ -265,9 +265,9 @@ function RoleVisibilityEditor({ screenKey }) {
                                         <div key={t.key}
                                           onClick={() => toggleRoleItem(role.id, 'tabs', t.key)}
                                           className={cn('flex items-center justify-between px-1.5 py-1 rounded text-[9px] cursor-pointer',
-                                            tabAllowed ? 'hover:bg-green-500/8 text-text-secondary' : 'bg-red-500/5 text-red-400 hover:bg-red-500/10')}>
+                                            tabAllowed ? 'hover:bg-status-pass-bg text-text-secondary' : 'bg-status-fail-bg text-status-fail-fg hover:bg-status-fail-bg')}>
                                           <span>{t.label}</span>
-                                          <span className={tabAllowed ? 'text-green-400/70' : 'text-red-400'}>{tabAllowed ? 'Visible' : 'Hidden'}</span>
+                                          <span className={tabAllowed ? 'text-status-pass-fg' : 'text-status-fail-fg'}>{tabAllowed ? 'Visible' : 'Hidden'}</span>
                                         </div>
                                       )
                                     })}
@@ -287,9 +287,9 @@ function RoleVisibilityEditor({ screenKey }) {
                                         <div key={a.actionKey}
                                           onClick={() => toggleRoleItem(role.id, 'actions', a.actionKey)}
                                           className={cn('flex items-center justify-between px-1.5 py-1 rounded text-[9px] cursor-pointer',
-                                            actionAllowed ? 'hover:bg-green-500/8 text-text-secondary' : 'bg-red-500/5 text-red-400 hover:bg-red-500/10')}>
+                                            actionAllowed ? 'hover:bg-status-pass-bg text-text-secondary' : 'bg-status-fail-bg text-status-fail-fg hover:bg-status-fail-bg')}>
                                           <span>{a.label || a.actionKey}</span>
-                                          <span className={actionAllowed ? 'text-green-400/70' : 'text-red-400'}>{actionAllowed ? 'Visible' : 'Hidden'}</span>
+                                          <span className={actionAllowed ? 'text-status-pass-fg' : 'text-status-fail-fg'}>{actionAllowed ? 'Visible' : 'Hidden'}</span>
                                         </div>
                                       )
                                     })}
@@ -313,7 +313,7 @@ function RoleVisibilityEditor({ screenKey }) {
       )}
 
       <button onClick={() => saveMut.mutate()}
-        className="mt-3 w-full text-[10px] font-medium text-brand-400 hover:text-brand-300 border border-brand-500/25 hover:border-brand-500/50 bg-brand-500/5 hover:bg-brand-500/8 rounded-md py-1.5 transition-colors">
+        className="mt-3 w-full text-[10px] font-medium text-brand-ink hover:text-brand-ink border border-brand-500/25 hover:border-brand-500/50 bg-brand-500/5 hover:bg-brand-500/8 rounded-ctl py-1.5 transition-colors">
         {saveMut.isPending ? 'Saving…' : 'Save visibility'}
       </button>
     </InspectorSection>

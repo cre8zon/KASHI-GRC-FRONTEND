@@ -10,6 +10,10 @@ import { cn } from '../../lib/cn'
 import { Skeleton } from '../ui/EmptyState'
 import { AlertTriangle, Search, X } from 'lucide-react'
 import api from '../../config/axios.config'
+import { BRAND_PRESETS } from '../../config/brandPresets'
+
+// <input type="color"> only accepts a literal hex — a CSS var breaks the control.
+const COLOR_FIELD_DEFAULT = BRAND_PRESETS[0].hex
 
 export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig, submitLabel = 'Submit', loading,
   hiddenFields = [],      // from vc.hiddenFields  — fields to hide entirely
@@ -69,7 +73,7 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="flex flex-col gap-4">
       {serverError && (
-        <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg bg-red-500/8 border border-red-500/25 text-xs text-red-400">
+        <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-card bg-status-fail-bg border border-status-fail-bd text-xs text-status-fail-fg">
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
           <span>{serverError}</span>
         </div>
@@ -133,12 +137,12 @@ function FieldWrapper({ label, isRequired, helperText, error, type, children }) 
       {showLabel && (
         <label className="text-xs font-medium text-text-secondary uppercase tracking-wide flex items-center gap-1">
           {label}
-          {isRequired && <span className="text-red-400 text-[10px]" title="Required">*</span>}
+          {isRequired && <span className="text-status-fail-fg text-[10px]" title="Required">*</span>}
         </label>
       )}
       {children}
       {helperText && !error && <p className="text-[11px] text-text-muted">{helperText}</p>}
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-status-fail-fg">{error}</p>}
     </div>
   )
 }
@@ -151,7 +155,7 @@ function FormField({ field, register, control, error, config, isEditable = true 
   if (!isEditable && type !== 'SECTION_HEADER' && type !== 'DIVIDER') {
     return (
       <FieldWrapper label={label} isRequired={false} helperText={helperText} error={null} type={type}>
-        <p className="text-sm text-text-primary px-3 py-1.5 rounded-md bg-surface-overlay/50 min-h-[36px] flex items-center">
+        <p className="text-sm text-text-primary px-3 py-1.5 rounded-ctl bg-surface-overlay/50 min-h-[36px] flex items-center">
           {field.defaultValue ?? <span className="text-text-muted/50 italic text-xs">—</span>}
         </p>
       </FieldWrapper>
@@ -165,7 +169,7 @@ function FormField({ field, register, control, error, config, isEditable = true 
           <input
             placeholder={placeholder}
             type={type === 'NUMBER' || type === 'DECIMAL' ? 'number' : type === 'EMAIL' ? 'email' : 'text'}
-            className="w-full h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             {...register(key)}
           />
         </FieldWrapper>
@@ -176,7 +180,7 @@ function FormField({ field, register, control, error, config, isEditable = true 
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
           <textarea
             placeholder={placeholder} rows={field.rowsCount || 3}
-            className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+            className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             {...register(key)}
           />
         </FieldWrapper>
@@ -212,7 +216,7 @@ function FormField({ field, register, control, error, config, isEditable = true 
                   boolVal ? 'bg-brand-500' : 'bg-surface-overlay border border-border'
                 )}>
                 <span className={cn(
-                  'inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform',
+                  'inline-block h-3.5 w-3.5 transform rounded-full bg-surface-raised transition-transform',
                   boolVal ? 'translate-x-4' : 'translate-x-0.5'
                 )} />
               </button>
@@ -243,7 +247,7 @@ function FormField({ field, register, control, error, config, isEditable = true 
       return (
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
           <input type="date"
-            className="w-full h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
             {...register(key)} />
         </FieldWrapper>
       )
@@ -262,7 +266,7 @@ function FormField({ field, register, control, error, config, isEditable = true 
       return (
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
           <input type="tel" placeholder={placeholder || '+91 00000 00000'}
-            className="w-full h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             {...register(key)} />
         </FieldWrapper>
       )
@@ -271,7 +275,7 @@ function FormField({ field, register, control, error, config, isEditable = true 
       return (
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
           <input type="url" placeholder={placeholder || 'https://'}
-            className="w-full h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             {...register(key)} />
         </FieldWrapper>
       )
@@ -281,11 +285,11 @@ function FormField({ field, register, control, error, config, isEditable = true 
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
           <div className="flex items-center gap-2">
             <input type="date"
-              className="flex-1 h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="flex-1 h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
               {...register(key + '_start')} />
             <span className="text-text-muted text-xs shrink-0">to</span>
             <input type="date"
-              className="flex-1 h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="flex-1 h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
               {...register(key + '_end')} />
           </div>
         </FieldWrapper>
@@ -302,12 +306,12 @@ function FormField({ field, register, control, error, config, isEditable = true 
               f.onChange(next)
             }
             return (
-              <div className="flex flex-wrap gap-1.5 p-2 rounded-md border border-border bg-surface-raised min-h-[36px]">
+              <div className="flex flex-wrap gap-1.5 p-2 rounded-ctl border border-border bg-surface-raised min-h-[36px]">
                 {opts.map(opt => (
                   <button key={opt.value} type="button" onClick={() => toggle(opt.value)}
                     className={cn('px-2 py-0.5 rounded text-[11px] font-medium border transition-colors',
                       selected.includes(opt.value)
-                        ? 'bg-brand-500/20 border-brand-500/40 text-brand-400'
+                        ? 'bg-brand-500/20 border-brand-500/40 text-brand-ink'
                         : 'bg-surface-overlay border-border text-text-muted hover:text-text-secondary')}>
                     {opt.label}
                   </button>
@@ -384,7 +388,7 @@ function FormField({ field, register, control, error, config, isEditable = true 
               <div className="flex items-center gap-1">
                 {Array.from({ length: max }, (_, i) => i + 1).map(star => (
                   <button key={star} type="button" onClick={() => f.onChange(star)}
-                    className={cn('text-lg transition-colors', star <= (f.value || 0) ? 'text-amber-400' : 'text-text-muted hover:text-amber-300')}>
+                    className={cn('text-lg transition-colors', star <= (f.value || 0) ? 'text-status-warn-fg' : 'text-text-muted hover:text-status-warn-fg')}>
                     ★
                   </button>
                 ))}
@@ -437,10 +441,10 @@ function FormField({ field, register, control, error, config, isEditable = true 
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
           <Controller name={key} control={control} render={({ field: f }) => (
             <div className="flex items-center gap-2">
-              <input type="color" value={f.value || '#6366f1'}
+              <input type="color" value={f.value || COLOR_FIELD_DEFAULT}
                 onChange={e => f.onChange(e.target.value)}
-                className="h-9 w-12 rounded-md border border-border bg-surface-raised cursor-pointer p-0.5" />
-              <span className="text-xs font-mono text-text-secondary">{f.value || '#6366f1'}</span>
+                className="h-9 w-12 rounded-ctl border border-border bg-surface-raised cursor-pointer p-0.5" />
+              <span className="text-xs font-mono text-text-secondary">{f.value || COLOR_FIELD_DEFAULT}</span>
             </div>
           )} />
         </FieldWrapper>
@@ -459,12 +463,12 @@ function FormField({ field, register, control, error, config, isEditable = true 
               setInput('')
             }
             return (
-              <div className="rounded-md border border-border bg-surface-raised px-2 py-1.5 flex flex-wrap gap-1 min-h-[36px]">
+              <div className="rounded-ctl border border-border bg-surface-raised px-2 py-1.5 flex flex-wrap gap-1 min-h-[36px]">
                 {tags.map(tag => (
-                  <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-brand-500/15 text-brand-400 text-[11px] font-medium">
+                  <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-brand-500/15 text-brand-ink text-[11px] font-medium">
                     {tag}
                     <button type="button" onClick={() => f.onChange(tags.filter(t => t !== tag))}
-                      className="hover:text-red-400 transition-colors">×</button>
+                      className="hover:text-status-fail-fg transition-colors">×</button>
                   </span>
                 ))}
                 <input value={input} onChange={e => setInput(e.target.value)}
@@ -499,15 +503,15 @@ function FormField({ field, register, control, error, config, isEditable = true 
                 {items.map((item, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <input value={item} onChange={e => { const next = [...items]; next[i] = e.target.value; f.onChange(next) }}
-                      className="flex-1 h-8 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="flex-1 h-8 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                     <button type="button" onClick={() => f.onChange(items.filter((_, j) => j !== i))}
-                      className="text-text-muted hover:text-red-400 transition-colors text-xs px-1">✕</button>
+                      className="text-text-muted hover:text-status-fail-fg transition-colors text-xs px-1">✕</button>
                   </div>
                 ))}
                 <div className="flex items-center gap-2">
                   <input value={input} onChange={e => setInput(e.target.value)} placeholder={placeholder || 'Add item…'}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (input.trim()) { f.onChange([...items, input.trim()]); setInput('') } } }}
-                    className="flex-1 h-8 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="flex-1 h-8 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   <button type="button" onClick={() => { if (input.trim()) { f.onChange([...items, input.trim()]); setInput('') } }}
                     className="text-xs px-2.5 py-1 rounded bg-surface-overlay border border-border text-text-secondary hover:text-text-primary transition-colors">Add</button>
                 </div>
@@ -520,7 +524,7 @@ function FormField({ field, register, control, error, config, isEditable = true 
     case 'FILE': case 'FILE_MULTI':
       return (
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
-          <label className="flex flex-col items-center justify-center h-20 rounded-md border-2 border-dashed border-border bg-surface-raised cursor-pointer hover:border-brand-500/40 hover:bg-brand-500/3 transition-colors">
+          <label className="flex flex-col items-center justify-center h-20 rounded-ctl border-2 border-dashed border-border bg-surface-raised cursor-pointer hover:border-brand-500/40 hover:bg-brand-500/3 transition-colors">
             <span className="text-xs text-text-muted">Click to upload{type === 'FILE_MULTI' ? ' (multiple)' : ''}</span>
             <span className="text-[10px] text-text-muted mt-0.5">{placeholder || 'PDF, PNG, JPG, DOCX…'}</span>
             <input type="file" multiple={type === 'FILE_MULTI'} className="sr-only" {...register(key)} />
@@ -535,7 +539,7 @@ function FormField({ field, register, control, error, config, isEditable = true 
             placeholder={placeholder || '{\n  \n}'}
             rows={field.rowsCount || 8}
             spellCheck={false}
-            className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-y"
+            className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-y"
             {...register(key)} />
         </FieldWrapper>
       )
@@ -546,7 +550,7 @@ function FormField({ field, register, control, error, config, isEditable = true 
           <textarea
             placeholder={placeholder}
             rows={field.rowsCount || 6}
-            className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-y"
+            className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-y"
             {...register(key)} />
           <p className="text-[10px] text-text-muted">Rich text editor — TipTap integration pending</p>
         </FieldWrapper>
@@ -556,7 +560,7 @@ function FormField({ field, register, control, error, config, isEditable = true 
       return (
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
           <input placeholder={placeholder}
-            className="w-full h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             {...register(key)} />
         </FieldWrapper>
       )
@@ -717,8 +721,8 @@ function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityT
   return (
     <div className="relative" ref={ref}>
       {value && display ? (
-        <div className={cn('flex items-center gap-2 h-9 px-3 rounded-md border bg-surface-raised text-sm text-text-primary', error ? 'border-red-500/60' : 'border-border')}>
-          <div className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 text-[9px] font-semibold flex items-center justify-center shrink-0">
+        <div className={cn('flex items-center gap-2 h-9 px-3 rounded-ctl border bg-surface-raised text-sm text-text-primary', error ? 'border-status-fail-bd' : 'border-border')}>
+          <div className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-ink text-[9px] font-semibold flex items-center justify-center shrink-0">
             {initials}
           </div>
           <span className="flex-1 truncate">{display}</span>
@@ -733,16 +737,16 @@ function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityT
             onFocus={() => { if (query.length >= 2) setOpen(true); else loadInitial() }}
             onBlur={() => { if (!open) onBlur?.() }}
             placeholder={placeholder || defaultPlaceholder}
-            className={cn('w-full h-9 rounded-md border bg-surface-raised pl-8 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1', error ? 'border-red-500/60 focus:ring-red-500/40' : 'border-border focus:ring-brand-500')}
+            className={cn('w-full h-9 rounded-ctl border bg-surface-raised pl-8 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1', error ? 'border-status-fail-bd focus:ring-status-fail-bd' : 'border-border focus:ring-brand-500')}
           />
         </div>
       )}
       {open && results.length > 0 && (
-        <div className="absolute z-50 top-full mt-1 w-full bg-surface border border-border rounded-md shadow-lg max-h-64 overflow-y-auto">
+        <div className="absolute z-50 top-full mt-1 w-full bg-surface border border-border rounded-ctl shadow-lg max-h-64 overflow-y-auto">
           {results.map(item => (
             <button key={item.id} type="button" onMouseDown={() => select(item)}
               className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-surface-overlay text-left transition-colors">
-              <div className="w-6 h-6 rounded-full bg-brand-500/20 text-brand-400 text-[9px] font-semibold flex items-center justify-center shrink-0">
+              <div className="w-6 h-6 rounded-full bg-brand-500/20 text-brand-ink text-[9px] font-semibold flex items-center justify-center shrink-0">
                 {getLabel(item).split(' ').map(p => p[0]).filter(Boolean).join('').toUpperCase().slice(0,2) || '?'}
               </div>
               <div>

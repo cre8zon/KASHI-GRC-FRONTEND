@@ -31,9 +31,9 @@ import toast from 'react-hot-toast'
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const RESULT_CFG = {
-  PASS:    { label: 'Pass',    icon: CheckCircle2, color: 'text-green-400', bg: 'bg-green-500/10',    border: 'border-green-500/30' },
-  FAIL:    { label: 'Fail',    icon: XCircle,      color: 'text-red-400',   bg: 'bg-red-500/10',      border: 'border-red-500/30'   },
-  ERROR:   { label: 'Error',   icon: AlertTriangle, color: 'text-amber-400',bg: 'bg-amber-500/10',    border: 'border-amber-500/30' },
+  PASS:    { label: 'Pass',    icon: CheckCircle2, color: 'text-status-pass-fg', bg: 'bg-status-pass-bg',    border: 'border-status-pass-bd' },
+  FAIL:    { label: 'Fail',    icon: XCircle,      color: 'text-status-fail-fg',   bg: 'bg-status-fail-bg',      border: 'border-status-fail-bd'   },
+  ERROR:   { label: 'Error',   icon: AlertTriangle, color: 'text-status-warn-fg',bg: 'bg-status-warn-bg',    border: 'border-status-warn-bd' },
   NOT_RUN: { label: 'Not run', icon: MinusCircle,  color: 'text-text-muted',bg: 'bg-surface-overlay', border: 'border-border'       },
 }
 
@@ -105,12 +105,12 @@ function ConnectForm({ integrationKey, displayName, onSuccess }) {
   })
 
   return (
-    <div className="p-4 bg-surface-raised rounded-lg border border-border space-y-3">
+    <div className="p-4 bg-surface-raised rounded-card border border-border space-y-3">
       <h3 className="text-sm font-medium text-text-primary">Connect {displayName}</h3>
       {fields.map(f => (
         <div key={f.key}>
           <label className="block text-xs text-text-muted mb-1">
-            {f.label}{f.required && <span className="text-red-400 ml-0.5">*</span>}
+            {f.label}{f.required && <span className="text-status-fail-fg ml-0.5">*</span>}
           </label>
           {f.type === 'textarea' ? (
             <textarea
@@ -174,13 +174,13 @@ function CheckRow({ check, integrationKey }) {
       <div
         className="flex items-center gap-3 px-4 py-3 hover:bg-surface-overlay/40 transition-colors group"
       >
-        <Zap size={12} className="text-brand-400 shrink-0" />
+        <Zap size={12} className="text-brand-ink shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
             <span className="text-[11px] text-text-primary font-medium">{check.displayName}</span>
             <span className="font-mono text-[9px] text-text-muted">{check.checkKey}</span>
             {check.hasCustomConfig && (
-              <span className="text-[8px] text-brand-400 bg-brand-500/10 px-1 rounded">custom config</span>
+              <span className="text-[8px] text-brand-ink bg-brand-500/10 px-1 rounded">custom config</span>
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap text-[9px] text-text-muted">
@@ -223,7 +223,7 @@ function CheckRow({ check, integrationKey }) {
 
       {/* Customise panel */}
       {expanded && (
-        <div className="mx-4 mb-3 p-3 bg-surface-overlay rounded-lg border border-border space-y-2.5">
+        <div className="mx-4 mb-3 p-3 bg-surface-overlay rounded-card border border-border space-y-2.5">
           <p className="text-[10px] text-text-muted font-medium">Customise check settings</p>
           <div>
             <label className="block text-[10px] text-text-muted mb-1">Run frequency</label>
@@ -269,7 +269,7 @@ function IntegrationCard({ catalog, connected, onSelect, isSelected }) {
     <button
       onClick={() => onSelect(catalog.key)}
       className={cn(
-        'w-full text-left p-3 rounded-lg border transition-colors',
+        'w-full text-left p-3 rounded-card border transition-colors',
         isSelected
           ? 'border-brand-500/60 bg-brand-500/5'
           : 'border-border hover:border-brand-500/30 bg-surface-raised',
@@ -281,7 +281,7 @@ function IntegrationCard({ catalog, connected, onSelect, isSelected }) {
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-medium text-text-primary">{catalog.name}</span>
             {isConnected && (
-              <span className="text-[8px] text-green-400 bg-green-500/10 px-1 rounded border border-green-500/20">
+              <span className="text-[8px] text-status-pass-fg bg-status-pass-bg px-1 rounded border border-status-pass-bd">
                 connected
               </span>
             )}
@@ -294,9 +294,9 @@ function IntegrationCard({ catalog, connected, onSelect, isSelected }) {
         {stats && (
           <>
             <span>·</span>
-            <span className="text-green-400">{stats.passing} passing</span>
-            {stats.failing > 0 && <><span>·</span><span className="text-red-400">{stats.failing} failing</span></>}
-            {stats.neverRun > 0 && <><span>·</span><span className="text-amber-400">{stats.neverRun} not run</span></>}
+            <span className="text-status-pass-fg">{stats.passing} passing</span>
+            {stats.failing > 0 && <><span>·</span><span className="text-status-fail-fg">{stats.failing} failing</span></>}
+            {stats.neverRun > 0 && <><span>·</span><span className="text-status-warn-fg">{stats.neverRun} not run</span></>}
           </>
         )}
       </div>
@@ -341,7 +341,7 @@ function IntegrationDetail({ catalogItem, connected }) {
         <div className="flex items-center gap-2">
           {connected ? (
             <>
-              <span className="text-[10px] text-green-400 flex items-center gap-1">
+              <span className="text-[10px] text-status-pass-fg flex items-center gap-1">
                 <CheckCircle2 size={11} />Connected
               </span>
               <Button
@@ -349,7 +349,7 @@ function IntegrationDetail({ catalogItem, connected }) {
                 variant="ghost"
                 onClick={() => disconnect()}
                 loading={disconnecting}
-                className="text-red-400 hover:text-red-300"
+                className="text-status-fail-fg hover:text-status-fail-fg"
               >
                 <Link2Off size={12} />Disconnect
               </Button>
@@ -412,7 +412,7 @@ function IntegrationDetail({ catalogItem, connected }) {
               No checks available. The global library may not have checks for this integration.
             </div>
           ) : (
-            <div className="rounded-lg border border-border bg-surface-raised overflow-hidden flex-1 overflow-y-auto">
+            <div className="rounded-card border border-border bg-surface-raised overflow-hidden flex-1 overflow-y-auto">
               {checks.map(c => (
                 <CheckRow key={c.checkKey} check={c} integrationKey={integrationKey} />
               ))}
@@ -449,7 +449,7 @@ function RunHistory({ integrationKey }) {
         Run history
       </button>
       {open && (
-        <div className="mt-2 rounded-lg border border-border bg-surface-raised overflow-hidden max-h-40 overflow-y-auto">
+        <div className="mt-2 rounded-card border border-border bg-surface-raised overflow-hidden max-h-40 overflow-y-auto">
           {isLoading ? (
             <div className="py-4 flex justify-center"><RefreshCw size={12} className="animate-spin text-text-muted" /></div>
           ) : runs.length === 0 ? (

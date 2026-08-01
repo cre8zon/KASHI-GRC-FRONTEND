@@ -29,9 +29,9 @@ const STATUS_CONFIG = {
 }
 
 const PRIORITY_CONFIG = {
-  CRITICAL: { label: 'Critical', class: 'text-red-400 bg-red-500/10 border-red-500/20' },
-  HIGH:     { label: 'High',     class: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-  MEDIUM:   { label: 'Medium',   class: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+  CRITICAL: { label: 'Critical', class: 'text-status-fail-fg bg-status-fail-bg border-status-fail-bd' },
+  HIGH:     { label: 'High',     class: 'text-status-warn-fg bg-status-warn-bg border-status-warn-bd' },
+  MEDIUM:   { label: 'Medium',   class: 'text-status-info-fg bg-status-info-bg border-status-info-bd' },
   LOW:      { label: 'Low',      class: 'text-text-muted bg-surface-overlay border-border' },
 }
 
@@ -113,23 +113,23 @@ function ActionItemCard({ item, onUpdateStatus }) {
 
   return (
     <div className={cn(
-      'rounded-xl border bg-surface-raised p-4 space-y-3 transition-all',
-      item.status === 'OPEN' ? 'border-amber-500/20' :
-      item.status === 'IN_PROGRESS' ? 'border-blue-500/20' :
-      item.status === 'PENDING_REVIEW' ? 'border-purple-500/20' :
+      'rounded-card border bg-surface-raised p-4 space-y-3 transition-all',
+      item.status === 'OPEN' ? 'border-status-warn-bd' :
+      item.status === 'IN_PROGRESS' ? 'border-status-info-bd' :
+      item.status === 'PENDING_REVIEW' ? 'border-status-tag-bd' :
       'border-border opacity-70'
     )}>
       {/* Header */}
       <div className="flex items-start gap-3">
         <div className={cn(
-          'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-          item.status === 'OPEN' ? 'bg-amber-500/10' :
-          item.status === 'IN_PROGRESS' ? 'bg-blue-500/10' : item.status === 'PENDING_REVIEW' ? 'bg-purple-500/10' : 'bg-surface-overlay'
+          'w-8 h-8 rounded-card flex items-center justify-center flex-shrink-0',
+          item.status === 'OPEN' ? 'bg-status-warn-bg' :
+          item.status === 'IN_PROGRESS' ? 'bg-status-info-bg' : item.status === 'PENDING_REVIEW' ? 'bg-status-tag-bg' : 'bg-surface-overlay'
         )}>
           {sc.icon && (
             <sc.icon size={14} className={cn(
-              item.status === 'OPEN' ? 'text-amber-400' :
-              item.status === 'IN_PROGRESS' ? 'text-blue-400' : item.status === 'PENDING_REVIEW' ? 'text-purple-400' : 'text-text-muted'
+              item.status === 'OPEN' ? 'text-status-warn-fg' :
+              item.status === 'IN_PROGRESS' ? 'text-status-info-fg' : item.status === 'PENDING_REVIEW' ? 'text-status-tag-fg' : 'text-text-muted'
             )} />
           )}
         </div>
@@ -143,7 +143,7 @@ function ActionItemCard({ item, onUpdateStatus }) {
               {item.sourceType?.replace('_', ' ')}
             </span>
             {item.isOverdue && (
-              <span className="text-[10px] text-red-400 flex items-center gap-0.5">
+              <span className="text-[10px] text-status-fail-fg flex items-center gap-0.5">
                 <TriangleAlert size={9} /> Overdue
               </span>
             )}
@@ -173,19 +173,19 @@ function ActionItemCard({ item, onUpdateStatus }) {
         )}
         {item.severity && (
           <span className={cn('font-semibold uppercase',
-            item.severity === 'CRITICAL' && 'text-red-400',
-            item.severity === 'HIGH'     && 'text-orange-400',
-            item.severity === 'MEDIUM'   && 'text-amber-400',
-            item.severity === 'LOW'      && 'text-blue-400',
+            item.severity === 'CRITICAL' && 'text-status-fail-fg',
+            item.severity === 'HIGH'     && 'text-status-warn-fg',
+            item.severity === 'MEDIUM'   && 'text-status-warn-fg',
+            item.severity === 'LOW'      && 'text-status-info-fg',
           )}>{item.severity}</span>
         )}
         {item.dueAt && (
-          <span className={cn(item.isOverdue && 'text-red-400 font-medium')}>
+          <span className={cn(item.isOverdue && 'text-status-fail-fg font-medium')}>
             Due: {formatDate(item.dueAt)}
           </span>
         )}
         {item.resolvedAt && item.resolvedByName && (
-          <span className="text-green-400">
+          <span className="text-status-pass-fg">
             {item.acceptedRisk ? '⚠ Risk accepted' : '✓ Resolved'} by {item.resolvedByName}
           </span>
         )}
@@ -211,18 +211,18 @@ function ActionItemCard({ item, onUpdateStatus }) {
         )}
         {isOpen && item.status === 'IN_PROGRESS' && !item.canResolve && (
           <Button size="xs" variant="ghost"
-            className="text-purple-400 hover:text-purple-300"
+            className="text-status-tag-fg hover:text-status-tag-fg"
             onClick={() => onUpdateStatus(item.id, 'PENDING_REVIEW')}>
             Submit for review
           </Button>
         )}
         {isOpen && item.status === 'PENDING_REVIEW' && item.canResolve && (
-          <span className="text-[11px] text-amber-400/80 italic flex items-center gap-1">
+          <span className="text-[11px] text-status-warn-fg italic flex items-center gap-1">
             <Clock size={11} /> Awaiting your review
           </span>
         )}
         {isOpen && item.status === 'PENDING_REVIEW' && !item.canResolve && (
-          <span className="text-[11px] text-purple-400/80 italic flex items-center gap-1">
+          <span className="text-[11px] text-status-tag-fg italic flex items-center gap-1">
             <Clock size={11} /> Submitted — pending review
           </span>
         )}
@@ -230,7 +230,7 @@ function ActionItemCard({ item, onUpdateStatus }) {
         {/* Resolve — only validator (canResolve) AND item is PENDING_REVIEW or higher */}
         {isOpen && item.canResolve && item.status === 'PENDING_REVIEW' && (
           <Button size="xs" variant="ghost"
-            className="text-green-400 hover:text-green-300"
+            className="text-status-pass-fg hover:text-status-pass-fg"
             onClick={() => onUpdateStatus(item.id, 'RESOLVED')}>
             <CheckCircle2 size={12} className="mr-1" />
             Mark resolved
@@ -289,14 +289,14 @@ export default function ActionItemsPage() {
         {/* Filter bar */}
         <div className="flex items-center gap-4 flex-wrap">
           {/* Status filter */}
-          <div className="flex items-center gap-1 bg-surface-raised border border-border rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-surface-raised border border-border rounded-card p-1">
             {STATUS_FILTERS.map(f => (
               <button key={f.key}
                 onClick={() => setStatusFilter(f.key)}
                 className={cn(
-                  'text-xs px-3 py-1 rounded-md transition-colors',
+                  'text-xs px-3 py-1 rounded-ctl transition-colors',
                   statusFilter === f.key
-                    ? 'bg-brand-500/10 text-brand-400 font-medium'
+                    ? 'bg-brand-500/10 text-brand-ink font-medium'
                     : 'text-text-muted hover:text-text-secondary'
                 )}>
                 {f.label}
@@ -310,9 +310,9 @@ export default function ActionItemsPage() {
               <button key={f.key}
                 onClick={() => setSourceFilter(f.key)}
                 className={cn(
-                  'text-[11px] px-2.5 py-1 rounded-md border transition-colors',
+                  'text-[11px] px-2.5 py-1 rounded-ctl border transition-colors',
                   sourceFilter === f.key
-                    ? 'border-brand-500/40 bg-brand-500/10 text-brand-400'
+                    ? 'border-brand-500/40 bg-brand-500/10 text-brand-ink'
                     : 'border-border text-text-muted hover:text-text-secondary'
                 )}>
                 {f.label}
@@ -328,7 +328,7 @@ export default function ActionItemsPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 space-y-2">
-            <CheckCircle2 size={32} className="text-green-400 mx-auto" />
+            <CheckCircle2 size={32} className="text-status-pass-fg mx-auto" />
             <p className="text-sm font-medium text-text-primary">All clear</p>
             <p className="text-xs text-text-muted">No action items match the current filter.</p>
           </div>
@@ -337,7 +337,7 @@ export default function ActionItemsPage() {
             {/* Items pending my review — show first */}
             {filtered.filter(i => i.status === 'PENDING_REVIEW' && i.canResolve).length > 0 && (
               <>
-                <p className="text-[10px] font-semibold text-purple-400 uppercase tracking-widest px-1">
+                <p className="text-[10px] font-semibold text-status-tag-fg uppercase tracking-widest px-1">
                   Pending Your Review
                 </p>
                 {filtered.filter(i => i.status === 'PENDING_REVIEW' && i.canResolve).map(item => (

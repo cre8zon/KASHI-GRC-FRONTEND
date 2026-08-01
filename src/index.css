@@ -3,87 +3,116 @@
 @tailwind utilities;
 
 /*
- * Policy content styles — used by PolicyEditorPage (TipTap editor) AND
- * the EntityDrawer in UniversalModulePage when displaying RICH_TEXT policy fields.
- * Must be global so both surfaces pick them up.
+ * Policy content styles — PolicyEditorPage (TipTap) + EntityDrawer RICH_TEXT.
+ * Short var names resolve via the alias layer in index.html.
  */
-.policy-content h1 {
-  font-size: 1.5rem; font-weight: 700; color: var(--text-primary);
-  margin: 1.5rem 0 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;
-}
-.policy-content h2 {
-  font-size: 1.15rem; font-weight: 600; color: var(--text-primary);
-  margin: 1.25rem 0 0.5rem;
-}
-.policy-content h3 {
-  font-size: 0.95rem; font-weight: 600; color: var(--text-secondary);
-  margin: 1rem 0 0.4rem;
-}
-.policy-content p { margin: 0.5rem 0; color: var(--text-primary); }
-.policy-content ul, .policy-content ol {
-  margin: 0.5rem 0 0.5rem 1.5rem; color: var(--text-primary);
-}
-.policy-content li { margin: 0.25rem 0; }
-.policy-content blockquote {
-  border-left: 3px solid var(--color-brand-500); margin: 0.75rem 0;
-  padding: 0.5rem 1rem; background: rgba(99,102,241,0.05);
-  border-radius: 0 6px 6px 0; color: var(--text-secondary);
-}
-.policy-content hr {
-  border: none; border-top: 1px solid var(--border); margin: 1.5rem 0;
-}
-.policy-content table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
-.policy-content td, .policy-content th {
-  border: 1px solid var(--border); padding: 6px 10px;
-  font-size: 0.8rem; color: var(--text-primary);
-}
-.policy-content th { background: var(--surface-overlay); font-weight: 600; }
-.policy-content code {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.78rem; background: rgba(99,102,241,0.08);
-  border: 1px solid rgba(99,102,241,0.15); border-radius: 3px;
-  padding: 0.1em 0.35em; color: var(--color-brand-300, #a5b4fc);
-}
-.policy-content pre {
-  background: var(--surface-overlay); border: 1px solid var(--border);
-  border-radius: 6px; padding: 1rem; margin: 0.75rem 0; overflow-x: auto;
-}
-.policy-content pre code { background: none; border: none; padding: 0; font-size: 0.8rem; color: var(--text-secondary); }
-.policy-content mark { background: rgba(251,191,36,0.2); color: inherit; border-radius: 2px; padding: 0.05em 0.1em; }
-.policy-content s { color: var(--text-muted); }
-.policy-link {
-  color: var(--color-brand-400, #818cf8); text-decoration: underline;
-  text-underline-offset: 2px; cursor: pointer;
-}
-.policy-link:hover { color: var(--color-brand-300, #a5b4fc); }
+.policy-content h1 { font-size:1.5rem; font-weight:700; color:var(--text-primary); margin:1.5rem 0 .75rem; border-bottom:1px solid var(--border); padding-bottom:.5rem; }
+.policy-content h2 { font-size:1.15rem; font-weight:600; color:var(--text-primary); margin:1.25rem 0 .5rem; }
+.policy-content h3 { font-size:.95rem; font-weight:600; color:var(--text-secondary); margin:1rem 0 .4rem; }
+.policy-content p { margin:.5rem 0; color:var(--text-primary); }
+.policy-content ul, .policy-content ol { margin:.5rem 0 .5rem 1.5rem; color:var(--text-primary); }
+.policy-content li { margin:.25rem 0; }
+.policy-content blockquote { border-left:3px solid rgb(var(--color-brand-600)); margin:.75rem 0; padding:.5rem 1rem; background:rgb(var(--color-brand-500) / .08); border-radius:0 8px 8px 0; color:var(--text-secondary); }
+.policy-content hr { border:none; border-top:1px solid var(--border); margin:1.5rem 0; }
+.policy-content table { border-collapse:collapse; width:100%; margin:1rem 0; }
+.policy-content td, .policy-content th { border:1px solid var(--border); padding:6px 10px; font-size:.8rem; color:var(--text-primary); }
+.policy-content th { background:var(--surface-overlay); font-weight:600; }
+.policy-content code { font-family:'IBM Plex Mono','Fira Code',monospace; font-size:.78rem; background:var(--surface-inset); border-radius:6px; padding:.1em .4em; color:var(--text-secondary); }
+.policy-content pre { background:var(--surface-overlay); border:1px solid var(--border); border-radius:8px; padding:1rem; margin:.75rem 0; overflow-x:auto; }
+.policy-content pre code { background:none; padding:0; font-size:.8rem; color:var(--text-secondary); }
+.policy-content mark { background:var(--status-warn-bg); color:inherit; border-radius:2px; padding:.05em .1em; }
+.policy-content s { color:var(--text-muted); }
+.policy-link { color:rgb(var(--color-brand-800)); text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
+.policy-link:hover { color:rgb(var(--color-brand-700)); }
 
-/* TipTap editor — placeholder and focus reset */
-.tiptap p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  color: var(--text-muted); pointer-events: none; float: left; height: 0;
+/* TipTap — placeholder and focus reset */
+.tiptap p.is-editor-empty:first-child::before { content:attr(data-placeholder); color:var(--text-muted); pointer-events:none; float:left; height:0; }
+.tiptap { outline:none; }
+
+/* ══ Calm v3 utilities ══ */
+
+/* Glass — chrome (sidebar/topnav) and overlays (modals/drawers/menus).
+   Content surfaces NEVER get these. */
+.glass-chrome {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-bd);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
 }
-.tiptap { outline: none; }
+.glass-field {
+  background: var(--field-bg);
+  border: 1px solid var(--field-bd);
+  backdrop-filter: blur(var(--field-blur)) saturate(1.3);
+  -webkit-backdrop-filter: blur(var(--field-blur)) saturate(1.3);
+}
+.glass-field:focus, .glass-field:focus-within {
+  background: var(--field-bg-focus);
+}
+.glass-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-bd);
+  backdrop-filter: blur(var(--card-blur)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--card-blur)) saturate(1.5);
+}
+.glass-overlay {
+  background: var(--glass-bg-hi);
+  border: 1px solid var(--glass-bd);
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-chrome, .glass-overlay, .glass-field {
+  background: var(--field-bg);
+  border: 1px solid var(--field-bd);
+  backdrop-filter: blur(var(--field-blur)) saturate(1.3);
+  -webkit-backdrop-filter: blur(var(--field-blur)) saturate(1.3);
+}
+.glass-field:focus, .glass-field:focus-within {
+  background: var(--field-bg-focus);
+}
+.glass-card { background: rgb(var(--color-surface-raised)); }
+}
+@media print {
+  body { background: #fff !important; }
+  .glass-chrome, .glass-overlay, .glass-field {
+  background: var(--field-bg);
+  border: 1px solid var(--field-bd);
+  backdrop-filter: blur(var(--field-blur)) saturate(1.3);
+  -webkit-backdrop-filter: blur(var(--field-blur)) saturate(1.3);
+}
+.glass-field:focus, .glass-field:focus-within {
+  background: var(--field-bg-focus);
+}
+.glass-card {
+    background: #fff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* Registry signatures */
+.reg-code {
+  font-family:'IBM Plex Mono',ui-monospace,monospace;
+  font-size:.72rem; font-weight:500;
+  background:var(--surface-inset); border-radius:6px;
+  padding:.15em .5em; color:var(--text-secondary); white-space:nowrap;
+}
+.reg-eyebrow { font-size:.66rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted); }
+
+/* Interaction */
+.row-selected { background: rgb(var(--color-brand-500) / .10); box-shadow: inset 2px 0 0 rgb(var(--color-brand-700)); }
+.card-hover { transition: box-shadow .2s ease, transform .15s ease; }
+.card-hover:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+@media (prefers-reduced-motion: reduce) {
+  .card-hover, .card-hover:hover { transition:none; transform:none; }
+}
 
 @layer utilities {
   .data-row { @apply transition-colors duration-100; }
-  .gradient-border {
-    position: relative;
-    isolation: isolate;
-  }
-  .gradient-border::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(135deg, rgb(14 165 233 / 0.4), transparent 60%);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-  }
+  /* gradient-border retired — kept as no-op so call sites don't break */
+  .gradient-border { position: relative; }
+  .gradient-border::after { display: none; }
 }
+
 /* Hide scrollbar while keeping scroll functionality */
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
-}
+.scrollbar-none::-webkit-scrollbar { display: none; }

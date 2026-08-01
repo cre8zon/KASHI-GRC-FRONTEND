@@ -59,7 +59,7 @@ export default function FeatureFlagsAdminPage() {
       <div className="p-6">
         {isLoading && (
           <div className="flex flex-col gap-2">
-            {[1,2,3].map(i => <div key={i} className="h-14 rounded-lg bg-surface-overlay animate-pulse" />)}
+            {[1,2,3].map(i => <div key={i} className="h-14 rounded-card bg-surface-overlay animate-pulse" />)}
           </div>
         )}
 
@@ -73,12 +73,12 @@ export default function FeatureFlagsAdminPage() {
         <div className="flex flex-col gap-2">
           {flags.map(flag => (
             <div key={flag.id}
-              className="flex items-center gap-4 px-4 py-3 rounded-lg border border-border bg-surface-raised hover:bg-surface-overlay transition-colors">
+              className="flex items-center gap-4 px-4 py-3 rounded-card border border-border bg-surface-raised hover:bg-surface-overlay transition-colors">
               {/* Toggle */}
               <button
                 onClick={() => update({ id: flag.id, data: { isEnabled: !flag.isEnabled } })}
                 className={cn('flex items-center gap-1.5 shrink-0 transition-colors',
-                  flag.isEnabled ? 'text-green-400' : 'text-text-muted')}>
+                  flag.isEnabled ? 'text-status-pass-fg' : 'text-text-muted')}>
                 {flag.isEnabled
                   ? <ToggleRight size={22} strokeWidth={1.5} />
                   : <ToggleLeft  size={22} strokeWidth={1.5} />}
@@ -100,14 +100,14 @@ export default function FeatureFlagsAdminPage() {
 
               {/* Edit */}
               <button onClick={() => setEditTarget(flag)}
-                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors shrink-0"
+                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors shrink-0"
                 title="Edit flag">
                 <Pencil size={12} />
               </button>
 
               {/* Delete */}
               <button onClick={() => setDeleteTarget(flag)}
-                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0">
+                className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors shrink-0">
                 <Trash2 size={12} />
               </button>
             </div>
@@ -163,13 +163,13 @@ function FlagForm({ onSubmit, isPending, onClose }) {
         <input value={form.allowedSidesJson}
           onChange={e => set('allowedSidesJson', e.target.value)}
           placeholder='["ORGANIZATION","VENDOR"] — blank = all sides'
-          className="h-8 w-full rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="h-8 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         {/* Quick side shortcuts */}
         <div className="flex flex-wrap gap-1.5 mt-2">
           {SIDES.map(s => (
             <button key={s} type="button"
               onClick={() => set('allowedSidesJson', `["${s}"]`)}
-              className="px-2 py-0.5 rounded border border-border text-[10px] text-text-muted hover:text-brand-400 hover:border-brand-500/40 transition-colors">
+              className="px-2 py-0.5 rounded border border-border text-[10px] text-text-muted hover:text-brand-ink hover:border-brand-500/40 transition-colors">
               {s}
             </button>
           ))}
@@ -181,8 +181,8 @@ function FlagForm({ onSubmit, isPending, onClose }) {
       </div>
       <div className="flex items-center gap-3">
         <button onClick={() => set('isEnabled', !form.isEnabled)} type="button"
-          className={cn('flex items-center gap-2 px-3 py-1.5 rounded-md border text-xs font-medium transition-colors',
-            form.isEnabled ? 'bg-green-500/10 border-green-500/30 text-green-400'
+          className={cn('flex items-center gap-2 px-3 py-1.5 rounded-ctl border text-xs font-medium transition-colors',
+            form.isEnabled ? 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg'
                            : 'bg-surface-overlay border-border text-text-muted')}>
           {form.isEnabled ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
           {form.isEnabled ? 'Start enabled' : 'Start disabled'}
@@ -210,9 +210,9 @@ function EditFlagForm({ flag, onSubmit, isPending, onClose }) {
   return (
     <div className="flex flex-col gap-4">
       {/* Read-only key display */}
-      <div className="p-2 rounded-md bg-surface-overlay border border-border">
+      <div className="p-2 rounded-ctl bg-surface-overlay border border-border">
         <p className="text-[10px] text-text-muted uppercase tracking-wide mb-0.5">Flag Key (immutable)</p>
-        <p className="text-sm font-mono text-brand-400">{flag.flagKey}</p>
+        <p className="text-sm font-mono text-brand-ink">{flag.flagKey}</p>
       </div>
 
       <Input label="Description" value={form.description}
@@ -226,12 +226,12 @@ function EditFlagForm({ flag, onSubmit, isPending, onClose }) {
         <input value={form.allowedSidesJson}
           onChange={e => set('allowedSidesJson', e.target.value)}
           placeholder='["ORGANIZATION","VENDOR"] — blank = all sides'
-          className="h-8 w-full rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="h-8 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         <div className="flex flex-wrap gap-1.5 mt-2">
           {SIDES.map(s => (
             <button key={s} type="button"
               onClick={() => set('allowedSidesJson', `["${s}"]`)}
-              className="px-2 py-0.5 rounded border border-border text-[10px] text-text-muted hover:text-brand-400 hover:border-brand-500/40 transition-colors">
+              className="px-2 py-0.5 rounded border border-border text-[10px] text-text-muted hover:text-brand-ink hover:border-brand-500/40 transition-colors">
               {s}
             </button>
           ))}
@@ -244,9 +244,9 @@ function EditFlagForm({ flag, onSubmit, isPending, onClose }) {
 
       <div className="flex items-center gap-3">
         <button type="button" onClick={() => set('isEnabled', !form.isEnabled)}
-          className={cn('flex items-center gap-2 px-3 py-1.5 rounded-md border text-xs font-medium transition-colors',
+          className={cn('flex items-center gap-2 px-3 py-1.5 rounded-ctl border text-xs font-medium transition-colors',
             form.isEnabled
-              ? 'bg-green-500/10 border-green-500/30 text-green-400'
+              ? 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg'
               : 'bg-surface-overlay border-border text-text-muted')}>
           {form.isEnabled ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
           {form.isEnabled ? 'Enabled' : 'Disabled'}

@@ -25,11 +25,11 @@ const useTemplates = (params) => useQuery({
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const COLOR_TAGS = [
-  { value: 'blue',   label: 'Blue',   cls: 'bg-blue-500/15 text-blue-400 border-blue-500/25' },
-  { value: 'green',  label: 'Green',  cls: 'bg-green-500/15 text-green-400 border-green-500/25' },
-  { value: 'amber',  label: 'Amber',  cls: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
-  { value: 'red',    label: 'Red',    cls: 'bg-red-500/15 text-red-400 border-red-500/25' },
-  { value: 'purple', label: 'Purple', cls: 'bg-purple-500/15 text-purple-400 border-purple-500/25' },
+  { value: 'blue',   label: 'Blue',   cls: 'bg-status-info-bg text-status-info-fg border-status-info-bd' },
+  { value: 'green',  label: 'Green',  cls: 'bg-status-pass-bg text-status-pass-fg border-status-pass-bd' },
+  { value: 'amber',  label: 'Amber',  cls: 'bg-status-warn-bg text-status-warn-fg border-status-warn-bd' },
+  { value: 'red',    label: 'Red',    cls: 'bg-status-fail-bg text-status-fail-fg border-status-fail-bd' },
+  { value: 'purple', label: 'Purple', cls: 'bg-status-tag-bg text-status-tag-fg border-status-tag-bd' },
   { value: 'gray',   label: 'Gray',   cls: 'bg-surface-overlay text-text-muted border-border' },
 ]
 
@@ -144,14 +144,14 @@ export default function NotificationTemplateAdminPage() {
       }
     >
       {/* Info banner explaining the upgrade path */}
-      <div className="mx-6 mt-4 flex items-start gap-2 px-3 py-2.5 rounded-lg bg-blue-500/5 border border-blue-500/20">
-        <Info size={13} className="text-blue-400 mt-0.5 shrink-0" />
-        <div className="text-xs text-blue-300">
+      <div className="mx-6 mt-4 flex items-start gap-2 px-3 py-2.5 rounded-card bg-status-info-bg border border-status-info-bd">
+        <Info size={13} className="text-status-info-fg mt-0.5 shrink-0" />
+        <div className="text-xs text-status-info-fg">
           <span className="font-medium">How this works:</span>{' '}
-          Templates are matched by <code className="font-mono bg-blue-500/15 px-1 rounded">eventKey</code> when{' '}
-          <code className="font-mono bg-blue-500/15 px-1 rounded">NotificationService.send()</code> is called.
-          Placeholders like <code className="font-mono bg-blue-500/15 px-1 rounded">{'{{stepName}}'}</code> are
-          replaced at send time. <code className="font-mono bg-blue-500/15 px-1 rounded">actionUrl</code> supports
+          Templates are matched by <code className="font-mono bg-status-info-bg px-1 rounded">eventKey</code> when{' '}
+          <code className="font-mono bg-status-info-bg px-1 rounded">NotificationService.send()</code> is called.
+          Placeholders like <code className="font-mono bg-status-info-bg px-1 rounded">{'{{stepName}}'}</code> are
+          replaced at send time. <code className="font-mono bg-status-info-bg px-1 rounded">actionUrl</code> supports
           the same placeholders for deep-link routing.
         </div>
       </div>
@@ -164,10 +164,10 @@ export default function NotificationTemplateAdminPage() {
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
               <input value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search templates…"
-                className="w-full pl-8 pr-3 h-7 text-xs bg-surface-overlay border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full pl-8 pr-3 h-7 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <select value={moduleFilter} onChange={e => setModuleFilter(e.target.value)}
-              className="w-full h-7 px-2 text-xs bg-surface-overlay border border-border rounded-md text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand-500">
+              className="w-full h-7 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">All modules</option>
               {modules.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
@@ -197,14 +197,14 @@ export default function NotificationTemplateAdminPage() {
                           : 'hover:bg-surface-overlay border-l-2 border-l-transparent'
                       )}
                     >
-                      <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0 border', colorCls)}>
+                      <div className={cn('w-7 h-7 rounded-card flex items-center justify-center text-xs shrink-0 border', colorCls)}>
                         <Bell size={13} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-medium text-text-primary truncate">{t.titleTemplate}</div>
                         <div className="text-[10px] font-mono text-text-muted truncate mt-0.5">{t.eventKey}</div>
                       </div>
-                      <div className={cn('w-1.5 h-1.5 rounded-full shrink-0 mt-1.5', t.isActive ? 'bg-green-400' : 'bg-surface-overlay border border-border')} />
+                      <div className={cn('w-1.5 h-1.5 rounded-full shrink-0 mt-1.5', t.isActive ? 'bg-status-pass-bg' : 'bg-surface-overlay border border-border')} />
                     </button>
                   )
                 })
@@ -222,7 +222,7 @@ export default function NotificationTemplateAdminPage() {
                   <button key={k.key}
                     onClick={() => { setEditing({ ...EMPTY_TEMPLATE, eventKey: k.key }); setModalOpen(true) }}
                     className="w-full flex items-center gap-2 px-2 py-1.5 text-left rounded hover:bg-surface-overlay transition-colors group">
-                    <AlertCircle size={11} className="text-amber-400 shrink-0" />
+                    <AlertCircle size={11} className="text-status-warn-fg shrink-0" />
                     <span className="text-[10px] font-mono text-text-muted truncate flex-1">{k.key}</span>
                     <Plus size={10} className="text-text-muted opacity-0 group-hover:opacity-100 shrink-0" />
                   </button>
@@ -307,7 +307,7 @@ function TemplateDetail({ template, onEdit, onDelete }) {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
-          <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center border', colorCls)}>
+          <div className={cn('w-9 h-9 rounded-card flex items-center justify-center border', colorCls)}>
             <Bell size={16} />
           </div>
           <div>
@@ -330,9 +330,9 @@ function TemplateDetail({ template, onEdit, onDelete }) {
         {/* Live preview */}
         <div>
           <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Live preview</h3>
-          <div className="border border-border rounded-xl p-4 bg-surface-overlay space-y-3">
+          <div className="border border-border rounded-card p-4 bg-surface-overlay space-y-3">
             {/* Notification card mockup */}
-            <div className={cn('flex items-start gap-3 p-3 rounded-lg border', colorCls)}>
+            <div className={cn('flex items-start gap-3 p-3 rounded-card border', colorCls)}>
               <Bell size={15} className="mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-semibold">{preview.title || <span className="italic opacity-50">No title</span>}</div>
@@ -374,7 +374,7 @@ function TemplateDetail({ template, onEdit, onDelete }) {
             ].map(r => (
               <div key={r.label} className="flex items-start gap-3 text-xs">
                 <span className="text-text-muted w-28 shrink-0 pt-0.5">{r.label}</span>
-                <span className={cn('text-text-primary flex-1', r.mono && 'font-mono text-brand-400')}>
+                <span className={cn('text-text-primary flex-1', r.mono && 'font-mono text-brand-ink')}>
                   {r.value || <span className="text-text-muted italic">not set</span>}
                 </span>
               </div>
@@ -387,7 +387,7 @@ function TemplateDetail({ template, onEdit, onDelete }) {
           <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Available placeholders</h3>
           <div className="flex flex-wrap gap-1.5">
             {AVAILABLE_PLACEHOLDERS.map(p => (
-              <code key={p} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">
+              <code key={p} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-ink border border-brand-500/20">
                 {p}
               </code>
             ))}
@@ -429,11 +429,11 @@ function TemplateFormModal({ open, onClose, initial, onSave, loading }) {
             <span className="text-xs text-text-muted">Status</span>
             <button onClick={() => set('isActive', !form.isActive)}
               className={cn('w-8 h-4 rounded-full transition-colors relative',
-                form.isActive ? 'bg-green-500' : 'bg-surface-overlay border border-border')}>
-              <span className={cn('absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform',
+                form.isActive ? 'bg-status-pass-bg' : 'bg-surface-overlay border border-border')}>
+              <span className={cn('absolute top-0.5 w-3 h-3 rounded-full bg-surface-raised transition-transform',
                 form.isActive ? 'translate-x-4.5' : 'translate-x-0.5')} />
             </button>
-            <span className={cn('text-xs', form.isActive ? 'text-green-400' : 'text-text-muted')}>
+            <span className={cn('text-xs', form.isActive ? 'text-status-pass-fg' : 'text-text-muted')}>
               {form.isActive ? 'Active' : 'Inactive'}
             </span>
           </div>
@@ -448,12 +448,12 @@ function TemplateFormModal({ open, onClose, initial, onSave, loading }) {
         {/* Left: form */}
         <div className="space-y-3">
           <div>
-            <label className="text-xs font-medium text-text-secondary block mb-1">Event key <span className="text-red-400">*</span></label>
+            <label className="text-xs font-medium text-text-secondary block mb-1">Event key <span className="text-status-fail-fg">*</span></label>
             <div className="relative">
               <input value={form.eventKey} onChange={e => set('eventKey', e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '_'))}
                 placeholder="TASK_ASSIGNED"
                 list="event-key-suggestions"
-                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
               <datalist id="event-key-suggestions">
                 {WELL_KNOWN_EVENT_KEYS.map(k => <option key={k.key} value={k.key} />)}
               </datalist>
@@ -462,24 +462,24 @@ function TemplateFormModal({ open, onClose, initial, onSave, loading }) {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-text-secondary block mb-1">Title template <span className="text-red-400">*</span></label>
+            <label className="text-xs font-medium text-text-secondary block mb-1">Title template <span className="text-status-fail-fg">*</span></label>
             <input value={form.titleTemplate} onChange={e => set('titleTemplate', e.target.value)}
               placeholder="Task assigned: {{stepName}}"
-              className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
 
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Body template</label>
             <textarea value={form.bodyTemplate} onChange={e => set('bodyTemplate', e.target.value)}
               rows={3} placeholder="{{workflowName}} requires your attention."
-              className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+              className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
           </div>
 
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Action URL (deep link)</label>
             <input value={form.actionUrl} onChange={e => set('actionUrl', e.target.value)}
               placeholder="/workflow/tasks/{{taskId}}"
-              className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             <p className="text-[10px] text-text-muted mt-0.5">Supports placeholders. Clicking notification navigates here.</p>
           </div>
 
@@ -487,7 +487,7 @@ function TemplateFormModal({ open, onClose, initial, onSave, loading }) {
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">Icon (Lucide)</label>
               <select value={form.icon} onChange={e => set('icon', e.target.value)}
-                className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 {COMMON_ICONS.map(i => <option key={i} value={i}>{i}</option>)}
               </select>
             </div>
@@ -513,7 +513,7 @@ function TemplateFormModal({ open, onClose, initial, onSave, loading }) {
               {AVAILABLE_PLACEHOLDERS.map(p => (
                 <button key={p}
                   onClick={() => set('titleTemplate', (form.titleTemplate || '') + p)}
-                  className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-overlay border border-border text-text-muted hover:text-brand-400 hover:border-brand-500/40 transition-colors">
+                  className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-overlay border border-border text-text-muted hover:text-brand-ink hover:border-brand-500/40 transition-colors">
                   {p}
                 </button>
               ))}
@@ -528,7 +528,7 @@ function TemplateFormModal({ open, onClose, initial, onSave, loading }) {
             {/* In-app notification bell item */}
             <div>
               <p className="text-[10px] text-text-muted mb-1.5">Notification bell item</p>
-              <div className={cn('flex items-start gap-3 p-3 rounded-xl border', colorCls)}>
+              <div className={cn('flex items-start gap-3 p-3 rounded-card border', colorCls)}>
                 <Bell size={15} className="mt-0.5 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-semibold leading-tight">
@@ -547,8 +547,8 @@ function TemplateFormModal({ open, onClose, initial, onSave, loading }) {
             {/* Notification page row */}
             <div>
               <p className="text-[10px] text-text-muted mb-1.5">Notifications page row</p>
-              <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-surface-overlay">
-                <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center border shrink-0', colorCls)}>
+              <div className="flex items-start gap-3 p-3 rounded-card border border-border bg-surface-overlay">
+                <div className={cn('w-7 h-7 rounded-card flex items-center justify-center border shrink-0', colorCls)}>
                   <Bell size={13} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -562,10 +562,10 @@ function TemplateFormModal({ open, onClose, initial, onSave, loading }) {
             </div>
 
             {/* Raw values */}
-            <div className="p-3 rounded-lg bg-surface-overlay border border-border">
+            <div className="p-3 rounded-card bg-surface-overlay border border-border">
               <p className="text-[10px] font-mono text-text-muted mb-2">Template variables</p>
               <div className="space-y-1 text-[10px] font-mono">
-                <div><span className="text-text-muted">eventKey: </span><span className="text-brand-400">{form.eventKey || '…'}</span></div>
+                <div><span className="text-text-muted">eventKey: </span><span className="text-brand-ink">{form.eventKey || '…'}</span></div>
                 <div><span className="text-text-muted">icon: </span><span className="text-text-secondary">{form.icon}</span></div>
                 <div><span className="text-text-muted">colorTag: </span><span className="text-text-secondary">{form.colorTag}</span></div>
               </div>

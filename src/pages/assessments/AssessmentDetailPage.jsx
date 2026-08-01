@@ -99,20 +99,20 @@ const STATUS_CFG = {
 }
 
 const RISK_CFG = {
-  CRITICAL: { color: 'text-red-400',    bg: 'bg-red-500/10',    border: 'border-red-500/30',    bar: 'bg-red-500',    pct: '100%', label: 'Critical' },
-  HIGH:     { color: 'text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/30',  bar: 'bg-amber-500',  pct: '75%',  label: 'High'     },
-  MEDIUM:   { color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', bar: 'bg-yellow-500', pct: '50%',  label: 'Medium'   },
-  LOW:      { color: 'text-green-400',  bg: 'bg-green-500/10',  border: 'border-green-500/30',  bar: 'bg-green-500',  pct: '25%',  label: 'Low'      },
+  CRITICAL: { color: 'text-status-fail-fg',    bg: 'bg-status-fail-bg',    border: 'border-status-fail-bd',    bar: 'bg-status-fail-bg',    pct: '100%', label: 'Critical' },
+  HIGH:     { color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg',  border: 'border-status-warn-bd',  bar: 'bg-status-warn-bg',  pct: '75%',  label: 'High'     },
+  MEDIUM:   { color: 'text-status-warn-fg', bg: 'bg-status-warn-bg', border: 'border-status-warn-bd', bar: 'bg-status-warn-bg', pct: '50%',  label: 'Medium'   },
+  LOW:      { color: 'text-status-pass-fg',  bg: 'bg-status-pass-bg',  border: 'border-status-pass-bd',  bar: 'bg-status-pass-bg',  pct: '25%',  label: 'Low'      },
 }
 
 const ACTION_ITEM_STATUS_COLOR = {
-  OPEN:               'bg-red-500/8    border-red-500/25    text-red-400',
-  IN_PROGRESS:        'bg-amber-500/8  border-amber-500/25  text-amber-400',
-  PENDING_REVIEW:     'bg-blue-500/8   border-blue-500/25   text-blue-400',
-  PENDING_VALIDATION: 'bg-blue-500/8   border-blue-500/25   text-blue-400',
-  RESOLVED:           'bg-green-500/8  border-green-500/25  text-green-400',
+  OPEN:               'bg-status-fail-bg    border-status-fail-bd    text-status-fail-fg',
+  IN_PROGRESS:        'bg-status-warn-bg  border-status-warn-bd  text-status-warn-fg',
+  PENDING_REVIEW:     'bg-status-info-bg   border-status-info-bd   text-status-info-fg',
+  PENDING_VALIDATION: 'bg-status-info-bg   border-status-info-bd   text-status-info-fg',
+  RESOLVED:           'bg-status-pass-bg  border-status-pass-bd  text-status-pass-fg',
   DISMISSED:          'bg-surface-overlay border-border      text-text-muted',
-  RISK_ACCEPTED:      'bg-amber-500/6  border-amber-500/20  text-amber-300',
+  RISK_ACCEPTED:      'bg-status-warn-bg  border-status-warn-bd  text-status-warn-fg',
 }
 
 const ACTION_ITEM_STATUS_LABEL = {
@@ -244,21 +244,21 @@ function resolveViewMode(roles) {
 }
 
 const ROLE_BANNER = {
-  org_full:         { icon: Building2, color: 'bg-purple-500/5 border-purple-500/20 text-purple-300',  label: 'Org Admin view — full access: all sections, answers, scores, and workflow' },
-  org_ciso:         { icon: Shield,    color: 'bg-purple-500/5 border-purple-500/20 text-purple-300',  label: 'Org CISO view — full review access with evaluations and scoring' },
-  reviewer:         { icon: Eye,       color: 'bg-blue-500/5 border-blue-500/20 text-blue-300',        label: 'Reviewer view — your assigned sections with full evaluations' },
-  review_assistant: { icon: Users,     color: 'bg-indigo-500/5 border-indigo-500/20 text-indigo-300', label: 'Review Assistant view — your delegated questions for review' },
-  vendor_ciso:      { icon: Lock,      color: 'bg-brand-500/5 border-brand-500/20 text-brand-300',    label: 'Vendor CISO view — full structure and answered responses (read-only)' },
-  vendor_vrm:       { icon: UserCheck, color: 'bg-cyan-500/5 border-cyan-500/20 text-cyan-300',       label: 'VRM view — section structure and assignment status' },
-  responder:        { icon: User,      color: 'bg-brand-500/5 border-brand-500/20 text-brand-300',    label: 'Responder view — your sections + all answered questions (read-only)' },
-  contributor:      { icon: User,      color: 'bg-brand-500/5 border-brand-500/20 text-brand-300',    label: 'Contributor view — your assigned question(s) and activity' },
+  org_full:         { icon: Building2, color: 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg',  label: 'Org Admin view — full access: all sections, answers, scores, and workflow' },
+  org_ciso:         { icon: Shield,    color: 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg',  label: 'Org CISO view — full review access with evaluations and scoring' },
+  reviewer:         { icon: Eye,       color: 'bg-status-info-bg border-status-info-bd text-status-info-fg',        label: 'Reviewer view — your assigned sections with full evaluations' },
+  review_assistant: { icon: Users,     color: 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg', label: 'Review Assistant view — your delegated questions for review' },
+  vendor_ciso:      { icon: Lock,      color: 'bg-brand-500/5 border-brand-500/20 text-brand-ink',    label: 'Vendor CISO view — full structure and answered responses (read-only)' },
+  vendor_vrm:       { icon: UserCheck, color: 'bg-status-info-bg border-status-info-bd text-status-info-fg',       label: 'VRM view — section structure and assignment status' },
+  responder:        { icon: User,      color: 'bg-brand-500/5 border-brand-500/20 text-brand-ink',    label: 'Responder view — your sections + all answered questions (read-only)' },
+  contributor:      { icon: User,      color: 'bg-brand-500/5 border-brand-500/20 text-brand-ink',    label: 'Contributor view — your assigned question(s) and activity' },
 }
 
 // ─── Primitives ───────────────────────────────────────────────────────────────
 
 function Card({ className, children }) {
   return (
-    <div className={cn('rounded-xl border border-border bg-surface', className)}>
+    <div className={cn('rounded-card border border-border bg-surface', className)}>
       {children}
     </div>
   )
@@ -275,7 +275,7 @@ function SectionLabel({ children }) {
 function Avatar({ name, size = 'sm' }) {
   const sz = size === 'xs' ? 'w-4 h-4 text-[8px]' : 'w-6 h-6 text-[10px]'
   return (
-    <div className={cn('rounded-full bg-brand-500/15 flex items-center justify-center font-bold text-brand-400 shrink-0', sz)}>
+    <div className={cn('rounded-full bg-brand-500/15 flex items-center justify-center font-bold text-brand-ink shrink-0', sz)}>
       {initials(name)}
     </div>
   )
@@ -284,7 +284,7 @@ function Avatar({ name, size = 'sm' }) {
 function MetaCell({ label, value }) {
   if (!value) return null
   return (
-    <div className="p-3 rounded-lg border border-border bg-surface-raised">
+    <div className="p-3 rounded-card border border-border bg-surface-raised">
       <p className="text-[10px] text-text-muted uppercase tracking-wide font-medium mb-0.5">{label}</p>
       <p className="text-xs text-text-primary truncate">{value}</p>
     </div>
@@ -295,7 +295,7 @@ function ScoreGauge({ pct, size = 84 }) {
   const r    = (size - 10) / 2
   const circ = 2 * Math.PI * r
   const off  = circ - (pct / 100) * circ
-  const col  = pct === 100 ? '#22c55e' : pct >= 70 ? '#f59e0b' : pct >= 40 ? '#3b82f6' : '#8b5cf6'
+  const col  = pct === 100 ? 'var(--status-pass-fg)' : pct >= 70 ? 'var(--status-warn-fg)' : pct >= 40 ? 'var(--status-info-fg)' : 'var(--status-tag-fg)'
   return (
     <svg width={size} height={size} className="-rotate-90" style={{ flexShrink: 0 }}>
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="currentColor" strokeWidth={6} className="text-surface-overlay" />
@@ -312,7 +312,7 @@ function ScoreGauge({ pct, size = 84 }) {
 }
 
 function StatCard({ label, value, sub, color = 'default', icon: Icon }) {
-  const num = color==='green'?'text-green-400':color==='amber'?'text-amber-400':color==='red'?'text-red-400':'text-brand-400'
+  const num = color==='green'?'text-status-pass-fg':color==='amber'?'text-status-warn-fg':color==='red'?'text-status-fail-fg':'text-brand-ink'
   return (
     <Card className="p-4 flex flex-col gap-1.5 min-h-[88px]">
       <div className="flex items-center justify-between">
@@ -348,7 +348,7 @@ function QuestionActionItems({ questionInstanceId }) {
         const colorCls = ACTION_ITEM_STATUS_COLOR[item.status] || ACTION_ITEM_STATUS_COLOR.OPEN
         const vendorActed = ['PENDING_REVIEW','PENDING_VALIDATION'].includes(item.status)
         return (
-          <div key={item.id} className={cn('rounded-lg border text-[11px]', colorCls)}>
+          <div key={item.id} className={cn('rounded-card border text-[11px]', colorCls)}>
             <div className="flex items-start gap-2 px-3 py-2">
               {vendorActed ? <CheckCircle2 size={12} className="shrink-0 mt-0.5"/> : <Clock size={12} className="shrink-0 mt-0.5"/>}
               <div className="flex-1 min-w-0">
@@ -356,43 +356,43 @@ function QuestionActionItems({ questionInstanceId }) {
                   <span className="font-semibold">Vendor remediation</span>
                   {item.severity && (
                     <span className={cn('px-1 py-0.5 rounded text-[9px] font-bold uppercase',
-                      item.severity==='CRITICAL'?'bg-red-500/20 text-red-300':
-                      item.severity==='HIGH'?'bg-orange-500/20 text-orange-300':
-                      item.severity==='MEDIUM'?'bg-amber-500/20 text-amber-300':'bg-blue-500/20 text-blue-300'
+                      item.severity==='CRITICAL'?'bg-status-fail-bg text-status-fail-fg':
+                      item.severity==='HIGH'?'bg-status-warn-bg text-status-warn-fg':
+                      item.severity==='MEDIUM'?'bg-status-warn-bg text-status-warn-fg':'bg-status-info-bg text-status-info-fg'
                     )}>{item.severity}</span>
                   )}
                   <span className="opacity-60">— {ACTION_ITEM_STATUS_LABEL[item.status] || item.status}</span>
                 </div>
                 {item.description && <p className="text-[10px] opacity-80 mt-0.5">{item.description}</p>}
-                {item.dueAt && <p className={cn('text-[10px] mt-0.5', item.isOverdue?'text-red-400':'opacity-50')}>
+                {item.dueAt && <p className={cn('text-[10px] mt-0.5', item.isOverdue?'text-status-fail-fg':'opacity-50')}>
                   <Clock size={9} className="inline mr-0.5"/>Due {formatDate(item.dueAt)}{item.isOverdue && ' — overdue'}
                 </p>}
               </div>
             </div>
             {/* Parties */}
-            <div className="px-3 py-1.5 border-t border-white/5 flex flex-wrap gap-x-4 text-[10px] opacity-70">
+            <div className="px-3 py-1.5 border-t border-on-dark/5 flex flex-wrap gap-x-4 text-[10px] opacity-70">
               {item.createdByName   && <span>Raised by: <strong>{item.createdByName}</strong></span>}
               {item.assignedToName  && <span>Assigned to: <strong>{item.assignedToName}</strong></span>}
               {item.createdAt       && <span>{formatDate(item.createdAt)}</span>}
             </div>
             {/* Resolution */}
             {item.status === 'RESOLVED' && (
-              <div className="px-3 py-1.5 border-t border-white/5 text-[10px] text-green-300">
+              <div className="px-3 py-1.5 border-t border-on-dark/5 text-[10px] text-status-pass-fg">
                 ✓ {item.resolutionNote || 'Validated'}
                 {item.resolvedByName && <span className="ml-1 opacity-70">by {item.resolvedByName}</span>}
               </div>
             )}
             {/* Actions */}
             {isOpen(item.status) && item.canResolve && (
-              <div className="px-3 py-1.5 border-t border-white/5 flex gap-3">
+              <div className="px-3 py-1.5 border-t border-on-dark/5 flex gap-3">
                 {vendorActed && (
                   <button onClick={() => updateStatus({ id: item.id, status:'RESOLVED', resolutionNote:'Remediation validated' })}
-                    className="text-[10px] text-green-400 hover:text-green-300 flex items-center gap-1 font-medium">
+                    className="text-[10px] text-status-pass-fg hover:text-status-pass-fg flex items-center gap-1 font-medium">
                     <CheckCircle2 size={10}/> Validate
                   </button>
                 )}
                 <button onClick={() => updateStatus({ id: item.id, status:'IN_PROGRESS', resolutionNote:'Sent back for rework' })}
-                  className="text-[10px] text-orange-400/80 hover:text-orange-400 flex items-center gap-1">
+                  className="text-[10px] text-status-warn-fg hover:text-status-warn-fg flex items-center gap-1">
                   <CornerDownLeft size={10}/> Send back
                 </button>
               </div>
@@ -402,8 +402,8 @@ function QuestionActionItems({ questionInstanceId }) {
       })}
 
       {clarifications.map(item => (
-        <div key={item.id} className={cn('rounded-lg border text-[11px]',
-          item.status==='RESOLVED' ? ACTION_ITEM_STATUS_COLOR.RESOLVED : 'bg-purple-500/8 border-purple-500/20 text-purple-400')}>
+        <div key={item.id} className={cn('rounded-card border text-[11px]',
+          item.status==='RESOLVED' ? ACTION_ITEM_STATUS_COLOR.RESOLVED : 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg')}>
           <div className="flex items-start gap-2 px-3 py-2">
             {item.status==='RESOLVED' ? <CheckCircle2 size={12} className="shrink-0 mt-0.5"/> : <Clock size={12} className="shrink-0 mt-0.5"/>}
             <div className="flex-1">
@@ -413,7 +413,7 @@ function QuestionActionItems({ questionInstanceId }) {
             </div>
           </div>
           {item.status==='RESOLVED' && item.resolutionNote && (
-            <div className="px-3 py-1.5 border-t border-white/5 text-[10px] text-green-300">✓ {item.resolutionNote}</div>
+            <div className="px-3 py-1.5 border-t border-on-dark/5 text-[10px] text-status-pass-fg">✓ {item.resolutionNote}</div>
           )}
         </div>
       ))}
@@ -448,10 +448,10 @@ function QuestionComments({ questionInstanceId }) {
         <input value={text} onChange={e=>setText(e.target.value)}
           onKeyDown={e=>{ if(e.key==='Enter'&&!e.shiftKey&&text.trim()){ addComment({text:text.trim()}); setText('') }}}
           placeholder="Add comment…"
-          className="flex-1 bg-surface border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted/50 outline-none focus:border-brand-500/60" />
+          className="flex-1 bg-surface border border-border rounded-card px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted/50 outline-none focus:border-brand-500/60" />
         <button onClick={()=>{ if(text.trim()){ addComment({text:text.trim()}); setText('') }}}
           disabled={!text.trim()||adding}
-          className="text-[10px] px-2.5 py-1.5 rounded-lg bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 transition-colors disabled:opacity-40 font-medium">
+          className="text-[10px] px-2.5 py-1.5 rounded-card bg-brand-500/10 text-brand-ink hover:bg-brand-500/20 transition-colors disabled:opacity-40 font-medium">
           {adding?'…':'Send'}
         </button>
       </div>
@@ -498,7 +498,7 @@ function QuestionRow({ q, showScores, showReviewer, showActionItems, showComment
       <button onClick={()=>setOpen(o=>!o)}
         className="w-full flex items-start gap-3 px-5 py-3.5 hover:bg-surface-overlay/30 transition-colors text-left">
         <div className="mt-1 shrink-0">
-          {hasResp ? <CheckCircle2 size={13} className="text-green-400"/> : <Circle size={13} className="text-border"/>}
+          {hasResp ? <CheckCircle2 size={13} className="text-status-pass-fg"/> : <Circle size={13} className="text-border"/>}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-2">
@@ -511,18 +511,18 @@ function QuestionRow({ q, showScores, showReviewer, showActionItems, showComment
                 {typeLabel}
               </span>
             )}
-            {q.mandatory && <span className="text-[9px] text-red-400 font-semibold">Required</span>}
+            {q.mandatory && <span className="text-[9px] text-status-fail-fg font-semibold">Required</span>}
             {q.weight>0 && <span className="text-[9px] text-text-muted">{q.weight} pts</span>}
             {showScores && resp?.scoreEarned!=null && (
-              <span className="text-[9px] text-green-400 font-semibold bg-green-500/8 px-1.5 py-0.5 rounded">
+              <span className="text-[9px] text-status-pass-fg font-semibold bg-status-pass-bg px-1.5 py-0.5 rounded">
                 {resp.scoreEarned}/{q.weight} pts
               </span>
             )}
             {showReviewer && resp?.reviewerStatus && resp.reviewerStatus!=='PENDING' && (
               <span className={cn('text-[9px] font-semibold px-1.5 py-0.5 rounded',
-                resp.reviewerStatus==='PASS'?'bg-green-500/10 text-green-400':
-                resp.reviewerStatus==='PARTIAL'?'bg-amber-500/10 text-amber-400':
-                'bg-red-500/10 text-red-400')}>
+                resp.reviewerStatus==='PASS'?'bg-status-pass-bg text-status-pass-fg':
+                resp.reviewerStatus==='PARTIAL'?'bg-status-warn-bg text-status-warn-fg':
+                'bg-status-fail-bg text-status-fail-fg')}>
                 {resp.reviewerStatus}
               </span>
             )}
@@ -531,7 +531,7 @@ function QuestionRow({ q, showScores, showReviewer, showActionItems, showComment
               return null
             })()}
             {resp?.documents?.length>0 && (
-              <span className="text-[9px] text-brand-400 flex items-center gap-0.5">
+              <span className="text-[9px] text-brand-ink flex items-center gap-0.5">
                 <Paperclip size={9}/>{resp.documents.length}
               </span>
             )}
@@ -547,7 +547,7 @@ function QuestionRow({ q, showScores, showReviewer, showActionItems, showComment
           <button
             onClick={(e) => { e.stopPropagation(); onOpenDrawer(q) }}
             title="Open collaboration drawer"
-            className="shrink-0 p-1 rounded hover:bg-surface-overlay text-text-muted/50 hover:text-brand-400 transition-colors ml-1">
+            className="shrink-0 p-1 rounded hover:bg-surface-overlay text-text-muted/50 hover:text-brand-ink transition-colors ml-1">
             <MessageSquare size={12} />
           </button>
         )}
@@ -566,15 +566,15 @@ function QuestionRow({ q, showScores, showReviewer, showActionItems, showComment
                 const isSel = selectedIds.includes(Number(opt.optionInstanceId))
                 return (
                   <div key={opt.optionInstanceId}
-                    className={cn('flex items-center justify-between px-3 py-2 rounded-lg border text-xs',
+                    className={cn('flex items-center justify-between px-3 py-2 rounded-card border text-xs',
                       isSel?'border-brand-500/40 bg-brand-500/8 text-text-primary':'border-border text-text-muted bg-surface')}>
                     <div className="flex items-center gap-2">
                       <div className={cn('w-2 h-2 rounded-full shrink-0', isSel?'bg-brand-400':'bg-surface-overlay border border-border')}/>
                       {opt.optionValue}
-                      {isSel && <span className="text-[9px] font-semibold text-brand-400 bg-brand-500/10 px-1 rounded">Selected</span>}
+                      {isSel && <span className="text-[9px] font-semibold text-brand-ink bg-brand-500/10 px-1 rounded">Selected</span>}
                     </div>
                     {showScores && opt.score!=null && (
-                      <span className={cn('text-[10px] font-mono font-semibold', isSel?'text-green-400':'text-text-muted/60')}>
+                      <span className={cn('text-[10px] font-mono font-semibold', isSel?'text-status-pass-fg':'text-text-muted/60')}>
                         {opt.score} pts
                       </span>
                     )}
@@ -592,7 +592,7 @@ function QuestionRow({ q, showScores, showReviewer, showActionItems, showComment
             && !resp.responseText.startsWith('[') && (
             <div>
               <SectionLabel>Response</SectionLabel>
-              <div className="px-3 py-2.5 rounded-lg bg-surface border border-border">
+              <div className="px-3 py-2.5 rounded-card bg-surface border border-border">
                 <p className="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap">{resp.responseText}</p>
               </div>
             </div>
@@ -611,7 +611,7 @@ function QuestionRow({ q, showScores, showReviewer, showActionItems, showComment
 
           {/* Reviewer evaluation comment */}
           {showReviewer && resp?.reviewerComment && (
-            <div className="px-3 py-2.5 rounded-lg bg-purple-500/5 border border-purple-500/20">
+            <div className="px-3 py-2.5 rounded-card bg-status-tag-bg border border-status-tag-bd">
               <SectionLabel>Reviewer Comment</SectionLabel>
               <p className="text-xs text-text-secondary">{resp.reviewerComment}</p>
             </div>
@@ -720,7 +720,7 @@ function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawe
     <Card className="overflow-hidden">
       <button onClick={()=>setOpen(o=>!o)}
         className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-surface-overlay/40 transition-colors text-left bg-surface">
-        <div className="w-7 h-7 rounded-lg bg-brand-500/10 flex items-center justify-center shrink-0 text-xs font-bold text-brand-400">
+        <div className="w-7 h-7 rounded-card bg-brand-500/10 flex items-center justify-center shrink-0 text-xs font-bold text-brand-ink">
           {idx+1}
         </div>
         <div className="flex-1 min-w-0">
@@ -733,12 +733,12 @@ function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawe
               </span>
             )}
             {reviewerAssigned && (
-              <span className="text-[10px] text-purple-400 flex items-center gap-1">
+              <span className="text-[10px] text-status-tag-fg flex items-center gap-1">
                 · <Eye size={9}/>{reviewerAssigned}
               </span>
             )}
             {section.submittedAt && (
-              <span className="text-[10px] text-green-400">· Submitted {formatDate(section.submittedAt)}</span>
+              <span className="text-[10px] text-status-pass-fg">· Submitted {formatDate(section.submittedAt)}</span>
             )}
             {/* Reopen button — CISO/Admin/VRM only, only when section is submitted */}
             {section.submittedAt && canReopen && (
@@ -747,16 +747,16 @@ function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawe
                 tabIndex={0}
                 onClick={e => { e.stopPropagation(); onReopen(section.sectionInstanceId) }}
                 onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); onReopen(section.sectionInstanceId) }}}
-                className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition-colors flex-shrink-0 cursor-pointer select-none">
+                className="text-[10px] px-2 py-0.5 rounded bg-status-warn-bg border border-status-warn-bd text-status-warn-fg hover:bg-status-warn-bg transition-colors flex-shrink-0 cursor-pointer select-none">
                 Reopen
               </span>
             )}
             {section.reviewerSubmittedAt && (
-              <span className="text-[10px] text-purple-400">· Reviewed {formatDate(section.reviewerSubmittedAt)}</span>
+              <span className="text-[10px] text-status-tag-fg">· Reviewed {formatDate(section.reviewerSubmittedAt)}</span>
             )}
             {isStructure && (
               <span className={cn('text-[9px] px-1.5 py-0.5 rounded font-medium',
-                pct===100?'bg-green-500/10 text-green-400':pct>0?'bg-amber-500/10 text-amber-400':'bg-surface-overlay text-text-muted')}>
+                pct===100?'bg-status-pass-bg text-status-pass-fg':pct>0?'bg-status-warn-bg text-status-warn-fg':'bg-surface-overlay text-text-muted')}>
                 {pct===100?'Complete':pct>0?'In Progress':'Not Started'}
               </span>
             )}
@@ -764,7 +764,7 @@ function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawe
         </div>
         <div className="flex items-center gap-2.5 shrink-0">
           <div className="w-20 h-1.5 rounded-full bg-surface-overlay overflow-hidden hidden sm:block">
-            <div className={cn('h-full rounded-full transition-all', pct===100?'bg-green-500':'bg-brand-500')}
+            <div className={cn('h-full rounded-full transition-all', pct===100?'bg-status-pass-bg':'bg-brand-500')}
               style={{width:`${pct}%`}}/>
           </div>
           <span className="text-[10px] font-mono text-text-muted w-7 text-right">{pct}%</span>
@@ -780,12 +780,12 @@ function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawe
               {(section.questions||[]).map((q,qi)=>(
                 <div key={q.questionInstanceId??qi} className="px-5 py-3 flex items-center gap-3">
                   <div className="shrink-0">
-                    {q.currentResponse?<CheckCircle2 size={12} className="text-green-400"/>:<Circle size={12} className="text-border"/>}
+                    {q.currentResponse?<CheckCircle2 size={12} className="text-status-pass-fg"/>:<Circle size={12} className="text-border"/>}
                   </div>
                   <p className="flex-1 text-xs text-text-secondary">{q.questionText}</p>
                   <div className="flex items-center gap-2 shrink-0 text-[9px] text-text-muted">
                     {q.assignedUserName && <span className="flex items-center gap-1"><User size={9}/>{q.assignedUserName}</span>}
-                    {q.mandatory && <span className="text-red-400">Req.</span>}
+                    {q.mandatory && <span className="text-status-fail-fg">Req.</span>}
                   </div>
                 </div>
               ))}
@@ -796,9 +796,9 @@ function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawe
             <div className="divide-y divide-border">
               {/* Banner for unsubmitted sections — answers may be draft/in-progress */}
               {!section.submittedAt && (viewMode === 'org_full' || viewMode === 'org_ciso' || viewMode === 'reviewer') && (
-                <div className="px-5 py-2.5 flex items-center gap-2 bg-amber-500/5 border-b border-amber-500/15">
-                  <Clock size={11} className="shrink-0 text-amber-400/70" />
-                  <p className="text-[11px] text-amber-400/80 italic">Section not yet submitted — answers shown are draft responses</p>
+                <div className="px-5 py-2.5 flex items-center gap-2 bg-status-warn-bg border-b border-status-warn-bd">
+                  <Clock size={11} className="shrink-0 text-status-warn-fg" />
+                  <p className="text-[11px] text-status-warn-fg italic">Section not yet submitted — answers shown are draft responses</p>
                 </div>
               )}
               {visibleQuestions.map((q,qi)=>(
@@ -827,9 +827,9 @@ function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawe
 function HistoryEntry({ entry }) {
   const action = entry.action || entry.eventType || ''
   const color =
-    action.includes('APPROVED')||action.includes('COMPLETED') ? 'text-green-400':
-    action.includes('PENDING') ||action.includes('PROGRESS')  ? 'text-amber-400':
-    action.includes('REJECTED')||action.includes('CANCELLED') ? 'text-red-400'  : 'text-brand-400'
+    action.includes('APPROVED')||action.includes('COMPLETED') ? 'text-status-pass-fg':
+    action.includes('PENDING') ||action.includes('PROGRESS')  ? 'text-status-warn-fg':
+    action.includes('REJECTED')||action.includes('CANCELLED') ? 'text-status-fail-fg'  : 'text-brand-ink'
   return (
     <div className="flex items-start gap-3 py-2.5 border-b border-border last:border-0">
       <div className={cn('w-1.5 h-1.5 rounded-full mt-2 shrink-0', color.replace('text-','bg-'))}/>
@@ -854,23 +854,23 @@ function FindingsTab({ assessmentId }) {
   const { data: items = [], isLoading } = useEntityActionItems('ASSESSMENT', assessmentId, { enabled: !!assessmentId })
   const { mutate: updateStatus } = useUpdateActionItemStatus()
 
-  const PRIORITY_DOT   = { CRITICAL:'bg-red-400', HIGH:'bg-amber-400', MEDIUM:'bg-blue-400', LOW:'bg-border' }
+  const PRIORITY_DOT   = { CRITICAL:'bg-status-fail-bg', HIGH:'bg-status-warn-bg', MEDIUM:'bg-status-info-bg', LOW:'bg-border' }
   const PRIORITY_BADGE = {
-    CRITICAL: 'bg-red-500/10 text-red-400',
-    HIGH:     'bg-amber-500/10 text-amber-400',
-    MEDIUM:   'bg-blue-500/10 text-blue-400',
+    CRITICAL: 'bg-status-fail-bg text-status-fail-fg',
+    HIGH:     'bg-status-warn-bg text-status-warn-fg',
+    MEDIUM:   'bg-status-info-bg text-status-info-fg',
     LOW:      'bg-surface-overlay text-text-muted',
   }
 
   if (isLoading) return (
     <div className="space-y-3">{[1,2,3].map(i=>(
-      <div key={i} className="h-20 rounded-xl bg-surface-overlay animate-pulse"/>
+      <div key={i} className="h-20 rounded-card bg-surface-overlay animate-pulse"/>
     ))}</div>
   )
 
   if (!items.length) return (
     <Card className="text-center py-14">
-      <CheckCheck size={30} className="text-green-400 mx-auto mb-3"/>
+      <CheckCheck size={30} className="text-status-pass-fg mx-auto mb-3"/>
       <p className="text-sm font-medium text-text-primary">No findings or gaps</p>
       <p className="text-xs text-text-muted mt-1">This assessment has no tracked findings.</p>
     </Card>
@@ -884,11 +884,11 @@ function FindingsTab({ assessmentId }) {
   return (
     <div className="space-y-4">
       {/* Summary strip */}
-      <div className="flex items-center gap-5 px-4 py-3 rounded-xl border border-border bg-surface text-xs">
+      <div className="flex items-center gap-5 px-4 py-3 rounded-card border border-border bg-surface text-xs">
         <span><span className="font-semibold text-text-primary">{items.length}</span> <span className="text-text-muted">total</span></span>
-        <span><span className="font-semibold text-red-400">{open}</span> <span className="text-text-muted">open</span></span>
-        <span><span className="font-semibold text-blue-400">{pending}</span> <span className="text-text-muted">pending review</span></span>
-        <span><span className="font-semibold text-green-400">{resolved}</span> <span className="text-text-muted">resolved</span></span>
+        <span><span className="font-semibold text-status-fail-fg">{open}</span> <span className="text-text-muted">open</span></span>
+        <span><span className="font-semibold text-status-info-fg">{pending}</span> <span className="text-text-muted">pending review</span></span>
+        <span><span className="font-semibold text-status-pass-fg">{resolved}</span> <span className="text-text-muted">resolved</span></span>
       </div>
 
       {items.map(item => {
@@ -897,9 +897,9 @@ function FindingsTab({ assessmentId }) {
         return (
           <Card key={item.id} className="overflow-hidden bg-surface-raised">
             <div className={cn('px-4 py-3 border-l-4', {
-              'border-red-500':    ['OPEN','IN_PROGRESS'].includes(item.status),
-              'border-blue-500':   ['PENDING_REVIEW','PENDING_VALIDATION'].includes(item.status),
-              'border-green-500':  item.status === 'RESOLVED',
+              'border-status-fail-bd':    ['OPEN','IN_PROGRESS'].includes(item.status),
+              'border-status-info-bd':   ['PENDING_REVIEW','PENDING_VALIDATION'].includes(item.status),
+              'border-status-pass-bd':  item.status === 'RESOLVED',
               'border-border':     item.status === 'DISMISSED' || item.status === 'RISK_ACCEPTED',
             })}>
               <div className="flex items-start gap-3">
@@ -918,23 +918,23 @@ function FindingsTab({ assessmentId }) {
                   <div className="flex items-center gap-3 mt-2 flex-wrap text-[10px] text-text-muted">
                     {item.createdByName   && <span>Raised by {item.createdByName}</span>}
                     {item.assignedToName  && <span className="flex items-center gap-1"><User size={9}/>{item.assignedToName}</span>}
-                    {item.dueDate         && <span className={cn('flex items-center gap-1',item.isOverdue?'text-red-400':'')}>
+                    {item.dueDate         && <span className={cn('flex items-center gap-1',item.isOverdue?'text-status-fail-fg':'')}>
                       <CalendarClock size={9}/>Due {formatDate(item.dueDate)}{item.isOverdue&&' — overdue'}
                     </span>}
-                    {item.resolutionNote  && <span className="text-green-400">✓ {item.resolutionNote}</span>}
+                    {item.resolutionNote  && <span className="text-status-pass-fg">✓ {item.resolutionNote}</span>}
                   </div>
                 </div>
                 {canAct && (
                   <div className="flex gap-2 shrink-0">
                     {['PENDING_REVIEW','PENDING_VALIDATION'].includes(item.status) && (
                       <button onClick={()=>updateStatus({id:item.id,status:'RESOLVED',resolutionNote:'Validated'})}
-                        className="text-[10px] text-green-400/80 hover:text-green-400 px-2.5 py-1.5 rounded-lg border border-green-400/20 hover:border-green-400/50 transition-colors font-medium">
+                        className="text-[10px] text-status-pass-fg hover:text-status-pass-fg px-2.5 py-1.5 rounded-card border border-status-pass-bd hover:border-status-pass-bd transition-colors font-medium">
                         Validate
                       </button>
                     )}
                     {['OPEN','IN_PROGRESS'].includes(item.status) && (
                       <button onClick={()=>updateStatus({id:item.id,status:'RESOLVED'})}
-                        className="text-[10px] text-green-400/80 hover:text-green-400 px-2.5 py-1.5 rounded-lg border border-green-400/20 hover:border-green-400/50 transition-colors font-medium">
+                        className="text-[10px] text-status-pass-fg hover:text-status-pass-fg px-2.5 py-1.5 rounded-card border border-status-pass-bd hover:border-status-pass-bd transition-colors font-medium">
                         Resolve
                       </button>
                     )}
@@ -968,11 +968,11 @@ function ActivityTab({ assessmentId }) {
 
 // ─── Status styles ────────────────────────────────────────────────────────────
 const TASK_STATUS_STYLE = {
-  PENDING:    { label: 'Pending',     cls: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
-  IN_PROGRESS:{ label: 'In Progress', cls: 'bg-brand-500/10 text-brand-400 border-brand-500/20' },
-  APPROVED:   { label: 'Approved',    cls: 'bg-green-500/10 text-green-400 border-green-500/20' },
-  REJECTED:   { label: 'Rejected',    cls: 'bg-red-500/10 text-red-400 border-red-500/20' },
-  DELEGATED:  { label: 'Delegated',   cls: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
+  PENDING:    { label: 'Pending',     cls: 'bg-status-warn-bg text-status-warn-fg border-status-warn-bd' },
+  IN_PROGRESS:{ label: 'In Progress', cls: 'bg-brand-500/10 text-brand-ink border-brand-500/20' },
+  APPROVED:   { label: 'Approved',    cls: 'bg-status-pass-bg text-status-pass-fg border-status-pass-bd' },
+  REJECTED:   { label: 'Rejected',    cls: 'bg-status-fail-bg text-status-fail-fg border-status-fail-bd' },
+  DELEGATED:  { label: 'Delegated',   cls: 'bg-status-tag-bg text-status-tag-fg border-status-tag-bd' },
   EXPIRED:    { label: 'Expired',     cls: 'bg-surface-overlay text-text-muted border-border' },
 }
 
@@ -995,23 +995,23 @@ function SectionsPanel({ assessmentId }) {
   return (
     <div className="space-y-2">
       {sections.map(s => (
-        <div key={s.sectionInstanceId} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-surface-raised">
+        <div key={s.sectionInstanceId} className="flex items-center gap-3 px-3 py-2.5 rounded-card border border-border bg-surface-raised">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-text-primary truncate">{s.sectionName}</p>
             <p className="text-[10px] text-text-muted mt-0.5">{s.assignedUserName ? `→ ${s.assignedUserName}` : 'Unassigned'}</p>
           </div>
           {s.submittedAt ? (
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">Submitted</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-pass-bg text-status-pass-fg border border-status-pass-bd">Submitted</span>
               <span role="button" tabIndex={0}
                 onClick={() => reopen(s.sectionInstanceId)}
                 onKeyDown={e => e.key === 'Enter' && reopen(s.sectionInstanceId)}
-                className={cn('text-[10px] px-1.5 py-0.5 rounded border border-border hover:border-amber-500/30 text-text-muted hover:text-amber-400 transition-colors cursor-pointer select-none', reopening && 'opacity-50 pointer-events-none')}>
+                className={cn('text-[10px] px-1.5 py-0.5 rounded border border-border hover:border-status-warn-bd text-text-muted hover:text-status-warn-fg transition-colors cursor-pointer select-none', reopening && 'opacity-50 pointer-events-none')}>
                 Reopen
               </span>
             </div>
           ) : (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-status-warn-bg text-status-warn-fg border border-status-warn-bd shrink-0">
               {s.assignedUserId ? 'In progress' : 'Unassigned'}
             </span>
           )}
@@ -1057,7 +1057,7 @@ function WorkflowPanel({ progressRaw, progressSummary, workflowInstanceId, asses
           {SUB_TABS.map(t => (
             <button key={t.id} onClick={() => setSubTab(t.id)}
               className={cn('text-xs px-3 py-2 border-b-2 -mb-px transition-colors',
-                subTab === t.id ? 'border-brand-500 text-brand-400 font-medium' : 'border-transparent text-text-muted hover:text-text-secondary')}>
+                subTab === t.id ? 'border-brand-500 text-brand-ink font-medium' : 'border-transparent text-text-muted hover:text-text-secondary')}>
               {t.label}
             </button>
           ))}
@@ -1081,16 +1081,16 @@ function WorkflowPanel({ progressRaw, progressSummary, workflowInstanceId, asses
                   const style = TASK_STATUS_STYLE[task.status] || TASK_STATUS_STYLE.PENDING
                   const isCoord = task.taskRole === 'ASSIGNER'
                   return (
-                    <div key={task.taskId} className={cn('flex items-start gap-3 px-4 py-3 rounded-lg border', style.cls, isCoord && 'opacity-60')}>
+                    <div key={task.taskId} className={cn('flex items-start gap-3 px-4 py-3 rounded-card border', style.cls, isCoord && 'opacity-60')}>
                       <div className={cn('w-7 h-7 rounded-full border flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5',
-                        isCoord ? 'bg-purple-500/10 border-purple-500/30 text-purple-400' : 'bg-surface-overlay border-border text-text-secondary')}>
+                        isCoord ? 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg' : 'bg-surface-overlay border-border text-text-secondary')}>
                         {(task.assignedUserName || '?').slice(0,2).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-semibold text-text-primary">{task.assignedUserName}</span>
-                          {isCoord && <span className="text-[9px] px-1 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">coordinator</span>}
-                          {task.side && <span className={cn('text-[9px] font-medium', task.side === 'VENDOR' ? 'text-purple-400' : 'text-blue-400')}>{task.side === 'ORGANIZATION' ? 'Org' : 'Vendor'}</span>}
+                          {isCoord && <span className="text-[9px] px-1 py-0.5 rounded bg-status-tag-bg text-status-tag-fg border border-status-tag-bd">coordinator</span>}
+                          {task.side && <span className={cn('text-[9px] font-medium', task.side === 'VENDOR' ? 'text-status-tag-fg' : 'text-status-info-fg')}>{task.side === 'ORGANIZATION' ? 'Org' : 'Vendor'}</span>}
                         </div>
                         <p className="text-[10px] text-text-muted mt-0.5">
                           <span className="font-mono">{task.stepOrder}.</span>{' '}{task.stepName}
@@ -1251,7 +1251,7 @@ export default function AssessmentDetailPage() {
             className={cn(
               'flex items-center gap-1.5 px-4 py-3 text-[11px] font-medium border-b-2 transition-colors -mb-px whitespace-nowrap',
               tab===t.key
-                ? 'border-brand-500 text-brand-400'
+                ? 'border-brand-500 text-brand-ink'
                 : 'border-transparent text-text-muted hover:text-text-secondary'
             )}>
             <t.icon size={12}/>{t.label}
@@ -1274,7 +1274,7 @@ export default function AssessmentDetailPage() {
                   <p className="text-lg font-semibold text-text-primary">{pct}%</p>
                   <p className="text-[10px] text-text-muted mt-0.5">{prog.answered??0} of {prog.totalQuestions??0} answered</p>
                   <div className="w-full h-1 rounded-full bg-surface-overlay mt-3 overflow-hidden">
-                    <div className={cn('h-full rounded-full transition-all duration-700',pct===100?'bg-green-500':'bg-brand-500')}
+                    <div className={cn('h-full rounded-full transition-all duration-700',pct===100?'bg-status-pass-bg':'bg-brand-500')}
                       style={{width:`${pct}%`}}/>
                   </div>
                 </div>
@@ -1289,7 +1289,7 @@ export default function AssessmentDetailPage() {
                   color={scorePct!=null&&scorePct>=70?'green':scorePct!=null&&scorePct>=40?'amber':'default'}/>
 
                 {/* Risk rating — special card */}
-                <div className={cn('rounded-xl border p-4 flex flex-col gap-1.5 min-h-[88px]',
+                <div className={cn('rounded-card border p-4 flex flex-col gap-1.5 min-h-[88px]',
                   riskCfg?`${riskCfg.bg} ${riskCfg.border}`:'bg-surface border-border')}>
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] font-semibold text-text-muted uppercase tracking-widest">Risk Rating</p>
@@ -1299,7 +1299,7 @@ export default function AssessmentDetailPage() {
                     <>
                       <p className={cn('text-lg font-semibold leading-none',riskCfg.color)}>{riskCfg.label}</p>
                       <div className="flex items-center gap-1.5 mt-auto">
-                        <div className="flex-1 h-1 rounded-full bg-black/10 overflow-hidden">
+                        <div className="flex-1 h-1 rounded-full bg-on-dark-inv/10 overflow-hidden">
                           <div className={cn('h-full rounded-full',riskCfg.bar)} style={{width:riskCfg.pct}}/>
                         </div>
                       </div>
@@ -1334,7 +1334,7 @@ export default function AssessmentDetailPage() {
 
             {/* Reviewer findings */}
             {assessment.reviewFindings && (
-              <div className="p-4 rounded-xl border border-purple-500/20 bg-purple-500/5">
+              <div className="p-4 rounded-card border border-status-tag-bd bg-status-tag-bg">
                 <SectionLabel>Reviewer Findings</SectionLabel>
                 <p className="text-sm text-text-secondary leading-relaxed">{assessment.reviewFindings}</p>
               </div>
@@ -1342,16 +1342,16 @@ export default function AssessmentDetailPage() {
 
             {/* Report download */}
             {assessment.reportUrl && (
-              <Card className="flex items-center justify-between p-4 bg-green-500/5 border-green-500/20">
+              <Card className="flex items-center justify-between p-4 bg-status-pass-bg border-status-pass-bd">
                 <div className="flex items-center gap-3">
-                  <FileText size={18} className="text-green-400 shrink-0"/>
+                  <FileText size={18} className="text-status-pass-fg shrink-0"/>
                   <div>
                     <p className="text-sm font-semibold text-text-primary">Assessment Report Ready</p>
                     <p className="text-[10px] text-text-muted mt-0.5">Final report generated</p>
                   </div>
                 </div>
                 <a href={assessment.reportUrl} target="_blank" rel="noreferrer"
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 text-green-400 text-xs font-semibold hover:bg-green-500/20 transition-colors">
+                  className="flex items-center gap-2 px-3 py-2 rounded-card bg-status-pass-bg text-status-pass-fg text-xs font-semibold hover:bg-status-pass-bg transition-colors">
                   <Download size={12}/> Download
                 </a>
               </Card>
@@ -1385,7 +1385,7 @@ export default function AssessmentDetailPage() {
           <div className="space-y-3">
             {/* Role context banner */}
             {bannerCfg && (
-              <div className={cn('flex items-center gap-2 px-4 py-2.5 rounded-lg border text-xs', bannerCfg.color)}>
+              <div className={cn('flex items-center gap-2 px-4 py-2.5 rounded-card border text-xs', bannerCfg.color)}>
                 <bannerCfg.icon size={12} className="shrink-0"/>{bannerCfg.label}
               </div>
             )}

@@ -48,7 +48,7 @@ export const useLoginWithRedirect = () => {
       if (response.status === 'PASSWORD_RESET_REQUIRED') {
         // First login — force password change.
         // Pass email in state so ForcePasswordChangePage can auto-login after reset.
-        navigate('/auth/reset-password', {
+        navigate('/auth/set-password', {
           state: {
             userId:    response.data?.userId,
             tempToken: response.data?.tempToken,

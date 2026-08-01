@@ -37,6 +37,23 @@ const tabsSlice = createSlice({
       state.activeTabId = id
     },
 
+    // Always create a NEW tab, even if that route is already open.
+    // openTab() de-dupes by route (correct for nav clicks — you don't want five
+    // "Audit Library" tabs). The "+" button needs the opposite behaviour, and
+    // using openTab there made it silently re-activate the existing tab, so it
+    // looked like the button did nothing.
+    newTab: (state, { payload: { route, title, icon } = {} }) => {
+      const id = newId()
+      state.tabs.push({
+        id,
+        title: title || route,
+        route,
+        icon: icon || null,
+        subTab: null,
+      })
+      state.activeTabId = id
+    },
+
     // Navigate the active tab to a new route (updates its route + title)
     navigateActiveTab: (state, { payload: { route, title, icon } }) => {
       const tab = state.tabs.find(t => t.id === state.activeTabId)
@@ -94,7 +111,7 @@ const tabsSlice = createSlice({
 })
 
 export const {
-  openTab, navigateActiveTab, activateTab, closeTab,
+  openTab, newTab, navigateActiveTab, activateTab, closeTab,
   updateTabTitle, closeOtherTabs, closeTabsToRight, saveSubTab,
 } = tabsSlice.actions
 

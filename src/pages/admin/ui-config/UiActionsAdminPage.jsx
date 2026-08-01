@@ -23,26 +23,26 @@ const SIDES         = ['ORGANIZATION', 'SYSTEM', 'AUDITOR', 'AUDITEE', 'VENDOR']
 const ALL_SIDES_VAL = 'ORGANIZATION,SYSTEM,AUDITOR,AUDITEE,VENDOR'
 
 const SIDE_STYLE = {
-  ORGANIZATION: 'bg-blue-500/15 text-blue-400',
-  SYSTEM:       'bg-purple-500/15 text-purple-400',
-  AUDITOR:      'bg-teal-500/15 text-teal-400',
-  AUDITEE:      'bg-green-500/15 text-green-400',
-  VENDOR:       'bg-orange-500/15 text-orange-400',
+  ORGANIZATION: 'bg-status-info-bg text-status-info-fg',
+  SYSTEM:       'bg-status-tag-bg text-status-tag-fg',
+  AUDITOR:      'bg-brand-500/15 text-brand-ink',
+  AUDITEE:      'bg-status-pass-bg text-status-pass-fg',
+  VENDOR:       'bg-status-warn-bg text-status-warn-fg',
 }
 
 const METHOD_STYLE = {
-  GET:    'text-green-400  bg-green-500/10',
-  POST:   'text-blue-400   bg-blue-500/10',
-  PUT:    'text-amber-400  bg-amber-500/10',
-  PATCH:  'text-orange-400 bg-orange-500/10',
-  DELETE: 'text-red-400    bg-red-500/10',
+  GET:    'text-status-pass-fg  bg-status-pass-bg',
+  POST:   'text-status-info-fg   bg-status-info-bg',
+  PUT:    'text-status-warn-fg  bg-status-warn-bg',
+  PATCH:  'text-status-warn-fg bg-status-warn-bg',
+  DELETE: 'text-status-fail-fg    bg-status-fail-bg',
 }
 
 const VARIANT_STYLE = {
-  primary:   'bg-brand-500/15 text-brand-400 border-brand-500/20',
+  primary:   'bg-brand-500/15 text-brand-ink border-brand-500/20',
   secondary: 'bg-surface-overlay text-text-secondary border-border',
-  danger:    'bg-red-500/15 text-red-400 border-red-500/20',
-  warning:   'bg-amber-500/15 text-amber-400 border-amber-500/20',
+  danger:    'bg-status-fail-bg text-status-fail-fg border-status-fail-bd',
+  warning:   'bg-status-warn-bg text-status-warn-fg border-status-warn-bd',
   ghost:     'bg-transparent text-text-muted border-border',
   outline:   'bg-transparent text-text-primary border-border',
 }
@@ -70,14 +70,14 @@ function JsonTextarea({ label, value, onChange, placeholder, helperText }) {
         placeholder={placeholder}
         rows={3}
         className={cn(
-          'w-full rounded-md border bg-surface-raised px-3 py-2 text-xs font-mono text-text-primary',
+          'w-full rounded-ctl border bg-surface-raised px-3 py-2 text-xs font-mono text-text-primary',
           'placeholder:text-text-muted focus:outline-none focus:ring-1 resize-y',
           error
-            ? 'border-red-500/50 focus:ring-red-500/50'
+            ? 'border-status-fail-bd focus:ring-status-fail-bd'
             : 'border-border focus:ring-brand-500'
         )}
       />
-      {error && <p className="text-[10px] text-red-400">⚠ Invalid JSON: {error}</p>}
+      {error && <p className="text-[10px] text-status-fail-fg">⚠ Invalid JSON: {error}</p>}
       {!error && helperText && <p className="text-[10px] text-text-muted">{helperText}</p>}
     </div>
   )
@@ -105,7 +105,7 @@ function SideSelector({ value, onChange }) {
         </label>
         <button
           onClick={() => onChange(allSelected ? '' : ALL_SIDES_VAL)}
-          className="text-[10px] text-text-muted hover:text-brand-400 transition-colors"
+          className="text-[10px] text-text-muted hover:text-brand-ink transition-colors"
         >
           {allSelected ? 'Clear all' : 'Select all'}
         </button>
@@ -116,7 +116,7 @@ function SideSelector({ value, onChange }) {
             key={s}
             onClick={() => toggle(s)}
             className={cn(
-              'flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] font-semibold uppercase tracking-wide transition-colors',
+              'flex items-center gap-1 px-2 py-1 rounded-ctl border text-[10px] font-semibold uppercase tracking-wide transition-colors',
               selected.includes(s)
                 ? SIDE_STYLE[s] + ' border-current/30'
                 : 'border-border text-text-muted hover:text-text-secondary'
@@ -174,16 +174,16 @@ function PermissionSelect({ value, onChange }) {
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
-          className="w-full h-8 flex items-center justify-between gap-2 px-3 rounded-md border border-border bg-surface-raised text-sm hover:border-brand-500/50 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          className="w-full h-8 flex items-center justify-between gap-2 px-3 rounded-ctl border border-border bg-surface-raised text-sm hover:border-brand-500/50 focus:outline-none focus:ring-1 focus:ring-brand-500"
         >
           <span className={cn('flex items-center gap-1.5 text-xs', !value && 'text-text-muted')}>
-            <Shield size={11} className={value ? 'text-brand-400' : 'text-text-muted'} />
+            <Shield size={11} className={value ? 'text-brand-ink' : 'text-text-muted'} />
             <span className="font-mono">{value || 'None — side-gated only'}</span>
           </span>
           <div className="flex items-center gap-1">
             {value && (
               <span onClick={e => { e.stopPropagation(); onChange('') }}
-                className="p-0.5 rounded hover:text-red-400 text-text-muted cursor-pointer">
+                className="p-0.5 rounded hover:text-status-fail-fg text-text-muted cursor-pointer">
                 <X size={11} />
               </span>
             )}
@@ -192,7 +192,7 @@ function PermissionSelect({ value, onChange }) {
         </button>
 
         {open && (
-          <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-surface-raised shadow-xl">
+          <div className="absolute z-50 mt-1 w-full rounded-ctl border border-border bg-surface-raised shadow-xl">
             <div className="p-2 border-b border-border">
               <div className="relative">
                 <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
@@ -217,7 +217,7 @@ function PermissionSelect({ value, onChange }) {
                         'w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-overlay transition-colors',
                         value === p.code ? 'bg-brand-500/10' : ''
                       )}>
-                      <span className={cn('font-mono text-[11px]', value === p.code ? 'text-brand-400' : 'text-text-primary')}>
+                      <span className={cn('font-mono text-[11px]', value === p.code ? 'text-brand-ink' : 'text-text-primary')}>
                         {p.code}
                       </span>
                       <span className="text-[10px] text-text-muted truncate">{p.name}</span>
@@ -311,7 +311,7 @@ function ActionForm({ item, allActions, onSubmit, isPending, onClose }) {
             value={form.screenKey}
             onChange={e => set('screenKey', e.target.value)}
             placeholder="issue_list"
-            className="h-8 w-full rounded-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-8 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
           <datalist id="screen-key-options">
             {screenKeys.map(k => <option key={k} value={k} />)}
@@ -330,7 +330,7 @@ function ActionForm({ item, allActions, onSubmit, isPending, onClose }) {
             HTTP Method
           </label>
           <select value={form.httpMethod} onChange={e => set('httpMethod', e.target.value)}
-            className="h-8 rounded-md border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {HTTP_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
@@ -352,9 +352,9 @@ function ActionForm({ item, allActions, onSubmit, isPending, onClose }) {
             {VARIANTS.map(v => (
               <button key={v} onClick={() => set('variant', v)}
                 className={cn(
-                  'px-2.5 py-1 rounded-md border text-[11px] font-medium transition-colors',
+                  'px-2.5 py-1 rounded-ctl border text-[11px] font-medium transition-colors',
                   form.variant === v
-                    ? VARIANT_STYLE[v] || 'bg-brand-500/15 text-brand-400 border-brand-500/20'
+                    ? VARIANT_STYLE[v] || 'bg-brand-500/15 text-brand-ink border-brand-500/20'
                     : 'border-border text-text-muted hover:text-text-secondary'
                 )}>
                 {v}
@@ -390,17 +390,17 @@ function ActionForm({ item, allActions, onSubmit, isPending, onClose }) {
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-4">
           <button onClick={() => set('requiresConfirmation', !form.requiresConfirmation)}
-            className={cn('flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors',
+            className={cn('flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-ctl border transition-colors',
               form.requiresConfirmation
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                ? 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg'
                 : 'border-border text-text-muted hover:text-text-secondary')}>
             {form.requiresConfirmation ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
             Requires confirmation dialog
           </button>
           <button onClick={() => set('requiresRemarks', !form.requiresRemarks)}
-            className={cn('flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors',
+            className={cn('flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-ctl border transition-colors',
               form.requiresRemarks
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                ? 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg'
                 : 'border-border text-text-muted hover:text-text-secondary')}>
             {form.requiresRemarks ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
             Requires remarks/notes
@@ -415,21 +415,21 @@ function ActionForm({ item, allActions, onSubmit, isPending, onClose }) {
       </div>
 
       {/* Row 8 — active + global toggles */}
-      <div className="flex items-center gap-3 p-3 bg-surface-overlay rounded-lg border border-border">
+      <div className="flex items-center gap-3 p-3 bg-surface-overlay rounded-card border border-border">
         <button onClick={() => set('isActive', !form.isActive)}
-          className={cn('flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors',
+          className={cn('flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-ctl border transition-colors',
             form.isActive
-              ? 'bg-green-500/10 border-green-500/30 text-green-400'
+              ? 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg'
               : 'border-border text-text-muted')}>
           {form.isActive ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
           {form.isActive ? 'Active' : 'Inactive'}
         </button>
 
         <button onClick={() => set('isGlobal', !form.isGlobal)}
-          className={cn('flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors',
+          className={cn('flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-ctl border transition-colors',
             form.isGlobal
-              ? 'bg-purple-500/10 border-purple-500/30 text-purple-400'
-              : 'border-amber-500/10 border-amber-500/30 text-amber-400')}>
+              ? 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg'
+              : 'border-status-warn-bd border-status-warn-bd text-status-warn-fg')}>
           {form.isGlobal ? <Globe size={13} /> : <Lock size={13} />}
           {form.isGlobal ? 'Global (tenant_id = NULL)' : 'Tenant-scoped'}
         </button>
@@ -589,7 +589,7 @@ export default function UiActionsAdminPage() {
       render: (r) => (
         <button onClick={e => { e.stopPropagation(); toggleSelect(r.id) }}
           className="text-text-muted hover:text-text-primary">
-          {selected.has(r.id) ? <CheckSquare size={13} className="text-brand-400" /> : <Square size={13} />}
+          {selected.has(r.id) ? <CheckSquare size={13} className="text-brand-ink" /> : <Square size={13} />}
         </button>
       ),
     },
@@ -611,7 +611,7 @@ export default function UiActionsAdminPage() {
       render: (r) => (
         <span className={cn(
           'text-[11px] font-mono',
-          !r.screenKey ? 'text-red-400' : 'text-text-secondary'
+          !r.screenKey ? 'text-status-fail-fg' : 'text-text-secondary'
         )}>
           {r.screenKey || '⚠ MISSING'}
         </span>
@@ -625,7 +625,7 @@ export default function UiActionsAdminPage() {
           <div className="flex items-center gap-1.5">
             {r.httpMethod && (
               <span className={cn('text-[9px] font-bold px-1 py-0.5 rounded uppercase',
-                METHOD_STYLE[r.httpMethod] || 'bg-gray-500/15 text-gray-400')}>
+                METHOD_STYLE[r.httpMethod] || 'bg-surface-inset text-text-muted')}>
                 {r.httpMethod}
               </span>
             )}
@@ -641,19 +641,19 @@ export default function UiActionsAdminPage() {
     {
       key: 'requiredPermission', label: 'Permission', width: 160, type: 'custom',
       render: (r) => r.requiredPermission
-        ? <span className="text-[10px] font-mono text-brand-400">{r.requiredPermission}</span>
+        ? <span className="text-[10px] font-mono text-brand-ink">{r.requiredPermission}</span>
         : <span className="text-[10px] text-text-muted">—</span>,
     },
     // Sides
     {
       key: 'allowedSides', label: 'Sides', width: 110, type: 'custom',
       render: (r) => {
-        if (!r.allowedSides) return <span className="text-[10px] text-amber-400">⚠ none</span>
+        if (!r.allowedSides) return <span className="text-[10px] text-status-warn-fg">⚠ none</span>
         return (
           <div className="flex flex-wrap gap-0.5">
             {r.allowedSides.split(',').map(s => (
               <span key={s} className={cn('text-[8px] font-bold px-1 py-0.5 rounded uppercase',
-                SIDE_STYLE[s.trim()] || 'bg-gray-500/15 text-gray-400')}>
+                SIDE_STYLE[s.trim()] || 'bg-surface-inset text-text-muted')}>
                 {s.trim().slice(0, 3)}
               </span>
             ))}
@@ -683,8 +683,8 @@ export default function UiActionsAdminPage() {
           className={cn(
             'flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border transition-colors',
             r.tenantId
-              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
-              : 'bg-purple-500/10 border-purple-500/20 text-purple-400 cursor-default'
+              ? 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg hover:bg-status-warn-bg'
+              : 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg cursor-default'
           )}>
           {r.tenantId ? <Lock size={9} /> : <Globe size={9} />}
           {r.tenantId ? `t=${r.tenantId}` : 'global'}
@@ -703,7 +703,7 @@ export default function UiActionsAdminPage() {
               .catch(() => toast.error('Failed'))
           }}
           className={cn('flex items-center gap-1 text-[11px] px-1 py-0.5 rounded transition-colors',
-            r.isActive ? 'text-green-400 hover:bg-green-500/10' : 'text-text-muted hover:bg-surface-overlay')}>
+            r.isActive ? 'text-status-pass-fg hover:bg-status-pass-bg' : 'text-text-muted hover:bg-surface-overlay')}>
           {r.isActive ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
         </button>
       ),
@@ -714,11 +714,11 @@ export default function UiActionsAdminPage() {
       render: (r) => (
         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
           <button onClick={() => setEditTarget(r)}
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-400 hover:bg-brand-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
             <Pencil size={11} />
           </button>
           <button onClick={() => setDeleteTarget(r)}
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
             <Trash2 size={11} />
           </button>
         </div>
@@ -735,7 +735,7 @@ export default function UiActionsAdminPage() {
 
           {/* Problem indicator */}
           {problemCount > 0 && (
-            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px]">
+            <div className="flex items-center gap-1 px-2 py-1 rounded-ctl bg-status-warn-bg border border-status-warn-bd text-status-warn-fg text-[11px]">
               <AlertTriangle size={11} /> {problemCount} need attention
             </div>
           )}
@@ -751,19 +751,19 @@ export default function UiActionsAdminPage() {
 
           {/* Filters */}
           <select value={screenFilter} onChange={e => { setScreenFilter(e.target.value); setPage(1) }}
-            className="h-8 rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 max-w-[140px]">
+            className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 max-w-[140px]">
             <option value="">All screens</option>
             {screenKeys.map(k => <option key={k} value={k}>{k}</option>)}
           </select>
 
           <select value={sideFilter} onChange={e => { setSideFilter(e.target.value); setPage(1) }}
-            className="h-8 rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             <option value="">All sides</option>
             {SIDES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
 
           <select value={globalFilter} onChange={e => { setGlobalFilter(e.target.value); setPage(1) }}
-            className="h-8 rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+            className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             <option value="">Global + tenant</option>
             <option value="true">Global only</option>
             <option value="false">Tenant-scoped</option>
@@ -773,7 +773,7 @@ export default function UiActionsAdminPage() {
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search key or label…"
-              className="h-8 pl-7 pr-3 w-44 rounded-md border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-7 pr-3 w-44 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
 
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
@@ -791,7 +791,7 @@ export default function UiActionsAdminPage() {
         onRowClick={r => setEditTarget(r)}
         rowClassName={r => cn(
           !r.isActive && 'opacity-50',
-          r.tenantId && 'border-l-2 border-amber-500/40'
+          r.tenantId && 'border-l-2 border-status-warn-bd'
         )}
       />
 

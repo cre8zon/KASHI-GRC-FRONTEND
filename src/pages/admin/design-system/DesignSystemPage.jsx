@@ -57,7 +57,7 @@ function Section({ id, title, children }) {
       <div className="flex items-center gap-3 mb-6">
         <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
         <div className="flex-1 h-px bg-border" />
-        <a href={`#${id}`} className="text-[10px] font-mono text-text-muted hover:text-brand-400 transition-colors">#{id}</a>
+        <a href={`#${id}`} className="text-[10px] font-mono text-text-muted hover:text-brand-ink transition-colors">#{id}</a>
       </div>
       {children}
     </section>
@@ -76,13 +76,13 @@ function Subsection({ label, children, className }) {
 // Canvas with label — shows a component on a themed background
 function Canvas({ label, children, dark = false, className }) {
   return (
-    <div className={cn('rounded-lg border border-border overflow-hidden', className)}>
+    <div className={cn('rounded-card border border-border overflow-hidden', className)}>
       {label && (
         <div className="px-3 py-1.5 border-b border-border bg-surface-overlay">
           <span className="text-[10px] font-mono text-text-muted">{label}</span>
         </div>
       )}
-      <div className={cn('p-5 flex flex-wrap items-start gap-3', dark && 'bg-gray-950')}>
+      <div className={cn('p-5 flex flex-wrap items-start gap-3', dark && 'bg-surface')}>
         {children}
       </div>
     </div>
@@ -130,7 +130,7 @@ export default function DesignSystemPage() {
         <nav className="w-44 shrink-0 border-r border-border overflow-y-auto py-4">
           {SECTIONS.map(s => (
             <a key={s.id} href={`#${s.id}`}
-              className="flex items-center px-4 py-1.5 text-xs text-text-muted hover:text-brand-400 hover:bg-brand-500/5 transition-colors rounded-md mx-2">
+              className="flex items-center px-4 py-1.5 text-xs text-text-muted hover:text-brand-ink hover:bg-brand-500/5 transition-colors rounded-ctl mx-2">
               {s.label}
             </a>
           ))}
@@ -151,7 +151,7 @@ export default function DesignSystemPage() {
                   ['text-xs text-text-secondary', 'xs — Secondary body, labels'],
                   ['text-[11px] text-text-muted', '11px — Captions, hints'],
                   ['text-[10px] font-semibold uppercase tracking-widest text-text-muted', '10px · uppercase — Section labels'],
-                  ['text-xs font-mono text-brand-400', 'xs · mono — Code, keys, IDs'],
+                  ['text-xs font-mono text-brand-ink', 'xs · mono — Code, keys, IDs'],
                 ].map(([cls, label]) => (
                   <div key={label} className={cls}>{label}</div>
                 ))}
@@ -165,12 +165,12 @@ export default function DesignSystemPage() {
               <div className="grid grid-cols-4 gap-3 w-full">
                 {[
                   { name: 'brand-500', cls: 'bg-brand-500' },
-                  { name: 'green-500', cls: 'bg-green-500' },
-                  { name: 'amber-500', cls: 'bg-amber-500' },
-                  { name: 'red-500',   cls: 'bg-red-500' },
-                  { name: 'blue-500',  cls: 'bg-blue-500' },
-                  { name: 'purple-500',cls: 'bg-purple-500' },
-                  { name: 'teal-500',  cls: 'bg-teal-500' },
+                  { name: 'green-500', cls: 'bg-status-pass-bg' },
+                  { name: 'amber-500', cls: 'bg-status-warn-bg' },
+                  { name: 'red-500',   cls: 'bg-status-fail-bg' },
+                  { name: 'blue-500',  cls: 'bg-status-info-bg' },
+                  { name: 'purple-500',cls: 'bg-status-tag-bg' },
+                  { name: 'teal-500',  cls: 'bg-brand-500' },
                   { name: 'surface-raised', cls: 'bg-surface-raised border border-border' },
                   { name: 'surface-overlay', cls: 'bg-surface-overlay border border-border' },
                   { name: 'border',    cls: 'bg-border' },
@@ -178,7 +178,7 @@ export default function DesignSystemPage() {
                   { name: 'text-muted',     cls: 'bg-text-muted' },
                 ].map(c => (
                   <div key={c.name}>
-                    <div className={cn('h-10 w-full rounded-lg mb-1', c.cls)} />
+                    <div className={cn('h-10 w-full rounded-card mb-1', c.cls)} />
                     <p className="text-[10px] font-mono text-text-muted">{c.name}</p>
                   </div>
                 ))}
@@ -476,7 +476,7 @@ export default function DesignSystemPage() {
           {/* ── FORM FIELD TYPES ─────────────────────────────────────── */}
           <Section id="formfields" title="Form field types">
             <p className="text-xs text-text-muted mb-4">
-              Every <code className="font-mono text-brand-400 bg-brand-500/10 px-1 rounded">UiFormField.FieldType</code> rendered.
+              Every <code className="font-mono text-brand-ink bg-brand-500/10 px-1 rounded">UiFormField.FieldType</code> rendered.
               These are what DynamicForm renders for each field type from the DB.
             </p>
             <div className="grid grid-cols-2 gap-6">
@@ -544,12 +544,12 @@ export default function DesignSystemPage() {
             >
               <div className="space-y-3">
                 <p className="text-sm text-text-secondary">
-                  Modal content area. This is a <code className="font-mono text-brand-400 text-xs">{modalSize}</code> sized modal.
+                  Modal content area. This is a <code className="font-mono text-brand-ink text-xs">{modalSize}</code> sized modal.
                   The max heights for each size:
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   {['sm: max-w-md','md: max-w-xl','lg: max-w-2xl','xl: max-w-4xl'].map(s => (
-                    <div key={s} className="px-3 py-2 rounded-lg bg-surface-overlay border border-border text-xs font-mono text-text-muted">{s}</div>
+                    <div key={s} className="px-3 py-2 rounded-card bg-surface-overlay border border-border text-xs font-mono text-text-muted">{s}</div>
                   ))}
                 </div>
                 <Callout variant="info">Modals scroll internally when content overflows. The footer stays pinned.</Callout>
@@ -579,15 +579,15 @@ export default function DesignSystemPage() {
             </Subsection>
             <Subsection label="Usage rules">
               <div className="grid grid-cols-2 gap-4 text-xs text-text-secondary">
-                <div className="p-3 rounded-lg border border-green-500/20 bg-green-500/5 space-y-1">
-                  <p className="font-semibold text-green-400">Use Callout when</p>
+                <div className="p-3 rounded-card border border-status-pass-bd bg-status-pass-bg space-y-1">
+                  <p className="font-semibold text-status-pass-fg">Use Callout when</p>
                   <p>• Contextual info specific to the current form or page</p>
                   <p>• Persistent warning (not dismissible)</p>
                   <p>• SoD violation banners</p>
                   <p>• Admin tips in blueprint designer</p>
                 </div>
-                <div className="p-3 rounded-lg border border-blue-500/20 bg-blue-500/5 space-y-1">
-                  <p className="font-semibold text-blue-400">Use Toast when</p>
+                <div className="p-3 rounded-card border border-status-info-bd bg-status-info-bg space-y-1">
+                  <p className="font-semibold text-status-info-fg">Use Toast when</p>
                   <p>• One-time confirmation of an action</p>
                   <p>• Save success / delete success</p>
                   <p>• Non-blocking background notifications</p>

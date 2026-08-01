@@ -84,7 +84,7 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
       {/* Field type — grouped */}
       <InspectorSection title="Field type">
         {!initial && !form.fieldType && (
-          <p className="text-[10px] text-brand-400 font-medium mb-2">← Pick a type to start</p>
+          <p className="text-[10px] text-brand-ink font-medium mb-2">← Pick a type to start</p>
         )}
         <div className="space-y-2">
           {FIELD_TYPE_GROUPS.map(group => (
@@ -97,7 +97,7 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
                     className={cn(
                       'px-1.5 py-0.5 rounded text-[9px] border transition-colors',
                       form.fieldType === t.value
-                        ? 'bg-brand-500/15 border-brand-500/40 text-brand-400 font-medium'
+                        ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink font-medium'
                         : 'border-border text-text-muted hover:border-border-strong hover:text-text-secondary'
                     )}>
                     {t.label}
@@ -146,7 +146,7 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
                 onClick={() => set('gridCols', n)}
                 className={cn('px-2 py-0.5 rounded text-[9px] border transition-colors',
                   form.gridCols === n
-                    ? 'bg-brand-500/15 border-brand-500/40 text-brand-400 font-medium'
+                    ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink font-medium'
                     : 'border-border text-text-muted hover:border-border-strong')}>
                 {n === 3 ? '¼' : n === 4 ? '⅓' : n === 6 ? '½' : n === 8 ? '⅔' : 'Full'} ({n})
               </button>
@@ -167,7 +167,7 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
               onClick={() => set('isRequired', !form.isRequired)}
               className={cn('relative w-8 h-4 rounded-full border transition-colors',
                 form.isRequired ? 'bg-brand-500 border-brand-500' : 'border-border bg-surface-overlay')}>
-              <span className={cn('absolute top-0.5 left-0 w-3 h-3 rounded-full bg-white transition-transform',
+              <span className={cn('absolute top-0.5 left-0 w-3 h-3 rounded-full bg-surface-raised transition-transform',
                 form.isRequired ? 'translate-x-4' : 'translate-x-0.5')} />
             </button>
           </div>
@@ -244,13 +244,13 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
       <div className="flex items-center gap-2 pt-1">
         {initial?.id && (
           <button onClick={() => { if (confirm('Delete this field?')) deleteMut.mutate() }}
-            className="flex items-center gap-1 text-[10px] text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/40 rounded px-2 py-1 transition-colors">
+            className="flex items-center gap-1 text-[10px] text-status-fail-fg hover:text-status-fail-fg border border-status-fail-bd hover:border-status-fail-bd rounded px-2 py-1 transition-colors">
             <Trash2 size={10} /> Delete
           </button>
         )}
         <button onClick={() => saveMut.mutate()}
           disabled={saveMut.isPending}
-          className="flex-1 text-[10px] font-medium text-white bg-brand-500 hover:bg-brand-600 rounded py-1.5 transition-colors disabled:opacity-50">
+          className="flex-1 text-[10px] font-medium text-brand-900 bg-brand-500 hover:bg-brand-600 rounded py-1.5 transition-colors disabled:opacity-50">
           {saveMut.isPending ? 'Saving…' : initial?.id ? 'Update field' : 'Add field'}
         </button>
       </div>

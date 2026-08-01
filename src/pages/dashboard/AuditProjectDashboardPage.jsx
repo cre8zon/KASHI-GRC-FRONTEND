@@ -37,20 +37,20 @@ const fmt = (dt) => dt
 const pct = (n, d) => d > 0 ? Math.round((n / d) * 100) : 0
 
 const STATUS_CFG = {
-  IN_PROGRESS:  { label: 'In progress', color: 'text-brand-400',  dot: 'bg-brand-400'  },
-  COMPLETED:    { label: 'Completed',   color: 'text-green-400',  dot: 'bg-green-400'  },
-  ON_HOLD:      { label: 'On hold',     color: 'text-amber-400',  dot: 'bg-amber-400'  },
+  IN_PROGRESS:  { label: 'In progress', color: 'text-brand-ink',  dot: 'bg-brand-400'  },
+  COMPLETED:    { label: 'Completed',   color: 'text-status-pass-fg',  dot: 'bg-status-pass-fg'  },
+  ON_HOLD:      { label: 'On hold',     color: 'text-status-warn-fg',  dot: 'bg-status-warn-fg'  },
   PLANNING:     { label: 'Planning',    color: 'text-text-muted', dot: 'bg-text-muted/40' },
-  FIELDWORK:    { label: 'Fieldwork',   color: 'text-brand-400',  dot: 'bg-brand-400'  },
-  DRAFT_REPORT: { label: 'Draft',       color: 'text-amber-400',  dot: 'bg-amber-400'  },
-  CLOSED:       { label: 'Closed',      color: 'text-green-400',  dot: 'bg-green-400'  },
-  FINAL_REPORT: { label: 'Final report',color: 'text-purple-400', dot: 'bg-purple-400' },
+  FIELDWORK:    { label: 'Fieldwork',   color: 'text-brand-ink',  dot: 'bg-brand-400'  },
+  DRAFT_REPORT: { label: 'Draft',       color: 'text-status-warn-fg',  dot: 'bg-status-warn-fg'  },
+  CLOSED:       { label: 'Closed',      color: 'text-status-pass-fg',  dot: 'bg-status-pass-fg'  },
+  FINAL_REPORT: { label: 'Final report',color: 'text-status-tag-fg', dot: 'bg-status-tag-fg' },
 }
 
 const RESULT_CFG = {
-  EFFECTIVE:           { label: 'Effective',     color: 'text-green-400', bg: 'bg-green-500/15 border-green-500/30' },
-  PARTIALLY_EFFECTIVE: { label: 'Partial',       color: 'text-amber-400', bg: 'bg-amber-500/15 border-amber-500/30' },
-  INEFFECTIVE:         { label: 'Ineffective',   color: 'text-red-400',   bg: 'bg-red-500/15   border-red-500/30'  },
+  EFFECTIVE:           { label: 'Effective',     color: 'text-status-pass-fg', bg: 'bg-status-pass-bg border-status-pass-bd' },
+  PARTIALLY_EFFECTIVE: { label: 'Partial',       color: 'text-status-warn-fg', bg: 'bg-status-warn-bg border-status-warn-bd' },
+  INEFFECTIVE:         { label: 'Ineffective',   color: 'text-status-fail-fg',   bg: 'bg-status-fail-bg   border-status-fail-bd'  },
   NOT_TESTED:          { label: 'Not tested',    color: 'text-text-muted',bg: 'bg-surface-overlay border-border'   },
 }
 
@@ -62,7 +62,7 @@ const fetchReportData = (instanceId) =>
 // ── Sub-components ────────────────────────────────────────────────────────────
 function StatCard({ label, value, color = 'text-text-primary', icon: Icon, sub }) {
   return (
-    <div className="bg-surface border border-border rounded-xl px-3 py-3">
+    <div className="bg-surface border border-border rounded-card px-3 py-3">
       <div className="flex items-center gap-1.5 mb-1.5">
         {Icon && <Icon size={11} className={color} />}
         <span className="text-[9px] text-text-muted uppercase tracking-wide leading-none">{label}</span>
@@ -74,8 +74,8 @@ function StatCard({ label, value, color = 'text-text-primary', icon: Icon, sub }
 }
 
 function PassBar({ value, size = 'md' }) {
-  const color = value >= 80 ? 'bg-green-500' : value >= 60 ? 'bg-amber-500' : 'bg-red-500'
-  const text  = value >= 80 ? 'text-green-400' : value >= 60 ? 'text-amber-400' : 'text-red-400'
+  const color = value >= 80 ? 'bg-status-pass-bg' : value >= 60 ? 'bg-status-warn-bg' : 'bg-status-fail-bg'
+  const text  = value >= 80 ? 'text-status-pass-fg' : value >= 60 ? 'text-status-warn-fg' : 'text-status-fail-fg'
   return (
     <div className="flex items-center gap-2">
       <div className={cn('flex-1 rounded-full overflow-hidden bg-surface-overlay', size === 'sm' ? 'h-1' : 'h-1.5')}>
@@ -102,7 +102,7 @@ function ComplianceRing({ value, size = 64 }) {
   const r     = (size - 8) / 2
   const circ  = 2 * Math.PI * r
   const fill  = circ * (1 - (value ?? 0) / 100)
-  const color = (value ?? 0) >= 80 ? '#22c55e' : (value ?? 0) >= 60 ? '#f59e0b' : '#ef4444'
+  const color = (value ?? 0) >= 80 ? 'var(--status-pass-fg)' : (value ?? 0) >= 60 ? 'var(--status-warn-fg)' : 'var(--status-fail-fg)'
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
@@ -126,7 +126,7 @@ function EngagementCard({ eng, navigate }) {
   const compPct = Math.round(eng.passRatePct ?? 0)
 
   return (
-    <div className="bg-surface border border-border rounded-xl overflow-hidden hover:border-purple-500/30 transition-colors">
+    <div className="bg-surface border border-border rounded-card overflow-hidden hover:border-status-tag-bd transition-colors">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 flex items-start gap-3">
         <ComplianceRing value={compPct} />
@@ -136,7 +136,7 @@ function EngagementCard({ eng, navigate }) {
               <p className="text-sm font-semibold text-text-primary truncate">{eng.name}</p>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 {eng.frameworkRef && (
-                  <span className="text-[10px] font-mono text-purple-400/70 bg-purple-500/10 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-mono text-status-tag-fg bg-status-tag-bg px-1.5 py-0.5 rounded">
                     {eng.frameworkRef}
                   </span>
                 )}
@@ -162,7 +162,7 @@ function EngagementCard({ eng, navigate }) {
       {(eng.openFindings > 0 || eng.totalFindings > 0) && (
         <div className="px-4 pb-3 flex items-center gap-3 text-[10px] flex-wrap">
           {eng.openFindings > 0 && (
-            <span className="text-amber-400 flex items-center gap-1">
+            <span className="text-status-warn-fg flex items-center gap-1">
               <AlertTriangle size={9} />{eng.openFindings} open finding{eng.openFindings !== 1 ? 's' : ''}
             </span>
           )}
@@ -184,7 +184,7 @@ function EngagementCard({ eng, navigate }) {
           </button>
           {open && (
             <div className="px-4 pb-3">
-              <div className="rounded-lg border border-border overflow-hidden">
+              <div className="rounded-card border border-border overflow-hidden">
                 <table className="w-full text-[10px]">
                   <thead>
                     <tr className="bg-surface-overlay text-text-muted">
@@ -226,7 +226,7 @@ function EngagementCard({ eng, navigate }) {
         </button>
         <button
           onClick={() => navigate(`/audit/engagements/${eng.engagementId}/report`)}
-          className="text-[10px] text-text-muted hover:text-purple-400 flex items-center gap-1 transition-colors"
+          className="text-[10px] text-text-muted hover:text-status-tag-fg flex items-center gap-1 transition-colors"
         >
           <FileText size={10} />Report
         </button>
@@ -259,9 +259,9 @@ export default function AuditProjectDashboardPage() {
   if (isError || !report) return (
     <div className="flex items-center justify-center h-full">
       <div className="text-center">
-        <AlertTriangle size={28} className="text-red-400 mx-auto mb-2" />
+        <AlertTriangle size={28} className="text-status-fail-fg mx-auto mb-2" />
         <p className="text-sm text-text-muted">Dashboard data unavailable</p>
-        <button onClick={() => navigate(-1)} className="mt-3 text-xs text-brand-400 underline">Go back</button>
+        <button onClick={() => navigate(-1)} className="mt-3 text-xs text-brand-ink underline">Go back</button>
       </div>
     </div>
   )
@@ -277,12 +277,12 @@ export default function AuditProjectDashboardPage() {
       <div className="px-6 py-4 border-b border-border bg-surface sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)}
-            className="h-8 w-8 flex items-center justify-center rounded-lg border border-border hover:border-brand-500/40 text-text-muted hover:text-text-primary transition-colors">
+            className="h-8 w-8 flex items-center justify-center rounded-card border border-border hover:border-brand-500/40 text-text-muted hover:text-text-primary transition-colors">
             <ArrowLeft size={15} />
           </button>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-              <FolderKanban size={15} className="text-purple-400" />
+            <div className="w-8 h-8 rounded-card bg-status-tag-bg border border-status-tag-bd flex items-center justify-center">
+              <FolderKanban size={15} className="text-status-tag-fg" />
             </div>
             <div>
               <h1 className="text-sm font-bold text-text-primary">{report.projectName}</h1>
@@ -295,7 +295,7 @@ export default function AuditProjectDashboardPage() {
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={() => navigate(`/audit/programme/${id}/report`)}
-              className="text-[11px] text-text-muted hover:text-purple-400 flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border hover:border-purple-500/30 transition-colors"
+              className="text-[11px] text-text-muted hover:text-status-tag-fg flex items-center gap-1 px-3 py-1.5 rounded-card border border-border hover:border-status-tag-bd transition-colors"
             >
               <FileText size={11} />Full Report
             </button>
@@ -319,25 +319,25 @@ export default function AuditProjectDashboardPage() {
 
         {/* ── Programme stats ─────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <StatCard label="Engagements"    value={report.engagementCount ?? 0}  color="text-purple-400" icon={BookOpen} />
+          <StatCard label="Engagements"    value={report.engagementCount ?? 0}  color="text-status-tag-fg" icon={BookOpen} />
           <StatCard label="Compliance"     value={`${overallPct}%`}
-            color={overallPct >= 80 ? 'text-green-400' : overallPct >= 60 ? 'text-amber-400' : 'text-red-400'}
+            color={overallPct >= 80 ? 'text-status-pass-fg' : overallPct >= 60 ? 'text-status-warn-fg' : 'text-status-fail-fg'}
             icon={BarChart2} />
           <StatCard label="Effective"      value={report.effectiveControls ?? 0}
-            sub={`of ${report.totalControls ?? 0}`} color="text-green-400" icon={CheckCircle2} />
+            sub={`of ${report.totalControls ?? 0}`} color="text-status-pass-fg" icon={CheckCircle2} />
           <StatCard label="Ineffective"    value={report.ineffectiveControls ?? 0}
-            color={(report.ineffectiveControls ?? 0) > 0 ? 'text-red-400' : 'text-text-muted'} icon={XCircle} />
+            color={(report.ineffectiveControls ?? 0) > 0 ? 'text-status-fail-fg' : 'text-text-muted'} icon={XCircle} />
           <StatCard label="Not tested"     value={report.notTestedControls ?? 0} color="text-text-muted" icon={Activity} />
           <StatCard label="Open findings"  value={report.openFindings ?? 0}
-            color={(report.openFindings ?? 0) > 0 ? 'text-amber-400' : 'text-text-muted'} icon={AlertTriangle} />
+            color={(report.openFindings ?? 0) > 0 ? 'text-status-warn-fg' : 'text-text-muted'} icon={AlertTriangle} />
         </div>
 
         {/* ── Framework coverage table ─────────────────────────────────────── */}
         {engagements.length > 0 && (
-          <div className="bg-surface border border-border rounded-xl overflow-hidden">
+          <div className="bg-surface border border-border rounded-card overflow-hidden">
             <div className="px-4 py-3 border-b border-border">
               <h2 className="text-xs font-bold text-text-primary uppercase tracking-wide flex items-center gap-2">
-                <Shield size={12} className="text-purple-400" />Framework Coverage
+                <Shield size={12} className="text-status-tag-fg" />Framework Coverage
               </h2>
             </div>
             <table className="w-full text-xs">
@@ -356,7 +356,7 @@ export default function AuditProjectDashboardPage() {
                   <tr key={eng.engagementId} className="border-t border-border/50 hover:bg-surface-overlay/30 cursor-pointer"
                     onClick={() => navigate(`/module/audit_engagement/${eng.engagementId}`)}>
                     <td className="px-4 py-2">
-                      <span className="font-mono text-purple-400/80 bg-purple-500/10 px-1.5 py-0.5 rounded text-[10px]">
+                      <span className="font-mono text-status-tag-fg bg-status-tag-bg px-1.5 py-0.5 rounded text-[10px]">
                         {eng.frameworkRef || '—'}
                       </span>
                     </td>
@@ -365,8 +365,8 @@ export default function AuditProjectDashboardPage() {
                     <td className="px-3 py-2 text-center text-text-secondary">{eng.totalControls}</td>
                     <td className="px-3 py-2 text-center">
                       {(eng.openFindings ?? 0) > 0
-                        ? <span className="text-amber-400">{eng.openFindings}</span>
-                        : <span className="text-green-400 text-[10px]">✓</span>}
+                        ? <span className="text-status-warn-fg">{eng.openFindings}</span>
+                        : <span className="text-status-pass-fg text-[10px]">✓</span>}
                     </td>
                     <td className="px-3 py-2 text-center">
                       <StatusDot status={eng.status} />
@@ -384,7 +384,7 @@ export default function AuditProjectDashboardPage() {
             Engagements ({engagements.length})
           </h2>
           {engagements.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 border border-dashed border-border rounded-xl text-center">
+            <div className="flex flex-col items-center justify-center py-16 border border-dashed border-border rounded-card text-center">
               <BookOpen size={28} className="text-text-muted/40 mb-3" />
               <p className="text-sm font-medium text-text-secondary mb-1">No engagements yet</p>
               <p className="text-xs text-text-muted">Engagements are created when the project is started</p>
@@ -400,15 +400,15 @@ export default function AuditProjectDashboardPage() {
 
         {/* ── Findings summary ─────────────────────────────────────────────── */}
         {(report.totalFindings ?? 0) > 0 && (
-          <div className="bg-surface border border-border rounded-xl p-4">
+          <div className="bg-surface border border-border rounded-card p-4">
             <h2 className="text-xs font-bold text-text-primary uppercase tracking-wide mb-3 flex items-center gap-2">
-              <AlertTriangle size={12} className="text-amber-400" />Cross-Framework Findings
+              <AlertTriangle size={12} className="text-status-warn-fg" />Cross-Framework Findings
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { label: 'Critical', value: report.criticalFindings ?? 0, color: 'text-red-400'    },
-                { label: 'High',     value: report.highFindings     ?? 0, color: 'text-orange-400' },
-                { label: 'Medium',   value: report.mediumFindings   ?? 0, color: 'text-amber-400'  },
+                { label: 'Critical', value: report.criticalFindings ?? 0, color: 'text-status-fail-fg'    },
+                { label: 'High',     value: report.highFindings     ?? 0, color: 'text-status-warn-fg' },
+                { label: 'Medium',   value: report.mediumFindings   ?? 0, color: 'text-status-warn-fg'  },
                 { label: 'Low',      value: report.lowFindings      ?? 0, color: 'text-text-muted' },
               ].map(s => (
                 <div key={s.label} className="text-center">

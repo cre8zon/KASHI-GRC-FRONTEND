@@ -6,6 +6,7 @@ import { uiAdminApi, uiConfigApi } from '../../../api/uiConfig.api'
 import { usersApi } from '../../../api/users.api'
 import { QUERY_KEYS } from '../../../config/constants'
 import { applyBrandingLive, applyBranding } from '../../../store/slices/uiConfigSlice'
+import { BRAND_PRESETS } from '../../../config/brandPresets'
 import { selectAuth } from '../../../store/slices/authSlice'
 import { PageLayout }        from '../../../components/layout/PageLayout'
 import { Card, CardHeader, CardBody } from '../../../components/ui/Card'
@@ -15,19 +16,19 @@ import { cn }                from '../../../lib/cn'
 import toast                 from 'react-hot-toast'
 
 const SIDEBAR_THEMES = [
-  { id: 'dark',  label: 'Dark',  preview: 'bg-gray-900' },
-  { id: 'light', label: 'Light', preview: 'bg-gray-100' },
+  { id: 'dark',  label: 'Dark',  preview: 'bg-surface' },
+  { id: 'light', label: 'Light', preview: 'bg-surface-overlay' },
   { id: 'brand', label: 'Brand', preview: 'bg-brand-500' },
 ]
 
-const PRESET_PALETTES = [
-  { label: 'Sky',     primary: '#0ea5e9', accent: '#8b5cf6' },
-  { label: 'Violet',  primary: '#7c3aed', accent: '#ec4899' },
-  { label: 'Rose',    primary: '#e11d48', accent: '#f97316' },
-  { label: 'Emerald', primary: '#059669', accent: '#0ea5e9' },
-  { label: 'Amber',   primary: '#d97706', accent: '#dc2626' },
-  { label: 'Slate',   primary: '#475569', accent: '#0ea5e9' },
-]
+// The 12 pastel presets, single-sourced from brandPresets.js. These are DATA
+// (hex values written to tenant branding), never styling. Accent = the
+// neighbouring hue, mirroring how the background washes pair.
+const PRESET_PALETTES = BRAND_PRESETS.map((p, i, arr) => ({
+  label:   p.name,
+  primary: p.hex,
+  accent:  arr[(i + 1) % arr.length].hex,
+}))
 
 export default function BrandingAdminPage() {
   const qc       = useQueryClient()
@@ -78,16 +79,16 @@ export default function BrandingAdminPage() {
         try { localStorage.removeItem('kashi_sidebar_theme') } catch {}
         try { localStorage.removeItem('kashi_sidebar_color') } catch {}
       }
-      applyBranding({ ...form, [k]: v })
+      applyBranding({ ...form, [k]: v }, { force: true })
       dispatch(applyBrandingLive({ [k]: v }))
     }
   }, [livePreview, dispatch])
 
   const handlePreviewToggle = () => {
     if (livePreview) {
-      if (original) { try { localStorage.removeItem('kashi_sidebar_theme') } catch {}; applyBranding(original); dispatch(applyBrandingLive(original)) }
+      if (original) { try { localStorage.removeItem('kashi_sidebar_theme') } catch {}; applyBranding(original, { force: true }); dispatch(applyBrandingLive(original)) }
     } else {
-      try { localStorage.removeItem('kashi_sidebar_theme') } catch {}; applyBranding(form); dispatch(applyBrandingLive(form))
+      try { localStorage.removeItem('kashi_sidebar_theme') } catch {}; applyBranding(form, { force: true }); dispatch(applyBrandingLive(form))
     }
     setLivePreview(p => !p)
   }
@@ -95,7 +96,7 @@ export default function BrandingAdminPage() {
   const handleReset = () => {
     if (original) {
       setForm(original)
-      if (livePreview) { try { localStorage.removeItem('kashi_sidebar_theme') } catch {}; applyBranding(original); dispatch(applyBrandingLive(original)) }
+      if (livePreview) { try { localStorage.removeItem('kashi_sidebar_theme') } catch {}; applyBranding(original, { force: true }); dispatch(applyBrandingLive(original)) }
     }
   }
 
@@ -114,7 +115,7 @@ export default function BrandingAdminPage() {
       // 2. Clear localStorage so applyBranding's user-override guard passes
       try { localStorage.removeItem('kashi_sidebar_theme') } catch {}
       try { localStorage.removeItem('kashi_sidebar_color') } catch {}
-      applyBranding(form)
+      applyBranding(form, { force: true })
       dispatch(applyBrandingLive(form))
       qc.setQueryData(['admin-branding'], (prev) => ({ ...(prev || {}), ...form }))
       qc.setQueryData(
@@ -130,7 +131,7 @@ export default function BrandingAdminPage() {
   if (isLoading) return (
     <PageLayout title="Branding">
       <div className="p-6 flex flex-col gap-4">
-        {[1,2,3].map(i => <div key={i} className="h-32 rounded-lg bg-surface-overlay animate-pulse" />)}
+        {[1,2,3].map(i => <div key={i} className="h-32 rounded-card bg-surface-overlay animate-pulse" />)}
       </div>
     </PageLayout>
   )
@@ -180,7 +181,7 @@ export default function BrandingAdminPage() {
                   placeholder="https://cdn.example.com/favicon.ico" />
               </div>
               {form.logoUrl && (
-                <div className="flex items-center gap-3 p-3 bg-surface-overlay rounded-lg border border-border">
+                <div className="flex items-center gap-3 p-3 bg-surface-overlay rounded-card border border-border">
                   <img src={form.logoUrl} alt="Logo preview"
                     className="h-8 object-contain"
                     onError={e => { e.target.style.display = 'none' }} />
@@ -204,7 +205,7 @@ export default function BrandingAdminPage() {
                   {PRESET_PALETTES.map(p => (
                     <button key={p.label}
                       onClick={() => { set('primaryColor', p.primary); set('accentColor', p.accent) }}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border hover:border-brand-500/40 transition-colors text-xs text-text-secondary hover:text-text-primary"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-card border border-border hover:border-brand-500/40 transition-colors text-xs text-text-secondary hover:text-text-primary"
                     >
                       <span className="w-3 h-3 rounded-full shrink-0" style={{ background: p.primary }} />
                       <span className="w-3 h-3 rounded-full shrink-0" style={{ background: p.accent }} />
@@ -237,12 +238,12 @@ export default function BrandingAdminPage() {
                   {SIDEBAR_THEMES.map(t => (
                     <button key={t.id} onClick={() => set('sidebarTheme', t.id)}
                       className={cn(
-                        'flex-1 flex items-center gap-2 py-2 px-3 rounded-lg border text-xs font-medium transition-colors',
+                        'flex-1 flex items-center gap-2 py-2 px-3 rounded-card border text-xs font-medium transition-colors',
                         form.sidebarTheme === t.id
-                          ? 'bg-brand-500/15 border-brand-500/40 text-brand-400'
+                          ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
                           : 'border-border text-text-muted hover:text-text-primary hover:bg-surface-overlay'
                       )}>
-                      <span className={cn('w-3 h-3 rounded-sm shrink-0', t.preview)} />
+                      <span className={cn('w-3 h-3 rounded-ctl shrink-0', t.preview)} />
                       {t.label}
                     </button>
                   ))}
@@ -277,23 +278,23 @@ export default function BrandingAdminPage() {
             <CardBody className="flex flex-col gap-4">
 
               {/* Mini app preview */}
-              <div className="rounded-lg overflow-hidden border border-border">
+              <div className="rounded-card overflow-hidden border border-border">
                 {/* Sidebar strip */}
                 <div className="flex h-36">
                   <div className={cn(
                     'w-10 flex flex-col items-center py-3 gap-2',
-                    form.sidebarTheme === 'light' ? 'bg-gray-100' :
-                    form.sidebarTheme === 'brand' ? 'bg-brand-500' : 'bg-gray-900'
+                    form.sidebarTheme === 'light' ? 'bg-surface-overlay' :
+                    form.sidebarTheme === 'brand' ? 'bg-brand-500' : 'bg-surface'
                   )}>
                     {/* Logo dot */}
-                    <div className="w-5 h-5 rounded-md mb-1"
+                    <div className="w-5 h-5 rounded-ctl mb-1"
                       style={{ backgroundColor: form.primaryColor }} />
                     {[1,2,3,4].map(i => (
                       <div key={i} className={cn(
                         'w-5 h-1 rounded-full',
                         i === 1 ? 'opacity-100' : 'opacity-30',
-                        form.sidebarTheme === 'light' ? 'bg-gray-700' :
-                        form.sidebarTheme === 'brand' ? 'bg-white' : 'bg-gray-400'
+                        form.sidebarTheme === 'light' ? 'bg-surface-overlay' :
+                        form.sidebarTheme === 'brand' ? 'bg-surface-raised' : 'bg-surface-inset'
                       )} />
                     ))}
                   </div>
@@ -322,7 +323,7 @@ export default function BrandingAdminPage() {
                     {/* Button */}
                     <div className="h-4 rounded flex items-center justify-center"
                       style={{ backgroundColor: form.primaryColor }}>
-                      <span className="text-[8px] text-white font-medium">Action</span>
+                      <span className="text-[8px] text-on-dark font-medium">Action</span>
                     </div>
                   </div>
                 </div>
@@ -333,7 +334,7 @@ export default function BrandingAdminPage() {
                 <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-2">
                   Color Scale
                 </p>
-                <div className="flex gap-1 h-6 rounded-lg overflow-hidden">
+                <div className="flex gap-1 h-6 rounded-card overflow-hidden">
                   {[50,100,200,300,400,500,600,700,800,900].map(shade => (
                     <div key={shade} className={`flex-1 bg-brand-${shade}`}
                       title={`brand-${shade}`} />
@@ -347,7 +348,7 @@ export default function BrandingAdminPage() {
 
               {/* Accent swatch */}
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg shrink-0"
+                <div className="w-8 h-8 rounded-card shrink-0"
                   style={{ backgroundColor: form.accentColor }} />
                 <div>
                   <p className="text-xs font-medium text-text-primary">Accent</p>
@@ -357,15 +358,15 @@ export default function BrandingAdminPage() {
 
               {/* Sample UI elements */}
               <div className="flex flex-col gap-2">
-                <div className="h-7 rounded-md flex items-center justify-center text-xs text-white font-medium"
+                <div className="h-7 rounded-ctl flex items-center justify-center text-xs text-on-dark font-medium"
                   style={{ backgroundColor: form.primaryColor }}>
                   Primary Button
                 </div>
-                <div className="h-7 rounded-md border flex items-center justify-center text-xs font-medium"
+                <div className="h-7 rounded-ctl border flex items-center justify-center text-xs font-medium"
                   style={{ borderColor: form.primaryColor, color: form.primaryColor }}>
                   Secondary Button
                 </div>
-                <div className="h-7 rounded-md flex items-center px-3 text-xs"
+                <div className="h-7 rounded-ctl flex items-center px-3 text-xs"
                   style={{ backgroundColor: `${form.primaryColor}15`, color: form.primaryColor }}>
                   Badge / Tag
                 </div>
@@ -394,11 +395,11 @@ function ColorPicker({ label, value, onChange }) {
         <div className="relative shrink-0">
           <input type="color" value={value} onChange={e => onChange(e.target.value)}
             className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" />
-          <div className="w-9 h-9 rounded-lg border border-border shadow-sm cursor-pointer"
+          <div className="w-9 h-9 rounded-card border border-border shadow-sm cursor-pointer"
             style={{ backgroundColor: value }} />
         </div>
         <input value={value} onChange={e => onChange(e.target.value)}
-          className="h-9 flex-1 rounded-lg border border-border bg-surface-raised px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="h-9 flex-1 rounded-card border border-border bg-surface-raised px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
     </div>
   )

@@ -22,22 +22,22 @@ import { cn } from '../../lib/cn'
 const CONFIG = {
   offline: {
     icon:    WifiOff,
-    color:   'bg-slate-800 border-slate-700',
-    dot:     'bg-slate-400',
+    color:   'bg-surface-raised border-border',
+    dot:     'bg-surface-inset',
     title:   'No internet connection',
     detail:  'Check your network and we\'ll reconnect automatically.',
   },
   server_down: {
     icon:    ServerCrash,
-    color:   'bg-red-950/90 border-red-900/60',
-    dot:     'bg-red-400',
+    color:   'bg-status-fail-bg border-status-fail-bd',
+    dot:     'bg-status-fail-fg',
     title:   'Server unreachable',
     detail:  'The backend is not responding. It may be restarting or deploying.',
   },
   degraded: {
     icon:    AlertTriangle,
-    color:   'bg-amber-950/90 border-amber-900/60',
-    dot:     'bg-amber-400',
+    color:   'bg-status-warn-bg border-status-warn-bd',
+    dot:     'bg-status-warn-fg',
     title:   'Slow connection',
     detail:  'Responses are taking longer than usual. Some actions may be delayed.',
   },
@@ -84,12 +84,12 @@ export function ServerStatusBanner({ status, retryNow, nextRetryIn, retryCount }
     return (
       <div className={cn(
         'w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium',
-        'bg-green-950/90 border-b border-green-900/50 text-green-300',
+        'bg-status-pass-bg border-b border-status-pass-bd text-status-pass-fg',
         'animate-in slide-in-from-top-2 duration-300'
       )}>
-        <CheckCircle2 size={14} className="text-green-400 shrink-0" />
+        <CheckCircle2 size={14} className="text-status-pass-fg shrink-0" />
         Reconnected — syncing your data
-        <span className="ml-1 text-green-500 text-xs animate-pulse">●</span>
+        <span className="ml-1 text-status-pass-fg text-xs animate-pulse">●</span>
       </div>
     )
   }
@@ -110,23 +110,23 @@ export function ServerStatusBanner({ status, retryNow, nextRetryIn, retryCount }
         <span className={cn('relative inline-flex rounded-full h-2 w-2', cfg.dot)} />
       </span>
 
-      <Icon size={14} className="text-white/60 shrink-0" />
+      <Icon size={14} className="text-on-dark/60 shrink-0" />
 
       {/* Message */}
       <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-        <span className="font-semibold text-white/90">{cfg.title}</span>
-        <span className="text-white/50 text-xs hidden sm:inline">{cfg.detail}</span>
+        <span className="font-semibold text-on-dark/90">{cfg.title}</span>
+        <span className="text-on-dark/50 text-xs hidden sm:inline">{cfg.detail}</span>
       </div>
 
       {/* Retry info + button */}
       <div className="flex items-center gap-3 shrink-0">
         {nextRetryIn > 0 && !retrying && (
-          <span className="text-xs text-white/40 hidden sm:inline">
+          <span className="text-xs text-on-dark/40 hidden sm:inline">
             Retrying in {nextRetryIn}s
           </span>
         )}
         {retryCount > 3 && (
-          <span className="text-[10px] text-white/30 hidden md:inline">
+          <span className="text-[10px] text-on-dark/30 hidden md:inline">
             Attempt {retryCount}
           </span>
         )}
@@ -134,8 +134,8 @@ export function ServerStatusBanner({ status, retryNow, nextRetryIn, retryCount }
           onClick={handleRetry}
           disabled={retrying}
           className={cn(
-            'flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all',
-            'bg-white/10 hover:bg-white/20 text-white/80 hover:text-white border border-white/10',
+            'flex items-center gap-1.5 px-3 py-1 rounded-ctl text-xs font-medium transition-all',
+            'bg-on-dark/10 hover:bg-on-dark/20 text-on-dark/80 hover:text-on-dark border border-on-dark/10',
             'disabled:opacity-50 disabled:cursor-not-allowed'
           )}
         >
@@ -147,7 +147,7 @@ export function ServerStatusBanner({ status, retryNow, nextRetryIn, retryCount }
         {status === 'degraded' && (
           <button
             onClick={() => setDismissed(true)}
-            className="p-1 rounded hover:bg-white/10 text-white/40 hover:text-white/70 transition-colors"
+            className="p-1 rounded hover:bg-on-dark/10 text-on-dark/40 hover:text-on-dark/70 transition-colors"
           >
             <X size={12} />
           </button>
@@ -182,7 +182,7 @@ export function QueryError({ error, onRetry, compact = false }) {
 
   if (compact) {
     return (
-      <div className="flex items-center gap-2 py-3 px-4 text-xs text-red-400">
+      <div className="flex items-center gap-2 py-3 px-4 text-xs text-status-fail-fg">
         <ServerCrash size={13} className="shrink-0" />
         <span>{title}</span>
         {onRetry && (
@@ -197,8 +197,8 @@ export function QueryError({ error, onRetry, compact = false }) {
 
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
-      <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-        <ServerCrash size={20} className="text-red-400" strokeWidth={1.5} />
+      <div className="w-12 h-12 rounded-card bg-status-fail-bg border border-status-fail-bd flex items-center justify-center">
+        <ServerCrash size={20} className="text-status-fail-fg" strokeWidth={1.5} />
       </div>
       <div>
         <p className="text-sm font-medium text-text-primary">{title}</p>
@@ -206,7 +206,7 @@ export function QueryError({ error, onRetry, compact = false }) {
       </div>
       {onRetry && (
         <button onClick={onRetry}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors mt-1">
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-ctl border border-border text-xs text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors mt-1">
           <RefreshCw size={11} />
           Try again
         </button>

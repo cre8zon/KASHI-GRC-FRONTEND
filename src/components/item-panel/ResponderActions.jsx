@@ -27,9 +27,9 @@ import { Button }         from '../ui/Button'
 import toast              from 'react-hot-toast'
 
 const STATUS_BADGE = {
-  ACCEPTED:           { cls: 'bg-green-500/10 text-green-400 border-green-500/30',  label: '✓ Accepted',           Icon: CheckCheck    },
-  OVERRIDDEN:         { cls: 'bg-blue-500/10 text-blue-400 border-blue-500/30',     label: '✎ Overridden',         Icon: Edit3         },
-  REVISION_REQUESTED: { cls: 'bg-amber-500/10 text-amber-400 border-amber-500/30', label: '↩ Revision requested',  Icon: CornerDownLeft },
+  ACCEPTED:           { cls: 'bg-status-pass-bg text-status-pass-fg border-status-pass-bd',  label: '✓ Accepted',           Icon: CheckCheck    },
+  OVERRIDDEN:         { cls: 'bg-status-info-bg text-status-info-fg border-status-info-bd',     label: '✎ Overridden',         Icon: Edit3         },
+  REVISION_REQUESTED: { cls: 'bg-status-warn-bg text-status-warn-fg border-status-warn-bd', label: '↩ Revision requested',  Icon: CornerDownLeft },
 }
 
 export function ResponderActions({
@@ -115,7 +115,7 @@ export function ResponderActions({
       {/* Status badge */}
       {badge && (
         <div className={cn(
-          'inline-flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-lg border',
+          'inline-flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-card border',
           badge.cls
         )}>
           <badge.Icon size={10} />
@@ -130,7 +130,7 @@ export function ResponderActions({
             type="button"
             disabled={accepting}
             onClick={() => accept()}
-            className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-lg border border-green-500/30 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors disabled:opacity-50">
+            className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-card border border-status-pass-bd bg-status-pass-bg text-status-pass-fg hover:bg-status-pass-bg transition-colors disabled:opacity-50">
             <CheckCircle2 size={11} />
             {accepting ? 'Accepting…' : 'Accept answer'}
           </button>
@@ -138,7 +138,7 @@ export function ResponderActions({
           <button
             type="button"
             onClick={() => setPanel('revision')}
-            className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors">
+            className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-card border border-status-warn-bd bg-status-warn-bg text-status-warn-fg hover:bg-status-warn-bg transition-colors">
             <CornerDownLeft size={11} />
             Request revision
           </button>
@@ -146,7 +146,7 @@ export function ResponderActions({
           <button
             type="button"
             onClick={() => setPanel('override')}
-            className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-lg border border-border bg-surface-overlay/30 text-text-secondary hover:text-text-primary hover:border-brand-500/40 transition-colors">
+            className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-card border border-border bg-surface-overlay/30 text-text-secondary hover:text-text-primary hover:border-brand-500/40 transition-colors">
             <Edit3 size={11} />
             Override
           </button>
@@ -155,11 +155,11 @@ export function ResponderActions({
 
       {/* ── Request revision panel ─────────────────────────────────────────── */}
       {panel === 'revision' && (
-        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-amber-500/15">
+        <div className="rounded-card border border-status-warn-bd bg-status-warn-bg">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-status-warn-bd">
             <div className="flex items-center gap-1.5">
-              <CornerDownLeft size={11} className="text-amber-400" />
-              <span className="text-[11px] font-semibold text-amber-300">Request revision from contributor</span>
+              <CornerDownLeft size={11} className="text-status-warn-fg" />
+              <span className="text-[11px] font-semibold text-status-warn-fg">Request revision from contributor</span>
             </div>
             <button type="button" onClick={closePanel}
               className="text-text-muted hover:text-text-secondary transition-colors p-0.5">
@@ -176,11 +176,11 @@ export function ResponderActions({
               value={revisionNote}
               onChange={e => setRevisionNote(e.target.value)}
               placeholder="e.g. The answer is incomplete — please specify which controls are implemented."
-              className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             />
             <div className="flex justify-end gap-2">
               <button type="button" onClick={closePanel}
-                className="text-xs text-text-muted hover:text-text-secondary px-2.5 py-1.5 rounded-md hover:bg-surface-overlay transition-colors">
+                className="text-xs text-text-muted hover:text-text-secondary px-2.5 py-1.5 rounded-ctl hover:bg-surface-overlay transition-colors">
                 Cancel
               </button>
               <Button size="xs" variant="primary" icon={CornerDownLeft}
@@ -195,7 +195,7 @@ export function ResponderActions({
 
       {/* ── Override panel ─────────────────────────────────────────────────── */}
       {panel === 'override' && (
-        <div className="rounded-lg border border-border bg-surface-overlay/20">
+        <div className="rounded-card border border-border bg-surface-overlay/20">
           <div className="flex items-center justify-between px-3 py-2 border-b border-border">
             <div className="flex items-center gap-1.5">
               <Edit3 size={11} className="text-text-secondary" />
@@ -207,7 +207,7 @@ export function ResponderActions({
             </button>
           </div>
           <div className="p-3 space-y-2.5">
-            <div className="flex items-start gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-400">
+            <div className="flex items-start gap-2 p-2 rounded-ctl bg-status-warn-bg border border-status-warn-bd text-[11px] text-status-warn-fg">
               <AlertTriangle size={12} className="shrink-0 mt-px" />
               <span>
                 Original answer is preserved in the Activity trail.
@@ -217,7 +217,7 @@ export function ResponderActions({
 
             <div className="space-y-1">
               <label className="text-[11px] font-medium text-text-muted block">
-                Your answer (override) <span className="text-red-400">*</span>
+                Your answer (override) <span className="text-status-fail-fg">*</span>
               </label>
               <textarea
                 ref={ovrRef}
@@ -225,7 +225,7 @@ export function ResponderActions({
                 value={overrideText}
                 onChange={e => setOverrideText(e.target.value)}
                 placeholder={isTextType ? 'Enter the correct answer…' : 'Describe the correct answer or explain the correction…'}
-                className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+                className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
               />
             </div>
 
@@ -237,13 +237,13 @@ export function ResponderActions({
                 value={overrideNote}
                 onChange={e => setOverrideNote(e.target.value)}
                 placeholder="e.g. Answer did not reflect the updated policy dated March 2025."
-                className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </div>
 
             <div className="flex justify-end gap-2">
               <button type="button" onClick={closePanel}
-                className="text-xs text-text-muted hover:text-text-secondary px-2.5 py-1.5 rounded-md hover:bg-surface-overlay transition-colors">
+                className="text-xs text-text-muted hover:text-text-secondary px-2.5 py-1.5 rounded-ctl hover:bg-surface-overlay transition-colors">
                 Cancel
               </button>
               <Button size="xs" variant="primary" icon={Edit3}

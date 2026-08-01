@@ -128,21 +128,21 @@ function useCreateVersion() {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const SIDE_COLOR = {
-  ORGANIZATION: 'text-blue-400 bg-blue-500/10 border-blue-500/25',
-  VENDOR:       'text-purple-400 bg-purple-500/10 border-purple-500/25',
-  AUDITOR:      'text-amber-400 bg-amber-500/10 border-amber-500/25',
-  AUDITEE:      'text-teal-400 bg-teal-500/10 border-teal-500/25',
-  SYSTEM:       'text-gray-400 bg-gray-500/10 border-gray-500/25',
+  ORGANIZATION: 'text-status-info-fg bg-status-info-bg border-status-info-bd',
+  VENDOR:       'text-status-tag-fg bg-status-tag-bg border-status-tag-bd',
+  AUDITOR:      'text-status-warn-fg bg-status-warn-bg border-status-warn-bd',
+  AUDITEE:      'text-brand-ink bg-brand-500/10 border-brand-500/25',
+  SYSTEM:       'text-text-muted bg-surface-inset border-border',
 }
 const ACTION_COLOR = {
-  FILL:        'text-blue-400',
-  REVIEW:      'text-purple-400',
-  APPROVE:     'text-green-400',
-  ASSIGN:      'text-amber-400',
-  ACKNOWLEDGE: 'text-teal-400',
-  EVALUATE:    'text-orange-400',
-  GENERATE:    'text-pink-400',
-  CUSTOM:      'text-gray-400',
+  FILL:        'text-status-info-fg',
+  REVIEW:      'text-status-tag-fg',
+  APPROVE:     'text-status-pass-fg',
+  ASSIGN:      'text-status-warn-fg',
+  ACKNOWLEDGE: 'text-brand-ink',
+  EVALUATE:    'text-status-warn-fg',
+  GENERATE:    'text-status-fail-fg',
+  CUSTOM:      'text-text-muted',
 }
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
@@ -178,7 +178,7 @@ export default function WorkflowBlueprintDesigner() {
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
               <input value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search blueprints…"
-                className="w-full pl-8 pr-3 h-7 text-xs bg-surface-overlay border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full pl-8 pr-3 h-7 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -241,8 +241,8 @@ function BlueprintListItem({ bp, selected, onClick }) {
       )}
     >
       <div className={cn(
-        'w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold border',
-        bp.isActive ? 'bg-green-500/10 text-green-400 border-green-500/25' : 'bg-surface-overlay text-text-muted border-border'
+        'w-7 h-7 rounded-card flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold border',
+        bp.isActive ? 'bg-status-pass-bg text-status-pass-fg border-status-pass-bd' : 'bg-surface-overlay text-text-muted border-border'
       )}>
         {bp.isActive ? <Play size={11} /> : <GitBranch size={11} />}
       </div>
@@ -257,7 +257,7 @@ function BlueprintListItem({ bp, selected, onClick }) {
         </div>
       </div>
       <div className={cn('w-1.5 h-1.5 rounded-full shrink-0 mt-2',
-        bp.isActive ? 'bg-green-400' : 'bg-amber-400')} />
+        bp.isActive ? 'bg-status-pass-bg' : 'bg-status-warn-bg')} />
     </button>
   )
 }
@@ -323,13 +323,13 @@ function BlueprintDesignerPanel({ blueprintId, onDeleted }) {
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-base font-semibold text-text-primary">{bp.name}</h2>
             <span className={cn('text-[10px] px-2 py-0.5 rounded-full border font-medium',
-              isPublished ? 'bg-green-500/10 text-green-400 border-green-500/25' : 'bg-amber-500/10 text-amber-400 border-amber-500/25')}>
+              isPublished ? 'bg-status-pass-bg text-status-pass-fg border-status-pass-bd' : 'bg-status-warn-bg text-status-warn-fg border-status-warn-bd')}>
               {isPublished ? 'Published' : 'Draft'}
             </span>
             <span className="text-[10px] font-mono text-text-muted px-1.5 py-0.5 rounded bg-surface-overlay border border-border">
               v{bp.version}
             </span>
-            <span className="text-[10px] font-mono text-brand-400 px-1.5 py-0.5 rounded bg-brand-500/10">
+            <span className="text-[10px] font-mono text-brand-ink px-1.5 py-0.5 rounded bg-brand-500/10">
               {bp.entityType}
             </span>
           </div>
@@ -384,7 +384,7 @@ function BlueprintDesignerPanel({ blueprintId, onDeleted }) {
           )}
           <button
             onClick={() => setDeleteTarget(true)}
-            className="h-8 w-8 flex items-center justify-center rounded-md text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            className="h-8 w-8 flex items-center justify-center rounded-ctl text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
             <Trash2 size={14} />
           </button>
         </div>
@@ -397,7 +397,7 @@ function BlueprintDesignerPanel({ blueprintId, onDeleted }) {
             className={cn(
               'flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors',
               tab === t.key
-                ? 'border-brand-500 text-brand-400'
+                ? 'border-brand-500 text-brand-ink'
                 : 'border-transparent text-text-muted hover:text-text-secondary'
             )}>
             <t.icon size={12} /> {t.label}
@@ -406,7 +406,7 @@ function BlueprintDesignerPanel({ blueprintId, onDeleted }) {
         {/* Step count pill */}
         <span className="ml-auto text-[10px] text-text-muted pr-2">
           {(localSteps || bp.steps || []).length} steps
-          {editMode && isDraft && <span className="text-amber-400 ml-2">· editing</span>}
+          {editMode && isDraft && <span className="text-status-warn-fg ml-2">· editing</span>}
         </span>
       </div>
 
@@ -464,7 +464,7 @@ function StepsTab({ bp, localSteps, setLocalSteps, selectedStep, setSelectedStep
       )}>
         {/* Published read-only banner */}
         {isPublished && !editMode && (
-          <div className="flex items-center gap-2 mx-4 mt-4 mb-2 px-3 py-2 rounded-lg bg-green-500/5 border border-green-500/20 text-xs text-green-300">
+          <div className="flex items-center gap-2 mx-4 mt-4 mb-2 px-3 py-2 rounded-card bg-status-pass-bg border border-status-pass-bd text-xs text-status-pass-fg">
             <Lock size={12} /> Published — unpublish to edit steps
           </div>
         )}
@@ -511,7 +511,7 @@ function StepsTab({ bp, localSteps, setLocalSteps, selectedStep, setSelectedStep
                 setLocalSteps([...steps, newStep])
                 setSelectedStep(steps.length)
               }}
-              className="flex items-center gap-2 w-full px-4 py-3 text-xs text-text-muted hover:text-brand-400 hover:bg-brand-500/5 rounded-lg border border-dashed border-border hover:border-brand-500/30 transition-colors mt-3"
+              className="flex items-center gap-2 w-full px-4 py-3 text-xs text-text-muted hover:text-brand-ink hover:bg-brand-500/5 rounded-card border border-dashed border-border hover:border-brand-500/30 transition-colors mt-3"
             >
               <Plus size={13} /> Add step
             </button>
@@ -554,7 +554,7 @@ function StepTimelineRow({ step, index, total, selected, editMode, onClick, onMo
       <div className="flex flex-col items-center shrink-0 w-8">
         <div className={cn(
           'w-7 h-7 rounded-full border-2 flex items-center justify-center text-[10px] font-bold shrink-0 mt-1',
-          selected ? 'border-brand-500 bg-brand-500/15 text-brand-400' : 'border-border bg-surface-overlay text-text-muted'
+          selected ? 'border-brand-500 bg-brand-500/15 text-brand-ink' : 'border-border bg-surface-overlay text-text-muted'
         )}>
           {index + 1}
         </div>
@@ -567,7 +567,7 @@ function StepTimelineRow({ step, index, total, selected, editMode, onClick, onMo
       <button
         onClick={onClick}
         className={cn(
-          'flex-1 min-w-0 flex items-start gap-3 px-3 py-3 rounded-lg border transition-all mb-3 text-left group',
+          'flex-1 min-w-0 flex items-start gap-3 px-3 py-3 rounded-card border transition-all mb-3 text-left group',
           selected
             ? 'border-brand-500/40 bg-brand-500/5'
             : 'border-border hover:border-border-strong bg-surface-overlay hover:bg-surface-raised'
@@ -599,7 +599,7 @@ function StepTimelineRow({ step, index, total, selected, editMode, onClick, onMo
               </span>
             )}
             {isSystem && step.automatedAction && (
-              <span className="flex items-center gap-1 text-gray-400">
+              <span className="flex items-center gap-1 text-text-muted">
                 <Zap size={10} /> {step.automatedAction}
               </span>
             )}
@@ -627,7 +627,7 @@ function StepTimelineRow({ step, index, total, selected, editMode, onClick, onMo
               <ArrowDown size={10} />
             </button>
             <button onClick={onDelete}
-              className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+              className="h-5 w-5 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
               <Trash2 size={10} />
             </button>
           </div>
@@ -679,12 +679,12 @@ function StepEditorPanel({ step, index, editMode, isPublished, onChange, onClose
 
       {/* Read-only banner — different message for published vs draft-not-editing */}
       {!editMode && isPublished && (
-        <div className="flex items-center gap-2 mx-4 mt-3 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20 text-xs text-amber-300 shrink-0">
+        <div className="flex items-center gap-2 mx-4 mt-3 px-3 py-2 rounded-card bg-status-warn-bg border border-status-warn-bd text-xs text-status-warn-fg shrink-0">
           <Lock size={11} /> Published — click "Unpublish" in the header to edit steps
         </div>
       )}
       {!editMode && !isPublished && (
-        <div className="flex items-center gap-2 mx-4 mt-3 px-3 py-2 rounded-lg bg-brand-500/5 border border-brand-500/20 text-xs text-brand-300 shrink-0">
+        <div className="flex items-center gap-2 mx-4 mt-3 px-3 py-2 rounded-card bg-brand-500/5 border border-brand-500/20 text-xs text-brand-ink shrink-0">
           <Eye size={11} /> Viewing step — click "Edit" in the header to make changes
         </div>
       )}
@@ -709,10 +709,10 @@ function StepEditorPanel({ step, index, editMode, isPublished, onChange, onClose
           <div className="mt-4 pt-4 border-t border-border">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
-                <Shield size={12} className="text-purple-400" />
+                <Shield size={12} className="text-status-tag-fg" />
                 <span className="text-xs font-semibold text-text-secondary">UI access override</span>
                 {step.stepUiOverrideJson && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/25">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-status-tag-bg text-status-tag-fg border border-status-tag-bd">
                     Active
                   </span>
                 )}
@@ -720,7 +720,7 @@ function StepEditorPanel({ step, index, editMode, isPublished, onChange, onClose
               {editMode && (
                 <button
                   onClick={() => setOverrideModalOpen(true)}
-                  className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors px-2.5 py-1 rounded-md border border-purple-500/30 hover:bg-purple-500/10"
+                  className="flex items-center gap-1.5 text-xs text-status-tag-fg hover:text-status-tag-fg transition-colors px-2.5 py-1 rounded-ctl border border-status-tag-bd hover:bg-status-tag-bg"
                 >
                   <Shield size={11} />
                   {step.stepUiOverrideJson ? 'Edit override' : 'Configure'}
@@ -735,11 +735,11 @@ function StepEditorPanel({ step, index, editMode, isPublished, onChange, onClose
               try { parsed = JSON.parse(step.stepUiOverrideJson) } catch {}
               return (
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {parsed.visibleTabs?.length > 0 && <code className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">tabs: {parsed.visibleTabs.join(',')}</code>}
-                  {parsed.hiddenTabs?.length > 0 && <code className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">hidden: {parsed.hiddenTabs.join(',')}</code>}
-                  {parsed.editableFields?.length > 0 && <code className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">editable: {parsed.editableFields.length} fields</code>}
-                  {parsed.readOnlyFields?.length > 0 && <code className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">readonly: {parsed.readOnlyFields.length} fields</code>}
-                  {parsed.availableActions?.length > 0 && <code className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">actions: {parsed.availableActions.join(',')}</code>}
+                  {parsed.visibleTabs?.length > 0 && <code className="text-[10px] px-1.5 py-0.5 rounded bg-status-tag-bg text-status-tag-fg border border-status-tag-bd">tabs: {parsed.visibleTabs.join(',')}</code>}
+                  {parsed.hiddenTabs?.length > 0 && <code className="text-[10px] px-1.5 py-0.5 rounded bg-status-fail-bg text-status-fail-fg border border-status-fail-bd">hidden: {parsed.hiddenTabs.join(',')}</code>}
+                  {parsed.editableFields?.length > 0 && <code className="text-[10px] px-1.5 py-0.5 rounded bg-status-pass-bg text-status-pass-fg border border-status-pass-bd">editable: {parsed.editableFields.length} fields</code>}
+                  {parsed.readOnlyFields?.length > 0 && <code className="text-[10px] px-1.5 py-0.5 rounded bg-status-warn-bg text-status-warn-fg border border-status-warn-bd">readonly: {parsed.readOnlyFields.length} fields</code>}
+                  {parsed.availableActions?.length > 0 && <code className="text-[10px] px-1.5 py-0.5 rounded bg-status-info-bg text-status-info-fg border border-status-info-bd">actions: {parsed.availableActions.join(',')}</code>}
                 </div>
               )
             })()}
@@ -764,13 +764,13 @@ function StepEditorPanel({ step, index, editMode, isPublished, onChange, onClose
           <div className="mt-4 pt-4 border-t border-border">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
-                <Users size={12} className="text-orange-400" />
+                <Users size={12} className="text-status-warn-fg" />
                 <span className="text-xs font-semibold text-text-secondary">SOD rules</span>
                 {step.sodRulesJson && (() => {
                   try {
                     const rules = JSON.parse(step.sodRulesJson)
                     return rules.length > 0 ? (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/25">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-status-warn-bg text-status-warn-fg border border-status-warn-bd">
                         {rules.length} rule{rules.length > 1 ? 's' : ''}
                       </span>
                     ) : null
@@ -780,7 +780,7 @@ function StepEditorPanel({ step, index, editMode, isPublished, onChange, onClose
               {editMode && (
                 <button
                   onClick={() => setSodModalOpen(true)}
-                  className="flex items-center gap-1.5 text-xs text-orange-400 hover:text-orange-300 transition-colors px-2.5 py-1 rounded-md border border-orange-500/30 hover:bg-orange-500/10"
+                  className="flex items-center gap-1.5 text-xs text-status-warn-fg hover:text-status-warn-fg transition-colors px-2.5 py-1 rounded-ctl border border-status-warn-bd hover:bg-status-warn-bg"
                 >
                   <Users size={11} />
                   {step.sodRulesJson ? 'Edit rules' : 'Configure'}
@@ -796,7 +796,7 @@ function StepEditorPanel({ step, index, editMode, isPublished, onChange, onClose
                 return (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {rules.map((r, i) => (
-                      <code key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                      <code key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-status-warn-bg text-status-warn-fg border border-status-warn-bd">
                         {r.type}
                       </code>
                     ))}
@@ -843,8 +843,8 @@ function OverviewTab({ bp }) {
           { label: 'Human steps', value: humanSteps, icon: Users },
           { label: 'Automated', value: systemSteps, icon: Zap },
         ].map(s => (
-          <div key={s.label} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-surface-overlay">
-            <s.icon size={16} className="text-brand-400" />
+          <div key={s.label} className="flex items-center gap-3 p-3 rounded-card border border-border bg-surface-overlay">
+            <s.icon size={16} className="text-brand-ink" />
             <div>
               <div className="text-sm font-semibold text-text-primary">{s.value}</div>
               <div className="text-[10px] text-text-muted">{s.label}</div>
@@ -881,9 +881,9 @@ function OverviewTab({ bp }) {
       </div>
 
       {/* Compliance workflow note */}
-      <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-blue-500/5 border border-blue-500/20">
-        <Info size={13} className="text-blue-400 mt-0.5 shrink-0" />
-        <p className="text-xs text-blue-300">
+      <div className="flex items-start gap-2 px-3 py-2.5 rounded-card bg-status-info-bg border border-status-info-bd">
+        <Info size={13} className="text-status-info-fg mt-0.5 shrink-0" />
+        <p className="text-xs text-status-info-fg">
           This blueprint works for any entity type — including compliance workflows that don't map to a module blueprint
           (e.g. SOC2_CONTROL, ISO_REQUIREMENT). The workflow engine only reads entityType for routing, not for module existence.
         </p>
@@ -972,13 +972,13 @@ function CreateBlueprintModal({ open, onClose, onCreate }) {
     >
       <div className="space-y-3">
         <div>
-          <label className="text-xs font-medium text-text-secondary block mb-1">Blueprint name <span className="text-red-400">*</span></label>
+          <label className="text-xs font-medium text-text-secondary block mb-1">Blueprint name <span className="text-status-fail-fg">*</span></label>
           <input value={form.name} onChange={e => set('name', e.target.value)}
             placeholder="e.g. Risk Management Workflow"
             className={inputCls} autoFocus />
         </div>
         <div>
-          <label className="text-xs font-medium text-text-secondary block mb-1">Entity type <span className="text-red-400">*</span></label>
+          <label className="text-xs font-medium text-text-secondary block mb-1">Entity type <span className="text-status-fail-fg">*</span></label>
           <input value={form.entityType} onChange={e => set('entityType', e.target.value.toUpperCase().replace(/\s/g, '_'))}
             placeholder="RISK"
             className={cn(inputCls, 'font-mono')} />
@@ -1000,7 +1000,7 @@ function CreateBlueprintModal({ open, onClose, onCreate }) {
 function EmptyDetail({ onNew }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
-      <div className="w-16 h-16 rounded-2xl border border-dashed border-border flex items-center justify-center bg-surface-overlay">
+      <div className="w-16 h-16 rounded-modal border border-dashed border-border flex items-center justify-center bg-surface-overlay">
         <GitBranch size={24} className="text-text-muted" />
       </div>
       <div>
@@ -1033,7 +1033,7 @@ function Field({ label, hint, required, children }) {
   return (
     <div>
       <label className="text-[10px] font-medium text-text-muted block mb-1">
-        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
+        {label}{required && <span className="text-status-fail-fg ml-0.5">*</span>}
         {hint && <span className="ml-1 font-normal opacity-70">— {hint}</span>}
       </label>
       {children}
@@ -1044,13 +1044,13 @@ function Field({ label, hint, required, children }) {
 function ReadValue({ children, mono, muted }) {
   if (!children) return <span className="text-xs text-text-muted italic">not set</span>
   return (
-    <span className={cn('text-xs', mono ? 'font-mono text-brand-400' : muted ? 'text-text-muted' : 'text-text-primary')}>
+    <span className={cn('text-xs', mono ? 'font-mono text-brand-ink' : muted ? 'text-text-muted' : 'text-text-primary')}>
       {children}
     </span>
   )
 }
 
 // CSS class helpers (avoid repetition)
-const inputCls = 'w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 placeholder:text-text-muted'
-const textareaCls = 'w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none'
-const selectCls = 'w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-md text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500'
+const inputCls = 'w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 placeholder:text-text-muted'
+const textareaCls = 'w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none'
+const selectCls = 'w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500'

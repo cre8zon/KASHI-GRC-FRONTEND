@@ -60,11 +60,11 @@ function NavKeyPicker({ value, onChange }) {
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="h-8 w-full flex items-center justify-between gap-2 rounded-md border border-border bg-surface-raised px-3 text-sm text-left focus:outline-none focus:ring-1 focus:ring-brand-500 hover:border-border/80 transition-colors"
+        className="h-8 w-full flex items-center justify-between gap-2 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-left focus:outline-none focus:ring-1 focus:ring-brand-500 hover:border-border/80 transition-colors"
       >
         {selected ? (
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="font-mono text-xs text-brand-400 truncate">{selected.navKey}</span>
+            <span className="font-mono text-xs text-brand-ink truncate">{selected.navKey}</span>
             <span className="text-text-muted text-xs truncate">— {selected.route}</span>
           </div>
         ) : (
@@ -75,7 +75,7 @@ function NavKeyPicker({ value, onChange }) {
         <div className="flex items-center gap-1 shrink-0">
           {value && (
             <span onClick={clear}
-              className="text-text-muted hover:text-red-400 transition-colors text-xs px-1">✕</span>
+              className="text-text-muted hover:text-status-fail-fg transition-colors text-xs px-1">✕</span>
           )}
           <ChevronDown size={12} className="text-text-muted" />
         </div>
@@ -83,7 +83,7 @@ function NavKeyPicker({ value, onChange }) {
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-md border border-border bg-surface-raised shadow-lg overflow-hidden">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-ctl border border-border bg-surface-raised shadow-lg overflow-hidden">
           {/* Search */}
           <div className="p-2 border-b border-border bg-surface-raised">
             <input
@@ -117,7 +117,7 @@ function NavKeyPicker({ value, onChange }) {
                   n.navKey === value && 'bg-brand-500/10'
                 )}
               >
-                <span className="font-mono text-xs text-brand-400">{n.navKey}</span>
+                <span className="font-mono text-xs text-brand-ink">{n.navKey}</span>
                 <span className="text-[10px] text-text-muted mt-0.5">{n.route}</span>
                 {n.label && (
                   <span className="text-[10px] text-text-muted">{n.label}</span>
@@ -199,9 +199,9 @@ function RoleSelector({ side, selectedRoleIds, onChange }) {
           return (
             <button key={role.role_id} type="button" onClick={() => toggleRole(role.role_id)}
               className={cn(
-                'flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] font-medium transition-colors',
+                'flex items-center gap-1 px-2 py-1 rounded-ctl border text-[11px] font-medium transition-colors',
                 selected
-                  ? 'bg-brand-500/15 border-brand-500/40 text-brand-400'
+                  ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
                   : 'bg-surface-raised border-border text-text-muted hover:text-text-primary hover:border-brand-500/30'
               )}>
               {selected && <X size={9} />}
@@ -252,10 +252,10 @@ function UserSelector({ side, selectedUsers, onChange }) {
         <div className="flex flex-wrap gap-1.5">
           {selectedUsers.map(u => (
             <span key={u.id}
-              className="flex items-center gap-1 px-2 py-1 rounded-md bg-purple-500/10 border border-purple-500/30 text-[11px] text-purple-400">
+              className="flex items-center gap-1 px-2 py-1 rounded-ctl bg-status-tag-bg border border-status-tag-bd text-[11px] text-status-tag-fg">
               {u.fullName || u.email}
               <button onClick={() => removeUser(u.id)}
-                className="hover:text-red-400 transition-colors ml-0.5">
+                className="hover:text-status-fail-fg transition-colors ml-0.5">
                 <X size={9} />
               </button>
             </span>
@@ -266,10 +266,10 @@ function UserSelector({ side, selectedUsers, onChange }) {
       <div className="relative">
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search by name or email (min 2 chars)…"
-          className="w-full h-7 rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-7 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
 
         {search.length >= 2 && (
-          <div className="absolute top-8 left-0 right-0 z-50 rounded-md border border-border bg-surface-raised shadow-lg max-h-40 overflow-y-auto">
+          <div className="absolute top-8 left-0 right-0 z-50 rounded-ctl border border-border bg-surface-raised shadow-lg max-h-40 overflow-y-auto">
             {isLoading && <p className="px-3 py-2 text-xs text-text-muted">Searching…</p>}
             {!isLoading && users.length === 0 && (
               <p className="px-3 py-2 text-xs text-text-muted">No users found</p>
@@ -278,7 +278,7 @@ function UserSelector({ side, selectedUsers, onChange }) {
               <button key={u.id} onClick={() => addUser(u)} type="button"
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-surface-overlay text-left transition-colors">
                 <div className="w-5 h-5 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0">
-                  <span className="text-[9px] font-bold text-brand-400">
+                  <span className="text-[9px] font-bold text-brand-ink">
                     {(u.fullName || u.email || '?')[0].toUpperCase()}
                   </span>
                 </div>
@@ -333,17 +333,17 @@ function AutomatedActionSelector({ value, onChange }) {
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
         {/* Toggle between dropdown and freetext */}
-        <div className="flex rounded-md border border-border overflow-hidden text-[10px]">
+        <div className="flex rounded-ctl border border-border overflow-hidden text-[10px]">
           <button type="button"
             onClick={() => { setUseCustom(false); if (useCustom) onChange('') }}
             className={cn('px-2 py-1 transition-colors',
-              !useCustom ? 'bg-brand-500/15 text-brand-400' : 'text-text-muted hover:text-text-primary')}>
+              !useCustom ? 'bg-brand-500/15 text-brand-ink' : 'text-text-muted hover:text-text-primary')}>
             Pick existing
           </button>
           <button type="button"
             onClick={() => { setUseCustom(true); if (!useCustom) onChange('') }}
             className={cn('px-2 py-1 transition-colors',
-              useCustom ? 'bg-brand-500/15 text-brand-400' : 'text-text-muted hover:text-text-primary')}>
+              useCustom ? 'bg-brand-500/15 text-brand-ink' : 'text-text-muted hover:text-text-primary')}>
             Define new
           </button>
         </div>
@@ -351,7 +351,7 @@ function AutomatedActionSelector({ value, onChange }) {
         {/* Clear button */}
         {value && (
           <button type="button" onClick={() => onChange('')}
-            className="text-[10px] text-text-muted hover:text-red-400 transition-colors">
+            className="text-[10px] text-text-muted hover:text-status-fail-fg transition-colors">
             <X size={10} />
           </button>
         )}
@@ -360,7 +360,7 @@ function AutomatedActionSelector({ value, onChange }) {
       {!useCustom ? (
         // Dropdown of registered keys
         <select value={value || ''} onChange={e => onChange(e.target.value)}
-          className="h-7 w-full rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+          className="h-7 w-full rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
           <option value="">No automated action (step stays IN_PROGRESS)</option>
           {registeredKeys.map(key => (
             <option key={key} value={key}>{key}</option>
@@ -373,15 +373,15 @@ function AutomatedActionSelector({ value, onChange }) {
             value={value || ''}
             onChange={e => onChange(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '_'))}
             placeholder="e.g. SEND_COMPLIANCE_REPORT"
-            className="h-7 w-full rounded-md border border-amber-500/40 bg-surface-raised px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-amber-500/60 font-mono"
+            className="h-7 w-full rounded-ctl border border-status-warn-bd bg-surface-raised px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-status-warn-bd font-mono"
           />
           <div className="flex items-start gap-1.5">
-            <AlertCircle size={10} className="text-amber-400 mt-0.5 shrink-0" />
-            <p className="text-[10px] text-amber-400/80">
+            <AlertCircle size={10} className="text-status-warn-fg mt-0.5 shrink-0" />
+            <p className="text-[10px] text-status-warn-fg">
               Custom key — implement{' '}
-              <code className="text-amber-400">AutomatedActionHandler</code> with{' '}
-              <code className="text-amber-400">actionKey() == "{value || 'YOUR_KEY'}"</code>{' '}
-              and annotate with <code className="text-amber-400">@Component</code>.
+              <code className="text-status-warn-fg">AutomatedActionHandler</code> with{' '}
+              <code className="text-status-warn-fg">actionKey() == "{value || 'YOUR_KEY'}"</code>{' '}
+              and annotate with <code className="text-status-warn-fg">@Component</code>.
               The step will stay IN_PROGRESS until a handler is registered.
             </p>
           </div>
@@ -390,7 +390,7 @@ function AutomatedActionSelector({ value, onChange }) {
 
       {/* Show what the selected action does */}
       {value && !useCustom && (
-        <p className="text-[10px] text-green-400">
+        <p className="text-[10px] text-status-pass-fg">
           ✓ Handler registered — this step will fire automatically when the workflow starts.
         </p>
       )}
@@ -477,9 +477,9 @@ function AssignerResolutionSelector({ resolution, assignerRoleIds, onResolutionC
             type="button"
             onClick={() => onResolutionChange(opt.value)}
             className={cn(
-              'flex flex-col items-start gap-0.5 px-3 py-2 rounded-lg border text-left transition-colors',
+              'flex flex-col items-start gap-0.5 px-3 py-2 rounded-card border text-left transition-colors',
               resolution === opt.value
-                ? 'border-brand-500/50 bg-brand-500/10 text-brand-400'
+                ? 'border-brand-500/50 bg-brand-500/10 text-brand-ink'
                 : 'border-border bg-surface-raised text-text-muted hover:border-brand-500/30 hover:text-text-primary'
             )}
           >
@@ -507,10 +507,10 @@ function AssignerResolutionSelector({ resolution, assignerRoleIds, onResolutionC
                   type="button"
                   onClick={() => toggleAssignerRole(role.role_id)}
                   className={cn(
-                    'flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] font-medium transition-colors',
+                    'flex items-center gap-1 px-2 py-1 rounded-ctl border text-[11px] font-medium transition-colors',
                     isSelected
-                      ? 'bg-purple-500/15 border-purple-500/40 text-purple-400'
-                      : 'bg-surface-raised border-border text-text-muted hover:text-text-primary hover:border-purple-500/30'
+                      ? 'bg-status-tag-bg border-status-tag-bd text-status-tag-fg'
+                      : 'bg-surface-raised border-border text-text-muted hover:text-text-primary hover:border-status-tag-bd'
                   )}
                 >
                   {isSelected && <X size={9} />}
@@ -523,7 +523,7 @@ function AssignerResolutionSelector({ resolution, assignerRoleIds, onResolutionC
             })}
           </div>
           {(assignerRoleIds || []).length === 0 && (
-            <p className="text-[10px] text-amber-400 mt-1">
+            <p className="text-[10px] text-status-warn-fg mt-1">
               Select at least one assigner role, or switch to a different resolution.
             </p>
           )}
@@ -619,9 +619,9 @@ function ActorResolutionSelector({ resolution, onChange }) {
           type="button"
           onClick={() => onChange(opt.value)}
           className={cn(
-            'flex flex-col items-start gap-0.5 px-3 py-2 rounded-lg border text-left transition-colors',
+            'flex flex-col items-start gap-0.5 px-3 py-2 rounded-card border text-left transition-colors',
             resolution === opt.value
-              ? 'border-brand-500/50 bg-brand-500/10 text-brand-400'
+              ? 'border-brand-500/50 bg-brand-500/10 text-brand-ink'
               : 'border-border bg-surface-raised text-text-muted hover:border-brand-500/30 hover:text-text-primary'
           )}
         >
@@ -642,7 +642,7 @@ function StepActionSelector({ value, onChange }) {
           type="button"
           onClick={() => onChange(opt.value)}
           className={cn(
-            'flex items-start gap-2 px-2.5 py-2 rounded-lg border text-left transition-colors',
+            'flex items-start gap-2 px-2.5 py-2 rounded-card border text-left transition-colors',
             value === opt.value
               ? 'border-brand-500/50 bg-brand-500/10'
               : 'border-border bg-surface-raised hover:border-brand-500/30 hover:bg-surface-overlay'
@@ -651,7 +651,7 @@ function StepActionSelector({ value, onChange }) {
           <span className="text-base leading-none mt-0.5 shrink-0">{opt.icon}</span>
           <div className="min-w-0">
             <p className={cn('text-xs font-semibold leading-tight',
-              value === opt.value ? 'text-brand-400' : 'text-text-primary')}>
+              value === opt.value ? 'text-brand-ink' : 'text-text-primary')}>
               {opt.label}
             </p>
             <p className="text-[10px] text-text-muted leading-tight mt-0.5 line-clamp-2">
@@ -704,10 +704,10 @@ function ObserverRolesSelector({ observerRoleIds, onChange }) {
             type="button"
             onClick={() => toggle(role.role_id)}
             className={cn(
-              'flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] font-medium transition-colors',
+              'flex items-center gap-1 px-2 py-1 rounded-ctl border text-[11px] font-medium transition-colors',
               isSelected
-                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
-                : 'bg-surface-raised border-border text-text-muted hover:text-text-primary hover:border-emerald-500/30'
+                ? 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg'
+                : 'bg-surface-raised border-border text-text-muted hover:text-text-primary hover:border-status-pass-bd'
             )}
           >
             {isSelected && <X size={9} />}
@@ -730,7 +730,7 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
   const set = (key, val) => onChange({ ...step, [key]: val })
 
   return (
-    <div className={cn('rounded-lg border overflow-hidden',
+    <div className={cn('rounded-card border overflow-hidden',
       isSystem ? 'border-brand-500/30 bg-brand-500/3' : 'border-border bg-surface-overlay')}>
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border/50">
@@ -745,21 +745,21 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
         <div className={cn('w-5 h-5 rounded-full flex items-center justify-center shrink-0',
           isSystem ? 'bg-brand-500/30' : 'bg-brand-500/20')}>
           {isSystem
-            ? <Zap size={9} className="text-brand-400" />
-            : <span className="text-[10px] font-bold text-brand-400">{index + 1}</span>
+            ? <Zap size={9} className="text-brand-ink" />
+            : <span className="text-[10px] font-bold text-brand-ink">{index + 1}</span>
           }
         </div>
         <input value={step.name} onChange={e => set('name', e.target.value)}
           placeholder="Step name e.g. Legal Review"
-          className={cn('flex-1 rounded-md border bg-surface-raised px-3 py-1.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500',
-            errors[`step_${index}`] ? 'border-red-500/50' : 'border-border')} />
+          className={cn('flex-1 rounded-ctl border bg-surface-raised px-3 py-1.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500',
+            errors[`step_${index}`] ? 'border-status-fail-bd' : 'border-border')} />
         <button type="button" onClick={() => setExpanded(e => !e)}
           className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-text-primary transition-colors">
           <ChevronDown size={13} className={cn('transition-transform', expanded ? '' : '-rotate-90')} />
         </button>
         {total > 1 && (
           <button type="button" onClick={onRemove}
-            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
             <Trash2 size={12} />
           </button>
         )}
@@ -776,7 +776,7 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
               </label>
               <select value={step.side || ''}
                 onChange={e => set('side', e.target.value)}
-                className="w-full h-7 rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                className="w-full h-7 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 <option value="">Any side</option>
                 {STEP_SIDES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
@@ -786,7 +786,7 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
               <select value={step.approvalType}
                 onChange={e => set('approvalType', e.target.value)}
                 disabled={isSystem}
-                className="w-full h-7 rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary disabled:opacity-40 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                className="w-full h-7 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary disabled:opacity-40 focus:outline-none focus:ring-1 focus:ring-brand-500">
                 {APPROVAL_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
@@ -796,14 +796,14 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
                 onChange={e => set('minApprovalsRequired', e.target.value)}
                 disabled={step.approvalType !== 'THRESHOLD' || isSystem}
                 placeholder="1"
-                className="w-full h-7 rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary disabled:opacity-40 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-7 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary disabled:opacity-40 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
               <label className="text-[10px] text-text-muted block mb-1">SLA Hours</label>
               <input type="number" min="1" value={step.slaHours}
                 onChange={e => set('slaHours', e.target.value)}
                 placeholder="optional"
-                className="w-full h-7 rounded-md border border-border bg-surface-raised px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-7 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
 
@@ -812,7 +812,7 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
             <div>
               <label className="text-[10px] font-medium text-text-secondary uppercase tracking-wide block mb-2">
                 <span className="flex items-center gap-1.5">
-                  <Zap size={10} className="text-brand-400" />
+                  <Zap size={10} className="text-brand-ink" />
                   Automated Action
                   <span className="ml-1 text-text-muted normal-case font-normal">
                     — fires automatically when this step starts, then auto-approves and advances
@@ -966,7 +966,7 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
                           <select
                             value={step.assignableSide || ''}
                             onChange={e => set('assignableSide', e.target.value || null)}
-                            className="w-full bg-surface-overlay border border-border rounded-md px-2 py-1.5 text-xs text-text-primary"
+                            className="w-full bg-surface-overlay border border-border rounded-ctl px-2 py-1.5 text-xs text-text-primary"
                           >
                             <option value="">— None (use next step's actor roles) —</option>
                             <option value="AUDITOR">AUDITOR</option>
@@ -981,7 +981,7 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
                             value={step.assignableRoleId || ''}
                             onChange={e => set('assignableRoleId', e.target.value ? Number(e.target.value) : null)}
                             placeholder="null = all of that side"
-                            className="w-full bg-surface-overlay border border-border rounded-md px-2 py-1.5 text-xs text-text-primary placeholder:text-text-muted"
+                            className="w-full bg-surface-overlay border border-border rounded-ctl px-2 py-1.5 text-xs text-text-primary placeholder:text-text-muted"
                           />
                         </div>
                       </div>
@@ -1044,12 +1044,12 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
 
               {/* Manual assignment note */}
               {step.side && (
-                <div className="px-3 py-2 bg-surface-raised rounded-md border border-border/50">
+                <div className="px-3 py-2 bg-surface-raised rounded-ctl border border-border/50">
                   <p className="text-[10px] text-text-muted leading-relaxed">
                     <span className="text-text-secondary font-medium">Runtime assignment: </span>
                     When this step starts, tasks are created for the direct users above immediately.
                     For role-based assignments, the {step.side.toLowerCase()} org resolves which of their
-                    users hold the selected roles and calls <code className="text-brand-400">/tasks/assign</code> to register them.
+                    users hold the selected roles and calls <code className="text-brand-ink">/tasks/assign</code> to register them.
                   </p>
                 </div>
               )}
@@ -1147,8 +1147,8 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-surface border border-border rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-on-dark-inv/60 backdrop-blur-sm p-4">
+      <div className="bg-surface border border-border rounded-card shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
@@ -1160,11 +1160,11 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
           </div>
           <div className="flex items-center gap-2">
             <button onClick={downloadTemplate}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border text-xs text-text-muted hover:text-text-primary hover:border-brand-500/40 transition-colors">
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-ctl border border-border text-xs text-text-muted hover:text-text-primary hover:border-brand-500/40 transition-colors">
               ↓ Download Template
             </button>
             <button onClick={onClose}
-              className="h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-overlay">
+              className="h-7 w-7 flex items-center justify-center rounded-ctl text-text-muted hover:text-text-primary hover:bg-surface-overlay">
               <X size={14} />
             </button>
           </div>
@@ -1183,11 +1183,11 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
                 onDrop={e => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]) }}
                 onClick={() => fileRef.current?.click()}
                 className={cn(
-                  'border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors',
+                  'border-2 border-dashed rounded-card p-10 text-center cursor-pointer transition-colors',
                   dragOver
                     ? 'border-brand-500/60 bg-brand-500/5'
                     : selectedFile
-                      ? 'border-green-500/40 bg-green-500/3'
+                      ? 'border-status-pass-bd bg-status-pass-bg'
                       : 'border-border hover:border-brand-500/40 hover:bg-brand-500/3'
                 )}
               >
@@ -1195,7 +1195,7 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
                   onChange={e => handleFile(e.target.files[0])} />
                 {selectedFile ? (
                   <>
-                    <p className="text-sm font-semibold text-green-400">✓ {selectedFile.name}</p>
+                    <p className="text-sm font-semibold text-status-pass-fg">✓ {selectedFile.name}</p>
                     <p className="text-xs text-text-muted mt-1">
                       {(selectedFile.size / 1024).toFixed(1)} KB · Click to change
                     </p>
@@ -1215,7 +1215,7 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
 
               {/* Format hints */}
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="p-3 rounded-lg border border-border bg-surface-raised">
+                <div className="p-3 rounded-card border border-border bg-surface-raised">
                   <p className="font-semibold text-text-secondary mb-1">DB Export format</p>
                   <p className="text-text-muted font-mono text-[10px] leading-relaxed">
                     id, workflow_id, step_order, name, side,<br/>
@@ -1226,7 +1226,7 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
                     Add actorRoles/assignerRoles/observerRoles columns to include roles.
                   </p>
                 </div>
-                <div className="p-3 rounded-lg border border-border bg-surface-raised">
+                <div className="p-3 rounded-card border border-border bg-surface-raised">
                   <p className="font-semibold text-text-secondary mb-1">Template format</p>
                   <p className="text-text-muted font-mono text-[10px] leading-relaxed">
                     order, name, side, stepAction,<br/>
@@ -1244,11 +1244,11 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
 
               <div className="flex justify-end gap-2 pt-1">
                 <button onClick={onClose}
-                  className="px-3 py-1.5 rounded-md border border-border text-xs text-text-muted hover:text-text-primary transition-colors">
+                  className="px-3 py-1.5 rounded-ctl border border-border text-xs text-text-muted hover:text-text-primary transition-colors">
                   Cancel
                 </button>
                 <button onClick={runImport} disabled={!selectedFile}
-                  className="px-4 py-1.5 rounded-md bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                  className="px-4 py-1.5 rounded-ctl bg-brand-500 text-brand-900 text-xs font-semibold hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                   Upload & Import
                 </button>
               </div>
@@ -1258,8 +1258,8 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
           {/* ── Importing stage ──────────────────────────────────────────── */}
           {stage === 'importing' && (
             <div className="flex flex-col items-center gap-6 py-12">
-              <div className="w-16 h-16 rounded-2xl bg-brand-500/10 flex items-center justify-center">
-                <svg className="w-7 h-7 text-brand-400 animate-spin" fill="none" viewBox="0 0 24 24">
+              <div className="w-16 h-16 rounded-modal bg-brand-500/10 flex items-center justify-center">
+                <svg className="w-7 h-7 text-brand-ink animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                 </svg>
@@ -1280,13 +1280,13 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
               {/* Summary */}
               <div className="flex items-center gap-3">
                 <div className={cn(
-                  'w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
-                  result.fatalError ? 'bg-red-500/10' :
-                  errCount > 0     ? 'bg-amber-500/10' : 'bg-green-500/10'
+                  'w-12 h-12 rounded-card flex items-center justify-center shrink-0',
+                  result.fatalError ? 'bg-status-fail-bg' :
+                  errCount > 0     ? 'bg-status-warn-bg' : 'bg-status-pass-bg'
                 )}>
                   {result.fatalError || errCount > 0
-                    ? <AlertCircle size={22} className={result.fatalError ? 'text-red-400' : 'text-amber-400'} />
-                    : <span className="text-green-400 text-xl">✓</span>
+                    ? <AlertCircle size={22} className={result.fatalError ? 'text-status-fail-fg' : 'text-status-warn-fg'} />
+                    : <span className="text-status-pass-fg text-xl">✓</span>
                   }
                 </div>
                 <div>
@@ -1306,10 +1306,10 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
                 <div className="grid grid-cols-3 gap-3">
                   {[
                     { label: 'Total rows',  value: result.totalRows,    color: 'text-text-secondary' },
-                    { label: 'Succeeded',   value: result.successCount, color: 'text-green-400' },
-                    { label: 'Failed',      value: result.failureCount, color: result.failureCount ? 'text-red-400' : 'text-text-muted' },
+                    { label: 'Succeeded',   value: result.successCount, color: 'text-status-pass-fg' },
+                    { label: 'Failed',      value: result.failureCount, color: result.failureCount ? 'text-status-fail-fg' : 'text-text-muted' },
                   ].map(({ label, value, color }) => (
-                    <div key={label} className="p-3 bg-surface-overlay rounded-lg border border-border text-center">
+                    <div key={label} className="p-3 bg-surface-overlay rounded-card border border-border text-center">
                       <p className={cn('text-xl font-bold font-mono', color)}>{value}</p>
                       <p className="text-xs text-text-muted mt-0.5">{label}</p>
                     </div>
@@ -1319,14 +1319,14 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
 
               {/* Log */}
               {result.log?.length > 0 && (
-                <div className="max-h-64 overflow-y-auto rounded-lg border border-border bg-surface-overlay p-3 flex flex-col gap-0.5 font-mono text-xs">
+                <div className="max-h-64 overflow-y-auto rounded-card border border-border bg-surface-overlay p-3 flex flex-col gap-0.5 font-mono text-xs">
                   {result.log.map((entry, i) => (
                     <div key={i} className={cn(
                       'flex items-start gap-2',
                       entry.status === 'SUCCESS' && 'text-text-secondary',
-                      entry.status === 'ERROR'   && 'text-red-400',
-                      entry.status === 'WARNING' && 'text-amber-400',
-                      entry.status === 'INFO'    && 'text-brand-400',
+                      entry.status === 'ERROR'   && 'text-status-fail-fg',
+                      entry.status === 'WARNING' && 'text-status-warn-fg',
+                      entry.status === 'INFO'    && 'text-brand-ink',
                     )}>
                       <span className="shrink-0 mt-0.5">
                         {entry.status === 'SUCCESS' ? '✓'
@@ -1342,12 +1342,12 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
 
               <div className="flex justify-end gap-2 pt-1">
                 <button onClick={reset}
-                  className="px-3 py-1.5 rounded-md border border-border text-xs text-text-muted hover:text-text-primary transition-colors">
+                  className="px-3 py-1.5 rounded-ctl border border-border text-xs text-text-muted hover:text-text-primary transition-colors">
                   Import Another
                 </button>
                 <button
                   onClick={() => result.fatalError ? onClose() : (onSuccess ? onSuccess() : onClose())}
-                  className="px-4 py-1.5 rounded-md bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 transition-colors">
+                  className="px-4 py-1.5 rounded-ctl bg-brand-500 text-brand-900 text-xs font-semibold hover:bg-brand-600 transition-colors">
                   {result.fatalError ? 'Close' : 'Done'}
                 </button>
               </div>
@@ -1453,7 +1453,7 @@ export function StepForm({ steps, setSteps, errors, workflowId }) {
     <div>
       <div className="flex items-center justify-between mb-3">
         <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
-          Steps {errors.steps && <span className="text-red-400 ml-1 normal-case font-normal">{errors.steps}</span>}
+          Steps {errors.steps && <span className="text-status-fail-fg ml-1 normal-case font-normal">{errors.steps}</span>}
         </label>
         <div className="flex items-center gap-2">
           <Button size="xs" variant="secondary" icon={Plus} onClick={addStep}>Add Step</Button>

@@ -13,7 +13,7 @@ function Navigator({ screens, selectedKey, search, setSearch, typeFilter, setTyp
           <button
             onClick={() => setTypeFilter(null)}
             className={cn('px-2 py-0.5 rounded text-[9px] font-medium border transition-colors',
-              !typeFilter ? 'border-brand-500 bg-brand-500/15 text-brand-400' : 'border-border text-text-muted hover:border-border-strong')}>
+              !typeFilter ? 'border-brand-500 bg-brand-500/15 text-brand-ink' : 'border-border text-text-muted hover:border-border-strong')}>
             All
           </button>
           {Object.values(SCREEN_TYPES).map(t => (
@@ -57,7 +57,7 @@ function Navigator({ screens, selectedKey, search, setSearch, typeFilter, setTyp
                   className={cn(
                     'w-full flex items-center gap-2 px-3 py-2 text-left border-l-2 transition-colors text-[10px]',
                     selectedKey === screen.key
-                      ? 'bg-brand-500/8 border-l-brand-500 text-brand-400'
+                      ? 'bg-brand-500/8 border-l-brand-500 text-brand-ink'
                       : 'border-l-transparent hover:bg-surface-overlay text-text-secondary hover:text-text-primary'
                   )}>
                   <code className="font-mono truncate">{screen.key}</code>
@@ -65,7 +65,7 @@ function Navigator({ screens, selectedKey, search, setSearch, typeFilter, setTyp
               ))}
               {typeScreens.length === 0 && (
                 <button onClick={onNew}
-                  className="w-full flex items-center gap-1.5 px-3 py-2 text-[10px] text-text-muted hover:text-brand-400 transition-colors">
+                  className="w-full flex items-center gap-1.5 px-3 py-2 text-[10px] text-text-muted hover:text-brand-ink transition-colors">
                   <Plus size={10} /> Add first {type.label.toLowerCase()}
                 </button>
               )}
@@ -76,11 +76,11 @@ function Navigator({ screens, selectedKey, search, setSearch, typeFilter, setTyp
 
       <div className="p-2 border-t border-border space-y-1">
         <button onClick={onOpenTemplates}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] text-brand-400 hover:text-brand-300 bg-brand-500/8 hover:bg-brand-500/12 border border-brand-500/20 hover:border-brand-500/40 rounded transition-colors font-medium">
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] text-brand-ink hover:text-brand-ink bg-brand-500/8 hover:bg-brand-500/12 border border-brand-500/20 hover:border-brand-500/40 rounded transition-colors font-medium">
           <Layers size={10} /> Templates
         </button>
         <button onClick={onNew}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] text-text-muted hover:text-brand-400 border border-dashed border-border hover:border-brand-500/40 rounded transition-colors">
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] text-text-muted hover:text-brand-ink border border-dashed border-border hover:border-brand-500/40 rounded transition-colors">
           <Plus size={10} /> Blank screen
         </button>
       </div>
