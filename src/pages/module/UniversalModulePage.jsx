@@ -24,6 +24,8 @@ import { ControlInstanceTestsTab }       from '../../components/audit/ControlIns
 import { ControlInstancePoliciesTab }    from '../../components/audit/ControlInstancePoliciesTab'
 import { ControlInstanceEvidenceTab }    from '../../components/audit/ControlInstanceEvidenceTab'
 import { TestInstanceEvidenceTab }       from '../../components/audit/TestInstanceEvidenceTab'
+import { FindingEvidenceTab }            from '../../components/audit/FindingEvidenceTab'
+import { IssueEvidenceTab }              from '../../components/audit/IssueEvidenceTab'
 import { TestInstanceMappedControlsTab } from '../../components/audit/TestInstanceMappedControlsTab'
 import { PolicyInstanceMappedControlsTab } from '../../components/audit/PolicyInstanceMappedControlsTab'
 import { PolicyContentTab }              from '../../components/audit/PolicyContentTab'
@@ -66,6 +68,7 @@ import { Modal, ConfirmDialog } from '../../components/ui/Modal'
 import { DataTable } from '../../components/ui/DataTable'
 import { DynamicForm } from '../../components/forms/DynamicForm'
 import { CommentFeed } from '../../components/comments/CommentFeed'
+import { useComments } from '../../hooks/useComments'
 import { ItemActionItems } from '../../components/item-panel/ItemActionItems'
 import EvidenceUploader from '../../components/ui/EvidenceUploader'
 import { cn } from '../../lib/cn'
@@ -129,6 +132,29 @@ const useScreenConfig = (screenKey) => useQuery({
   refetchOnWindowFocus: false,
 })
 
+// Framework-ref display helpers ------------------------------------------------
+// Turn a stored frameworkRef into a readable label. Handles both the compact
+// form ('ISO27001') and spaced form ('ISO 27001'), plus common frameworks.
+function formatFrameworkRef(ref) {
+  if (!ref) return ''
+  const known = {
+    ISO27001: 'ISO 27001', 'ISO27001:2022': 'ISO 27001',
+    SOC2: 'SOC 2', RBI: 'RBI', DPDPA: 'DPDPA', PCIDSS: 'PCI DSS',
+  }
+  const compact = ref.replace(/\s+/g, '')
+  if (known[compact]) return known[compact]
+  // Fallback: insert a space between letters and digits (ISO27001 -> ISO 27001)
+  return ref.replace(/([A-Za-z])(\d)/g, '$1 $2')
+}
+
+// Strip a leading framework word from a base title so we don't double it up,
+// e.g. baseTitle 'SOC 2 Engagements' -> 'Engagements' before prefixing the
+// actual framework. Keeps the entity noun (Engagements/Findings/etc.).
+function stripFrameworkPrefix(title) {
+  if (!title) return title
+  return title.replace(/^(SOC ?2|ISO ?27001(?::2022)?|RBI|DPDPA|PCI ?DSS)\s+/i, '')
+}
+
 const useEntityList = (basePath, params) => useQuery({
   queryKey: ['module-list', basePath, params],
   queryFn: () => moduleApi.list(basePath, params),
@@ -159,6 +185,22 @@ export default function UniversalModulePage() {
   const rawEntityType = params.entityType || params.rawEntityType
   const entityType    = rawEntityType?.toUpperCase()
   const id            = params.id
+
+  // Guard: audit_engagement is a SHARED module only ever reached with a
+  // frameworkRef (via a framework nav row) or scoped under a project. The bare
+  // /module/audit_engagement list (no frameworkRef, no parent) is not a real
+  // destination — nothing links to it, and it would show an unscoped, mislabeled
+  // mix of frameworks. Redirect it away so it can't be opened by hand.
+  const _guardParams = useSearchParams()[0]
+  const _guardNavigate = useNavigate()
+  const _isBareEngagementList =
+    entityType === 'AUDIT_ENGAGEMENT' &&
+    !id &&
+    !params.parentEntityType &&
+    !_guardParams.get('frameworkRef')
+  useEffect(() => {
+    if (_isBareEngagementList) _guardNavigate('/dashboard', { replace: true })
+  }, [_isBareEngagementList]) // eslint-disable-line
   const parentId      = params.parentId || null
 
   const { data: bpRes, isLoading: bpLoading, isError: bpError } = useBlueprint(entityType)
@@ -185,6 +227,10 @@ export default function UniversalModulePage() {
     }
   }
 
+  // While the redirect effect runs, render nothing (prevents a flash of the
+  // unscoped engagement list before navigation completes).
+  if (_isBareEngagementList) return null
+
   return id
     ? <ModuleDetailView bp={resolvedBp} id={id} />
     : <ModuleListView   bp={resolvedBp} />
@@ -196,6 +242,18 @@ function ModuleListView({ bp }) {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [searchParams] = useSearchParams()
+  // Framework-aware label so the search placeholder and empty state read
+  // 'ISO 27001 engagements' (not the blueprint's fixed 'soc 2 engagements')
+  // when reached via a framework nav row.
+  const _frameworkRef = searchParams.get('frameworkRef') || undefined
+  const _basePlural = bp.displayNamePlural || bp.displayName || 'records'
+  const _baseSingular = bp.displayName || 'record'
+  const entityPlural = _frameworkRef
+    ? `${formatFrameworkRef(_frameworkRef)} ${stripFrameworkPrefix(_basePlural)}`
+    : _basePlural
+  const entitySingular = _frameworkRef
+    ? `${formatFrameworkRef(_frameworkRef)} ${stripFrameworkPrefix(_baseSingular)}`
+    : _baseSingular
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [createOpen, setCreateOpen] = useState(false)
@@ -255,10 +313,13 @@ function ModuleListView({ bp }) {
     ?? items.length
 
   const createMut = useMutation({
-    mutationFn: (data) => moduleApi.create(bp.apiBasePath, data),
+    // Stamp the URL's frameworkRef onto the new entity so an engagement created
+    // from the ISO nav belongs to ISO (not left null / defaulted to SOC2).
+    mutationFn: (data) => moduleApi.create(bp.apiBasePath,
+      frameworkRef ? { frameworkRef, ...data } : data),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
-      toast.success(`${bp.displayName} created successfully`)
+      toast.success(`${entitySingular} created successfully`)
       // AUDIT_POLICY with RICH_TEXT: go straight to the editor after creation.
       // No point landing back on the list — the user needs to write the content.
       if (bp.entityType === 'AUDIT_POLICY') {
@@ -376,9 +437,18 @@ function ModuleListView({ bp }) {
     ? `${parentCtx.parentEntityType?.replace(/_/g,' ')} #${bp._parentId}`
     : null
 
+  // Framework-aware page title. On a shared module reached via a framework nav
+  // row (?frameworkRef=ISO27001), show the framework's name instead of the
+  // blueprint's fixed displayName (which is 'SOC 2 Engagement').
+  const frameworkLabel = frameworkRef ? formatFrameworkRef(frameworkRef) : null
+  const baseTitle = bp.displayNamePlural || bp.displayName
+  const pageTitle = frameworkLabel
+    ? `${frameworkLabel} ${stripFrameworkPrefix(baseTitle)}`
+    : baseTitle
+
   return (
     <PageLayout
-      title={bp.displayNamePlural || bp.displayName}
+      title={pageTitle}
       subtitle={parentLabel
         ? `${parentLabel} · ${total} record${total !== 1 ? 's' : ''}`
         : `${total} record${total !== 1 ? 's' : ''}`}
@@ -387,7 +457,7 @@ function ModuleListView({ bp }) {
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder={`Search ${bp.displayNamePlural?.toLowerCase() || ''}…`}
+              placeholder={`Search ${entityPlural.toLowerCase()}…`}
               className="w-52 pl-8 pr-3 h-8 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           {/* FIX: Render screen designer actions for this list screen.
@@ -410,7 +480,7 @@ function ModuleListView({ bp }) {
             })
             : canCreate && (
               <Button icon={Plus} size="sm" onClick={() => setCreateOpen(true)}>
-                New {bp.displayName}
+                New {entitySingular}
               </Button>
             )
           }
@@ -430,7 +500,7 @@ function ModuleListView({ bp }) {
               screenConfig={screenConfig}
               loading={isLoading}
               onRowClick={handleRowClick}
-              emptyMessage={`No ${bp.displayNamePlural?.toLowerCase() || 'records'} found`}
+              emptyMessage={`No ${entityPlural.toLowerCase()} found`}
             />
           ) : (
             <>
@@ -458,7 +528,7 @@ function ModuleListView({ bp }) {
                 data={items}
                 loading={isLoading || !screenConfig}
                 onRowClick={handleRowClick}
-                emptyMessage={`No ${bp.displayNamePlural?.toLowerCase() || 'records'} found`}
+                emptyMessage={`No ${entityPlural.toLowerCase()} found`}
                 sortBy={sortBy}
                 sortDir={sortDir}
                 onSort={handleSort}
@@ -498,11 +568,14 @@ function ModuleListView({ bp }) {
       {/* Create modal — fallback when no screen actions are configured */}
       {bp.createFormKey && (
         <Modal open={createOpen} onClose={() => setCreateOpen(false)}
-          title={`New ${bp.displayName}`}
+          title={`New ${entitySingular}`}
           size="lg"
         >
           <DynamicForm
             formKey={bp.createFormKey}
+            // frameworkRef flows into framework-scoped lookups (e.g. the template
+            // picker fetches only this framework's templates) and is stamped on submit.
+            contextParams={frameworkRef ? { frameworkref: frameworkRef } : undefined}
             // FIX: mutateAsync (not mutate) so a rejected promise propagates to
             // DynamicForm's handleFormSubmit catch block, which then calls setError()
             // per field and shows inline validation messages instead of a silent failure.
@@ -511,7 +584,7 @@ function ModuleListView({ bp }) {
               setCreateOpen(false)  // close only after success
             }}
             loading={createMut.isPending}
-            submitLabel={`Create ${bp.displayName}`}
+            submitLabel={`Create ${entitySingular}`}
           />
         </Modal>
       )}
@@ -530,11 +603,18 @@ function ModuleListView({ bp }) {
           >
             <DynamicForm
               formKey={formKey}
+              // Same framework wiring as the fallback create modal: filter framework-
+              // scoped lookups (template picker) AND stamp frameworkRef on submit.
+              // This is the screen-action create path (New engagement button), which
+              // was previously missing both — so engagements saved with framework_ref
+              // NULL and the template dropdown showed every framework.
+              contextParams={frameworkRef ? { frameworkref: frameworkRef } : undefined}
               onSubmit={async (data) => {
                 const endpoint = listFormAction.apiEndpoint || bp.apiBasePath
-                await api({ method: listFormAction.httpMethod || 'POST', url: endpoint, data })
+                const payload = frameworkRef ? { frameworkRef, ...data } : data
+                await api({ method: listFormAction.httpMethod || 'POST', url: endpoint, data: payload })
                 qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
-                toast.success(`${bp.displayName} created`)
+                toast.success(`${entitySingular} created`)
                 setListFormAction(null)  // close only after success
               }}
               submitLabel={listFormAction.label}
@@ -560,12 +640,47 @@ const BASE_TABS = [
   { key: 'evidence', label: 'Evidence',      icon: Upload,       cap: 'supportsDocuments' },
   { key: 'comments', label: 'Comments',      icon: MessageSquare,cap: 'supportsComments' },
 
-  // always:true — audit trail required for every GRC entity
-  { key: 'history',  label: 'History',       icon: Activity,     always: true },
+  // History is now a toggleable capability (Blueprint Settings → Capabilities),
+  // gated by supportsHistory — same pattern as Workflow/Comments. Overview stays
+  // always-on. Existing blueprints default supportsHistory=true, so History keeps
+  // showing unless an admin turns it off.
+  { key: 'history',  label: 'History',       icon: Activity,     cap: 'supportsHistory' },
 ]
 
 // Capability tab keys — these are always rendered by a fixed component, not SD fields
 const CAPABILITY_TAB_KEYS = new Set(['overview','workflow','actions','evidence','comments','history'])
+
+// Shared capability-tab body — used by BOTH the full detail page and the drawer,
+// so they render identical, working tabs (evidence buckets, comments feed,
+// workflow timeline, history). entity may be null in the drawer before load;
+// id is the entity id in either mode.
+function CapabilityTabBody({ tab, bp, id, entity, vc }) {
+  if (tab === 'workflow' && bp.supportsWorkflow)
+    return <WorkflowTab entityType={bp.entityType} entityId={id} vc={vc} bp={bp} entity={entity} />
+
+  if (tab === 'actions' && bp.supportsActionItems)
+    return <ItemActionItems entityType={bp.entityType} entityId={Number(id)} />
+
+  if (tab === 'evidence' && bp.supportsDocuments) {
+    if (bp.entityType === 'AUDIT_CONTROL_INSTANCE')
+      return <ControlInstanceEvidenceTab controlInstanceId={entity?.id ?? Number(id)} vc={vc} />
+    if (bp.entityType === 'AUDIT_TEST_INSTANCE')
+      return <TestInstanceEvidenceTab testInstanceId={entity?.id ?? Number(id)} vc={vc} />
+    if (bp.entityType === 'AUDIT_FINDING')
+      return <FindingEvidenceTab entityId={Number(id)} vc={vc} />
+    if (bp.entityType === 'ISSUE')
+      return <IssueEvidenceTab entityId={Number(id)} vc={vc} />
+    return <EvidenceTab entityId={id} entityType={bp.entityType} vc={vc} />
+  }
+
+  if (tab === 'comments' && bp.supportsComments)
+    return <ModuleCommentsTab entityType={bp.entityType} entityId={Number(id)} />
+
+  if (tab === 'history' && bp.supportsHistory)
+    return <HistoryTab entityType={bp.entityType} entityId={id} apiBasePath={bp.apiBasePath} />
+
+  return null
+}
 
 function ModuleDetailView({ bp, id }) {
   const navigate = useNavigate()
@@ -611,7 +726,11 @@ function ModuleDetailView({ bp, id }) {
   const dispatch       = useDispatch()
   const activeAppTabId = useSelector(selectActiveTabId)
   const savedSubTab    = useSelector(selectActiveSubTab)
-  const tab = savedSubTab || searchParams.get('tab') || 'overview'
+  // An explicit ?tab= in the URL (e.g. a comment-notification deep-link to
+  // ?tab=comments) takes priority over the Redux-saved sub-tab, so deep-links
+  // always land on the intended tab. Falls back to saved tab, then overview.
+  const urlTab = searchParams.get('tab')
+  const tab = urlTab || savedSubTab || 'overview'
   const setTab = (key) => {
     dispatch(saveSubTab({ tabId: activeAppTabId, subTab: key }))
   }
@@ -800,7 +919,16 @@ function ModuleDetailView({ bp, id }) {
   const listNavKey = !breadcrumbParentId
     ? (bp.listNavKey || bp.navKey || null)
     : null
-  const listLabel  = listNavKey ? (bp.displayNamePlural || bp.displayName) : null
+  // The record carries its own frameworkRef — use it so the breadcrumb reads
+  // 'ISO 27001 Engagements' and the back link returns to the FRAMEWORK-scoped
+  // list (not the generic SOC 2 one showing all frameworks).
+  const detailFrameworkRef = entity?.frameworkRef || null
+  const _detailBasePlural = bp.displayNamePlural || bp.displayName
+  const listLabel = listNavKey
+    ? (detailFrameworkRef
+        ? `${formatFrameworkRef(detailFrameworkRef)} ${stripFrameworkPrefix(_detailBasePlural)}`
+        : _detailBasePlural)
+    : null
 
   useUserTaskSocket(currentUserId, {
     watchEntityType:      bp?.entityType,
@@ -1264,9 +1392,13 @@ function ModuleDetailView({ bp, id }) {
     }
   }
 
-  // Navigate to this entity's own list page
+  // Navigate to this entity's own list page — preserve frameworkRef so the user
+  // returns to the framework-scoped list they came from, not the generic one.
   const navigateToList = () => {
-    if (listNavKey) navigate(`/module/${listNavKey}`)
+    if (!listNavKey) return
+    navigate(detailFrameworkRef
+      ? `/module/${listNavKey}?frameworkRef=${encodeURIComponent(detailFrameworkRef)}`
+      : `/module/${listNavKey}`)
   }
 
   // Back button: go to parent or list page
@@ -1500,28 +1632,8 @@ function ModuleDetailView({ bp, id }) {
           </div>
         )}
 
-        {tab === 'workflow' && bp.supportsWorkflow && (
-          <WorkflowTab entityType={bp.entityType} entityId={id} vc={vc} bp={bp} entity={entity} />
-        )}
-
-        {tab === 'actions' && bp.supportsActionItems && (
-          <ItemActionItems entityType={bp.entityType} entityId={Number(id)} />
-        )}
-
-        {tab === 'evidence' && bp.supportsDocuments && (
-          bp.entityType === 'AUDIT_CONTROL_INSTANCE'
-            ? <ControlInstanceEvidenceTab controlInstanceId={entity?.id} vc={vc} />
-            : bp.entityType === 'AUDIT_TEST_INSTANCE'
-              ? <TestInstanceEvidenceTab testInstanceId={entity?.id} vc={vc} />
-              : <EvidenceTab entityId={id} entityType={bp.entityType} vc={vc} />
-        )}
-
-        {tab === 'comments' && bp.supportsComments && (
-          <CommentFeed entityType={bp.entityType} entityId={Number(id)} />
-        )}
-
-        {tab === 'history' && (
-          <HistoryTab entityType={bp.entityType} entityId={id} apiBasePath={bp.apiBasePath} />
+        {['workflow','actions','evidence','comments','history'].includes(tab) && (
+          <CapabilityTabBody tab={tab} bp={bp} id={id} entity={entity} vc={vc} />
         )}
 
         {/* ── Custom tabs from Screen Designer tabsJson ──────────────────── */}
@@ -1879,7 +1991,7 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
 
   // AUDIT_POLICY_INSTANCE — policy content + mapped controls
   if (tabKey === 'policy-content' && entityType === 'AUDIT_POLICY_INSTANCE') {
-    return <PolicyContentTab entity={entity} />
+    return <PolicyContentTab entity={entity} vc={vc} />
   }
   if (tabKey === 'mapped-controls' && entityType === 'AUDIT_POLICY_INSTANCE') {
     return <PolicyInstanceMappedControlsTab policyInstanceId={entity?.id} vc={vc} />
@@ -2113,6 +2225,22 @@ function IssueFindingsTab({ issueId }) {
         </div>
       ))}
     </div>
+  )
+}
+
+// Comments tab — wires the generic useComments hook (fetch + WebSocket live
+// updates + add mutation) into the presentational CommentFeed. Same data flow
+// the Assessment pages use, made generic for any module entity.
+function ModuleCommentsTab({ entityType, entityId }) {
+  const { comments, isLoading, addComment, adding } = useComments(entityType, entityId)
+  return (
+    <CommentFeed
+      comments={comments}
+      isLoading={isLoading}
+      addComment={addComment}
+      adding={adding}
+      canEdit={true}
+    />
   )
 }
 
@@ -2607,10 +2735,15 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
   const headerFields = useMemo(() => drawerHeaderFormRes?.fields || [], [drawerHeaderFormRes])
 
   // ── 5. Comments ───────────────────────────────────────────────────────────
-  const hasComments  = bp.capabilities?.includes?.('COMMENTS')  ?? true
-  const hasEvidence  = bp.capabilities?.includes?.('DOCUMENTS') ?? true
-  const hasActions   = bp.capabilities?.includes?.('ACTION_ITEMS') ?? true
-  const hasWorkflow  = bp.capabilities?.includes?.('WORKFLOW')   ?? false
+  // Read the SAME capability booleans the full detail page uses (bp.supportsXxx).
+  // The old bp.capabilities?.includes?.(...) array never exists on the blueprint
+  // response, so every flag fell through to the `?? true` default and the drawer
+  // showed all tabs regardless of the toggles.
+  const hasComments  = !!bp.supportsComments
+  const hasEvidence  = !!bp.supportsDocuments
+  const hasActions   = !!bp.supportsActionItems
+  const hasWorkflow  = !!bp.supportsWorkflow
+  const hasHistory   = !!bp.supportsHistory
 
   const { data: commentsRes, refetch: refetchComments } = useQuery({
     queryKey: ['drawer-comments', bp.entityType, entityId],
@@ -2719,7 +2852,7 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
     } catch { return [] }
   }, [screenConfig])
 
-  const CAPABILITY_TAB_KEYS = new Set(['overview','comments','evidence','actions','workflow'])
+  const CAPABILITY_TAB_KEYS = new Set(['overview','comments','evidence','actions','workflow','history'])
   const drawerCustomTabs = drawerSdTabs.filter(t => !CAPABILITY_TAB_KEYS.has(t.key))
 
   const TABS = [
@@ -2731,6 +2864,7 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
     { id: 'evidence',  label: 'Evidence',  hidden: !hasEvidence },
     { id: 'actions',   label: 'Action items', hidden: !hasActions },
     { id: 'workflow',  label: 'Workflow',  hidden: !hasWorkflow },
+    { id: 'history',   label: 'History',   hidden: !hasHistory },
   ].filter(t => !t.hidden)
 
   const [activeTab, setActiveTab] = useState('overview')
@@ -2825,7 +2959,7 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
         </div>
 
         {/* ── Tab bar ── */}
-        <div className="flex items-center border-b border-border shrink-0 px-5 overflow-x-auto">
+        <div className="flex items-center border-b border-border shrink-0 px-5 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {isLoading ? (
             // Skeleton tabs while loading
             <div className="flex items-center gap-1 py-2">
@@ -2851,12 +2985,6 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
               )}
             </button>
           ))}
-          {/* History always links to full page */}
-          <button onClick={onOpenFull}
-            className="flex items-center gap-1 px-3 py-2.5 text-xs text-text-muted hover:text-text-secondary
-                       border-b-2 border-transparent -mb-px transition-colors shrink-0 whitespace-nowrap">
-            History <ExternalLink size={9} className="ml-0.5" />
-          </button>
         </div>
 
         {/* ── Scrollable tab content ── */}
@@ -3041,38 +3169,10 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
           )}
 
           {/* ── COMMENTS ── */}
-          {!isLoading && activeTab === 'comments' && (
-            <div className="flex flex-col h-full">
-              <div className="flex-1 overflow-y-auto px-5 py-4">
-                <CommentFeed
-                  comments={comments}
-                  isLoading={false}
-                  addComment={(data) => addCommentMut.mutate(data.commentText || data)}
-                  adding={addCommentMut.isPending}
-                  canEdit
-                  emptyMessage="No comments yet — add one below."
-                />
-              </div>
-            </div>
-          )}
-
-          {/* ── EVIDENCE ── */}
-          {!isLoading && activeTab === 'evidence' && (
+          {/* ── CAPABILITY TABS — same components as the full detail page ── */}
+          {!isLoading && ['comments','evidence','actions'].includes(activeTab) && (
             <div className="px-5 py-4">
-              <EvidenceUploader
-                entityType={bp.entityType}
-                entityId={entityId}
-              />
-            </div>
-          )}
-
-          {/* ── ACTION ITEMS ── */}
-          {!isLoading && activeTab === 'actions' && (
-            <div className="px-5 py-4">
-              <ItemActionItems
-                entityType={bp.entityType}
-                entityId={entityId}
-              />
+              <CapabilityTabBody tab={activeTab} bp={bp} id={entityId} entity={entity} vc={vc} />
             </div>
           )}
 
@@ -3092,20 +3192,10 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
             </div>
           )}
 
-          {/* ── WORKFLOW — nudge to full page ── */}
-          {!isLoading && activeTab === 'workflow' && (
-            <div className="px-5 py-8 flex flex-col items-center gap-3 text-center">
-              <div className="w-10 h-10 rounded-full bg-surface-overlay flex items-center justify-center">
-                <GitBranch size={18} className="text-text-muted" />
-              </div>
-              <p className="text-sm font-medium text-text-secondary">Workflow timeline</p>
-              <p className="text-xs text-text-muted max-w-xs">
-                The full workflow history, step assignments, and re-evaluation options are
-                available on the full page view.
-              </p>
-              <Button size="sm" icon={ExternalLink} onClick={onOpenFull}>
-                Open full page
-              </Button>
+          {/* ── WORKFLOW + HISTORY — same components as the full detail page ── */}
+          {!isLoading && ['workflow','history'].includes(activeTab) && (
+            <div className="px-5 py-4">
+              <CapabilityTabBody tab={activeTab} bp={bp} id={entityId} entity={entity} vc={vc} />
             </div>
           )}
         </div>

@@ -7,7 +7,8 @@
  * Data: GET /v1/audit/policy-instances/{id}/controls → AuditControlInstance rows
  *       Each row includes: reviewContribution, mappingType, testResult
  */
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -43,22 +44,48 @@ function ContributionPicker({ policyInstanceId, controlInstanceId, current, canE
     onError: e => toast.error(e?.response?.data?.message||'Failed'),
   })
   const cfg = CONTRIBUTION[current] || CONTRIBUTION.PENDING
+  const [coords,setCoords] = useState(null)
+  const [flipUp,setFlipUp] = useState(false)
+  const btnRef = useRef(null)
+  const menuRef = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const h = (e) => {
+      const inBtn = btnRef.current && btnRef.current.contains(e.target)
+      const inMenu = menuRef.current && menuRef.current.contains(e.target)
+      if (!inBtn && !inMenu) setOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+  const toggle = (e) => {
+    e.stopPropagation()
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setFlipUp(window.innerHeight - rect.bottom < 180)
+      setCoords({ right: window.innerWidth - rect.right, top: rect.bottom, bottom: window.innerHeight - rect.top })
+    }
+    setOpen(o=>!o)
+  }
   if (!canEdit) return <span className={cn('text-[9px] px-1.5 py-0.5 rounded font-medium',cfg.color,cfg.bg)}>{cfg.label}</span>
   return (
-    <div className="relative" onClick={e=>e.stopPropagation()}>
-      <button onClick={()=>setOpen(o=>!o)} disabled={isPending}
+    <div className="relative" ref={btnRef} onClick={e=>e.stopPropagation()}>
+      <button onClick={toggle} disabled={isPending}
         className={cn('flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded border border-transparent hover:border-border disabled:opacity-50',cfg.color,cfg.bg)}>
         {cfg.label}{open?<ChevronUp size={7}/>:<ChevronDown size={7}/>}
       </button>
-      {open && (
-        <div className="absolute top-full right-0 mt-1 w-28 bg-surface-raised border border-border rounded-card shadow-elevated z-50 py-1">
+      {open && coords && createPortal(
+        <div ref={menuRef}
+          style={{ position:'fixed', right:coords.right, ...(flipUp?{bottom:coords.bottom+4}:{top:coords.top+4}) }}
+          className="w-28 bg-surface-raised border border-border rounded-card shadow-elevated z-[9999] py-1">
           {Object.entries(CONTRIBUTION).map(([k,v]) => (
             <button key={k} onClick={()=>{mutate(k);setOpen(false)}}
               className={cn('w-full text-left px-3 py-1.5 text-[11px] hover:bg-surface-overlay',k===current?`${v.color} ${v.bg}`:'text-text-secondary')}>
               {v.label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

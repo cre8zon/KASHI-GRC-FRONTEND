@@ -4,7 +4,7 @@ import {
   Plus, Pencil, Trash2, Search, ChevronRight, ChevronDown,
   Layers, Settings, Eye, EyeOff, GripVertical, Code2,
   CheckCircle2, XCircle, Zap, FileText, MessageSquare,
-  Upload, GitBranch, Navigation, Globe, Lock, RefreshCw,
+  Upload, GitBranch, Navigation, Globe, Lock, RefreshCw, Activity,
   ArrowRight, Info, AlertTriangle, Sparkles,
 } from 'lucide-react'
 import { PageLayout } from '../../../components/layout/PageLayout'
@@ -79,6 +79,7 @@ const EMPTY_BLUEPRINT = {
   allowedSides: 'ORGANIZATION,SYSTEM', requiredFeature: null,
   supportsActionItems: true, supportsDocuments: true,
   supportsComments: true, supportsWorkflow: true,
+  supportsHistory: true,
   showInNav: true, sortOrder: 0, navKey: '',
   fieldsSchemaJson: JSON.stringify({ sections: [] }, null, 2),
   statusFlowJson: JSON.stringify({ statuses: [], transitions: [] }, null, 2),
@@ -373,6 +374,7 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
                   { key: 'supportsActionItems', label: 'Action items', icon: CheckCircle2 },
                   { key: 'supportsDocuments', label: 'Documents', icon: Upload },
                   { key: 'supportsComments', label: 'Comments', icon: MessageSquare },
+                  { key: 'supportsHistory', label: 'History', icon: Activity },
                   { key: 'showInNav', label: 'Navigation', icon: Navigation },
                 ].map(c => (
                   <div key={c.key} className={cn('flex items-center gap-2 px-3 py-2 rounded-card border text-xs',
@@ -550,7 +552,7 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
             {/* Hint banner — shown when any capability is disabled */}
             {[
               'supportsWorkflow','supportsActionItems','supportsDocuments',
-              'supportsComments','showInNav'
+              'supportsComments','supportsHistory','showInNav'
             ].some(k => !bp[k]) && (
               <div className="flex items-start gap-2 px-3 py-2.5 rounded-card border border-status-warn-bd bg-status-warn-bg mb-3">
                 <span className="text-status-warn-fg mt-0.5 shrink-0">⚙</span>
@@ -565,6 +567,7 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
               { key: 'supportsActionItems', label: 'Action items',  desc: 'Action items can be linked to records of this type — shows the Action Items tab', icon: CheckCircle2 },
               { key: 'supportsDocuments',   label: 'Documents',     desc: 'Evidence documents can be uploaded to records — shows the Evidence tab', icon: Upload },
               { key: 'supportsComments',    label: 'Comments',      desc: 'Discussion threads appear on detail pages — shows the Comments tab', icon: MessageSquare },
+              { key: 'supportsHistory',     label: 'History',       desc: 'Audit trail of all status changes and actions — shows the History tab', icon: Activity },
               { key: 'showInNav',           label: 'Navigation',    desc: 'Module appears in the sidebar navigation', icon: Navigation },
             ].map(c => (
               <div key={c.key} className={cn(
@@ -824,6 +827,7 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
             { key: 'supportsActionItems', label: 'Action items', desc: 'Show Action Items tab on detail page', icon: CheckCircle2 },
             { key: 'supportsDocuments', label: 'Documents & evidence', desc: 'Show Evidence tab with file upload', icon: Upload },
             { key: 'supportsComments', label: 'Comments', desc: 'Show Comment Feed on detail page', icon: MessageSquare },
+            { key: 'supportsHistory', label: 'History', desc: 'Show History tab (audit trail of status changes and actions)', icon: Activity },
             { key: 'showInNav', label: 'Show in navigation', desc: 'Module appears in sidebar (requires nav entry)', icon: Navigation },
           ].map(c => (
             <button key={c.key} onClick={() => toggle(c.key)}
