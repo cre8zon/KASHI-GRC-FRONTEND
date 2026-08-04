@@ -13,6 +13,7 @@
  */
 
 import { useState, useMemo, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSelector } from 'react-redux'
 import { selectAuth } from '../../store/slices/authSlice'
@@ -36,6 +37,16 @@ const fetchEligibleUsers = (stepInstanceId) =>
 const assignAuditor        = (eid, sid, body) => api.put(`/v1/audit/engagements/${eid}/sections/${sid}/assign`, body)
 const assignSectionAuditee = (eid, sid, body) => api.put(`/v1/audit/engagements/${eid}/sections/${sid}/assign-auditee`, body)
 const assignControlAuditee = (eid, cid, body) => api.put(`/v1/audit/engagements/${eid}/controls/${cid}/assign-auditee`, body)
+const apiBulkAssignSections = (eid, body) => api.post(`/v1/audit/engagements/${eid}/sections/bulk-assign`, body)
+
+// Collect every section id in a (possibly nested) tree — for select-all.
+function collectSectionIds(nodes, acc = []) {
+  for (const n of nodes || []) {
+    acc.push(n.id)
+    if (n._children?.length) collectSectionIds(n._children, acc)
+  }
+  return acc
+}
 const submitSection        = (eid, sid, body) => api.post(`/v1/audit/engagements/${eid}/sections/${sid}/submit`, body)
 const reopenSection        = (eid, sid)       => api.post(`/v1/audit/engagements/${eid}/sections/${sid}/reopen`)
 
@@ -107,11 +118,17 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
   const [open, setOpen]     = useState(false)
   const [query, setQuery]   = useState('')
   const [flipUp, setFlipUp] = useState(false)
+  const [coords, setCoords] = useState(null) // {left, top, bottom} viewport coords for the portal dropdown
   const ref                 = useRef(null)
   const btnRef              = useRef(null)
+  const menuRef             = useRef(null)
 
   useEffect(() => {
-    function handleClick(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    function handleClick(e) {
+      const inBtn  = ref.current && ref.current.contains(e.target)
+      const inMenu = menuRef.current && menuRef.current.contains(e.target)
+      if (!inBtn && !inMenu) setOpen(false)
+    }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
@@ -120,7 +137,11 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
     e.stopPropagation()
     if (!open && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect()
-      setFlipUp(window.innerHeight - rect.bottom < 260)
+      const flip = window.innerHeight - rect.bottom < 260
+      setFlipUp(flip)
+      // Fixed viewport coords so the dropdown (rendered in a portal) escapes any
+      // overflow-clipping ancestor. Right-align to the button's right edge.
+      setCoords({ right: window.innerWidth - rect.right, top: rect.bottom, bottom: window.innerHeight - rect.top })
     }
     setOpen(o => !o)
   }
@@ -163,11 +184,15 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
         {open ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
       </button>
 
-      {open && (
-        <div className={cn(
-          'absolute right-0 w-52 bg-surface-raised border border-border rounded-card shadow-elevated z-[200] overflow-hidden',
-          flipUp ? 'bottom-full mb-1' : 'top-full mt-1'
-        )}>
+      {open && coords && createPortal(
+        <div
+          ref={menuRef}
+          style={{
+            position: 'fixed',
+            right: coords.right,
+            ...(flipUp ? { bottom: coords.bottom + 4 } : { top: coords.top + 4 }),
+          }}
+          className="w-52 bg-surface-raised border border-border rounded-card shadow-elevated z-[9999] overflow-hidden">
           <div className="p-1.5 border-b border-border">
             <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-overlay rounded-ctl">
               <Search size={10} className="text-text-muted shrink-0" />
@@ -216,7 +241,8 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
               </button>
             ))}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
@@ -341,6 +367,7 @@ function SectionNode({
   canAssignAuditor, canAssignAuditee, canSubmit, canReopen,
   auditorUsers, auditeeUsers, auditorUsersLoading, auditeeUsersLoading,
   currentUserId,
+  selectedSectionIds, onToggleSelect, bulkSelectable,
   depth = 0,
 }) {
   const [open, setOpen]   = useState(depth < 1)
@@ -405,6 +432,14 @@ function SectionNode({
             ? open ? <ChevronDown size={11} /> : <ChevronRight size={11} />
             : <span className="w-[11px]" />}
         </span>
+
+        {bulkSelectable && (
+          <input type="checkbox"
+            checked={selectedSectionIds?.has(node.id) || false}
+            onChange={(e) => { e.stopPropagation(); onToggleSelect(node.id) }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-3 h-3 accent-brand-500 cursor-pointer shrink-0"/>
+        )}
 
         <span
           onClick={() => onSelectSection(node)}
@@ -506,6 +541,9 @@ function SectionNode({
           key={child.id}
           node={child}
           controlsBySection={controlsBySection}
+          selectedSectionIds={selectedSectionIds}
+          onToggleSelect={onToggleSelect}
+          bulkSelectable={bulkSelectable}
           onSelectSection={onSelectSection}
           onSelectControl={onSelectControl}
           engagementId={engagementId}
@@ -577,6 +615,12 @@ export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, o
   const auth           = useSelector(selectAuth)
   const currentUserId  = auth?.userId
   const [myView, setMyView] = useState(false)
+  const qcBulk = useQueryClient()
+  // Bulk multi-select assignment — mirrors EngagementControlsTab.
+  const [selectedSectionIds, setSelectedSectionIds] = useState(new Set())
+  const [showBulkPanel, setShowBulkPanel]           = useState(false)
+  const [bulkAuditorId, setBulkAuditorId]           = useState(null)
+  const [bulkAuditeeId, setBulkAuditeeId]           = useState(null)
 
   const { data: secData, isLoading: secLoading } = useQuery({
     queryKey: ['eng-sections', engagementId],
@@ -700,6 +744,40 @@ export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, o
   }, [fullTree, effectiveMyView, currentUserId])
 
   const displayControlsBySection = controlsBySection
+
+  // ── Bulk assign (mirrors EngagementControlsTab) ─────────────────────────────
+  const allVisibleSectionIds = useMemo(
+    () => collectSectionIds(displayTree), [displayTree])
+  const bulkMut = useMutation({
+    mutationFn: (body) => apiBulkAssignSections(engagementId, body),
+    onSuccess: (res) => {
+      const n = res?.data?.updated ?? res?.updated ?? selectedSectionIds.size
+      toast.success(`Assigned ${n} section${n !== 1 ? 's' : ''}`)
+      qcBulk.invalidateQueries({ queryKey: ['eng-sections', engagementId] })
+      qcBulk.invalidateQueries({ queryKey: ['eng-controls', engagementId] })
+      setSelectedSectionIds(new Set())
+      setBulkAuditorId(null); setBulkAuditeeId(null)
+      setShowBulkPanel(false)
+    },
+    onError: (e) => toast.error(e?.response?.data?.message || 'Bulk assign failed'),
+  })
+  const doBulkAssign = () => {
+    if (selectedSectionIds.size === 0) return
+    if (!bulkAuditorId && !bulkAuditeeId) { toast.error('Select a user to assign'); return }
+    bulkMut.mutate({
+      sectionIds: Array.from(selectedSectionIds),
+      auditorUserId: bulkAuditorId || undefined,
+      auditeeUserId: bulkAuditeeId || undefined,
+    })
+  }
+  const toggleSectionSelect = (id) => setSelectedSectionIds(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
+  const toggleSelectAllSections = () => setSelectedSectionIds(prev =>
+    prev.size === allVisibleSectionIds.length ? new Set() : new Set(allVisibleSectionIds))
+  const bulkEnabled = canAssignAuditor || canAssignAuditee
 
   const assignedSections  = sections.filter(s => s.assignedAuditorId).length
   const submittedSections = sections.filter(s => s.submittedAt).length
@@ -832,11 +910,70 @@ export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, o
         </div>
       )}
 
+      {/* ── Bulk assignment toolbar (mirrors EngagementControlsTab) ── */}
+      {bulkEnabled && allVisibleSectionIds.length > 0 && (
+        <div className="shrink-0 border-b border-border">
+          <div className="flex items-center gap-2 px-3 py-1.5">
+            <div className="flex items-center gap-1.5">
+              <input type="checkbox"
+                checked={selectedSectionIds.size === allVisibleSectionIds.length && allVisibleSectionIds.length > 0}
+                ref={el => { if (el) el.indeterminate = selectedSectionIds.size > 0 && selectedSectionIds.size < allVisibleSectionIds.length }}
+                onChange={toggleSelectAllSections}
+                className="w-3 h-3 accent-brand-500 cursor-pointer"/>
+              <span className="text-[10px] text-text-muted">
+                {selectedSectionIds.size > 0
+                  ? `${selectedSectionIds.size} selected`
+                  : 'Select sections'}
+              </span>
+            </div>
+            {selectedSectionIds.size > 0 && (
+              <button onClick={() => setShowBulkPanel(p => !p)}
+                className="shrink-0 text-[10px] px-2 py-1 rounded bg-brand-500/15 text-brand-ink border border-brand-500/30 hover:bg-brand-500/25 whitespace-nowrap ml-auto">
+                Assign {selectedSectionIds.size} section{selectedSectionIds.size !== 1 ? 's' : ''}…
+              </button>
+            )}
+          </div>
+          {showBulkPanel && selectedSectionIds.size > 0 && (
+            <div className="px-3 py-2 border-t border-brand-500/30 bg-brand-500/5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold text-brand-ink">
+                  Bulk assign {selectedSectionIds.size} section{selectedSectionIds.size !== 1 ? 's' : ''} (cascades to child controls)
+                </span>
+                <button onClick={() => setShowBulkPanel(false)} className="text-text-muted hover:text-text-primary"><X size={10}/></button>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                {canAssignAuditor && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] text-text-muted">Auditor:</span>
+                    <UserPicker value={bulkAuditorId} users={auditorUsers}
+                      onChange={setBulkAuditorId} placeholder="Pick auditor"/>
+                  </div>
+                )}
+                {canAssignAuditee && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] text-text-muted">Auditee:</span>
+                    <UserPicker value={bulkAuditeeId} users={auditeeUsers}
+                      onChange={setBulkAuditeeId} placeholder="Pick auditee"/>
+                  </div>
+                )}
+                <button onClick={doBulkAssign} disabled={bulkMut.isPending || (!bulkAuditorId && !bulkAuditeeId)}
+                  className="text-[10px] px-2.5 py-1 rounded bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+                  {bulkMut.isPending ? 'Assigning…' : `Assign to ${selectedSectionIds.size} section${selectedSectionIds.size !== 1 ? 's' : ''}`}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto">
         {displayTree.map(node => (
           <SectionNode
             key={node.id}
             node={node}
+            selectedSectionIds={selectedSectionIds}
+            onToggleSelect={toggleSectionSelect}
+            bulkSelectable={bulkEnabled}
             controlsBySection={displayControlsBySection}
             onSelectSection={(item) => setSelected({ item, type: 'section' })}
             onSelectControl={(item) => setSelected({ item, type: 'control' })}

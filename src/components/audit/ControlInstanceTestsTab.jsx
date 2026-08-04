@@ -7,7 +7,8 @@
  * Permission gates (from vc.permissions):
  *   audit:control:record-test-result → show result picker per test
  */
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -37,15 +38,41 @@ function ResultBadge({ result }) {
 
 function ResultPicker({ current, onSelect, saving }) {
   const [open, setOpen] = useState(false)
+  const [coords, setCoords] = useState(null)
+  const [flipUp, setFlipUp] = useState(false)
+  const btnRef = useRef(null)
+  const menuRef = useRef(null)
   const r = RES[current] || RES.NOT_RUN
+  // Close on outside click — account for the portaled menu (rendered on body).
+  useEffect(() => {
+    if (!open) return
+    const h = (e) => {
+      const inBtn = btnRef.current && btnRef.current.contains(e.target)
+      const inMenu = menuRef.current && menuRef.current.contains(e.target)
+      if (!inBtn && !inMenu) setOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+  const toggle = (e) => {
+    e.stopPropagation()
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setFlipUp(window.innerHeight - rect.bottom < 200)
+      setCoords({ left: rect.left, top: rect.bottom, bottom: window.innerHeight - rect.top })
+    }
+    setOpen(o => !o)
+  }
   return (
-    <div className="relative" onClick={e => e.stopPropagation()}>
-      <button onClick={() => setOpen(o => !o)} disabled={saving}
+    <div className="relative" ref={btnRef} onClick={e => e.stopPropagation()}>
+      <button onClick={toggle} disabled={saving}
         className={cn('flex items-center gap-1 text-[10px] px-2 py-0.5 rounded border disabled:opacity-50 hover:opacity-80',r.color,r.bg,r.border)}>
         <r.icon size={9}/>{r.label}{open?<ChevronUp size={8}/>:<ChevronDown size={8}/>}
       </button>
-      {open && (
-        <div className="absolute top-full left-0 mt-1 w-32 bg-surface-raised border border-border rounded-card shadow-elevated z-50 py-1">
+      {open && coords && createPortal(
+        <div ref={menuRef}
+          style={{ position:'fixed', left:coords.left, ...(flipUp?{bottom:coords.bottom+4}:{top:coords.top+4}) }}
+          className="w-32 bg-surface-raised border border-border rounded-card shadow-elevated z-[9999] py-1">
           {RESULTS.map(opt => (
             <button key={opt.value} onClick={() => { onSelect(opt.value); setOpen(false) }}
               className={cn('w-full flex items-center gap-2 px-3 py-1.5 text-[11px] hover:bg-surface-overlay',
@@ -54,7 +81,8 @@ function ResultPicker({ current, onSelect, saving }) {
               {opt.value===current && <CheckCircle2 size={9} className="ml-auto text-brand-ink"/>}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

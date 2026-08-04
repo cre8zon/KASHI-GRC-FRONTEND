@@ -42,6 +42,28 @@ const DEFAULT_TYPE = { icon: Bell, color: 'text-text-muted', label: 'Notificatio
 // ── Build navigation URL from notification entity ─────────────────────────────
 function buildNavUrl(notification) {
   const { entityType, entityId, type } = notification
+  const isComment = type === 'MENTIONED_IN_COMMENT' || type === 'NEW_COMMENT'
+  // For comment notifications landing on a module detail page, open the Comments
+  // tab directly via ?tab=comments (the detail page reads this param).
+  const withCommentTab = (url) => isComment && url.startsWith('/module/')
+    ? `${url}?tab=comments` : url
+
+  // COMMENT notifications first: go straight to the commented entity's detail page
+  // with the Comments tab open. QUESTION_RESPONSE has no module page → action items.
+  if (isComment && entityType && entityId) {
+    if (entityType === 'QUESTION_RESPONSE') return '/action-items'
+    // Map known entityTypes to their route; default to the lowercased module route.
+    const ROUTE = {
+      AUDIT_CONTROL_INSTANCE: 'audit_control_instance',
+      AUDIT_TEST_INSTANCE:    'audit_test_instance',
+      AUDIT_POLICY_INSTANCE:  'audit_policy_instance',
+      AUDIT_FINDING:          'audit_finding',
+      AUDIT_ENGAGEMENT:       'audit_engagement',
+      ISSUE:                  'issue',
+    }
+    const seg = ROUTE[entityType] || entityType.toLowerCase()
+    return `/module/${seg}/${entityId}?tab=comments`
+  }
 
   // Type-based routing (more reliable than entityType for action item events)
   if (type?.startsWith('ACTION_ITEM') || type === 'ANSWER_UPDATED') {
@@ -55,9 +77,10 @@ function buildNavUrl(notification) {
     // Route responder to their task inbox where they'll see the active fill task
     return '/workflow/inbox'
   }
-  if (type === 'MENTIONED_IN_COMMENT' || type === 'NEW_COMMENT') {
-    return '/action-items'
-  }
+  // Comment notifications (MENTIONED_IN_COMMENT / NEW_COMMENT) intentionally fall
+  // through to entity-based routing below — comments now exist on every module
+  // entity, so the link must go to that entity's detail page, not a blanket
+  // /action-items. (QUESTION_RESPONSE still maps to /action-items in the switch.)
 
   // Entity-based routing fallback
   if (!entityType || !entityId) return null
@@ -67,12 +90,23 @@ function buildNavUrl(notification) {
     case 'ASSESSMENT':            return `/assessments/${entityId}`
     case 'TASK':                  return '/workflow/inbox'
     case 'VENDOR':                return `/tprm/vendors/${entityId}`
-    case 'AUDIT_CONTROL_INSTANCE': return `/module/audit_control_instance/${entityId}`
+    case 'AUDIT_CONTROL_INSTANCE': return withCommentTab(`/module/audit_control_instance/${entityId}`)
     case 'AUDIT_SECTION_INSTANCE': return `/module/audit_engagement/${entityId}`
     case 'AUDIT_ENGAGEMENT':       return `/module/audit_engagement/${entityId}`
     case 'AUDIT_PROJECT':          return `/module/audit_project/${entityId}`
     case 'AUDIT_SECTION_ASSIGNED': return `/module/audit_engagement/${entityId}`
-    default:                      return null
+    case 'AUDIT_TEST_INSTANCE':    return withCommentTab(`/module/audit_test_instance/${entityId}`)
+    case 'AUDIT_POLICY_INSTANCE':  return withCommentTab(`/module/audit_policy_instance/${entityId}`)
+    case 'AUDIT_FINDING':          return withCommentTab(`/module/audit_finding/${entityId}`)
+    case 'ISSUE':                  return withCommentTab(`/module/issue/${entityId}`)
+    default:
+      // For comment notifications on a module entity not explicitly listed,
+      // route to its module detail page (entityType lowercased). Other unknown
+      // types keep the previous behaviour (no link).
+      if (isComment) {
+        return `/module/${entityType.toLowerCase()}/${entityId}?tab=comments`
+      }
+      return null
   }
 }
 

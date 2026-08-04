@@ -18,14 +18,14 @@
  */
 
 import { useState, useMemo, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSelector } from 'react-redux'
 import { selectAuth } from '../../store/slices/authSlice'
 import {
   CheckSquare, CheckCircle2, XCircle, AlertTriangle, MinusCircle,
   ChevronRight, Search, Users, UserCheck,
-  CheckCheck, Minus, X, ChevronDown, ChevronUp, AlertOctagon, Eye, EyeOff,
-} from 'lucide-react'
+  CheckCheck, Minus, X, ChevronDown, ChevronUp, AlertOctagon, Eye, EyeOff, FileText } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api    from '../../config/axios.config'
 import { cn } from '../../lib/cn'
@@ -99,10 +99,12 @@ function UserPicker({ users=[], value, onChange, loading, placeholder }) {
   const [open,setOpen]=useState(false)
   const [query,setQuery]=useState('')
   const [flipUp,setFlipUp]=useState(false)
+  const [coords,setCoords]=useState(null)
   const ref=useRef(null)
   const btnRef=useRef(null)
-  useEffect(()=>{ const h=(e)=>{ if(ref.current&&!ref.current.contains(e.target)) setOpen(false) }; document.addEventListener('mousedown',h); return()=>document.removeEventListener('mousedown',h) },[])
-  const handleToggle=(e)=>{ e.stopPropagation(); if(!open&&btnRef.current){ const rect=btnRef.current.getBoundingClientRect(); setFlipUp(window.innerHeight-rect.bottom<220) }; setOpen(o=>!o) }
+  const menuRef=useRef(null)
+  useEffect(()=>{ const h=(e)=>{ const inBtn=ref.current&&ref.current.contains(e.target); const inMenu=menuRef.current&&menuRef.current.contains(e.target); if(!inBtn&&!inMenu) setOpen(false) }; document.addEventListener('mousedown',h); return()=>document.removeEventListener('mousedown',h) },[])
+  const handleToggle=(e)=>{ e.stopPropagation(); if(!open&&btnRef.current){ const rect=btnRef.current.getBoundingClientRect(); setFlipUp(window.innerHeight-rect.bottom<220); setCoords({right:window.innerWidth-rect.right, top:rect.bottom, bottom:window.innerHeight-rect.top}) }; setOpen(o=>!o) }
   const selected=users.find(u=>uidOf(u)===value)
   const filtered=useMemo(()=>{ if(!query) return users; const q=query.toLowerCase(); return users.filter(u=>(userName(u)||'').toLowerCase().includes(q)) },[users,query])
   return (
@@ -114,8 +116,10 @@ function UserPicker({ users=[], value, onChange, loading, placeholder }) {
         <Users size={9}/>{selected ? <span className="max-w-[80px] truncate">{userName(selected)}</span> : <span>{placeholder||'Assign'}</span>}
         {open?<ChevronUp size={8}/>:<ChevronDown size={8}/>}
       </button>
-      {open && (
-        <div className={cn("absolute right-0 w-48 bg-surface-raised border border-border rounded-card shadow-elevated z-50 overflow-hidden", flipUp?"bottom-full mb-1":"top-full mt-1")}>
+      {open && coords && createPortal(
+        <div ref={menuRef}
+          style={{ position:'fixed', right:coords.right, ...(flipUp?{bottom:coords.bottom+4}:{top:coords.top+4}) }}
+          className="w-48 bg-surface-raised border border-border rounded-card shadow-elevated z-[9999] overflow-hidden">
           <div className="p-1 border-b border-border">
             <div className="flex items-center gap-1 px-2 py-0.5 bg-surface-overlay rounded text-[10px]">
               <Search size={9} className="text-text-muted"/><input autoFocus value={query} onChange={e=>setQuery(e.target.value)} onClick={e=>e.stopPropagation()} placeholder="Search…" className="flex-1 bg-transparent text-text-primary placeholder:text-text-muted outline-none"/>
@@ -133,7 +137,8 @@ function UserPicker({ users=[], value, onChange, loading, placeholder }) {
                 </button>
               ))}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
@@ -266,7 +271,9 @@ function ControlRow({ ctrl, engagementId, auditorUsers, auditeeUsers, auditeeUse
   const {mutate:doAssignAuditor,isPending:assigningAuditor}=useMutation({mutationFn:(uid)=>apiAssignAuditor(engagementId,ctrl.id,uid),onSuccess:()=>{toast.success('Auditor assigned');inv()},onError:(e)=>toast.error(e?.response?.data?.message||'Failed')})
   const {mutate:doAssign,isPending:assigning}=useMutation({mutationFn:(uid)=>apiAssignAuditee(engagementId,ctrl.id,uid),onSuccess:()=>{toast.success('Auditee assigned');inv()},onError:(e)=>toast.error(e?.response?.data?.message||'Failed')})
   const {mutate:doResult,isPending:recording}=useMutation({mutationFn:(r)=>apiTestResult(engagementId,ctrl.id,{testResult:r}),onSuccess:()=>{toast.success('Result recorded');inv()},onError:(e)=>toast.error(e?.response?.data?.message||'Failed')})
-  const evidenceSubmitted=!!ctrl.evidenceSubmittedAt||!!ctrl.auditeeEvidenceSubmitted
+  // hasEvidence (from backend) is true for ANY evidence link incl. reused/pending,
+  // so the tag/progress now reflects reused evidence too — not just direct submit.
+  const evidenceSubmitted=!!ctrl.evidenceSubmittedAt||!!ctrl.auditeeEvidenceSubmitted||!!ctrl.hasEvidence
 
   // Assignment-scoped action gating — role gives capability, assignment gives scope.
   // Auditor II can only record results on controls assigned to them.
@@ -299,7 +306,9 @@ function ControlRow({ ctrl, engagementId, auditorUsers, auditeeUsers, auditeeUse
         <div className="flex items-center gap-1.5 mb-0.5">
           {ctrl.controlCodeSnapshot&&<span className="font-mono text-[9px] text-brand-ink shrink-0">{ctrl.controlCodeSnapshot}</span>}
           {ctrl.controlTagSnapshot&&<span className="text-[9px] px-1 rounded bg-surface-overlay text-text-muted shrink-0">{ctrl.controlTagSnapshot}</span>}
-          {evidenceSubmitted&&<span className="text-[8px] text-status-pass-fg flex items-center gap-0.5 shrink-0"><CheckCheck size={8}/> evidence</span>}
+          {evidenceSubmitted&&<span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-status-pass-bg text-status-pass-fg border border-status-pass-bd flex items-center gap-1 shrink-0"><CheckCheck size={9}/> Evidence submitted</span>}
+          {/* Policy-attached indicator: green = has >=1 mapped policy, muted = none */}
+          {ctrl.hasPolicy && <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-status-tag-bg text-status-tag-fg border border-status-tag-bd flex items-center gap-1 shrink-0" title="At least one policy is attached to this control"><FileText size={9}/> Policy</span>}
         </div>
         <p className="text-[11px] text-text-primary line-clamp-1 group-hover:underline underline-offset-2">{ctrl.controlNameSnapshot}</p>
         {/* Assignment summary — visible always */}
@@ -508,7 +517,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
     auditorInherited:controls.filter(c=>!c.assignedAuditorId).length,
     auditeeAssigned:controls.filter(c=>c.auditeeAssignedUserId).length,
     auditeeInherited:controls.filter(c=>!c.auditeeAssignedUserId).length,
-    evidenceDone:controls.filter(c=>c.auditeeEvidenceSubmitted||c.evidenceSubmittedAt).length
+    evidenceDone:controls.filter(c=>c.auditeeEvidenceSubmitted||c.evidenceSubmittedAt||c.hasEvidence).length
   }),[controls])
   if(isLoading) return <div className="px-4 py-6 text-xs text-text-muted text-center">Loading controls…</div>
   if(!controls.length) return <div className="px-4 py-6 text-xs text-text-muted text-center">No controls in this engagement.</div>
@@ -652,7 +661,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
           {selectedControlIds.size > 0 && (
             <button onClick={()=>setShowBulkPanel(p=>!p)}
               className="shrink-0 text-[10px] px-2 py-1 rounded bg-brand-500/15 text-brand-ink border border-brand-500/30 hover:bg-brand-500/25 whitespace-nowrap">
-              Assign {selectedControlIds.size}…
+              Assign {selectedControlIds.size} control{selectedControlIds.size !== 1 ? 's' : ''}…
             </button>
           )}
         </div>
@@ -689,7 +698,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
               onClick={doBulkAssign}
               disabled={bulkMut.isPending || (!bulkAuditorId && !bulkAuditeeId)}
               className="ml-auto text-[10px] px-3 py-1 rounded bg-brand-500 text-brand-900 hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
-              {bulkMut.isPending ? 'Assigning…' : 'Assign'}
+              {bulkMut.isPending ? 'Assigning…' : `Assign to ${selectedControlIds.size} control${selectedControlIds.size !== 1 ? 's' : ''}`}
             </button>
           </div>
         </div>

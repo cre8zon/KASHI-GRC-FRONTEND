@@ -15,10 +15,16 @@ import { BRAND_PRESETS } from '../../config/brandPresets'
 // <input type="color"> only accepts a literal hex — a CSS var breaks the control.
 const COLOR_FIELD_DEFAULT = BRAND_PRESETS[0].hex
 
+// Lookup entity types that should be filtered by the current framework when a
+// frameworkRef context is present. AUDIT_TEMPLATE is the main one (the engagement
+// create form's template picker); add others (e.g. AUDIT_CONTROL) as needed.
+const FRAMEWORK_SCOPED_LOOKUPS = new Set(['AUDIT_TEMPLATE'])
+
 export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig, submitLabel = 'Submit', loading,
   hiddenFields = [],      // from vc.hiddenFields  — fields to hide entirely
   readOnlyFields = [],    // from vc.readOnlyFields — fields rendered as read-only text
   editableFields = null,  // from vc.editableFields — when set, ONLY these are editable (null = all editable)
+  contextParams = null,   // runtime params (e.g. { frameworkref }) injected into framework-scoped lookups
 }) {
   const { data: formConfig, isLoading: loadingForm } = useFormConfig(formKey)
   // formConfig.components is populated by the backend getForm endpoint,
@@ -113,6 +119,7 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
                 error={errors[field.fieldKey]?.message}
                 config={config}
                 isEditable={isEditable}
+                contextParams={contextParams}
               />
             </div>
           )
@@ -147,7 +154,7 @@ function FieldWrapper({ label, isRequired, helperText, error, type, children }) 
   )
 }
 
-function FormField({ field, register, control, error, config, isEditable = true }) {
+function FormField({ field, register, control, error, config, isEditable = true, contextParams = null }) {
   const { fieldKey: key, fieldType: type, label, placeholder, helperText, isRequired } = field
 
   // Gap 1: when read-only, render a plain text display instead of any interactive input.
@@ -237,6 +244,11 @@ function FormField({ field, register, control, error, config, isEditable = true 
               placeholder={placeholder}
               lookupEntityType={field.lookupEntityType}
               lookupApiPath={field.lookupApiPath}
+              // Framework-scoped lookups (e.g. AUDIT_TEMPLATE) get the runtime
+              // frameworkRef so they list only this framework's options. Other
+              // lookups (USER, WORKFLOW) are unaffected.
+              contextParams={FRAMEWORK_SCOPED_LOOKUPS.has(field.lookupEntityType?.toUpperCase?.())
+                ? contextParams : null}
               error={!!error}
             />
           } />
@@ -623,7 +635,7 @@ const LOOKUP_CONFIG = {
   AUDIT_POLICY:   { path: '/v1/audit/library/policies',   search: (q) => `title=${q}`, labelFn: (r) => r.title || r.name, subFn: (r) => r.policyRef || '' },
 }
 
-function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityType, lookupApiPath, error }) {
+function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityType, lookupApiPath, error, contextParams }) {
   // Resolve config — explicit path overrides entity type config
   const cfg = LOOKUP_CONFIG[lookupEntityType?.toUpperCase?.()] || LOOKUP_CONFIG.USER
 
@@ -639,6 +651,10 @@ function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityT
     const params = Object.fromEntries(new URLSearchParams(raw.slice(qIdx + 1)))
     return [base, params]
   })()
+  // Merge runtime context (e.g. { frameworkref: 'ISO27001' }) so the option
+  // list is filtered to the current framework. Placed after path params so it
+  // can't be accidentally overridden by a stale baked-in value.
+  const mergedParams = { ...extraParams, ...(contextParams || {}) }
 
   const searchFmt = cfg.search
   const getLabel  = cfg.labelFn
@@ -672,7 +688,7 @@ function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityT
   const loadInitial = async () => {
     if (results.length > 0) { setOpen(true); return }
     try {
-      const res = await api.get(basePath, { params: { ...extraParams, take: 10 } })
+      const res = await api.get(basePath, { params: { ...mergedParams, take: 10 } })
       const items = Array.isArray(res?.items) ? res.items
         : Array.isArray(res?.data?.items) ? res.data.items
         : Array.isArray(res?.data) ? res.data
@@ -689,7 +705,7 @@ function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityT
     debounce.current = setTimeout(async () => {
       try {
         const res = await api.get(basePath, {
-          params: { ...extraParams, search: searchFmt(query), take: 8 },
+          params: { ...mergedParams, search: searchFmt(query), take: 8 },
         })
         // axios interceptor unwraps ApiResponse.data, so res IS the payload directly
         // PaginatedResponse shape: { items: [...], pagination: {...} }

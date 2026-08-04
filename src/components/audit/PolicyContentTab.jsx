@@ -66,7 +66,11 @@ const REVIEW_OPTIONS = [
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export function PolicyContentTab({ entity }) {
+export function PolicyContentTab({ entity, vc = {} }) {
+  // SECURITY: recording an adequacy conclusion is an auditor action. Only show
+  // the review panel to users who hold audit:policy:review for this engagement.
+  // (The backend enforces the same permission; this hides the UI for auditees.)
+  const canReview = (vc.permissions || []).includes('audit:policy:review')
   const { engagementId } = entity || {}
   const qc = useQueryClient()
 
@@ -208,7 +212,8 @@ export function PolicyContentTab({ entity }) {
           </div>
         )}
 
-        {/* ── Auditor review panel ─────────────────────────────────────────── */}
+        {/* ── Auditor review panel — auditors only ─────────────────────────── */}
+        {canReview && (
         <div className="mx-4 mb-4 mt-2 border border-border rounded-card overflow-hidden">
 
           {/* Collapse toggle header */}
@@ -326,6 +331,7 @@ export function PolicyContentTab({ entity }) {
             </div>
           )}
         </div>
+        )}
 
       </div>
     </div>
