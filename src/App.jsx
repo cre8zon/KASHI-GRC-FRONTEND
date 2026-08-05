@@ -36,6 +36,7 @@ const UniversalModulePage = lazy(() => import('./pages/module/UniversalModulePag
 
 // Users & Roles
 const UserManagementPage  = lazy(() => import('./pages/users/UserManagementPage'))
+const UsersHubPage        = lazy(() => import('./pages/users/UsersHubPage'))
 const RolesPermissionsPage = lazy(() => import('./pages/roles/RolesPermissionsPage'))
 const UserListPage         = lazy(() => import('./pages/users/UserListPage'))
 
@@ -211,18 +212,20 @@ export default function App() {
             <Route path="/assessments/:id/review"           element={<AssessmentReviewPage />} />
             <Route path="/assessments/:id/assistant-review" element={<ReviewAssistantPage />} />
 
-            {/* Org side — Users & Roles */}
-            <Route path="/users" element={
-              isPlatformAdmin
-                ? <UserManagementPage side="SYSTEM" />
-                : <UserManagementPage side="ORGANIZATION" />
-            } />
+            {/* Users & Roles — one hub, side tabs inside it. Org sees every
+                side for its own tenant; Vendor/Auditee/Auditor each see only
+                their own side; System picks a tenant, then the same 4 tabs
+                scoped to it. Old /vendor/users, /auditee/users, /auditor/users
+                kept below as direct links for anywhere still pointing at them. */}
+            <Route path="/users" element={<UsersHubPage />} />
             <Route path="/roles" element={
               isPlatformAdmin
                 ? <RolesPermissionsPage side="SYSTEM" />
                 : <RolesPermissionsPage side="ORGANIZATION" />
             } />
             <Route path="/vendor/users"  element={<UserManagementPage side="VENDOR" />} />
+            <Route path="/auditee/users" element={<UserManagementPage side="AUDITEE" />} />
+            <Route path="/auditor/users" element={<UserManagementPage side="AUDITOR" />} />
 
             {/* Org side — Workflow overview */}
             <Route path="/workflow"

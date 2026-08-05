@@ -13,6 +13,7 @@
  *   - Sees automated integration checks
  *   - Can accept/reject automated evidence
  */
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Zap, Paperclip, CheckCircle2, Clock, XCircle,
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react'
 import api            from '../../config/axios.config'
 import EvidenceUploader from '../ui/EvidenceUploader'
+import { DocumentPreviewDrawer } from '../ui/DocumentPreviewDrawer'
 import { cn }         from '../../lib/cn'
 import toast          from 'react-hot-toast'
 
@@ -192,6 +194,11 @@ export function ControlInstanceEvidenceTab({ controlInstanceId, vc = {} }) {
   // Auditee = can submit but NOT record test result
   const isAuditee   = canSubmit && !isAuditor
 
+  // Reused-evidence preview — same drawer EvidenceUploader uses for manual
+  // uploads, so a reused link opens identically to a manually attached file
+  // instead of being plain unclickable text.
+  const [previewLink, setPreviewLink] = useState(null)
+
   // Automated evidence from integration checks
   const { data: linksData } = useQuery({
     queryKey: ['ctrl-inst-evidence-links', controlInstanceId],
@@ -250,7 +257,12 @@ export function ControlInstanceEvidenceTab({ controlInstanceId, vc = {} }) {
         <Section icon={Link2} label="Reused evidence" badge={reused.length}>
           <div className="divide-y divide-border/20 -mx-3 -mb-3">
             {reused.map(l => (
-              <div key={l.id} className="flex items-start gap-3 py-2.5 px-3">
+              <div key={l.id}
+                onClick={() => l.evidenceFileUrl && setPreviewLink(l)}
+                className={cn(
+                  'flex items-start gap-3 py-2.5 px-3 transition-colors',
+                  l.evidenceFileUrl && 'cursor-pointer hover:bg-brand-500/5'
+                )}>
                 <Link2 size={12} className="shrink-0 mt-0.5 text-text-muted" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-text-primary truncate">
@@ -266,7 +278,7 @@ export function ControlInstanceEvidenceTab({ controlInstanceId, vc = {} }) {
                   </div>
                 </div>
                 {canReview && l.status === 'PENDING_REVIEW' && (
-                  <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                  <div className="flex items-center gap-1 shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
                     <button onClick={() => review({ linkId: l.id, action: 'ACCEPT' })}
                       className="text-[9px] px-2 py-0.5 rounded-ctl bg-status-pass-bg text-status-pass-fg hover:bg-status-pass-bg font-medium">
                       Accept
@@ -308,6 +320,15 @@ export function ControlInstanceEvidenceTab({ controlInstanceId, vc = {} }) {
         </div>
       )}
 
+      <DocumentPreviewDrawer
+        document={previewLink ? {
+          documentId: previewLink.evidenceFileUrl, // holds documentId, not a raw URL — see EvidenceRecordRepository
+          fileName:   previewLink.evidenceFileName || previewLink.evidenceTitle,
+          mimeType:   previewLink.evidenceMimeType,
+        } : null}
+        open={!!previewLink}
+        onClose={() => setPreviewLink(null)}
+      />
     </div>
   )
 }
