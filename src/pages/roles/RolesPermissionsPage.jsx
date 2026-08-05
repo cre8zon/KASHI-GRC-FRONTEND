@@ -145,10 +145,16 @@ function PermissionForm({ onSubmit, isPending, onClose }) {
 
 // ─── Role Form ────────────────────────────────────────────────────────────────
 
-function RoleForm({ side: defaultSide, onSubmit, isPending, onClose }) {
+function RoleForm({ side: defaultSide, onSubmit, isPending, onClose, isSystem = false }) {
   const [form, setForm] = useState({
     name: '', description: '', side: defaultSide || 'ORGANIZATION',
     level: 'L3', isSystem: false, permissionIds: [],
+    // Only meaningful for a SYSTEM-side creator — defaults to true since
+    // that's the common case today (a shared catalog role every tenant can
+    // use). Non-system creators can never actually set this; the backend
+    // ignores it for them regardless, but the field is kept out of their
+    // form entirely so there's no illusion of a choice that doesn't exist.
+    global: isSystem,
   })
   const [errors, setErrors] = useState({})
   const { data: permsData } = usePermissions()
@@ -222,6 +228,21 @@ function RoleForm({ side: defaultSide, onSubmit, isPending, onClose }) {
           </button>
         </div>
       </div>
+
+      {isSystem && (
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">Scope</label>
+          <button onClick={() => set('global', !form.global)} type="button"
+            className={cn(
+              'h-8 w-fit flex items-center gap-2 px-3 rounded-ctl border text-xs font-medium transition-colors',
+              form.global
+                ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
+                : 'border-border text-text-muted hover:bg-surface-overlay'
+            )}>
+            {form.global ? 'Global — every tenant can use this' : 'This tenant only'}
+          </button>
+        </div>
+      )}
 
       <Input label="Description" value={form.description}
         onChange={e => set('description', e.target.value)}
@@ -409,7 +430,7 @@ function RolePermissionEditor({ role, onClose }) {
 
 // ─── Roles Panel ──────────────────────────────────────────────────────────────
 
-function RolesPanel({ tenantId, side, canManage }) {
+function RolesPanel({ tenantId, side, canManage, isSystem = false }) {
   const { data, isLoading, refetch } = useRoleHierarchy(tenantId, side)
   const { mutate: deleteRole, isPending: deleting } = useDeleteRole()
   const [showCreate, setShowCreate] = useState(false)
@@ -514,7 +535,7 @@ function RolesPanel({ tenantId, side, canManage }) {
       {/* Create role modal */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)}
         title="Create Role" size="lg">
-        <RoleForm side={side} isPending={creating}
+        <RoleForm side={side} isPending={creating} isSystem={isSystem}
           onClose={() => setShowCreate(false)}
           onSubmit={(form) => createRole({ tenantId, data: form }, {
             onSuccess: () => setShowCreate(false)
@@ -731,6 +752,7 @@ export default function RolesPermissionsPage({ side = 'ORGANIZATION' }) {
                 tenantId={tenantId}
                 side={activeSide}
                 canManage={canManage}
+                isSystem={isSystem()}
               />
             </CardBody>
           </Card>

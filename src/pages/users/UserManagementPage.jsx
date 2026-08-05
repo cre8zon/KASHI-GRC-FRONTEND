@@ -36,12 +36,12 @@ const useRoles = (tenantId, side) => useQuery({
   staleTime: 5 * 60 * 1000,
 })
 
-function useInviteUser() {
+function useOnboardUser() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: usersApi.invite,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); toast.success('Invitation sent') },
-    onError: (e) => toast.error(e?.response?.data?.error?.message || 'Invite failed'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); toast.success('User onboarded') },
+    onError: (e) => toast.error(e?.response?.data?.error?.message || 'Onboarding failed'),
   })
 }
 
@@ -164,6 +164,17 @@ function RoleAssignPanel({ user, tenantId, side }) {
   // Seeded from user.roles on mount. Updated optimistically on assign/remove.
   const [localRoles, setLocalRoles] = useState(() => user.roles || [])
 
+  // A user's roles all come from exactly one side (enforced server-side in
+  // RoleServiceImpl.assignRoleToUser) — once they hold any role, every
+  // element of localRoles has the same .side, so the first one tells us
+  // which side they're committed to. Lock the tab bar to it so the UI
+  // reflects the constraint instead of just failing after a wasted click.
+  const committedSide = localRoles[0]?.side || null
+
+  useEffect(() => {
+    if (committedSide && selectedSide !== committedSide) setSelectedSide(committedSide)
+  }, [committedSide])
+
   // Also keep a lookup of all role objects we've seen, so when we add a role
   // we can display its name immediately without waiting for a server fetch.
   const { data: rolesData, isLoading } = useRoles(tenantId, selectedSide)
@@ -273,18 +284,30 @@ function RoleAssignPanel({ user, tenantId, side }) {
           Add Roles From
         </p>
         <div className="flex flex-wrap gap-1">
-          {SIDES.map(s => (
-            <button key={s} onClick={() => setSelectedSide(s)}
-              className={cn(
-                'px-2 py-0.5 rounded text-[10px] font-medium border transition-colors',
-                selectedSide === s
-                  ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
-                  : 'border-border text-text-muted hover:text-text-secondary'
-              )}>
-              {s}
-            </button>
-          ))}
+          {SIDES.map(s => {
+            const locked = committedSide && s !== committedSide
+            return (
+              <button key={s} disabled={locked}
+                onClick={() => !locked && setSelectedSide(s)}
+                title={locked ? `Locked — this user already holds ${committedSide}-side role(s)` : undefined}
+                className={cn(
+                  'px-2 py-0.5 rounded text-[10px] font-medium border transition-colors',
+                  locked
+                    ? 'border-border/50 text-text-muted/40 cursor-not-allowed'
+                    : selectedSide === s
+                      ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
+                      : 'border-border text-text-muted hover:text-text-secondary'
+                )}>
+                {s}
+              </button>
+            )
+          })}
         </div>
+        {committedSide && (
+          <p className="text-[10px] text-text-muted mt-1">
+            A user's roles all come from one side — this user is on {committedSide}.
+          </p>
+        )}
       </div>
 
       {isLoading && (
@@ -329,12 +352,14 @@ function RoleAssignPanel({ user, tenantId, side }) {
   )
 }
 
-// ─── Invite User Modal ────────────────────────────────────────────────────────
-// Unchanged from original
+// ─── Onboard User Modal ───────────────────────────────────────────────────────
+// Renamed from "Invite User" to match the existing "Vendor Onboard" language
+// used elsewhere in the app — same action (create account + welcome email
+// with temp password), just consistent terminology across every side.
 
-function InviteUserModal({ open, onClose, side, tenantId, vendorId }) {
+function OnboardUserModal({ open, onClose, side, tenantId, vendorId }) {
   const { data: rolesData } = useRoles(tenantId, side)
-  const { mutate: invite, isPending } = useInviteUser()
+  const { mutate: invite, isPending } = useOnboardUser()
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', jobTitle: '', roleIds: [],
   })
@@ -384,15 +409,37 @@ function InviteUserModal({ open, onClose, side, tenantId, vendorId }) {
     })
   }
 
+  const sideLabel = side === 'VENDOR'   ? 'Vendor'   :
+                    side === 'SYSTEM'   ? 'System'   :
+                    side === 'AUDITOR'  ? 'Auditor'  :
+                    side === 'AUDITEE'  ? 'Auditee'  : 'Organisation'
+
+  // Roles grouped by level (L1 = highest authority, down to L4) so the
+  // picker reads as an actual hierarchy instead of a flat, unordered bag of
+  // chips — the same L1..L4 scale your role catalog already uses
+  // (PLATFORM_ADMIN=L1, GRC_MANAGER=L3, EVIDENCE_CONTRIBUTOR=L4, etc.).
+  const LEVEL_LABELS = { L1: 'Level 1 — Highest authority', L2: 'Level 2', L3: 'Level 3', L4: 'Level 4 — Contributor' }
+  const roleGroups = (() => {
+    const byLevel = {}
+    for (const role of flatRoles) {
+      const lvl = role.level && LEVEL_LABELS[role.level] ? role.level : 'OTHER'
+      ;(byLevel[lvl] ||= []).push(role)
+    }
+    const order = ['L1', 'L2', 'L3', 'L4', 'OTHER']
+    return order.filter(l => byLevel[l]?.length).map(l => ({
+      level: l, label: LEVEL_LABELS[l] || 'Other', roles: byLevel[l],
+    }))
+  })()
+
   return (
-    <Modal open={open} onClose={onClose} title="Invite User"
-      subtitle="Creates account and sends welcome email with temporary password"
+    <Modal open={open} onClose={onClose} title={`Onboard ${sideLabel} User`}
+      subtitle={`Creates account, sends welcome email, and assigns a ${sideLabel}-side role`}
       size="md"
       footer={
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
           <Button size="sm" loading={isPending} onClick={handleSubmit}>
-            Send Invitation
+            Onboard {sideLabel} User
           </Button>
         </div>
       }>
@@ -411,28 +458,37 @@ function InviteUserModal({ open, onClose, side, tenantId, vendorId }) {
 
         <div>
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-2">
-            Assign Role <span className="text-status-fail-fg">*</span>
+            Assign {sideLabel} Role <span className="text-status-fail-fg">*</span>
           </label>
           {flatRoles.length === 0
             ? <p className="text-xs text-text-muted italic">No roles available for {side}</p>
             : (
-              <div className="flex flex-wrap gap-2">
-                {flatRoles.map(role => {
-                  const id  = role.role_id || role.id || role.roleId
-                  const sel = form.roleIds.includes(id)
-                  return (
-                    <button key={id} onClick={() => toggleRole(id)} type="button"
-                      className={cn(
-                        'flex items-center gap-1 px-2.5 py-1 rounded-ctl border text-xs font-medium transition-colors',
-                        sel
-                          ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
-                          : 'border-border text-text-muted hover:text-text-primary hover:bg-surface-overlay'
-                      )}>
-                      {sel && <Check size={10} />}
-                      {role.name || role.roleName}
-                    </button>
-                  )
-                })}
+              <div className="flex flex-col gap-3">
+                {roleGroups.map(group => (
+                  <div key={group.level}>
+                    <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+                      {group.label}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.roles.map(role => {
+                        const id  = role.role_id || role.id || role.roleId
+                        const sel = form.roleIds.includes(id)
+                        return (
+                          <button key={id} onClick={() => toggleRole(id)} type="button"
+                            className={cn(
+                              'flex items-center gap-1 px-2.5 py-1 rounded-ctl border text-xs font-medium transition-colors',
+                              sel
+                                ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
+                                : 'border-border text-text-muted hover:text-text-primary hover:bg-surface-overlay'
+                            )}>
+                            {sel && <Check size={10} />}
+                            {role.name || role.roleName}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )
           }
@@ -448,8 +504,13 @@ function InviteUserModal({ open, onClose, side, tenantId, vendorId }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 // Unchanged from original
 
-export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: vendorIdProp }) {
-  const { tenantId }      = useSelector(selectAuth)
+export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: vendorIdProp, tenantIdOverride, subheader }) {
+  const { tenantId: ownTenantId } = useSelector(selectAuth)
+  // SYSTEM callers browsing a specific tenant's users (see UsersHubPage) pass
+  // tenantIdOverride; everyone else always uses their own tenant. Backend
+  // only honours the override for SYSTEM-side callers regardless, so this
+  // is safe even if ever passed incorrectly.
+  const tenantId = tenantIdOverride ?? ownTenantId
   const loggedInVendorId  = useSelector(selectVendorId)
   const { hasPermission } = usePermission()
 
@@ -480,6 +541,7 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
     sortBy:   `${sortBy}=${sortDir}`,
     side,
     vendorId: side === 'VENDOR' && vendorId ? vendorId : undefined,
+    tenantId: tenantIdOverride || undefined,
   })
 
   const { mutate: suspend,  isPending: suspending  } = useSuspendUser()
@@ -526,7 +588,7 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
           } />
       ),
     },
-    { key: 'createdAt', label: 'Invited', sortable: true, width: 110, type: 'date' },
+    { key: 'createdAt', label: 'Onboarded', sortable: true, width: 110, type: 'date' },
     {
       key: '__actions', label: '', width: 120, type: 'custom',
       render: (row) => (
@@ -563,12 +625,17 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
     },
   ]
 
+  const sideLabel   = side === 'VENDOR'   ? 'Vendor'   :
+                      side === 'SYSTEM'   ? 'System'   :
+                      side === 'AUDITOR'  ? 'Auditor'  :
+                      side === 'AUDITEE'  ? 'Auditee'  : 'Organisation'
   const pageTitle   = side === 'VENDOR'   ? 'Vendor Team'        :
                       side === 'SYSTEM'   ? 'System Users'       :
                       side === 'AUDITOR'  ? 'Auditors'           :
                       side === 'AUDITEE'  ? 'Auditees'           : 'Users'
-  const inviteLabel = side === 'VENDOR'   ? 'Invite Vendor User' :
-                      side === 'SYSTEM'   ? 'Invite System User' : 'Invite User'
+  // Onboard label always names the side — no silent fallback to a generic
+  // "Onboard User" that hides which side/hierarchy an admin is adding into.
+  const inviteLabel = `Onboard ${sideLabel} User`
 
   return (
     <PageLayout
@@ -592,6 +659,7 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
         </div>
       }
     >
+      {subheader}
       <DataTable
         columns={columns}
         data={users}
@@ -604,7 +672,7 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
         emptyMessage={`No ${pageTitle.toLowerCase()} found`}
       />
 
-      <InviteUserModal
+      <OnboardUserModal
         open={showInvite}
         onClose={() => setShowInvite(false)}
         side={side}

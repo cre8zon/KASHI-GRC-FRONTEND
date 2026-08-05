@@ -15,6 +15,8 @@
  *   PUT  /v1/audit/engagements/{id}/controls/{cid}/assign-auditee
  *   PUT  /v1/audit/engagements/{id}/controls/{cid}/test-result
  *   POST /v1/audit/engagements/{id}/controls/{cid}/submit-evidence
+ *   GET  /v1/kashilink/engagements/{id}/pull/preview                ← NEW (dry run)
+ *   POST /v1/kashilink/engagements/{id}/pull                        ← NEW (execute)
  */
 
 import { useState, useMemo, useRef, useEffect } from 'react'
@@ -25,11 +27,12 @@ import { selectAuth } from '../../store/slices/authSlice'
 import {
   CheckSquare, CheckCircle2, XCircle, AlertTriangle, MinusCircle,
   ChevronRight, Search, Users, UserCheck,
-  CheckCheck, Minus, X, ChevronDown, ChevronUp, AlertOctagon, Eye, EyeOff, FileText } from 'lucide-react'
+  CheckCheck, Minus, X, ChevronDown, ChevronUp, AlertOctagon, Eye, EyeOff, FileText, Link2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api    from '../../config/axios.config'
 import { cn } from '../../lib/cn'
 import toast  from 'react-hot-toast'
+import { Modal } from '../ui/Modal'
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 const fetchControls      = (eid)         => api.get(`/v1/audit/engagements/${eid}/controls`)
@@ -42,6 +45,8 @@ const apiAssignAuditee   = (eid,cid,uid) => api.put(`/v1/audit/engagements/${eid
 const apiBulkAssign      = (eid,body)    => api.post(`/v1/audit/engagements/${eid}/controls/bulk-assign`, body)
 const apiTestResult      = (eid,cid,req) => api.put(`/v1/audit/engagements/${eid}/controls/${cid}/test-result`, req)
 const apiSubmitEvidence  = (eid,cid)     => api.post(`/v1/audit/engagements/${eid}/controls/${cid}/submit-evidence`)
+const apiPreviewPull     = (eid)         => api.get(`/v1/kashilink/engagements/${eid}/pull/preview`)
+const apiPull            = (eid)         => api.post(`/v1/kashilink/engagements/${eid}/pull`)
 
 
 // ── Role name constants ─────────────────────────────────────────────────────────────
@@ -68,7 +73,97 @@ function flattenUsers(raw) {
   return Array.isArray(arr) ? arr : []
 }
 
-// ── Result config ─────────────────────────────────────────────────────────────
+// ── PullEvidenceModal ────────────────────────────────────────────────────────
+// Two-step: preview (dry run, writes nothing) → confirm → execute. Every link
+// created lands as PENDING_REVIEW on the backend — the auditor still decides,
+// per link, whether prior-period evidence actually satisfies this period. This
+// is deliberately NOT automatic (see KashiLinkController) — a peer reviewer of
+// the audit firm's own process would flag silent evidence carry-forward, so
+// pulling it in has to be an explicit, visible action taken by a person.
+function PullEvidenceModal({ open, onClose, engagementId, onPulled }) {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['kashilink-pull-preview', engagementId],
+    queryFn:  () => apiPreviewPull(engagementId),
+    enabled:  open,
+    staleTime: 0, // always fresh — evidence pool changes between opens
+  })
+  const preview = data?.data?.data || data?.data || data || {}
+
+  const { mutate: doPull, isPending: pulling } = useMutation({
+    mutationFn: () => apiPull(engagementId),
+    onSuccess: (r) => {
+      const linked = r?.data?.data?.linksCreated ?? r?.data?.linksCreated ?? r?.linksCreated ?? 0
+      toast.success(linked > 0
+        ? `${linked} evidence link(s) created — pending your review`
+        : 'No new evidence to link')
+      onPulled?.()
+      onClose()
+    },
+    onError: (e) => toast.error(e?.response?.data?.message || 'Pull failed'),
+  })
+
+  return (
+    <Modal open={open} onClose={onClose} size="sm"
+      title="Pull existing evidence into this engagement"
+      subtitle="Matches evidence already on file for this tenant against this engagement's controls, tests, and policies by tag.">
+      {isLoading ? (
+        <div className="px-5 py-8 text-xs text-text-muted text-center">Checking for matching evidence…</div>
+      ) : isError ? (
+        <div className="px-5 py-8 text-xs text-status-fail-fg text-center">Couldn't load preview. Try again.</div>
+      ) : (
+        <div className="px-5 py-4 space-y-3">
+          {(preview.candidateRecords ?? 0) === 0 ? (
+            <p className="text-xs text-text-muted">
+              No matching evidence found on file for this engagement's control tags
+              {preview.distinctTags != null && ` (checked ${preview.distinctTags} tag${preview.distinctTags === 1 ? '' : 's'})`}.
+            </p>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-ctl border border-border bg-surface-overlay py-2">
+                  <div className="text-lg font-semibold text-text-primary">{preview.candidateRecords}</div>
+                  <div className="text-[9px] text-text-muted mt-0.5">on file</div>
+                </div>
+                <div className="rounded-ctl border border-status-pass-bd bg-status-pass-bg py-2">
+                  <div className="text-lg font-semibold text-status-pass-fg">{preview.linksCreated}</div>
+                  <div className="text-[9px] text-text-muted mt-0.5">would link</div>
+                </div>
+                <div className="rounded-ctl border border-border bg-surface-overlay py-2">
+                  <div className="text-lg font-semibold text-text-secondary">{preview.skippedOutOfPeriod ?? 0}</div>
+                  <div className="text-[9px] text-text-muted mt-0.5">out of period</div>
+                </div>
+              </div>
+              {Array.isArray(preview.tags) && preview.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {preview.tags.map(t => (
+                    <span key={t} className="text-[9px] px-1.5 py-0.5 rounded bg-surface-overlay border border-border text-text-muted">{t}</span>
+                  ))}
+                </div>
+              )}
+              <p className="text-[10px] text-text-muted">
+                Every link is created as pending review — nothing counts as submitted
+                until an auditor confirms it satisfies this period.
+              </p>
+            </>
+          )}
+        </div>
+      )}
+      <div className="px-5 py-3 border-t border-border-subtle flex items-center justify-end gap-2">
+        <button onClick={onClose} className="text-xs px-3 py-1.5 rounded-ctl border border-border text-text-secondary hover:bg-surface-overlay">
+          Cancel
+        </button>
+        <button
+          onClick={() => doPull()}
+          disabled={pulling || isLoading || (preview.candidateRecords ?? 0) === 0}
+          className="text-xs px-3 py-1.5 rounded-ctl bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5">
+          {pulling ? 'Linking…' : <><Link2 size={11}/> Pull evidence</>}
+        </button>
+      </div>
+    </Modal>
+  )
+}
+
+
 const RESULTS = [
   { value: 'EFFECTIVE',           label: 'Effective',   short: 'Pass',    color: 'text-status-pass-fg',  bg: 'bg-status-pass-bg',    border: 'border-status-pass-bd',  icon: CheckCircle2 },
   { value: 'PARTIALLY_EFFECTIVE', label: 'Partial',     short: 'Partial', color: 'text-status-warn-fg',  bg: 'bg-status-warn-bg',    border: 'border-status-warn-bd',  icon: AlertTriangle },
@@ -352,6 +447,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
   const [showBulkPanel, setShowBulkPanel]           = useState(false)
   const [bulkAuditorId, setBulkAuditorId]           = useState(null)
   const [bulkAuditeeId, setBulkAuditeeId]           = useState(null)
+  const [showPullModal, setShowPullModal]           = useState(false)
   const auth           = useSelector(selectAuth)
   const currentUserId  = auth?.userId
   const tenantId       = auth?.tenantId
@@ -542,6 +638,20 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
           {/* Assignment track — only show when relevant */}
           {canAssignAuditor&&<><span className="text-border">·</span><span className={cn(stats.auditorAssigned===stats.total?'text-status-pass-fg':'text-status-pass-fg')}>{stats.auditorAssigned}/{stats.total} auditors</span></>}
           {canAssignAuditee&&<><span className="text-border">·</span><span className={cn(stats.auditeeAssigned===stats.total?'text-status-pass-fg':'text-status-tag-fg')}>{stats.auditeeAssigned}/{stats.total} auditees</span></>}
+          {/* Pull existing evidence — deliberately manual (see PullEvidenceModal comment).
+              Open to auditees too, not just auditors: Pull only creates
+              PENDING_REVIEW links — the auditor still decides accept/reject —
+              so there's no risk in letting the auditee (who's usually first
+              to start on evidence) check what's already on file before
+              re-uploading something that already exists. Solid background,
+              not just a bordered outline — this is a real action, not a
+              passive status label like the ones in the row below. */}
+          {(canRecordResult || canSubmitEvidence) && (
+            <button onClick={()=>setShowPullModal(true)}
+              className="flex items-center gap-1 px-2 py-1 rounded-ctl bg-brand-500/10 border border-brand-500/30 text-brand-ink hover:bg-brand-500/20 transition-all font-medium text-[10px]">
+              <Link2 size={11}/> Pull evidence
+            </button>
+          )}
           <div className="ml-auto flex items-center gap-2 text-[9px]">
             {canAssignAuditor&&<span className="text-status-pass-fg flex items-center gap-0.5"><UserCheck size={9}/> assign auditor</span>}
             {canAssignAuditee&&<span className="text-status-tag-fg flex items-center gap-0.5"><Users size={9}/> assign auditee</span>}
@@ -724,6 +834,12 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
           </div>
         ))}
       </div>
+      <PullEvidenceModal
+        open={showPullModal}
+        onClose={()=>setShowPullModal(false)}
+        engagementId={engagementId}
+        onPulled={()=>qc.invalidateQueries({queryKey:['engagement-controls', engagementId]})}
+      />
     </div>
   )
 }
