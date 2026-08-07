@@ -1,5 +1,13 @@
 import { store } from '../store'
 
+/**
+ * The one reserved tenant that SYSTEM-side (platform admin) users belong
+ * to — "Kashi System Tenant". Mirrors Constants.SYSTEM_TENANT_ID on the
+ * backend, which enforces the same rule server-side. side=SYSTEM is only
+ * ever valid for this tenant; no other tenant may be associated with it.
+ */
+export const SYSTEM_TENANT_ID = 1
+
 export const hasPermission = (permCode) => {
   const { permissions } = store.getState().auth
   return permissions.includes(permCode)

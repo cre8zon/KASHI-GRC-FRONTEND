@@ -39,7 +39,15 @@ async function getStompClient(token) {
       ])
       const client = new Client({
         webSocketFactory: () => new SockJS(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/ws`
+          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/ws`,
+          null,
+          // Native WebSocket only — SockJS's older XHR-based fallback
+          // transports register an `unload` listener for cleanup, which
+          // Chrome now blocks under its default Permissions-Policy and
+          // logs as a console violation. Every browser this app targets
+          // supports native WebSocket, so those fallbacks are never
+          // actually needed here.
+          { transports: ['websocket'] }
         ),
         connectHeaders: { Authorization: `Bearer ${token}` },
         reconnectDelay: 10000,   // slower retry to reduce log noise

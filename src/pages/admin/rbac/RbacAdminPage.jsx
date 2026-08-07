@@ -25,9 +25,9 @@ const usePermissions = (params) => useQuery({
   queryFn: () => rbacApi.permissions.list({ take: 500, skip: 0, ...params }),
   keepPreviousData: true,
 })
-const useRoles = (tenantId) => useQuery({
-  queryKey: ['rbac-roles', tenantId],
-  queryFn: () => rbacApi.roles.list(tenantId),
+const useRoles = (tenantId, includeSuspended = false) => useQuery({
+  queryKey: ['rbac-roles', tenantId, includeSuspended],
+  queryFn: () => rbacApi.roles.list(tenantId, includeSuspended),
   enabled: !!tenantId,
   staleTime: 60000,
 })
@@ -336,12 +336,26 @@ function PermissionModal({ open, onClose, initial, onSave, loading }) {
 
 function GrantsTab({ tenantId }) {
   const qc = useQueryClient()
-  const { data: rolesData, isLoading: rolesLoading } = useRoles(tenantId)
+  // includeSuspended — this IS the admin screen, so parked roles must be
+  // visible here to be reactivated. Assignment pickers elsewhere call the
+  // same endpoint without it and never see them.
+  const { data: rolesData, isLoading: rolesLoading } = useRoles(tenantId, true)
   const roles = rolesData?.data?.items || rolesData?.items
     || (Array.isArray(rolesData?.data) ? rolesData.data : null)
     || (Array.isArray(rolesData) ? rolesData : null) || []
 
-  const [selectedRole, setSelectedRole] = useState(null)
+  // Store the ID, not the object. Holding the object meant `selectedRole`
+  // was a snapshot taken at click time: after suspending, the roles query
+  // refetched with the new status but this copy kept the old one, so the
+  // button stayed on "Suspend" and the parked banner never appeared until
+  // you clicked a different role and back. Deriving from the live list
+  // keeps it in sync with whatever the server last returned.
+  const [selectedRoleId, setSelectedRoleId] = useState(null)
+  const selectedRole = useMemo(
+    () => roles.find(r => r.id === selectedRoleId) || null,
+    [roles, selectedRoleId]
+  )
+  const setSelectedRole = (r) => setSelectedRoleId(r?.id ?? null)
   const [activeSide, setActiveSide] = useState('ORGANIZATION')
 
   const { data: grantsData, isLoading: loadingGrants } = useGrants(selectedRole?.id)
@@ -396,10 +410,59 @@ function GrantsTab({ tenantId }) {
     onError: (e) => toast.error(e?.response?.data?.message || 'Failed'),
   })
 
+  // Suspend / reactivate. Parks a role out of the assignable catalogue
+  // without deleting it — users who already hold it keep it (see
+  // RoleServiceImpl.setRoleStatus), which is why the holder count is shown
+  // on the button so the blast radius is visible before acting.
+  const statusMut = useMutation({
+    mutationFn: ({ roleId, status }) => rbacApi.roles.setStatus(roleId, status),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['rbac-roles'] })
+      toast.success(vars.status === 'SUSPENDED' ? 'Role suspended' : 'Role reactivated')
+    },
+    onError: (e) => toast.error(e?.response?.data?.error?.message || e?.response?.data?.message || 'Failed'),
+  })
+
+  const createMut = useMutation({
+    mutationFn: (data) => rbacApi.roles.create(tenantId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rbac-roles'] })
+      setShowCreate(false)
+      toast.success('Role created')
+    },
+    onError: (e) => toast.error(e?.response?.data?.error?.message || e?.response?.data?.message || 'Failed'),
+  })
+
+  const [showCreate, setShowCreate] = useState(false)
+
   const toggle = (permission) => {
     if (!selectedRole) return
     const currently = grantedIds.has(permission.id)
     upsertMut.mutate({ roleId: selectedRole.id, data: { permissionId: permission.id, granted: !currently } })
+  }
+
+  // Bulk grant/revoke every permission in one module. The grants endpoint
+  // is per-permission, so this fires one upsert each — but only for the
+  // permissions whose state actually differs, and sequentially rather than
+  // in a burst, so a 40-permission module doesn't hit the API with 40
+  // simultaneous writes. Invalidates once at the end instead of per call.
+  const [bulkPending, setBulkPending] = useState(false)
+  const toggleModule = async (perms, granted) => {
+    if (!selectedRole || bulkPending) return
+    const changing = perms.filter(p => grantedIds.has(p.id) !== granted)
+    if (changing.length === 0) return
+    setBulkPending(true)
+    try {
+      for (const p of changing) {
+        await rbacApi.grants.upsert(selectedRole.id, { permissionId: p.id, granted })
+      }
+      toast.success(`${granted ? 'Granted' : 'Revoked'} ${changing.length} permission${changing.length !== 1 ? 's' : ''}`)
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Bulk update failed')
+    } finally {
+      qc.invalidateQueries({ queryKey: ['rbac-grants', selectedRole.id] })
+      setBulkPending(false)
+    }
   }
 
   return (
@@ -407,9 +470,21 @@ function GrantsTab({ tenantId }) {
       <div className="flex items-start gap-4">
         {/* Role selector — side tabs + role list */}
         <div className="w-64 shrink-0">
-          {/* Side tabs */}
-          <div className="flex items-center gap-0.5 mb-3 overflow-x-auto">
-            {SIDES.filter(s => (bySide[s] || []).length > 0 || rolesLoading).map(s => (
+          {/* Side tabs.
+              Previously: SIDES.filter(s => bySide[s].length > 0 || rolesLoading).
+              `useRoles` is `enabled: !!tenantId`, so before tenantId is
+              available the query is DISABLED — not loading — which means
+              rolesLoading is false while roles is still []. Every tab then
+              filtered out, including ORGANIZATION, leaving the default
+              activeSide pointing at a tab that wasn't rendered and an empty
+              list underneath. Clicking another side and back re-selected a
+              side that by then had data, which is exactly the "works only
+              after clicking away and back" symptom. Keeping the active side
+              always visible makes the list follow the data whenever it
+              arrives. flex-wrap instead of overflow-x-auto removes the
+              horizontal scrollbar. */}
+          <div className="flex flex-wrap items-center gap-0.5 mb-3">
+            {SIDES.filter(s => (bySide[s] || []).length > 0 || s === activeSide).map(s => (
               <button key={s} onClick={() => { setActiveSide(s); setSelectedRole(null) }}
                 className={cn(
                   'px-2.5 py-1 text-[10px] font-medium rounded-ctl whitespace-nowrap transition-colors',
@@ -423,10 +498,20 @@ function GrantsTab({ tenantId }) {
           </div>
 
           {/* Roles for active side */}
-          <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5 px-0.5">
-            {activeSide} ROLES ({sideRoles.length})
-          </p>
-          <div className="border border-border rounded-card overflow-hidden">
+          <div className="flex items-center justify-between mb-1.5 px-0.5">
+            <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">
+              {activeSide} ROLES ({sideRoles.length})
+            </p>
+            <button onClick={() => setShowCreate(true)}
+              className="text-[10px] font-medium text-brand-ink hover:underline">
+              + New
+            </button>
+          </div>
+          {/* max-h + overflow-y-auto: the list has no height cap otherwise,
+              so with 13+ roles it just ran past the bottom of the viewport
+              with nothing to scroll. Capped relative to viewport height so
+              it adapts rather than being a fixed pixel guess. */}
+          <div className="border border-border rounded-card overflow-y-auto max-h-[calc(100vh-22rem)]">
             {rolesLoading && <div className="px-3 py-3 text-xs text-text-muted text-center">Loading roles…</div>}
             {!rolesLoading && sideRoles.length === 0 && (
               <div className="px-3 py-3 text-xs text-text-muted italic text-center">No {activeSide.toLowerCase()} roles</div>
@@ -441,10 +526,28 @@ function GrantsTab({ tenantId }) {
                     : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
                 )}
               >
-                <div className="font-medium font-mono">{r.name}</div>
-                <div className="text-[10px] text-text-muted mt-0.5">
+                <div className="font-medium font-mono flex items-center gap-1.5">
+                  <span className={cn(r.status === 'SUSPENDED' && 'opacity-50 line-through')}>{r.name}</span>
+                  {r.status === 'SUSPENDED' && (
+                    <span className="px-1 py-0.5 rounded text-[9px] font-semibold bg-status-warn-bg text-status-warn-fg shrink-0">
+                      PARKED
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-text-muted mt-0.5 flex items-center gap-1.5">
                   <span className={cn('font-medium', SIDE_COLOR[r.side] || 'text-text-muted')}>{r.side}</span>
-                  {r.level && <span> · {r.level}</span>}
+                  {r.level && <span>· {r.level}</span>}
+                  {/* Global vs tenant-scoped — previously invisible, so
+                      there was no way to tell whether editing a role would
+                      affect every tenant or just this one. */}
+                  <span className={cn(
+                    'px-1 py-0.5 rounded text-[9px] font-semibold',
+                    r.isGlobal
+                      ? 'bg-brand-500/15 text-brand-ink'
+                      : 'bg-surface-overlay text-text-muted'
+                  )}>
+                    {r.isGlobal ? 'GLOBAL' : 'TENANT'}
+                  </span>
                 </div>
               </button>
             ))}
@@ -471,15 +574,89 @@ function GrantsTab({ tenantId }) {
                     <span className="ml-2">{grantedIds.size} of {permissions.length} permissions granted</span>
                   </p>
                 </div>
+                <div className="flex items-center gap-2">
+                  {/* Explicit state pill — the button alone only implied the
+                      current status by its action label. */}
+                  <span className={cn(
+                    'px-2 py-0.5 rounded-full text-[10px] font-semibold',
+                    selectedRole.status === 'SUSPENDED'
+                      ? 'bg-status-warn-bg text-status-warn-fg border border-status-warn-bd'
+                      : 'bg-status-pass-bg text-status-pass-fg border border-status-pass-bd'
+                  )}>
+                    {selectedRole.status === 'SUSPENDED' ? 'SUSPENDED' : 'ACTIVE'}
+                  </span>
+                  <span className="text-[10px] text-text-muted">
+                    {selectedRole.userCount ?? 0} user{(selectedRole.userCount ?? 0) !== 1 ? 's' : ''}
+                  </span>
+                  <button
+                    onClick={() => statusMut.mutate({
+                      roleId: selectedRole.id,
+                      status: selectedRole.status === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED',
+                    })}
+                    disabled={statusMut.isPending}
+                    title={selectedRole.status === 'SUSPENDED'
+                      ? 'Make this role assignable again'
+                      : 'Park this role — hidden from all role pickers. Users who already hold it keep it.'}
+                    className={cn(
+                      'px-2.5 py-1 rounded-ctl text-[11px] font-medium border transition-colors',
+                      selectedRole.status === 'SUSPENDED'
+                        ? 'border-status-pass-bd text-status-pass-fg hover:bg-status-pass-bg'
+                        : 'border-status-warn-bd text-status-warn-fg hover:bg-status-warn-bg'
+                    )}>
+                    {selectedRole.status === 'SUSPENDED' ? 'Reactivate' : 'Suspend'}
+                  </button>
+                </div>
               </div>
-              {Object.entries(grouped).map(([module, perms]) => (
+              {selectedRole.status === 'SUSPENDED' && (
+                <div className="px-3 py-2 rounded-card bg-status-warn-bg border border-status-warn-bd">
+                  <p className="text-[11px] text-status-warn-fg">
+                    This role is parked — it won't appear in any role picker and can't be newly
+                    assigned. The {selectedRole.userCount ?? 0} user{(selectedRole.userCount ?? 0) !== 1 ? 's' : ''} who
+                    already hold it keep their access; remove it from them individually to revoke.
+                  </p>
+                </div>
+              )}
+              {Object.entries(grouped).map(([module, perms]) => {
+                const grantedInModule = perms.filter(p => grantedIds.has(p.id)).length
+                const allGranted  = grantedInModule === perms.length && perms.length > 0
+                const noneGranted = grantedInModule === 0
+                return (
                 <div key={module} className="border border-border rounded-card overflow-hidden">
                   <div className="flex items-center gap-2 px-4 py-2 bg-surface-overlay border-b border-border">
                     <Layers size={12} className="text-brand-ink" />
                     <span className="text-xs font-semibold text-text-primary">{module}</span>
-                    <span className="text-xs text-text-muted ml-auto">
-                      {perms.filter(p => grantedIds.has(p.id)).length}/{perms.length}
-                    </span>
+                    {/* Bulk select for the whole module — toggling 40 audit
+                        permissions one click at a time was the only option
+                        before. Only the permissions that actually need to
+                        change are sent, so this won't re-write grants that
+                        are already in the desired state. */}
+                    <div className="flex items-center gap-1 ml-auto">
+                      <button
+                        onClick={() => toggleModule(perms, true)}
+                        disabled={allGranted || bulkPending}
+                        className={cn(
+                          'px-2 py-0.5 rounded text-[10px] font-medium border transition-colors',
+                          allGranted || bulkPending
+                            ? 'border-border/50 text-text-muted/40 cursor-not-allowed'
+                            : 'border-border text-text-muted hover:text-status-pass-fg hover:bg-status-pass-bg'
+                        )}>
+                        Select all
+                      </button>
+                      <button
+                        onClick={() => toggleModule(perms, false)}
+                        disabled={noneGranted || bulkPending}
+                        className={cn(
+                          'px-2 py-0.5 rounded text-[10px] font-medium border transition-colors',
+                          noneGranted || bulkPending
+                            ? 'border-border/50 text-text-muted/40 cursor-not-allowed'
+                            : 'border-border text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg'
+                        )}>
+                        Clear
+                      </button>
+                      <span className="text-xs text-text-muted tabular-nums ml-1">
+                        {grantedInModule}/{perms.length}
+                      </span>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-0 divide-y divide-border">
                     {perms.map(p => {
@@ -506,12 +683,104 @@ function GrantsTab({ tenantId }) {
                     })}
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
       </div>
+
+      <RoleCreateModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        defaultSide={activeSide}
+        isSystemTenant={tenantId === 1}
+        loading={createMut.isPending}
+        onSave={(data) => createMut.mutate(data)}
+      />
     </div>
+  )
+}
+
+// ─── Role create modal (migrated from RolesPermissionsPage) ───────────────────
+// Carries the Scope toggle: global roles (tenant_id = NULL) are usable by
+// every tenant, tenant-scoped roles only by this one. The backend only
+// honours global=true for a SYSTEM-side caller (RoleServiceImpl
+// .buildAndSaveRole), so the toggle is hidden for anyone else rather than
+// offering a choice that would be silently ignored.
+function RoleCreateModal({ open, onClose, defaultSide, isSystemTenant, loading, onSave }) {
+  const [form, setForm] = useState({
+    name: '', description: '', side: defaultSide || 'ORGANIZATION',
+    level: 'L3', global: false,
+  })
+  useEffect(() => {
+    if (open) setForm(f => ({ ...f, side: defaultSide || 'ORGANIZATION' }))
+  }, [open, defaultSide])
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const submit = () => {
+    if (!form.name.trim()) { toast.error('Role name is required'); return }
+    onSave({ ...form, name: form.name.trim().toUpperCase().replace(/\s+/g, '_') })
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="New Role"
+      subtitle="Roles group permissions and are assigned to users on one side"
+      size="md"
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+          <Button size="sm" loading={loading} onClick={submit}>Create Role</Button>
+        </div>
+      }>
+      <div className="flex flex-col gap-4">
+        <Input label="Role Name *" value={form.name}
+          onChange={e => set('name', e.target.value)}
+          placeholder="e.g. COMPLIANCE_REVIEWER" />
+        <Input label="Description" value={form.description}
+          onChange={e => set('description', e.target.value)}
+          placeholder="What is this role for?" />
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">Side</label>
+            <select value={form.side} onChange={e => set('side', e.target.value)}
+              className="h-8 px-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+              {/* SYSTEM only offered on the Kashi System Tenant — the
+                  backend rejects it anywhere else. */}
+              {(isSystemTenant
+                ? ['SYSTEM']
+                : ['ORGANIZATION', 'VENDOR', 'AUDITEE', 'AUDITOR']
+              ).map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">Level</label>
+            <select value={form.level} onChange={e => set('level', e.target.value)}
+              className="h-8 px-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+              {['L1', 'L2', 'L3', 'L4'].map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">Scope</label>
+          <button type="button" onClick={() => set('global', !form.global)}
+            className={cn(
+              'h-8 w-fit flex items-center gap-2 px-3 rounded-ctl border text-xs font-medium transition-colors',
+              form.global
+                ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
+                : 'border-border text-text-muted hover:bg-surface-overlay'
+            )}>
+            {form.global ? 'Global — every tenant can use this' : 'This tenant only'}
+          </button>
+          <p className="text-[10px] text-text-muted mt-0.5">
+            Global roles form the shared catalogue every organisation assigns from.
+            Only a platform administrator can create them.
+          </p>
+        </div>
+      </div>
+    </Modal>
   )
 }
 

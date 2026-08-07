@@ -47,20 +47,37 @@ export const rbacApi = {
     get: () => api.get('/v1/admin/rbac/summary'),
   },
   roles: {
-    list: (tenantId) => {
+    /**
+     * includeSuspended=true is for RBAC admin only — it surfaces parked
+     * roles so they can be edited/reactivated. Every assignment picker
+     * leaves it false so suspended roles stay out of the catalogue.
+     */
+    list: (tenantId, includeSuspended = false) => {
       const tid = tenantId || 1
-      return api.get(`/v1/tenants/${tid}/roles/hierarchy`)
+      return api.get(`/v1/tenants/${tid}/roles/hierarchy`, {
+        params: includeSuspended ? { includeSuspended: true } : undefined,
+      })
         .then(data => {
           const hier = data?.hierarchy || data?.data?.hierarchy || {}
           return Object.entries(hier).flatMap(([side, roles]) =>
             (roles || []).map(r => ({
-              id:    r.role_id ?? r.id,
-              name:  r.name   ?? r.roleName,
+              id:        r.role_id ?? r.id,
+              name:      r.name   ?? r.roleName,
               side,
-              level: r.level,
+              level:     r.level,
+              status:    r.status ?? 'ACTIVE',
+              tenantId:  r.tenant_id ?? null,
+              isGlobal:  r.is_global ?? (r.tenant_id == null),
+              isSystem:  r.is_system ?? false,
+              userCount: r.user_count ?? 0,
+              permissionsCount: r.permissions_count ?? 0,
+              description: r.description ?? '',
             }))
           )
         })
     },
+    create:    (tenantId, data) => api.post(`/v1/tenants/${tenantId || 1}/roles`, data),
+    delete:    (tenantId, roleId) => api.delete(`/v1/tenants/${tenantId || 1}/roles/${roleId}`),
+    setStatus: (roleId, status) => api.patch(`/v1/roles/${roleId}/status`, { status }),
   },
 }
