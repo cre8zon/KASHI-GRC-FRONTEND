@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { usersApi } from '../../api/users.api'
 import { rolesApi } from '../../api/roles.api'
+import { vendorsApi } from '../../api/vendors.api'
 import { authApi }            from '../../api/auth.api'
 import { PageLayout }         from '../../components/layout/PageLayout'
 import { DataTable }          from '../../components/ui/DataTable'
@@ -19,6 +20,7 @@ import { formatDate, initials } from '../../utils/format'
 import { useSelector }        from 'react-redux'
 import { selectAuth, selectVendorId } from '../../store/slices/authSlice'
 import { usePermission }      from '../../hooks/usePermission'
+import { SYSTEM_TENANT_ID }   from '../../utils/permissions'
 import toast                  from 'react-hot-toast'
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -230,7 +232,14 @@ function RoleAssignPanel({ user, tenantId, side }) {
     }
   }
 
-  const SIDES = ['ORGANIZATION', 'VENDOR', 'AUDITEE', 'AUDITOR', 'SYSTEM']
+  // SYSTEM is only offered when managing a user of the Kashi System Tenant
+  // (tenant 1). For every other tenant the backend now rejects a SYSTEM
+  // role outright (RoleServiceImpl.assignRoleToUser), so showing the pill
+  // there is a dead end that only invites the mistake this rule exists to
+  // prevent — it was exactly how PLATFORM_SUPPORT ended up on an org user.
+  const SIDES = tenantId === SYSTEM_TENANT_ID
+    ? ['SYSTEM']
+    : ['ORGANIZATION', 'VENDOR', 'AUDITEE', 'AUDITOR']
 
   return (
     <div className="flex flex-col gap-3">
@@ -361,9 +370,32 @@ function OnboardUserModal({ open, onClose, side, tenantId, vendorId }) {
   const { data: rolesData } = useRoles(tenantId, side)
   const { mutate: invite, isPending } = useOnboardUser()
   const [form, setForm] = useState({
-    firstName: '', lastName: '', email: '', jobTitle: '', roleIds: [],
+    firstName: '', lastName: '', email: '', jobTitle: '', roleIds: [], vendorId: '',
   })
   const [errors, setErrors] = useState({})
+
+  // A VENDOR-side user has to belong to an actual vendor. Two cases:
+  //  - vendorId already fixed (a vendor-side admin's own vendor, or one
+  //    picked in the Vendor filter above) → show it read-only, so it's
+  //    always clear who this person is being onboarded for rather than
+  //    the field silently vanishing.
+  //  - no vendor context (org admin viewing "All vendors") → show a
+  //    required picker; without it vendorId went through null and the
+  //    user was created orphaned.
+  const isVendorSide = side === 'VENDOR'
+  const needsVendorPicker = isVendorSide && !vendorId
+  const { data: vendorsData, isLoading: vendorsLoading } = useQuery({
+    queryKey: ['vendors-picker', tenantId],
+    queryFn:  () => vendorsApi.list({ take: 200 }),
+    // Fetched whenever the modal is open on the vendor side — the fixed
+    // case needs it too, to resolve the vendor's NAME for display.
+    enabled:  open && isVendorSide,
+    staleTime: 60 * 1000,
+  })
+  const vendors = vendorsData?.items || (Array.isArray(vendorsData) ? vendorsData : []) || []
+  const fixedVendor = vendorId
+    ? vendors.find(v => String(v.id ?? v.vendorId) === String(vendorId))
+    : null
 
   const flatRoles = (() => {
     const raw = rolesData?.data || rolesData
@@ -388,6 +420,7 @@ function OnboardUserModal({ open, onClose, side, tenantId, vendorId }) {
     if (!form.email.trim())     e.email     = 'Required'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Invalid email'
     if (form.roleIds.length === 0) e.roleIds = 'Select at least one role'
+    if (needsVendorPicker && !form.vendorId) e.vendorId = 'Select which vendor this user belongs to'
     setErrors(e)
     return !Object.keys(e).length
   }
@@ -398,12 +431,16 @@ function OnboardUserModal({ open, onClose, side, tenantId, vendorId }) {
       firstName: form.firstName, lastName: form.lastName,
       email: form.email, jobTitle: form.jobTitle || undefined,
       tenantId,
-      vendorId: side === 'VENDOR' ? vendorId : undefined,
+      // vendorId prop = the creator's own vendor (vendor-side admin).
+      // form.vendorId = explicitly picked (org/system admin). Backend
+      // overrides with the creator's own vendorId when they have one, and
+      // rejects a VENDOR-side user with no vendor at all.
+      vendorId: side === 'VENDOR' ? (vendorId || Number(form.vendorId) || undefined) : undefined,
       roleIds: form.roleIds, sendWelcomeEmail: true,
     }, {
       onSuccess: () => {
         onClose()
-        setForm({ firstName: '', lastName: '', email: '', jobTitle: '', roleIds: [] })
+        setForm({ firstName: '', lastName: '', email: '', jobTitle: '', roleIds: [], vendorId: '' })
         setErrors({})
       },
     })
@@ -433,7 +470,9 @@ function OnboardUserModal({ open, onClose, side, tenantId, vendorId }) {
 
   return (
     <Modal open={open} onClose={onClose} title={`Onboard ${sideLabel} User`}
-      subtitle={`Creates account, sends welcome email, and assigns a ${sideLabel}-side role`}
+      subtitle={fixedVendor
+        ? `Creates account and sends welcome email — for ${fixedVendor.name || fixedVendor.vendorName}`
+        : `Creates account, sends welcome email, and assigns a ${sideLabel}-side role`}
       size="md"
       footer={
         <div className="flex justify-end gap-2">
@@ -455,6 +494,51 @@ function OnboardUserModal({ open, onClose, side, tenantId, vendorId }) {
         <Input label="Job Title" value={form.jobTitle}
           onChange={e => set('jobTitle', e.target.value)}
           placeholder="e.g. Security Analyst" />
+
+        {isVendorSide && (
+          <div>
+            <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-2">
+              Vendor <span className="text-status-fail-fg">*</span>
+            </label>
+            {needsVendorPicker ? (
+              <>
+                <select
+                  value={form.vendorId}
+                  onChange={e => set('vendorId', e.target.value)}
+                  className="h-9 w-full px-2 rounded-ctl border border-border bg-surface-raised text-sm
+                             text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+                  <option value="">
+                    {vendorsLoading ? 'Loading vendors…' : 'Select a vendor…'}
+                  </option>
+                  {vendors.map(v => (
+                    <option key={v.id || v.vendorId} value={v.id || v.vendorId}>
+                      {v.name || v.vendorName}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-text-muted mt-1">
+                  Which vendor does this person work for? Vendor users must belong to one.
+                </p>
+                {errors.vendorId && (
+                  <p className="text-xs text-status-fail-fg mt-1.5">{errors.vendorId}</p>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="h-9 w-full px-3 flex items-center rounded-ctl border border-border
+                                bg-surface-overlay text-sm text-text-primary">
+                  {fixedVendor
+                    ? (fixedVendor.name || fixedVendor.vendorName)
+                    : (vendorsLoading ? 'Loading…' : `Vendor #${vendorId}`)}
+                </div>
+                <p className="text-[10px] text-text-muted mt-1">
+                  This user will be onboarded to this vendor. Switch the Vendor filter
+                  above to onboard for a different one.
+                </p>
+              </>
+            )}
+          </div>
+        )}
 
         <div>
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-2">
