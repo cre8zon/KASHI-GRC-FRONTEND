@@ -181,6 +181,17 @@ export const assessmentsApi = {
     assignSection: (assessmentId, sectionInstanceId, userId) =>
       api.put(`/v1/assessments/${assessmentId}/sections/${sectionInstanceId}/assign`, { userId }),
 
+    /**
+     * Step 4 (bulk): CISO assigns MANY sections to ONE responder in one round trip.
+     * The backend validates every sectionInstanceId against the assessment's
+     * template instance before writing, so a bad id fails the whole batch
+     * instead of leaving a partial assignment.
+     * @param {number[]} sectionInstanceIds
+     */
+    assignSectionsBatch: (assessmentId, sectionInstanceIds, userId) =>
+      api.put(`/v1/assessments/${assessmentId}/sections/assign-batch`,
+              { userId, sectionInstanceIds }),
+
     // ── Step 4: Responder assigns/unassigns question to Contributor ──────
     assignQuestion: (assessmentId, questionInstanceId, userId) =>
       api.put(`/v1/assessments/${assessmentId}/questions/${questionInstanceId}/assign`, { userId }),
@@ -214,6 +225,15 @@ export const assessmentsApi = {
     contributorSubmitSection: (assessmentId, sectionInstanceId, taskId) =>
       api.post(`/v1/assessments/${assessmentId}/sections/${sectionInstanceId}/contributor-submit`,
                null, { params: taskId ? { taskId } : {} }),
+    /**
+     * Responder sends a submitted section back to its contributor(s) so blank
+     * questions can still be answered. Omit contributorUserId to reopen for
+     * everyone who submitted that section.
+     */
+    contributorReopenSection: (assessmentId, sectionInstanceId, contributorUserId, remarks) =>
+      api.post(`/v1/assessments/${assessmentId}/sections/${sectionInstanceId}/contributor-reopen`,
+               null, { params: { contributorUserId: contributorUserId || undefined,
+                                 remarks: remarks || undefined } }),
     contributorSectionStatus: (assessmentId, taskId) =>
       api.get(`/v1/assessments/${assessmentId}/contributor-section-status`,
               { params: { taskId } }),
@@ -239,6 +259,16 @@ export const assessmentsApi = {
               { userId }),
     reviewerUnassignQuestion: (assessmentId, questionInstanceId) =>
       api.delete(`/v1/assessments/${assessmentId}/questions/${questionInstanceId}/reviewer-assign`),
+
+    /**
+     * Step 9 (bulk): Reviewer assigns MANY questions to ONE review assistant.
+     * Creates one REVIEWER_ASSIGNMENT action item per question — same as
+     * assigning individually, so the assistant's inbox is unchanged in shape.
+     * @param {number[]} questionInstanceIds
+     */
+    reviewerAssignQuestionsBatch: (assessmentId, questionInstanceIds, userId) =>
+      api.put(`/v1/assessments/${assessmentId}/questions/reviewer-assign-batch`,
+              { userId, questionInstanceIds }),
     // Step 9: Save PASS/PARTIAL/FAIL verdict — persists across page refresh.
     // Named saveReviewerEval to match AssessmentReviewPage.jsx call sites.
     // taskId (optional): when provided, the backend checks if all questions are now evaluated

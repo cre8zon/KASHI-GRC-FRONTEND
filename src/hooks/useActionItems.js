@@ -5,7 +5,7 @@
  * Listens for ACTION_ITEM_CREATED and ACTION_ITEM_UPDATED events.
  * Appends/updates cache without refetch — same pattern as useComments.
  */
-import { useEffect }          from 'react'
+import { useEffect, createContext, useContext, useMemo, createElement } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSelector }        from 'react-redux'
 import { selectAuth }         from '../store/slices/authSlice'
@@ -137,17 +137,79 @@ export function useActionItemCount() {
   return count
 }
 
+// ── Bulk action-item context ────────────────────────────────────────────────
+//
+// Pages that render a per-row action-item banner (assessment fill / review, with
+// a banner per question) were making one request per row — two, since both
+// RevisionBanner and RemediationNoticeBanner call useEntityActionItems. On a
+// 90-question assessment that is ~180 requests, serialised behind the browser's
+// 6-connection limit, which is most of the page's load time.
+//
+// Wrap such a page in ActionItemsBulkProvider and useEntityActionItems will read
+// from the single bulk response instead of fetching per id. Outside a provider it
+// behaves exactly as before, so no call site has to change.
+
+const ActionItemsBulkContext = createContext(null)
+
+export function ActionItemsBulkProvider({ entityType, entityIds, enabled = true, children }) {
+  // Stable primitive key so a fresh array identity each render doesn't refetch.
+  const idKey = useMemo(
+    () => (entityIds || []).filter(Boolean).map(String).sort().join(','),
+    [entityIds],
+  )
+
+  const { data = [], isLoading } = useQuery({
+    queryKey: ['action-items-entities', entityType, idKey],
+    queryFn:  () => actionItemsApi.forEntities(entityType, idKey.split(',')),
+    select:   (d) => (Array.isArray(d) ? d : (d?.data || [])),
+    enabled:  !!entityType && !!idKey && enabled,
+    staleTime: 30_000,
+  })
+
+  const value = useMemo(() => {
+    const byEntity = new Map()
+    for (const item of data) {
+      const key = String(item.entityId)
+      if (!byEntity.has(key)) byEntity.set(key, [])
+      byEntity.get(key).push(item)
+    }
+    return { entityType, byEntity, isLoading, ready: !!idKey }
+  }, [data, entityType, isLoading, idKey])
+
+  // createElement rather than JSX: this file is .js, and Vite/esbuild only enable
+  // the JSX syntax extension for .jsx. JSX here fails the transform with a 500,
+  // which takes down every module that imports this hook.
+  return createElement(ActionItemsBulkContext.Provider, { value }, children)
+}
+
 /**
  * useEntityActionItems — for entity oversight views (CISO, coordinator).
+ *
+ * Reads from ActionItemsBulkProvider when one is mounted for the same entityType;
+ * otherwise falls back to its own per-id request.
  */
 export function useEntityActionItems(entityType, entityId, { enabled = true } = {}) {
-  return useQuery({
+  const bulk = useContext(ActionItemsBulkContext)
+  const servedByBulk = !!bulk && bulk.ready && bulk.entityType === entityType
+
+  const query = useQuery({
     queryKey: ['action-items-entity', entityType, entityId],
     queryFn:  () => actionItemsApi.forEntity(entityType, entityId),
     select:   (d) => Array.isArray(d) ? d : (d?.data || []),
-    enabled:  !!entityType && !!entityId && enabled,
+    // Disabled entirely when the bulk provider already has this data.
+    enabled:  !servedByBulk && !!entityType && !!entityId && enabled,
     staleTime: 30_000,
   })
+
+  if (servedByBulk) {
+    return {
+      ...query,
+      data: bulk.byEntity.get(String(entityId)) || [],
+      isLoading: bulk.isLoading,
+      isFetching: bulk.isLoading,
+    }
+  }
+  return query
 }
 
 /**

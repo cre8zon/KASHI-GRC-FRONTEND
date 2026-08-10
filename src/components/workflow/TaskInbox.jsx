@@ -36,6 +36,43 @@ const WORK_STEP_ACTIONS = new Set(['FILL', 'REVIEW', 'EVALUATE', 'GENERATE', 'AC
  * Returns null only when no route can be determined at all.
  * Null → inline buttons shown (safe only for APPROVE/ASSIGN steps).
  */
+/**
+ * TPRM vendor-assessment routing.
+ *
+ * entityType is VENDOR for the WHOLE TPRM workflow — both the vendor-side steps
+ * and the org-side review steps — so entityType alone cannot pick a page. The
+ * side + step action pair does.
+ *
+ * These pages are the hardcoded pre-module implementation and are the correct
+ * destination today. Until the Universal Module Page covers vendor assessments,
+ * /module/vendor_assessment/:id does not render, so falling through to it gives
+ * "Could not load this page" on a perfectly valid task.
+ *
+ * navKey still wins when the nav table has a row for it — this only runs when
+ * the lookup found nothing.
+ */
+function resolveVendorAssessmentRoute(task) {
+  const side   = (task.resolvedStepSide   || '').toUpperCase()
+  const action = (task.resolvedStepAction || '').toUpperCase()
+
+  if (side === 'ORGANIZATION') {
+    // Org CISO assigns reviewers, reviewers evaluate, CISO approves — every
+    // org-side panel lives inside AssessmentReviewPage and is picked there.
+    if (['ASSIGN', 'REVIEW', 'EVALUATE', 'APPROVE'].includes(action))
+      return '/assessments/:id/review'
+    return null
+  }
+
+  // Vendor side (side is VENDOR, or blank on older step instances)
+  switch (action) {
+    case 'ACKNOWLEDGE': return '/vendor/assessments/:id/acknowledge'
+    case 'ASSIGN':      return '/vendor/assessments/:id/assign'
+    case 'FILL':        return '/vendor/assessments/:id/fill'
+    case 'REVIEW':      return '/vendor/assessments/:id/responder-review'
+    default:            return null
+  }
+}
+
 function resolveTaskRoute(task, navItems) {
   if (!task.artifactId) return null
   const qp = `?taskId=${task.id}&stepInstanceId=${task.stepInstanceId}`
@@ -46,7 +83,15 @@ function resolveTaskRoute(task, navItems) {
     if (nav?.route) return nav.route.replace(':id', task.artifactId) + qp
   }
 
-  // ── Fallback: entityType-based routing ───────────────────────────────────
+  // ── Fallback 1: TPRM vendor assessments → the existing hardcoded pages ────
+  // Must come BEFORE the module fallback below: VENDOR maps to
+  // /module/vendor_assessment/:id there, which isn't implemented yet.
+  if (task.entityType === 'VENDOR') {
+    const vendorRoute = resolveVendorAssessmentRoute(task)
+    if (vendorRoute) return vendorRoute.replace(':id', task.artifactId) + qp
+  }
+
+  // ── Fallback 2: entityType-based routing ─────────────────────────────────
   // Handles step instances created before nav_key was set on the blueprint,
   // or before the ui_navigation row existed. Prevents "contact admin" errors
   // for known entity types.
@@ -54,7 +99,6 @@ function resolveTaskRoute(task, navItems) {
     AUDIT_PROJECT:    '/module/audit_project/:id',
     AUDIT_ENGAGEMENT: '/module/audit_engagement/:id',
     ISSUE:            '/module/issue/:id',
-    VENDOR:           '/module/vendor_assessment/:id',
   }
   const fallbackRoute = ENTITY_ROUTES[task.entityType]
   if (fallbackRoute) return fallbackRoute.replace(':id', task.artifactId) + qp

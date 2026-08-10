@@ -23,6 +23,7 @@ import { EngagementControlsTab }         from '../../components/audit/Engagement
 import { ControlInstanceTestsTab }       from '../../components/audit/ControlInstanceTestsTab'
 import { ControlInstancePoliciesTab }    from '../../components/audit/ControlInstancePoliciesTab'
 import { ControlInstanceEvidenceTab }    from '../../components/audit/ControlInstanceEvidenceTab'
+import { ControlFieldworkTab }          from '../../components/audit/ControlFieldworkTab'
 import { TestInstanceEvidenceTab }       from '../../components/audit/TestInstanceEvidenceTab'
 import { FindingEvidenceTab }            from '../../components/audit/FindingEvidenceTab'
 import { IssueEvidenceTab }              from '../../components/audit/IssueEvidenceTab'
@@ -663,7 +664,7 @@ function CapabilityTabBody({ tab, bp, id, entity, vc }) {
 
   if (tab === 'evidence' && bp.supportsDocuments) {
     if (bp.entityType === 'AUDIT_CONTROL_INSTANCE')
-      return <ControlInstanceEvidenceTab controlInstanceId={entity?.id ?? Number(id)} vc={vc} />
+      return <ControlInstanceEvidenceTab controlInstanceId={entity?.id ?? Number(id)} entity={entity} vc={vc} />
     if (bp.entityType === 'AUDIT_TEST_INSTANCE')
       return <TestInstanceEvidenceTab testInstanceId={entity?.id ?? Number(id)} vc={vc} />
     if (bp.entityType === 'AUDIT_FINDING')
@@ -1896,6 +1897,7 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
   const CUSTOM_RENDERED_TABS = new Set([
     'sections', 'controls', 'findings', 'engagements', 'integrations',
     'tests', 'policies', 'evidence', 'workflow', 'comments', 'history',
+    'fieldwork',
   ])
   const { data: formRes, isLoading } = useQuery({
     queryKey: ['module-tab-form', formKey],
@@ -1973,6 +1975,12 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
     return <EngagementIntegrationTab engagementId={entity?.id} />
   }
 
+  // AUDIT_CONTROL_INSTANCE — combined auditor work surface (tests + policies).
+  // Additive: the Tests and Policies tabs below stay exactly as they were.
+  if (tabKey === 'fieldwork' && entityType === 'AUDIT_CONTROL_INSTANCE') {
+    return <ControlFieldworkTab controlInstanceId={entity?.id} entity={entity} vc={vc} />
+  }
+
   // AUDIT_CONTROL_INSTANCE — tests and policies tabs use instance-level endpoints
   if (tabKey === 'tests' && entityType === 'AUDIT_CONTROL_INSTANCE') {
     return <ControlInstanceTestsTab controlInstanceId={entity?.id} vc={vc} />
@@ -1981,7 +1989,7 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
     return <ControlInstancePoliciesTab controlInstanceId={entity?.id} vc={vc} />
   }
   if (tabKey === 'evidence' && entityType === 'AUDIT_CONTROL_INSTANCE') {
-    return <ControlInstanceEvidenceTab controlInstanceId={entity?.id} vc={vc} />
+    return <ControlInstanceEvidenceTab controlInstanceId={entity?.id} entity={entity} vc={vc} />
   }
 
   // AUDIT_TEST_INSTANCE — mapped controls (Vanta-style: all controls this test covers)

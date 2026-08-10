@@ -42,6 +42,12 @@ const DEFAULT_TYPE = { icon: Bell, color: 'text-text-muted', label: 'Notificatio
 // ── Build navigation URL from notification entity ─────────────────────────────
 function buildNavUrl(notification) {
   const { entityType, entityId, type } = notification
+  // /action-items has no per-item route, so pass the entity as query params and
+  // let the page find + highlight the matching card. Without this the user lands
+  // on a long list with no indication of which item the notification was about.
+  const actionItems = () => (entityType && entityId)
+    ? `/action-items?highlightEntityType=${encodeURIComponent(entityType)}&highlightEntityId=${encodeURIComponent(entityId)}`
+    : '/action-items'
   const isComment = type === 'MENTIONED_IN_COMMENT' || type === 'NEW_COMMENT'
   // For comment notifications landing on a module detail page, open the Comments
   // tab directly via ?tab=comments (the detail page reads this param).
@@ -51,7 +57,7 @@ function buildNavUrl(notification) {
   // COMMENT notifications first: go straight to the commented entity's detail page
   // with the Comments tab open. QUESTION_RESPONSE has no module page → action items.
   if (isComment && entityType && entityId) {
-    if (entityType === 'QUESTION_RESPONSE') return '/action-items'
+    if (entityType === 'QUESTION_RESPONSE') return actionItems()
     // Map known entityTypes to their route; default to the lowercased module route.
     const ROUTE = {
       AUDIT_CONTROL_INSTANCE: 'audit_control_instance',
@@ -67,7 +73,7 @@ function buildNavUrl(notification) {
 
   // Type-based routing (more reliable than entityType for action item events)
   if (type?.startsWith('ACTION_ITEM') || type === 'ANSWER_UPDATED') {
-    return '/action-items'
+    return actionItems()
   }
   if (type === 'ASSIGNMENT' || type === 'SUBMISSION' || type === 'REVIEW') {
     return '/workflow/inbox'
@@ -85,8 +91,8 @@ function buildNavUrl(notification) {
   // Entity-based routing fallback
   if (!entityType || !entityId) return null
   switch (entityType) {
-    case 'ACTION_ITEM':           return '/action-items'
-    case 'QUESTION_RESPONSE':     return '/action-items'
+    case 'ACTION_ITEM':           return actionItems()
+    case 'QUESTION_RESPONSE':     return actionItems()
     case 'ASSESSMENT':            return `/assessments/${entityId}`
     case 'TASK':                  return '/workflow/inbox'
     case 'VENDOR':                return `/tprm/vendors/${entityId}`

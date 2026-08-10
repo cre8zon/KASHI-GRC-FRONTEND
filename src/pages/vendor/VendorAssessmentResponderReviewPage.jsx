@@ -233,13 +233,42 @@ export default function VendorAssessmentResponderReviewPage() {
   const myTasks    = Array.isArray(myTasksData) ? myTasksData : (myTasksData?.items ?? [])
   // Prefer ACTOR task — it is the one whose approval advances the step.
   const isActiveStatus = (s) => s === 'PENDING' || s === 'IN_PROGRESS'
-  const actorTask    = myTasks.find(t =>
+  // ── Scope the live-task lookup to the step this page was opened for ───────
+  // The inbox links to a SPECIFIC step. Scanning myTasks by artifactId alone
+  // could pick up an active task on a DIFFERENT step of the same assessment;
+  // access-context was then resolved against that other step, returned DENIED,
+  // and the canView guard bounced the user back to the inbox immediately after
+  // the page opened.
+  //
+  // Falls back to the artifact-wide scan when the URL's step has no live task —
+  // that is the cancelled-and-restarted case the original comment describes,
+  // where the URL stepInstanceId belongs to a terminated run.
+  // ── The task named in the URL wins ────────────────────────────────────────
+  // The inbox links to ONE specific task. Picking "the first active task on this
+  // step" instead silently retargets every taskId-driven action when the user
+  // holds two active tasks on the same step — which happens after an admin reset
+  // re-issues a task without cancelling the original. The symptom is an action
+  // that reports success but never advances the task on screen, because the
+  // section event fired against the other task's gate.
+  const urlTaskIdParam = urlParams.get('taskId')
+  const urlTask = urlTaskIdParam
+    ? (myTasks.find(t => String(t.id) === String(urlTaskIdParam)
+        && (t.status === 'PENDING' || t.status === 'IN_PROGRESS')) || null)
+    : null
+
+  const urlStepInstanceId = urlParams.get('stepInstanceId')
+  const stepScopedTasks = urlStepInstanceId
+    ? myTasks.filter(t => String(t.stepInstanceId) === String(urlStepInstanceId))
+    : []
+  const taskPool = stepScopedTasks.length > 0 ? stepScopedTasks : myTasks
+
+  const actorTask    = taskPool.find(t =>
     isActiveStatus(t.status) && String(t.artifactId) === String(id) && t.taskRole === 'ACTOR'
   ) || null
-  const assignerTask = myTasks.find(t =>
+  const assignerTask = taskPool.find(t =>
     isActiveStatus(t.status) && String(t.artifactId) === String(id) && t.taskRole === 'ASSIGNER'
   ) || null
-  const activeTask = actorTask || assignerTask
+  const activeTask = urlTask || actorTask || assignerTask
 
   const taskId         = activeTask ? String(activeTask.id)             : urlParams.get('taskId')
   const stepInstanceId = activeTask ? String(activeTask.stepInstanceId) : urlParams.get('stepInstanceId')
@@ -265,9 +294,14 @@ export default function VendorAssessmentResponderReviewPage() {
   const { data: access, isLoading: accessLoading } =
     useAccessContext(stepInstanceId, taskId ? Number(taskId) : undefined)
 
-  const { data: assessmentData, isLoading } = useAssessment(id, !accessLoading && !!access?.canView)
-  // canFetch: bypass access gate when arriving via action item
+  // canFetch: bypass access gate when arriving via action item.
+  // BOTH queries must use this. Previously useAssessment used the raw
+  // access-context gate while only useMySections honoured isOpenWork, so an
+  // openWork arrival left `assessment` undefined and the page rendered
+  // "Assessment not found or you do not have access" even though the backend
+  // would have allowed the read. Declared before both queries so they agree.
   const canFetch = isOpenWork ? !!id : (!accessLoading && !!access?.canView)
+  const { data: assessmentData, isLoading } = useAssessment(id, canFetch)
   const { data: mySections = [], isLoading: sectionsLoading } = useMySections(id, canFetch)
   useScrollToQuestion([mySections.length])
 
@@ -354,11 +388,13 @@ export default function VendorAssessmentResponderReviewPage() {
 
   // ALL hooks before any early returns — Rules of Hooks
   useEffect(() => {
-    if (isOpenWork) return  // arrived via action item — backend decides
+    if (isOpenWork) return       // arrived via action item — backend decides
+    if (tasksLoading) return     // myTasks still in flight — taskId/stepInstanceId
+                                 // may still change, which re-resolves access
     if (!accessLoading && access && !access.canView) {
       navigate('/workflow/inbox', { replace: true })
     }
-  }, [accessLoading, access, navigate])
+  }, [tasksLoading, accessLoading, access, navigate])
 
   if ((!isOpenWork && (accessLoading || tasksLoading)) || isLoading || sectionsLoading) return (
     <div className="flex items-center justify-center min-h-screen">

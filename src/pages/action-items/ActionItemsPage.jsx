@@ -5,8 +5,10 @@
  * Shows all open action items assigned to the current user.
  * Filterable by source type. Real-time via WebSocket.
  */
-import { useState }                      from 'react'
-import { useNavigate }                   from 'react-router-dom'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useNavigate, useSearchParams }  from 'react-router-dom'
+import { useSelector }                   from 'react-redux'
+import { selectAuth }                    from '../../store/slices/authSlice'
 import {
   AlertTriangle, CheckCircle2, Clock, ChevronRight,
   Flag, Shield, FileText, Loader2, TriangleAlert,
@@ -52,8 +54,9 @@ const STATUS_FILTERS = [
 
 // ── Action Item Card ──────────────────────────────────────────────────────────
 
-function ActionItemCard({ item, onUpdateStatus }) {
+function ActionItemCard({ item, onUpdateStatus, highlighted }) {
   const navigate           = useNavigate()
+  const { userId }         = useSelector(selectAuth)
   const sc = STATUS_CONFIG[item.status]   || STATUS_CONFIG.OPEN
   const pc = PRIORITY_CONFIG[item.priority] || PRIORITY_CONFIG.MEDIUM
   const [expanding, setExpanding] = useState(false)
@@ -69,9 +72,19 @@ function ActionItemCard({ item, onUpdateStatus }) {
       //   route          → legacy single-route (backward compat)
       //   questionInstanceId → scroll to specific question on the destination page
       //
-      // Routing decision:
-      //   canResolve=true  → user is the reviewer/validator → reviewerRoute
-      //   canResolve=false → user is the assignee doing the work → assigneeRoute
+      // Routing decision — based on WHO the viewer is, not on canResolve.
+      //
+      // canResolve answers "may you mark this closed". That is ALSO true for the
+      // person doing the work on group-assigned items (KashiGuard writes a
+      // resolutionRole on every item it raises, and assignedTo is null when the
+      // item goes to a role rather than a person). Using it to pick the page sent
+      // vendor contributors to the responder-review screen, where they have no
+      // task and no access — the "Assessment not found" dead end.
+      //
+      // Correct order:
+      //   1. Viewer is the assignee (or a member of the assigned group) → assigneeRoute
+      //   2. Otherwise, viewer may resolve → reviewerRoute
+      //   3. Fall back to whichever route exists
 
       const qParam = ctx.questionInstanceId ? `questionInstanceId=${ctx.questionInstanceId}` : ''
       const addParam = (url) => {
@@ -81,16 +94,18 @@ function ActionItemCard({ item, onUpdateStatus }) {
         return url + (url.includes('?') ? '&' : '?') + qParam
       }
 
-      if (item.canResolve && ctx.reviewerRoute) {
-        navigate(addParam(ctx.reviewerRoute))
-        return
-      }
-
       const assigneeRoute = ctx.assigneeRoute || ctx.route
-      if (assigneeRoute) {
-        // CONTRIBUTOR_ASSIGNMENT and REVIEWER_ASSIGNMENT: no openWork bypass.
-        // Section lock must still apply for assignment entries.
-        // openWork=1 is only added for REVISION_REQUEST and REMEDIATION_REQUEST.
+
+      // Directly assigned to me, or assigned to a role I'm in (assignedTo null +
+      // assignedGroupRole set — the list only returns group items I qualify for).
+      const isMine = item.assignedTo != null
+        ? String(item.assignedTo) === String(userId)
+        : !!item.assignedGroupRole
+
+      // CONTRIBUTOR_ASSIGNMENT and REVIEWER_ASSIGNMENT: no openWork bypass.
+      // Section lock must still apply for assignment entries.
+      // openWork=1 is only added for REVISION_REQUEST and REMEDIATION_REQUEST.
+      const goAssignee = () => {
         const isAssignment = ['CONTRIBUTOR_ASSIGNMENT', 'REVIEWER_ASSIGNMENT']
           .includes(item.remediationType)
         const hasOpenWork = assigneeRoute.includes('openWork')
@@ -99,8 +114,16 @@ function ActionItemCard({ item, onUpdateStatus }) {
           ? assigneeRoute
           : assigneeRoute + `${sep}openWork=1`
         navigate(addParam(withWork))
+      }
+
+      if (isMine && assigneeRoute) { goAssignee(); return }
+
+      if (item.canResolve && ctx.reviewerRoute) {
+        navigate(addParam(ctx.reviewerRoute))
         return
       }
+
+      if (assigneeRoute) { goAssignee(); return }
 
       // Last resort: if only reviewerRoute exists (legacy clarification items), use it
       if (ctx.reviewerRoute) {
@@ -112,8 +135,9 @@ function ActionItemCard({ item, onUpdateStatus }) {
   const isOpen = ['OPEN','IN_PROGRESS','PENDING_REVIEW'].includes(item.status)
 
   return (
-    <div className={cn(
+    <div id={`action-item-${item.id}`} className={cn(
       'rounded-card border bg-surface-raised p-4 space-y-3 transition-all',
+      highlighted && 'ring-2 ring-brand-500/60 ring-offset-1',
       item.status === 'OPEN' ? 'border-status-warn-bd' :
       item.status === 'IN_PROGRESS' ? 'border-status-info-bd' :
       item.status === 'PENDING_REVIEW' ? 'border-status-tag-bd' :
@@ -265,12 +289,48 @@ export default function ActionItemsPage() {
   const { mutate: updateStatus, isPending } = useUpdateActionItemStatus()
   const [sourceFilter, setSourceFilter] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('OPEN,IN_PROGRESS,PENDING_REVIEW')
+  const [urlParams]                     = useSearchParams()
 
-  const filtered = items.filter(item => {
+  // Newest first. The backend returns items in insertion order (two specs merged
+  // into a LinkedHashMap, no ORDER BY), which put the oldest at the top.
+  const sorted = useMemo(() => [...items].sort((a, b) => {
+    const at = a.createdAt ? Date.parse(a.createdAt) : 0
+    const bt = b.createdAt ? Date.parse(b.createdAt) : 0
+    if (bt !== at) return bt - at
+    return (b.id ?? 0) - (a.id ?? 0)   // tiebreak for identical timestamps
+  }), [items])
+
+  const filtered = sorted.filter(item => {
     const matchSource = sourceFilter === 'ALL' || item.sourceType === sourceFilter
     const matchStatus = statusFilter === 'ALL' || statusFilter.includes(item.status)
     return matchSource && matchStatus
   })
+
+  // ── Deep link from a notification ────────────────────────────────────────
+  // Notifications carry entityType + entityId (not an action item id), so match
+  // on those. highlightItemId is also accepted for direct links.
+  const hlEntityType = urlParams.get('highlightEntityType')
+  const hlEntityId   = urlParams.get('highlightEntityId')
+  const hlItemId     = urlParams.get('highlightItemId')
+
+  const highlightId = useMemo(() => {
+    if (hlItemId) return Number(hlItemId)
+    if (!hlEntityType || !hlEntityId) return null
+    // Most recent matching item — sorted is already newest-first.
+    const match = sorted.find(i =>
+      i.entityType === hlEntityType && String(i.entityId) === String(hlEntityId))
+    return match?.id ?? null
+  }, [hlItemId, hlEntityType, hlEntityId, sorted])
+
+  // Scroll the highlighted card into view once it has rendered.
+  const scrolledFor = useRef(null)
+  useEffect(() => {
+    if (!highlightId || scrolledFor.current === highlightId) return
+    const el = document.getElementById(`action-item-${highlightId}`)
+    if (!el) return
+    scrolledFor.current = highlightId
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [highlightId, filtered.length])
 
   const openCount     = items.filter(i => ['OPEN','IN_PROGRESS','PENDING_REVIEW'].includes(i.status)).length
   const resolvedCount = items.filter(i => i.status === 'RESOLVED').length
@@ -341,7 +401,8 @@ export default function ActionItemsPage() {
                   Pending Your Review
                 </p>
                 {filtered.filter(i => i.status === 'PENDING_REVIEW' && i.canResolve).map(item => (
-                  <ActionItemCard key={item.id} item={item} onUpdateStatus={handleUpdateStatus} />
+                  <ActionItemCard key={item.id} item={item} onUpdateStatus={handleUpdateStatus}
+                    highlighted={item.id === highlightId} />
                 ))}
                 {filtered.filter(i => !(i.status === 'PENDING_REVIEW' && i.canResolve)).length > 0 && (
                   <p className="text-[10px] font-semibold text-text-muted uppercase tracking-widest px-1 pt-2">
@@ -352,7 +413,8 @@ export default function ActionItemsPage() {
             )}
             {/* My work items */}
             {filtered.filter(i => !(i.status === 'PENDING_REVIEW' && i.canResolve)).map(item => (
-              <ActionItemCard key={item.id} item={item} onUpdateStatus={handleUpdateStatus} />
+              <ActionItemCard key={item.id} item={item} onUpdateStatus={handleUpdateStatus}
+                highlighted={item.id === highlightId} />
             ))}
           </div>
         )}

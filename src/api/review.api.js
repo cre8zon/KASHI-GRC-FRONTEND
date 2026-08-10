@@ -17,6 +17,16 @@ export const reviewApi = {
     api.put(`/v1/assessments/${assessmentId}/sections/${sectionInstanceId}/reviewer-assign`,
       { userId }),
 
+  /**
+   * Org CISO assigns MANY sections to ONE reviewer in one round trip.
+   * Writes reviewerAssignedUserId only — never assignedUserId (vendor responder).
+   * Batch is validated server-side before any write.
+   * @param {number[]} sectionInstanceIds
+   */
+  reviewerAssignSectionsBatch: (assessmentId, sectionInstanceIds, userId) =>
+    api.put(`/v1/assessments/${assessmentId}/sections/reviewer-assign-batch`,
+      { userId, sectionInstanceIds }),
+
   /** Reviewer fetches their assigned sections with questions */
 myReviewerSections: (assessmentId, taskId) =>
   api.get(`/v1/assessments/${assessmentId}/my-reviewer-sections`,
