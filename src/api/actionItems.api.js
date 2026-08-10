@@ -25,6 +25,16 @@ export const actionItemsApi = {
   forEntity: (entityType, entityId, params) =>
     api.get('/v1/action-items', { params: { entityType, entityId, ...params } }),
 
+  /**
+   * Bulk variant of forEntity — one request for many entity ids.
+   * Used by ActionItemsBulkProvider so a page with N questions makes 1 request
+   * instead of 2N.
+   */
+  forEntities: (entityType, entityIds) =>
+    api.get('/v1/action-items/by-entities', {
+      params: { entityType, entityIds: (entityIds || []).join(',') },
+    }),
+
   getById: (id) => api.get(`/v1/action-items/${id}`),
 
   /**

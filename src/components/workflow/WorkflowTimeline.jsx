@@ -340,9 +340,14 @@ function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
                   auto
                 </span>
               )}
+              {/* timesVisited is the total number of step_instances for this step,
+                  so a step run twice has timesVisited=2 and ONE revisit. The label
+                  used to print the visit count as the revisit count, which read as
+                  "×6 revisits" directly above "+5 earlier iterations" for the same
+                  step — two different numbers for the same thing. */}
               {step.timesVisited > 1 && (
                 <span className="text-[10px] text-status-warn-fg font-medium">
-                  ×{step.timesVisited} revisits
+                  ×{step.timesVisited - 1} revisit{step.timesVisited > 2 ? 's' : ''}
                 </span>
               )}
               {slaBreached && (

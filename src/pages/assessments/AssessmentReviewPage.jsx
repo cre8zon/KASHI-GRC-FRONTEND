@@ -32,14 +32,14 @@
  *      open remediation / clarification items and can validate or accept-risk.
  */
 
-import { useState, useEffect }    from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, CheckCircle2, XCircle, CornerDownLeft, MessageSquare,
   ChevronDown, ChevronRight, Loader2, FileText,
   Users, ThumbsUp, ThumbsDown, Minus, Send, AlertTriangle,
-  Flag, UserPlus, Eye, RefreshCw, Download, Clock,
+  Flag, UserPlus, Eye, RefreshCw, Download, Clock, ListChecks,
 } from 'lucide-react'
 import { assessmentsApi } from '../../api/assessments.api'
 import { reviewApi }      from '../../api/review.api'
@@ -56,7 +56,7 @@ import { cn }             from '../../lib/cn'
 import { formatDate }     from '../../utils/format'
 import { useMyTasks, useCompoundTaskProgress } from '../../hooks/useWorkflow'
 import { CompoundTaskProgress, CompoundTaskBadge } from '../../components/workflow/CompoundTaskProgress'
-import { useEntityActionItems, useUpdateActionItemStatus } from '../../hooks/useActionItems'
+import { useEntityActionItems, useUpdateActionItemStatus, ActionItemsBulkProvider } from '../../hooks/useActionItems'
 import { useQuestionComments } from '../../hooks/useComments'
 import toast from 'react-hot-toast'
 import EvidenceUploader         from '../../components/ui/EvidenceUploader'
@@ -572,6 +572,70 @@ function FlagQuestionModal({ questionInstanceId, assessmentId, onClose }) {
   )
 }
 
+// ─── BulkAssignAssistantsBar ─────────────────────────────────────────────────
+//
+// Section-scoped bulk assignment of questions to ONE review assistant.
+// Mirrors the responder-side batch toolbar in VendorAssessmentFillPage: tick
+// questions, pick a person, one round trip. Unlike that one, already-assigned
+// questions stay selectable so reassignment works in bulk too.
+
+function BulkAssignAssistantsBar({ assessmentId, selectedIds, onClear }) {
+  const [search, setSearch] = useState('')
+  const [busy,   setBusy]   = useState(false)
+  const { data: usersData } = useOrgUsers(search)
+  const users = usersData?.items || usersData?.data || []
+  const qc = useQueryClient()
+
+  const assign = (u) => {
+    const uid = u.id || u.userId
+    const ids = [...selectedIds]
+    setBusy(true)
+    assessmentsApi.vendor.reviewerAssignQuestionsBatch(assessmentId, ids, uid)
+      .then(() => {
+        qc.invalidateQueries({ queryKey: ['reviewer-my-sections-v2', assessmentId] })
+        toast.success(`${ids.length} question(s) assigned to ${u.fullName || u.email}`)
+        setSearch('')
+        onClear()
+      })
+      .catch(e => toast.error(e?.message || e?.response?.data?.error?.message || 'Bulk assignment failed'))
+      .finally(() => setBusy(false))
+  }
+
+  return (
+    <div className="px-5 py-2.5 bg-status-tag-bg border-b border-status-tag-bd space-y-2">
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-xs text-status-tag-fg font-medium shrink-0">
+          {selectedIds.length} question{selectedIds.length > 1 ? 's' : ''} selected
+        </span>
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search assistant by name or email (min 2 chars)…"
+          className="flex-1 min-w-[200px] rounded border border-border bg-surface-raised px-2.5 py-1 text-xs text-text-primary placeholder:text-text-muted focus:outline-none"/>
+        <button onClick={onClear}
+          className="text-[10px] text-text-muted hover:text-text-secondary shrink-0">
+          Clear
+        </button>
+      </div>
+      {search.length >= 2 && (
+        <div className="flex flex-wrap gap-1.5 items-center">
+          {users.map(u => {
+            const uid = u.id || u.userId
+            return (
+              <button key={uid} type="button" disabled={busy} onClick={() => assign(u)}
+                className="text-[11px] px-2.5 py-1 rounded-ctl border border-border text-text-secondary hover:border-status-tag-bd hover:text-status-tag-fg transition-colors disabled:opacity-50">
+                {u.fullName || u.email}
+              </button>
+            )
+          })}
+          {busy && <Loader2 size={12} className="animate-spin text-text-muted" />}
+          {!busy && users.length === 0 && (
+            <span className="text-[11px] text-text-muted italic">No matching users</span>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── AssignToAssistantInline (updated: uses reviewer-assign-v2) ──────────────
 
 function AssignToAssistantInline({ question, assessmentId, onAssigned }) {
@@ -828,6 +892,8 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
 function ReviewerSectionAccordion({ section, assessmentId, taskId, evaluations, onEvaluate, defaultOpen, onOpenDrawer, questionOffset = 0 }) {
   const [open, setOpen] = useState(defaultOpen)
   const questions       = section.questions || []
+  // Bulk assignment selection — scoped to this section, cleared after assign.
+  const [selectedIds, setSelectedIds] = useState([])
   const isGenuine       = (resp) => !!(resp && (
     resp.responseText?.startsWith('[FILE_UPLOADED') ||
     resp.selectedOptionInstanceId != null ||
@@ -882,21 +948,57 @@ function ReviewerSectionAccordion({ section, assessmentId, taskId, evaluations, 
 
       {open && (
         <div className="border-t border-border">
+          {/* Bulk assign toolbar — only while the section is still editable */}
+          {!isSubmitted && selectedIds.length > 0 && (
+            <BulkAssignAssistantsBar
+              assessmentId={assessmentId}
+              selectedIds={selectedIds}
+              onClear={() => setSelectedIds([])}
+            />
+          )}
+          {!isSubmitted && questions.length > 0 && (
+            <div className="px-5 py-2 border-b border-border flex items-center gap-2">
+              <input type="checkbox"
+                checked={selectedIds.length === questions.length}
+                onChange={() => setSelectedIds(
+                  selectedIds.length === questions.length
+                    ? []
+                    : questions.map(q => q.questionInstanceId))}
+                aria-label="Select all questions in this section"
+                className="h-3.5 w-3.5 accent-brand-500 cursor-pointer"/>
+              <span className="text-[11px] text-text-muted">
+                Select all in section — assign to one review assistant at once
+              </span>
+            </div>
+          )}
           <div className="px-5">
             {questions.map((q, qi) => (
-              <div key={q.questionInstanceId} data-qi={q.questionInstanceId}>
-              <ReviewerQuestionCard
-                key={q.questionInstanceId}
-                question={q}
-                number={questionOffset + qi + 1}
-                assessmentId={assessmentId}
-                taskId={taskId}
-                evaluation={evaluations[q.questionInstanceId]}
-                onEvaluate={onEvaluate}
-                canAct={true}
-                sectionSubmitted={isSubmitted}
-                onOpenDrawer={onOpenDrawer}
-              />
+              <div key={q.questionInstanceId} data-qi={q.questionInstanceId}
+                className="flex items-start gap-2.5">
+                {!isSubmitted && (
+                  <input type="checkbox"
+                    checked={selectedIds.includes(q.questionInstanceId)}
+                    onChange={() => setSelectedIds(ids =>
+                      ids.includes(q.questionInstanceId)
+                        ? ids.filter(x => x !== q.questionInstanceId)
+                        : [...ids, q.questionInstanceId])}
+                    aria-label={`Select question ${questionOffset + qi + 1}`}
+                    className="h-3.5 w-3.5 shrink-0 mt-4 accent-brand-500 cursor-pointer"/>
+                )}
+                <div className="flex-1 min-w-0">
+                  <ReviewerQuestionCard
+                    key={q.questionInstanceId}
+                    question={q}
+                    number={questionOffset + qi + 1}
+                    assessmentId={assessmentId}
+                    taskId={taskId}
+                    evaluation={evaluations[q.questionInstanceId]}
+                    onEvaluate={onEvaluate}
+                    canAct={true}
+                    sectionSubmitted={isSubmitted}
+                    onOpenDrawer={onOpenDrawer}
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -941,6 +1043,10 @@ function AssignReviewersPanel({ assessment, taskId, onDone }) {
   const users = usersData?.items || usersData?.data || []
   const qc = useQueryClient()
 
+  // ── Bulk assignment state ─────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState([])
+  const [bulkBusy,    setBulkBusy]    = useState(false)
+
   const { mutate: assignSection } = useMutation({
     // NEW: uses reviewerAssignSection (writes reviewerAssignedUserId, not assignedUserId)
     mutationFn: ({ sectionInstanceId, userId }) =>
@@ -956,25 +1062,133 @@ function AssignReviewersPanel({ assessment, taskId, onDone }) {
   })
 
   const sections = assessment?.sections || []
+
+  // ── Seed from the server ──────────────────────────────────────────────────
+  // `assignments` used to live only in React state, so a refresh wiped it and
+  // the Confirm button locked out even though reviewerAssignedUserId was already
+  // persisted. SectionInstanceResponse now carries reviewerAssignedUserId +
+  // reviewerAssignedUserName, so the panel can rehydrate.
+  const seedKey = useMemo(
+    () => sections.map(s => `${s.sectionInstanceId}:${s.reviewerAssignedUserId ?? ''}`).join('|'),
+    [sections],
+  )
+  useEffect(() => {
+    if (!sections.length) return
+    const seed = {}
+    sections.forEach(s => {
+      if (s.reviewerAssignedUserId) {
+        seed[s.sectionInstanceId] = {
+          id:   s.reviewerAssignedUserId,
+          name: s.reviewerAssignedUserName || `User #${s.reviewerAssignedUserId}`,
+        }
+      }
+    })
+    if (Object.keys(seed).length) setAssignments(a => ({ ...a, ...seed }))
+  }, [seedKey])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Bulk selection helpers ────────────────────────────────────────────────
+  const toggleSelect = (sid) =>
+    setSelectedIds(ids => ids.includes(sid) ? ids.filter(x => x !== sid) : [...ids, sid])
+
+  const allSelected = sections.length > 0 && selectedIds.length === sections.length
+  const unassignedIds = sections
+    .filter(s => !assignments[s.sectionInstanceId])
+    .map(s => s.sectionInstanceId)
+
+  const handleBulkAssign = (u) => {
+    if (!selectedIds.length) { toast.error('Tick at least one section'); return }
+    const uid = u.id || u.userId
+    const ids = [...selectedIds]
+    setBulkBusy(true)
+    reviewApi.reviewerAssignSectionsBatch(id, ids, uid)
+      .then(() => {
+        setAssignments(a => {
+          const next = { ...a }
+          ids.forEach(sid => { next[sid] = { id: uid, name: u.fullName || u.email } })
+          return next
+        })
+        setSelectedIds([])
+        qc.invalidateQueries({ queryKey: ['assessment-review', id] })
+        toast.success(`${ids.length} section(s) assigned to ${u.fullName || u.email}`)
+      })
+      .catch(e => toast.error(e?.message || 'Bulk assignment failed'))
+      .finally(() => setBulkBusy(false))
+  }
+
   const allAssigned = sections.length > 0 && sections.every(s => assignments[s.sectionInstanceId])
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-text-muted">Assign each section to a reviewer. Reviewers will see only their assigned sections and can further assign questions to review assistants.</p>
+      <p className="text-xs text-text-muted">Assign each section to a reviewer. Reviewers will see only their assigned sections and can further assign questions to review assistants. Tick several sections to assign them to the same reviewer at once.</p>
       <div className="rounded-ctl border border-border bg-surface-raised px-3 py-2">
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search reviewers by name or email (min 2 chars)…"
           className="w-full text-sm bg-transparent text-text-primary placeholder:text-text-muted focus:outline-none"/>
       </div>
-      {sections.map(sec => (
-        <div key={sec.sectionInstanceId} className="rounded-ctl border border-border overflow-hidden">
-          <div className="px-4 py-3 bg-surface-overlay flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-text-primary">{sec.sectionName}</p>
-              <p className="text-xs text-text-muted">{sec.questions?.length || 0} questions</p>
+
+      {/* ── Bulk assignment bar ────────────────────────────────────────────── */}
+      <div className="rounded-ctl border border-border bg-surface-raised p-3 space-y-2.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <ListChecks size={13} className="text-text-muted shrink-0" />
+          <span className="text-xs font-medium text-text-secondary">
+            {selectedIds.length > 0 ? `${selectedIds.length} section(s) selected` : 'Bulk assign'}
+          </span>
+          <div className="flex-1" />
+          <button type="button"
+            onClick={() => setSelectedIds(allSelected ? [] : sections.map(s => s.sectionInstanceId))}
+            className="text-[11px] text-text-muted hover:text-brand-ink px-2 py-1 rounded border border-border hover:border-brand-500/30 transition-colors">
+            {allSelected ? 'Clear all' : 'Select all'}
+          </button>
+          <button type="button"
+            onClick={() => setSelectedIds(unassignedIds)}
+            disabled={unassignedIds.length === 0}
+            className="text-[11px] text-text-muted hover:text-brand-ink px-2 py-1 rounded border border-border hover:border-brand-500/30 transition-colors disabled:opacity-40 disabled:hover:border-border">
+            Select unassigned ({unassignedIds.length})
+          </button>
+        </div>
+        {selectedIds.length > 0 && (
+          search.length < 2
+            ? <p className="text-xs text-text-muted italic">Search above (min 2 chars), then pick a reviewer to assign all {selectedIds.length} selected section(s).</p>
+            : (
+              <div className="flex flex-wrap gap-1.5 items-center">
+                <span className="text-[11px] text-text-muted mr-1">Assign selected to:</span>
+                {users.map(u => {
+                  const uid = u.id || u.userId
+                  return (
+                    <button key={uid} type="button"
+                      disabled={bulkBusy}
+                      onClick={() => handleBulkAssign(u)}
+                      className="text-xs px-2.5 py-1 rounded-ctl border border-brand-500/40 bg-brand-500/10 text-brand-ink hover:bg-brand-500/20 transition-colors disabled:opacity-50">
+                      {u.fullName || u.email}
+                    </button>
+                  )
+                })}
+                {bulkBusy && <Loader2 size={12} className="animate-spin text-text-muted" />}
+              </div>
+            )
+        )}
+      </div>
+
+      {sections.map(sec => {
+        const ticked = selectedIds.includes(sec.sectionInstanceId)
+        return (
+        <div key={sec.sectionInstanceId} className={cn(
+          'rounded-ctl border overflow-hidden transition-colors',
+          ticked ? 'border-brand-500/40' : 'border-border')}>
+          <div className={cn('px-4 py-3 flex items-center justify-between gap-3',
+            ticked ? 'bg-brand-500/5' : 'bg-surface-overlay')}>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <input type="checkbox" checked={ticked}
+                onChange={() => toggleSelect(sec.sectionInstanceId)}
+                aria-label={`Select ${sec.sectionName}`}
+                className="h-3.5 w-3.5 shrink-0 accent-brand-500 cursor-pointer" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-text-primary truncate">{sec.sectionName}</p>
+                <p className="text-xs text-text-muted">{sec.questions?.length || 0} questions</p>
+              </div>
             </div>
             {assignments[sec.sectionInstanceId] && (
-              <span className="text-xs text-status-pass-fg flex items-center gap-1">
+              <span className="text-xs text-status-pass-fg flex items-center gap-1 shrink-0">
                 <CheckCircle2 size={11}/> {assignments[sec.sectionInstanceId].name}
               </span>
             )}
@@ -999,7 +1213,8 @@ function AssignReviewersPanel({ assessment, taskId, onDone }) {
             </div>
           </div>
         </div>
-      ))}
+        )
+      })}
       <Button variant="primary" onClick={confirm} loading={isPending} disabled={!allAssigned} className="w-full">
         {allAssigned ? 'Confirm all reviewer assignments' : `Assign ${sections.filter(s => !assignments[s.sectionInstanceId]).length} remaining section(s)`}
       </Button>
@@ -1182,7 +1397,16 @@ function EvaluateQuestionsPanel({ assessment, taskId, activeTask, onDone, target
     </div>
   )
 
+  const reviewBannerQIds = mySections
+    .flatMap(s => s.questions || [])
+    .map(q => q.questionInstanceId)
+    .filter(Boolean)
+
+  // One bulk action-item request feeds every per-question banner on this page.
+  // Previously each question fired its own request, so a 90-question review opened
+  // with ~90 serialised round trips before any banner rendered.
   return (
+    <ActionItemsBulkProvider entityType="QUESTION_RESPONSE" entityIds={reviewBannerQIds}>
     <>
     <div className="space-y-4">
       <div className="flex items-center justify-between text-xs text-text-muted px-0.5">
@@ -1223,6 +1447,7 @@ function EvaluateQuestionsPanel({ assessment, taskId, activeTask, onDone, target
         onClose={() => setDrawerQuestion(null)}
       />
     </>
+    </ActionItemsBulkProvider>
   )
 }
 

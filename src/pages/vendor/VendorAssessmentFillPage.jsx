@@ -32,7 +32,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, CheckCircle2, ChevronDown, ChevronRight,
   Send, Loader2, AlertCircle, Save, FileText, Users, Search,
-  AlertTriangle, Clock, MessageSquare, Paperclip, Shield} from 'lucide-react'
+  AlertTriangle, Clock, MessageSquare, Paperclip, Shield,
+  Edit3, CornerDownLeft} from 'lucide-react'
 import { assessmentsApi } from '../../api/assessments.api'
 import { usersApi }       from '../../api/users.api'
 import { workflowsApi }   from '../../api/workflows.api'
@@ -45,7 +46,7 @@ import { useSelector }    from 'react-redux'
 import { selectAuth, selectRoles } from '../../store/slices/authSlice'
 import { Modal }          from '../../components/ui/Modal'
 import { useAccessContext, useMyTasks, useCompoundTaskProgress } from '../../hooks/useWorkflow'
-import { useEntityActionItems, useUpdateActionItemStatus } from '../../hooks/useActionItems'
+import { useEntityActionItems, useUpdateActionItemStatus, ActionItemsBulkProvider } from '../../hooks/useActionItems'
 import { CompoundTaskProgress, CompoundTaskBadge } from '../../components/workflow/CompoundTaskProgress'
 import { QuestionDrawer, ResponderActions } from '../../components/item-panel'
 import toast              from 'react-hot-toast'
@@ -175,7 +176,11 @@ function useContributorSectionStatus(assessmentId, taskId) {
   return useQuery({
     queryKey: ['contributor-section-status', assessmentId, taskId],
     queryFn:  () => assessmentsApi.vendor.contributorSectionStatus(assessmentId, taskId),
-    enabled:  !!assessmentId && !!taskId,
+    // No taskId requirement: on a revision entry the contributor's task is already
+    // APPROVED, so taskId is null. The endpoint keys off the logged-in user, so it
+    // answers correctly either way — gating on taskId just meant the section
+    // reverted to "Submit answers" on every refresh mid-revision.
+    enabled:  !!assessmentId,
     select:   (d) => {
       const rows = Array.isArray(d) ? d : (d?.data || [])
       // Return a Set of submitted sectionInstanceIds for O(1) lookup
@@ -217,6 +222,29 @@ function useSubmitSection(assessmentId) {
       // toast removed — section already shows "Submitted ✓" optimistically
     },
     onError: (e) => toast.error(e?.message || 'Failed to submit section'),
+  })
+}
+
+/**
+ * useContributorReopen — responder sends a contributor's section back.
+ *
+ * Needed because contributor-submit locks the section and auto-approves the
+ * contributor's sub-task. Anything they left blank was then unreachable: the
+ * responder couldn't answer it (assigned questions are read-only to them) and
+ * couldn't return it (Request revision only appears once an answer exists).
+ */
+function useContributorReopen(assessmentId) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ sectionInstanceId, contributorUserId, remarks }) =>
+      assessmentsApi.vendor.contributorReopenSection(
+        assessmentId, sectionInstanceId, contributorUserId, remarks),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-sections-fill', assessmentId] })
+      qc.invalidateQueries({ queryKey: ['contributor-section-status', assessmentId] })
+      toast.success('Sent back to contributor — it is back in their inbox')
+    },
+    onError: (e) => toast.error(e?.message || 'Failed to reopen section'),
   })
 }
 
@@ -887,15 +915,44 @@ export default function VendorAssessmentFillPage() {
   const myTasks    = Array.isArray(myTasksData) ? myTasksData : (myTasksData?.items ?? [])
   // Prefer ACTOR task — it is the one whose approval advances the step.
   // A user can theoretically have both ASSIGNER and ACTOR tasks for the same artifact.
-  const actorTask    = myTasks.find(t =>
+  // ── Scope the live-task lookup to the step this page was opened for ───────
+  // The inbox links to a SPECIFIC step. Scanning myTasks by artifactId alone
+  // could pick up an active task on a DIFFERENT step of the same assessment;
+  // access-context was then resolved against that other step, returned DENIED,
+  // and the canView guard bounced the user back to the inbox immediately after
+  // the page opened.
+  //
+  // Falls back to the artifact-wide scan when the URL's step has no live task —
+  // that is the cancelled-and-restarted case the original comment describes,
+  // where the URL stepInstanceId belongs to a terminated run.
+  // ── The task named in the URL wins ────────────────────────────────────────
+  // The inbox links to ONE specific task. Picking "the first active task on this
+  // step" instead silently retargets every taskId-driven action when the user
+  // holds two active tasks on the same step — which happens after an admin reset
+  // re-issues a task without cancelling the original. The symptom is an action
+  // that reports success but never advances the task on screen, because the
+  // section event fired against the other task's gate.
+  const urlTaskIdParam = urlParams.get('taskId')
+  const urlTask = urlTaskIdParam
+    ? (myTasks.find(t => String(t.id) === String(urlTaskIdParam)
+        && (t.status === 'PENDING' || t.status === 'IN_PROGRESS')) || null)
+    : null
+
+  const urlStepInstanceId = urlParams.get('stepInstanceId')
+  const stepScopedTasks = urlStepInstanceId
+    ? myTasks.filter(t => String(t.stepInstanceId) === String(urlStepInstanceId))
+    : []
+  const taskPool = stepScopedTasks.length > 0 ? stepScopedTasks : myTasks
+
+  const actorTask    = taskPool.find(t =>
     (t.status === 'PENDING' || t.status === 'IN_PROGRESS') &&
     String(t.artifactId) === String(id) && t.taskRole === 'ACTOR'
   ) || null
-  const assignerTask = myTasks.find(t =>
+  const assignerTask = taskPool.find(t =>
     (t.status === 'PENDING' || t.status === 'IN_PROGRESS') &&
     String(t.artifactId) === String(id) && t.taskRole === 'ASSIGNER'
   ) || null
-  const activeTask = actorTask || assignerTask
+  const activeTask = urlTask || actorTask || assignerTask
 
   const taskId         = activeTask ? String(activeTask.id)             : urlParams.get('taskId')
   const stepInstanceId = activeTask ? String(activeTask.stepInstanceId) : urlParams.get('stepInstanceId')
@@ -930,6 +987,7 @@ export default function VendorAssessmentFillPage() {
   const { mutate: submitAssessment, isPending: submitting }     = useSubmitAssessment(id)
   const { mutate: submitSection,   isPending: submittingSection } = useSubmitSection(id)
   const { mutate: reopenSection,   isPending: reopeningSection  } = useReopenSection(id)
+  const { mutate: contributorReopen, isPending: contributorReopening } = useContributorReopen(id)
   const { mutate: contribSubmit,   isPending: contribSubmitting } = useContributorSubmitSection(id)
   const { data: contribSubmitted = new Set() } = useContributorSectionStatus(id, taskId)
   const { mutate: assignQuestion }                                = useAssignQuestion(id)
@@ -956,14 +1014,23 @@ export default function VendorAssessmentFillPage() {
   // Auto-redirect to inbox when all sections are submitted.
   // isContributorMode (= no sections assigned to this user) must be declared
   // above this effect — contributors/unassigned users don't submit sections.
+  //
+  // ONLY when they became submitted DURING this visit. This effect used to fire
+  // on load too, so opening a task whose sections were already submitted bounced
+  // straight back to the inbox — the "opens, then goes back" symptom. That is a
+  // legitimate page to open: to re-read answers, reopen a section, reassign a
+  // question, or send one back to a contributor. The redirect is meant as a
+  // convenience right after the user submits the last section, nothing more.
+  const sawIncompleteRef = useRef(false)
   useEffect(() => {
     if (isContributorMode) return   // not a section owner, don't redirect
     if (!mySectionsData.length || !taskId) return
     const allSubmitted = mySectionsData.every(s => !!s.submittedAt)
-    if (allSubmitted) {
-      const t = setTimeout(() => navigate('/workflow/inbox', { replace: true }), 1500)
-      return () => clearTimeout(t)
-    }
+    if (!allSubmitted) { sawIncompleteRef.current = true; return }
+    // Already complete when the page opened — the user came here on purpose.
+    if (!sawIncompleteRef.current) return
+    const t = setTimeout(() => navigate('/workflow/inbox', { replace: true }), 1500)
+    return () => clearTimeout(t)
   }, [mySectionsData, isContributorMode, taskId, navigate])
 
   const { data: contributorQs = [] } = useMyContributorQuestions(id, isContributorMode)
@@ -995,6 +1062,12 @@ export default function VendorAssessmentFillPage() {
 
   const toggle = (key) => setOpen(o => ({ ...o, [key]: !o[key] }))
 
+  // Every section this responder owns is locked. On a FILL step that means the
+  // work is done and only the compound gate is outstanding.
+  const allMySectionsSubmitted = !isContributorMode
+    && mySectionsData.length > 0
+    && mySectionsData.every(s => !!s.submittedAt)
+
   // canEdit drives whether inputs are interactive
   // editable: user has an active task (access.canEdit) AND assessment is not terminal.
   // We intentionally do NOT gate on assessment.status === 'IN_PROGRESS' only —
@@ -1002,6 +1075,14 @@ export default function VendorAssessmentFillPage() {
   // or stay 'IN_PROGRESS' throughout. The task status (via access.canEdit) is
   // the authoritative gate. Section-level lock (section.submittedAt) handles finer control.
   const terminalStatuses = ['SUBMITTED', 'COMPLETED', 'CANCELLED', 'REJECTED']
+  // Revision / assignment entries only reach this page because the backend granted
+  // an open-obligation bypass. SUBMITTED is not terminal for them — a revision
+  // request raised after the CISO submits is by definition an invitation to edit
+  // again. Without this the contributor could type an answer (QuestionInput
+  // bypasses the lock on isRevisionEntry) but the submit footer was hidden,
+  // because `editable` was false. Hard terminal states still lock everything.
+  const bypassTerminalStatuses = ['COMPLETED', 'CANCELLED', 'REJECTED']
+  const effectiveTerminal = isBypassEntry ? bypassTerminalStatuses : terminalStatuses
   // For openWork entries: editable is determined by backend response.
   // If backend allows submitAnswer → editable. If 403 → shows error.
   // We allow the UI to render in editable=false (read-only) mode —
@@ -1010,7 +1091,7 @@ export default function VendorAssessmentFillPage() {
     // Contributors, revision entries, and assignment entries: gate on assessment status only.
     // access.canEdit is the RESPONDER's fill-step permission — it does not apply to contributors
     // whose task type is a sub-task on the same step. getMyQuestions is already auth-gated.
-    ? !!(assessment?.status && !terminalStatuses.includes(assessment.status))
+    ? !!(assessment?.status && !effectiveTerminal.includes(assessment.status))
     : !!(access?.canEdit && assessment?.status && !terminalStatuses.includes(assessment.status))
 
   const handleSubmit = () => {
@@ -1023,10 +1104,11 @@ export default function VendorAssessmentFillPage() {
   // ALL hooks before any early returns — Rules of Hooks
   useEffect(() => {
     if (isRevisionEntry || isAssignmentEntry) return  // contributor/revision: backend guards, don't redirect
+    if (tasksLoading) return   // taskId/stepInstanceId not settled — access will be re-resolved
     if (!accessLoading && access && !access.canView) {
       navigate('/workflow/inbox', { replace: true })
     }
-  }, [accessLoading, access, navigate, isRevisionEntry, isAssignmentEntry])
+  }, [tasksLoading, accessLoading, access, navigate, isRevisionEntry, isAssignmentEntry])
 
   // Auto-open the drawer for the target question when arriving via "Go to item".
   // Fires once after contributorQs loads and questionInstanceIdParam is set.
@@ -1070,7 +1152,15 @@ export default function VendorAssessmentFillPage() {
   const answered = assessment.progress?.answered ?? 0
   const pct      = totalQ > 0 ? Math.round(answered * 100 / totalQ) : 0
 
+  // Every question id rendered on this page. One bulk action-item request feeds
+  // every per-question banner; without it RevisionBanner + RemediationNoticeBanner
+  // fire two requests per question (~180 on a 90-question assessment).
+  const bannerQuestionIds = (isContributorMode ? contributorQs : mySectionsData.flatMap(s => s.questions || []))
+    .map(q => q.questionInstanceId)
+    .filter(Boolean)
+
   return (
+    <ActionItemsBulkProvider entityType="QUESTION_RESPONSE" entityIds={bannerQuestionIds}>
     <>
     <div className="min-h-screen bg-background-tertiary">
       {/* Header */}
@@ -1105,6 +1195,24 @@ export default function VendorAssessmentFillPage() {
           {access?.canAct && editable && taskId && (stepAction === 'REVIEW' || stepAction === 'GENERATE') && (
             <Button size="sm" icon={Send} onClick={() => setShowSubmit(true)}>
               Submit
+            </Button>
+          )}
+          {/* FILL steps complete through the compound task gate, not through the
+              assessment-level Submit above (that one flips the whole assessment to
+              SUBMITTED — it is the CISO's final submit and is wrong here).
+              Normally the gate fires from the last "Submit section" click. When a
+              task is reset, the sections are already locked so that click is
+              unavailable, leaving no way to complete the re-issued task. This
+              re-fires the gate for the already-submitted sections. */}
+          {access?.canAct && editable && taskId && stepAction === 'FILL'
+            && allMySectionsSubmitted && (
+            <Button size="sm" icon={Send} loading={submittingSection}
+              onClick={() => {
+                mySectionsData.forEach(s => s.sectionInstanceId &&
+                  submitSection({ sectionInstanceId: s.sectionInstanceId, taskId }))
+                toast.success('Task submitted — completing…')
+              }}>
+              Submit task
             </Button>
           )}
         </div>
@@ -1323,8 +1431,31 @@ export default function VendorAssessmentFillPage() {
                   if (s.has(qid)) s.delete(qid); else s.add(qid)
                   return { ...prev, [sectionKey2]: s }
                 })
+                const selectableIds = (section.questions || []).map(q => q.questionInstanceId)
+                const allBatchSelected = selectableIds.length > 0 && batchSet.size === selectableIds.length
                 return (
                 <div className="border-t border-border divide-y divide-border">
+                  {/* Select-all row — assign a whole section to one contributor */}
+                  {editable && !section.submittedAt && selectableIds.length > 0 && (
+                    <div className="px-5 py-2 flex items-center gap-2">
+                      <button
+                        onClick={() => setSelectedForBatch(prev => ({
+                          ...prev,
+                          [sectionKey2]: allBatchSelected ? new Set() : new Set(selectableIds),
+                        }))}
+                        className={cn(
+                          'w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors',
+                          allBatchSelected
+                            ? 'bg-status-tag-bg border-status-tag-bd'
+                            : 'border-border hover:border-status-tag-bd'
+                        )}>
+                        {allBatchSelected && <CheckCircle2 size={10} className="text-on-dark" />}
+                      </button>
+                      <span className="text-[11px] text-text-muted">
+                        Select all in section — assign to one contributor at once
+                      </span>
+                    </div>
+                  )}
                   {/* Batch assign toolbar — shown when items selected */}
                   {editable && batchSet.size > 0 && (
                     <div className="px-5 py-2.5 bg-status-tag-bg border-b border-status-tag-bd flex items-center gap-3">
@@ -1348,8 +1479,10 @@ export default function VendorAssessmentFillPage() {
                   {(section.questions || []).map((q, qi) => (
                     <div key={qi} data-qi={q.questionInstanceId} className="px-5 py-4">
                       <div className="flex items-start gap-3">
-                        {/* Checkbox for batch selection — hide when section submitted */}
-                        {editable && !section.submittedAt && !q.assignedUserId && (
+                        {/* Checkbox for batch selection — hide when section submitted.
+                            Already-assigned questions stay selectable so a contributor
+                            can be swapped in bulk, not just set for the first time. */}
+                        {editable && !section.submittedAt && (
                           <button
                             onClick={() => toggleBatch(q.questionInstanceId)}
                             className={cn(
@@ -1363,7 +1496,7 @@ export default function VendorAssessmentFillPage() {
                             )}
                           </button>
                         )}
-                        {(!editable || !!section.submittedAt || q.assignedUserId) && (
+                        {(!editable || !!section.submittedAt) && (
                           <span className="text-xs font-mono text-text-muted pt-0.5 flex-shrink-0 w-5">
                             {qi + 1}.
                           </span>
@@ -1414,6 +1547,37 @@ export default function VendorAssessmentFillPage() {
                           />
                           {/* Org remediation notice — vendor responder sees what must be fixed */}
                           <RemediationNoticeBanner questionInstanceId={q.questionInstanceId} />
+                          {/* Unanswered but assigned — the stranded case.
+                              ResponderActions needs an answer to act on, so without
+                              this row the responder has no way to clear a blank
+                              question after the contributor submitted the section. */}
+                          {q.assignedUserId && !q.currentResponse && editable && !section.submittedAt && (
+                            <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[11px] text-text-muted mr-1">
+                                Not answered by contributor —
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleAssignQuestion({
+                                  questionInstanceId: q.questionInstanceId, userId: null,
+                                })}
+                                className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-card border border-border bg-surface-overlay/30 text-text-secondary hover:text-text-primary hover:border-brand-500/40 transition-colors">
+                                <Edit3 size={10} />
+                                Answer this myself
+                              </button>
+                              <button
+                                type="button"
+                                disabled={contributorReopening}
+                                onClick={() => contributorReopen({
+                                  sectionInstanceId: section.sectionInstanceId,
+                                  contributorUserId: q.assignedUserId,
+                                })}
+                                className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-card border border-status-warn-bd bg-status-warn-bg text-status-warn-fg hover:bg-status-warn-bg transition-colors disabled:opacity-50">
+                                <CornerDownLeft size={10} />
+                                Send back to contributor
+                              </button>
+                            </div>
+                          )}
                           {/* Responder → contributor command actions:
                               Accept / Request Revision / Override
                               Shown when contributor has submitted an answer */}
@@ -1424,6 +1588,7 @@ export default function VendorAssessmentFillPage() {
                               assignedUserId={q.assignedUserId}
                               responderStatus={q.currentResponse?.reviewerStatus}
                               responseType={q.responseType}
+                              options={q.options || []}
                             />
                           )}
                           {/* Drawer trigger + Individual assign row */}
@@ -1564,5 +1729,6 @@ export default function VendorAssessmentFillPage() {
       onClose={() => setDrawerQuestion(null)}
     />
   </>
+    </ActionItemsBulkProvider>
   )
 }

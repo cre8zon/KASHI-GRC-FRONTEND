@@ -510,6 +510,7 @@ export function QuestionDrawer({
                   assignedUserId={question.assignedUserId}
                   responderStatus={resp?.reviewerStatus}
                   responseType={question.responseType}
+                  options={question.options || []}
                 />
               </div>
             )}

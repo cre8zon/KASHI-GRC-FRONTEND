@@ -9,10 +9,21 @@ const uiConfigSlice = createSlice({
   },
   reducers: {
     setBootstrap(state, { payload }) {
-      state.branding     = payload.branding
       state.featureFlags = payload.featureFlags || {}
       state.bootstrapped = true
-      if (payload.branding) applyBranding(payload.branding)
+      // The bootstrap response carries the TENANT branding (default sidebar
+      // colour = sage) AND the user's own saved preferences. The user's saved
+      // sidebar colour must win on the FIRST paint — otherwise the tenant
+      // default repaints --color-brand-* on every load and the sidebar flashes
+      // back to sage (the localStorage-only guard in applyBranding fails on a
+      // fresh device where the colour isn't cached yet). So merge the user's
+      // ui_sidebar_color over the tenant branding before applying, and force it.
+      const userColor = payload.userPreferences?.['ui_sidebar_color']
+      const branding  = userColor
+        ? { ...payload.branding, primaryColor: userColor }
+        : payload.branding
+      state.branding = branding
+      if (branding) applyBranding(branding, { force: !!userColor })
     },
     applyBrandingLive(state, { payload }) {
       state.branding = { ...state.branding, ...payload }

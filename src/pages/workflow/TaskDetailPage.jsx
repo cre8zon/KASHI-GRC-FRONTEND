@@ -129,12 +129,57 @@ function StepTimeline({ steps }) {
 // Resolves the entity work URL for a task so the detail page can link directly
 // to /module/issue/1?stepInstanceId=42&taskId=7 instead of being a dead end.
 
+/**
+ * TPRM vendor-assessment routing.
+ *
+ * entityType is VENDOR for the WHOLE TPRM workflow — both the vendor-side steps
+ * and the org-side review steps — so entityType alone cannot pick a page. The
+ * side + step action pair does.
+ *
+ * These pages are the hardcoded pre-module implementation and are the correct
+ * destination today. Until the Universal Module Page covers vendor assessments,
+ * /module/vendor_assessment/:id does not render, so falling through to it gives
+ * "Could not load this page" on a perfectly valid task.
+ *
+ * navKey still wins when the nav table has a row for it — this only runs when
+ * the lookup found nothing.
+ */
+function resolveVendorAssessmentRoute(task) {
+  const side   = (task.resolvedStepSide   || '').toUpperCase()
+  const action = (task.resolvedStepAction || '').toUpperCase()
+
+  if (side === 'ORGANIZATION') {
+    // Org CISO assigns reviewers, reviewers evaluate, CISO approves — every
+    // org-side panel lives inside AssessmentReviewPage and is picked there.
+    if (['ASSIGN', 'REVIEW', 'EVALUATE', 'APPROVE'].includes(action))
+      return '/assessments/:id/review'
+    return null
+  }
+
+  // Vendor side (side is VENDOR, or blank on older step instances)
+  switch (action) {
+    case 'ACKNOWLEDGE': return '/vendor/assessments/:id/acknowledge'
+    case 'ASSIGN':      return '/vendor/assessments/:id/assign'
+    case 'FILL':        return '/vendor/assessments/:id/fill'
+    case 'REVIEW':      return '/vendor/assessments/:id/responder-review'
+    default:            return null
+  }
+}
+
+
 function resolveTaskRoute(task, navItems) {
   if (!task?.artifactId) return null
   const qp = `?taskId=${task.id}&stepInstanceId=${task.stepInstanceId}`
   if (task.navKey) {
     const nav = (navItems || []).find(n => n.navKey === task.navKey)
     if (nav?.route) return nav.route.replace(':id', task.artifactId) + qp
+  }
+  // Mirrors TaskInbox: TPRM steps resolve to the hardcoded vendor assessment
+  // pages when the nav table has no row. Without this the detail page was a
+  // dead end for every vendor assessment task.
+  if (task.entityType === 'VENDOR') {
+    const vendorRoute = resolveVendorAssessmentRoute(task)
+    if (vendorRoute) return vendorRoute.replace(':id', task.artifactId) + qp
   }
   return null
 }

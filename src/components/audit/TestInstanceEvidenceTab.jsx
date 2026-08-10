@@ -189,6 +189,12 @@ export function TestInstanceEvidenceTab({ testInstanceId, vc = {} }) {
               Recording <span className="font-medium text-status-fail-fg">FAIL</span> marks them
               {' '}<span className="font-medium text-status-fail-fg">Ineffective</span> and raises findings.
             </p>
+            <p className="text-text-muted pt-1.5 border-t border-status-warn-bd/40">
+              You can also do all of this without leaving a control — open any control
+              this test covers and use its{' '}
+              <span className="font-medium text-text-primary">Fieldwork</span> tab.
+              Work papers and results are the same record either way.
+            </p>
           </div>
         </div>
       </div>

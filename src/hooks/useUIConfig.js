@@ -64,6 +64,10 @@ export const useBootstrap = () => {
           if (appTheme) {
             localStorage.setItem('kashi_theme', appTheme)
             document.documentElement.setAttribute('data-theme', appTheme)
+            // Notify ThemeProvider so its React state (and the ThemeSwitcher UI)
+            // reflects the server value on a fresh device, not just the DOM.
+            window.dispatchEvent(new CustomEvent('kashi-theme-synced',
+              { detail: { appTheme, sidebarTheme } }))
           } else {
             // New user — no saved preference. Apply the platform default (light).
             // Only set if nothing already in localStorage (don't override a user

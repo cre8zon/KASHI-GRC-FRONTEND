@@ -13,12 +13,12 @@
  * is unchanged from the original implementation.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Users, ChevronRight, CheckCircle2,
-  Loader2, UserPlus, X, Search, ArrowRight,
+  Loader2, UserPlus, X, Search, ArrowRight, ListChecks,
 } from 'lucide-react'
 import { assessmentsApi } from '../../api/assessments.api'
 import { workflowsApi }   from '../../api/workflows.api'
@@ -208,9 +208,78 @@ function CISOAssignView({ assessment, taskId, stepInstanceId, onDone }) {
   const [editingSection, setEditingSection] = useState(null)
   const [confirmed, setConfirmed]         = useState(false)  // optimistic disable after confirm
 
+  // ── Bulk assignment state ─────────────────────────────────────────────────
+  // selectedIds: sectionInstanceIds ticked for the bulk bar.
+  // bulkUser:    the single responder every ticked section will be assigned to.
+  const [selectedIds, setSelectedIds] = useState([])
+  const [bulkUser,    setBulkUser]    = useState(null)
+  const [bulkBusy,    setBulkBusy]    = useState(false)
+
+  const qc = useQueryClient()
   const { mutate: performAction, isPending: acting } = usePerformAction()
 
   const sections = assessment?.sections || []
+
+  // ── Seed committed[] from the server ──────────────────────────────────────
+  // Previously `committed` started empty on every mount, so a refresh reset the
+  // screen to "0/N sections assigned" even though the rows were persisted — and
+  // the Confirm button stayed disabled. That is tolerable when assigning one at
+  // a time; it is not once you can assign twenty in a click. The backend now
+  // returns assignedUserId + assignedUserName on each section instance.
+  //
+  // seedKey is a primitive so the effect doesn't refire on every render (the
+  // sections array is a fresh reference each time the query refetches).
+  const seedKey = useMemo(
+    () => sections.map(s => `${s.sectionInstanceId}:${s.assignedUserId ?? ''}`).join('|'),
+    [sections],
+  )
+  useEffect(() => {
+    if (!sections.length) return
+    const seed = {}
+    sections.forEach(s => {
+      if (s.assignedUserId) {
+        seed[s.sectionInstanceId] = {
+          id:       s.assignedUserId,
+          fullName: s.assignedUserName || null,
+          email:    s.assignedUserName ? null : `User #${s.assignedUserId}`,
+        }
+      }
+    })
+    // Server is the source of truth — it overwrites stale local entries.
+    if (Object.keys(seed).length) setCommitted(c => ({ ...c, ...seed }))
+  }, [seedKey])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Bulk selection helpers ────────────────────────────────────────────────
+  const toggleSelect = (sid) =>
+    setSelectedIds(ids => ids.includes(sid) ? ids.filter(x => x !== sid) : [...ids, sid])
+
+  const allSelected = sections.length > 0 && selectedIds.length === sections.length
+  const unassignedIds = sections
+    .filter(s => !committed[s.sectionInstanceId])
+    .map(s => s.sectionInstanceId)
+
+  const handleBulkAssign = () => {
+    if (!bulkUser)           { toast.error('Pick a responder first'); return }
+    if (!selectedIds.length) { toast.error('Tick at least one section'); return }
+    const uid = bulkUser.id || bulkUser.userId
+    const ids = [...selectedIds]
+    setBulkBusy(true)
+    assessmentsApi.vendor.assignSectionsBatch(assessment.assessmentId, ids, uid)
+      .then(() => {
+        setCommitted(c => {
+          const next = { ...c }
+          ids.forEach(sid => { next[sid] = bulkUser })
+          return next
+        })
+        setSelectedIds([])
+        setBulkUser(null)
+        setEditingSection(null)
+        qc.invalidateQueries({ queryKey: ['assessment-assign', String(assessment.assessmentId)] })
+        toast.success(`${ids.length} section(s) assigned to ${bulkUser.fullName || bulkUser.email}`)
+      })
+      .catch(e => toast.error(e?.message || 'Bulk assignment failed'))
+      .finally(() => setBulkBusy(false))
+  }
 
   // Per-section loading tracking — fixes "all buttons spin when one is clicked"
   const handleAssign = (sectionInstanceId) => {
@@ -258,16 +327,69 @@ function CISOAssignView({ assessment, taskId, stepInstanceId, onDone }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-text-secondary">
-        Assign each section to a Responder who will coordinate answers.
+        Assign each section to a Responder who will coordinate answers. Tick several
+        sections to assign them to the same person in one go.
       </p>
+
+      {/* ── Bulk assignment bar ────────────────────────────────────────────── */}
+      <div className="rounded-card border border-border bg-surface-raised p-3 space-y-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <ListChecks size={13} className="text-text-muted shrink-0" />
+          <span className="text-xs font-medium text-text-secondary">
+            {selectedIds.length > 0
+              ? `${selectedIds.length} section(s) selected`
+              : 'Bulk assign'}
+          </span>
+          <div className="flex-1" />
+          <button type="button"
+            onClick={() => setSelectedIds(allSelected ? [] : sections.map(s => s.sectionInstanceId))}
+            className="text-[11px] text-text-muted hover:text-brand-ink px-2 py-1 rounded border border-border hover:border-brand-500/30 transition-colors">
+            {allSelected ? 'Clear all' : 'Select all'}
+          </button>
+          <button type="button"
+            onClick={() => setSelectedIds(unassignedIds)}
+            disabled={unassignedIds.length === 0}
+            className="text-[11px] text-text-muted hover:text-brand-ink px-2 py-1 rounded border border-border hover:border-brand-500/30 transition-colors disabled:opacity-40 disabled:hover:border-border">
+            Select unassigned ({unassignedIds.length})
+          </button>
+        </div>
+        {selectedIds.length > 0 && (
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <UserPicker label="Assign selected to" value={bulkUser} onChange={setBulkUser} />
+            </div>
+            <Button size="sm" variant="primary"
+              onClick={handleBulkAssign}
+              loading={bulkBusy}
+              disabled={!bulkUser || bulkBusy}>
+              Assign {selectedIds.length}
+            </Button>
+            <Button size="sm" variant="ghost"
+              onClick={() => { setSelectedIds([]); setBulkUser(null) }}
+              disabled={bulkBusy}>
+              Cancel
+            </Button>
+          </div>
+        )}
+      </div>
+
       {sections.map(section => {
         const sid = section.sectionInstanceId
         const assigned = committed[sid]
         const editing  = editingSection === sid
         const isThisLoading = loadingSection === sid  // only THIS section spins
+        const ticked = selectedIds.includes(sid)
         return (
-          <div key={sid} className="p-3 rounded-card border border-border bg-surface-overlay/30">
-            <p className="text-sm font-medium text-text-primary mb-2">{section.sectionName}</p>
+          <div key={sid} className={cn(
+            'p-3 rounded-card border bg-surface-overlay/30 transition-colors',
+            ticked ? 'border-brand-500/40 bg-brand-500/5' : 'border-border')}>
+            <div className="flex items-start gap-2 mb-2">
+              <input type="checkbox" checked={ticked}
+                onChange={() => toggleSelect(sid)}
+                aria-label={`Select ${section.sectionName}`}
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-brand-500 cursor-pointer" />
+              <p className="text-sm font-medium text-text-primary flex-1 min-w-0">{section.sectionName}</p>
+            </div>
             {assigned && !editing ? (
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2 flex-1 min-w-0 px-2 py-1.5 rounded bg-status-pass-bg border border-status-pass-bd">
@@ -491,17 +613,46 @@ export default function VendorAssessmentAssignPage() {
   // for the same artifact at the same time. Always prefer the ACTOR task — it is the one
   // that drives the assignment UI and whose approval advances the step.
   // Fall back to ASSIGNER task only if no ACTOR task exists (pure coordinator role).
-  const actorTask    = myTasks.find(t =>
+  // ── Scope the live-task lookup to the step this page was opened for ───────
+  // The inbox links to a SPECIFIC step. Scanning myTasks by artifactId alone
+  // could pick up an active task on a DIFFERENT step of the same assessment;
+  // access-context was then resolved against that other step, returned DENIED,
+  // and the canView guard bounced the user back to the inbox immediately after
+  // the page opened.
+  //
+  // Falls back to the artifact-wide scan when the URL's step has no live task —
+  // that is the cancelled-and-restarted case the original comment describes,
+  // where the URL stepInstanceId belongs to a terminated run.
+  // ── The task named in the URL wins ────────────────────────────────────────
+  // The inbox links to ONE specific task. Picking "the first active task on this
+  // step" instead silently retargets every taskId-driven action when the user
+  // holds two active tasks on the same step — which happens after an admin reset
+  // re-issues a task without cancelling the original. The symptom is an action
+  // that reports success but never advances the task on screen, because the
+  // section event fired against the other task's gate.
+  const urlTaskIdParam = urlParams.get('taskId')
+  const urlTask = urlTaskIdParam
+    ? (myTasks.find(t => String(t.id) === String(urlTaskIdParam)
+        && (t.status === 'PENDING' || t.status === 'IN_PROGRESS')) || null)
+    : null
+
+  const urlStepInstanceId = urlParams.get('stepInstanceId')
+  const stepScopedTasks = urlStepInstanceId
+    ? myTasks.filter(t => String(t.stepInstanceId) === String(urlStepInstanceId))
+    : []
+  const taskPool = stepScopedTasks.length > 0 ? stepScopedTasks : myTasks
+
+  const actorTask    = taskPool.find(t =>
     (t.status === 'PENDING' || t.status === 'IN_PROGRESS') &&
     String(t.artifactId) === String(id) &&
     t.taskRole === 'ACTOR'
   ) || null
-  const assignerTask = myTasks.find(t =>
+  const assignerTask = taskPool.find(t =>
     (t.status === 'PENDING' || t.status === 'IN_PROGRESS') &&
     String(t.artifactId) === String(id) &&
     t.taskRole === 'ASSIGNER'
   ) || null
-  const activeTask = actorTask || assignerTask
+  const activeTask = urlTask || actorTask || assignerTask
 
   // Resolved IDs — prefer live task, fall back to URL params
   const taskId         = activeTask ? String(activeTask.id)              : urlParams.get('taskId')

@@ -38,6 +38,7 @@ export function ResponderActions({
   assignedUserId,
   responderStatus,
   responseType,
+  options = [],
 }) {
   const qc = useQueryClient()
 
@@ -46,6 +47,10 @@ export function ResponderActions({
   const [revisionNote, setRevisionNote] = useState('')
   const [overrideText, setOverrideText] = useState('')
   const [overrideNote, setOverrideNote] = useState('')
+  // Chosen option(s) when overriding a choice question. An override replaces the
+  // answer, so for SINGLE/MULTI_CHOICE it has to BE a selection — prose describing
+  // the right option doesn't display, doesn't score, and doesn't reach the org side.
+  const [overrideOpts, setOverrideOpts] = useState([])
 
   // Reset when the question changes (component reused for different questions)
   useEffect(() => {
@@ -53,6 +58,7 @@ export function ResponderActions({
     setRevisionNote('')
     setOverrideText('')
     setOverrideNote('')
+    setOverrideOpts([])
   }, [questionInstanceId])
 
   const revRef = useRef(null)
@@ -98,7 +104,7 @@ export function ResponderActions({
     mutationFn: (body) => assessmentsApi.overrideContributorAnswer(assessmentId, questionInstanceId, body),
     onSuccess:  () => {
       toast.success('Answer overridden')
-      setPanel(null); setOverrideText(''); setOverrideNote('')
+      setPanel(null); setOverrideText(''); setOverrideNote(''); setOverrideOpts([])
       invalidate()
     },
     onError: (e) => toast.error(e?.message || 'Failed to override'),
@@ -107,7 +113,40 @@ export function ResponderActions({
   const badge      = STATUS_BADGE[responderStatus]
   const isTextType = !['SINGLE_CHOICE', 'MULTI_CHOICE'].includes(responseType)
 
-  const closePanel = () => { setPanel(null); setRevisionNote(''); setOverrideText(''); setOverrideNote('') }
+  const closePanel = () => {
+    setPanel(null); setRevisionNote(''); setOverrideText(''); setOverrideNote(''); setOverrideOpts([])
+  }
+
+  // Statuses where the responder has already settled this answer. Both are
+  // terminal: accepting takes the contributor's answer as-is, overriding
+  // replaces it with the responder's own. Neither leaves anything to act on, so
+  // the buttons collapse to the badge — previously only ACCEPTED did, and an
+  // overridden question still offered Accept / Request revision / Override,
+  // which would have re-opened an answer the responder had just written.
+  // REVISION_REQUESTED deliberately stays actionable: it is pending, not settled.
+  const SETTLED_STATUSES = ['ACCEPTED', 'OVERRIDDEN']
+  const isSettled = SETTLED_STATUSES.includes(responderStatus)
+
+  const isSingle = responseType === 'SINGLE_CHOICE'
+  const isMulti  = responseType === 'MULTI_CHOICE'
+
+  const toggleOpt = (optId) => setOverrideOpts(prev => {
+    if (isSingle) return prev[0] === optId ? [] : [optId]
+    return prev.includes(optId) ? prev.filter(x => x !== optId) : [...prev, optId]
+  })
+
+  // What counts as a complete override, by question type.
+  const overrideReady = isTextType ? !!overrideText.trim() : overrideOpts.length > 0
+
+  const submitOverride = () => {
+    if (isSingle) {
+      override({ selectedOptionInstanceId: overrideOpts[0], overrideReason: overrideNote.trim() })
+    } else if (isMulti) {
+      override({ selectedOptionInstanceIds: overrideOpts, overrideReason: overrideNote.trim() })
+    } else {
+      override({ responseText: overrideText.trim(), overrideReason: overrideNote.trim() })
+    }
+  }
 
   return (
     <div className="mt-2.5 space-y-2">
@@ -124,7 +163,7 @@ export function ResponderActions({
       )}
 
       {/* Action buttons — hidden while a panel is open */}
-      {responderStatus !== 'ACCEPTED' && panel === null && (
+      {!isSettled && panel === null && (
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
             type="button"
@@ -211,23 +250,53 @@ export function ResponderActions({
               <AlertTriangle size={12} className="shrink-0 mt-px" />
               <span>
                 Original answer is preserved in the Activity trail.
-                {!isTextType && ' For choice questions, describe the correct option.'}
+                {!isTextType && ` Pick the correct option — an override replaces the answer, so it is scored like one.`}
               </span>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-text-muted block">
-                Your answer (override) <span className="text-status-fail-fg">*</span>
-              </label>
-              <textarea
-                ref={ovrRef}
-                rows={3}
-                value={overrideText}
-                onChange={e => setOverrideText(e.target.value)}
-                placeholder={isTextType ? 'Enter the correct answer…' : 'Describe the correct answer or explain the correction…'}
-                className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
-              />
-            </div>
+            {isTextType ? (
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-text-muted block">
+                  Your answer (override) <span className="text-status-fail-fg">*</span>
+                </label>
+                <textarea
+                  ref={ovrRef}
+                  rows={3}
+                  value={overrideText}
+                  onChange={e => setOverrideText(e.target.value)}
+                  placeholder="Enter the correct answer…"
+                  className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+                />
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-text-muted block">
+                  Correct {isMulti ? 'options' : 'option'} <span className="text-status-fail-fg">*</span>
+                </label>
+                {options.length === 0 ? (
+                  <p className="text-[11px] text-status-fail-fg italic">
+                    Options unavailable — reload the page before overriding this question.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {options.map(o => {
+                      const oid = o.optionInstanceId
+                      const sel = overrideOpts.includes(oid)
+                      return (
+                        <button key={oid} type="button" onClick={() => toggleOpt(oid)}
+                          className={cn('text-xs px-2.5 py-1 rounded-ctl border transition-colors',
+                            sel
+                              ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink font-medium'
+                              : 'bg-surface-raised border-border text-text-secondary hover:border-brand-500/30')}>
+                          {o.optionValue}
+                          {o.score != null && <span className="ml-1 opacity-60">({o.score})</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-1">
               <label className="text-[11px] font-medium text-text-muted block">
@@ -247,8 +316,8 @@ export function ResponderActions({
                 Cancel
               </button>
               <Button size="xs" variant="primary" icon={Edit3}
-                disabled={!overrideText.trim()} loading={overriding}
-                onClick={() => override({ responseText: overrideText.trim(), overrideReason: overrideNote.trim() })}>
+                disabled={!overrideReady} loading={overriding}
+                onClick={submitOverride}>
                 Override answer
               </Button>
             </div>

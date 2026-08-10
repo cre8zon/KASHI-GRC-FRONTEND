@@ -4,6 +4,7 @@
  * Two-track evidence model with role-aware layout:
  *
  * AUDITEE (audit:control:submit-evidence):
+ *   - Sees WHAT to upload, derived from the tests mapped to this control
  *   - Uploads manual evidence files
  *   - Sees automated integration checks (read-only)
  *
@@ -12,18 +13,37 @@
  *   - Uploads own test documentation / work papers
  *   - Sees automated integration checks
  *   - Can accept/reject automated evidence
+ *   - Records results and work papers from the Fieldwork tab
+ *
+ * Evidence requirements
+ * ---------------------
+ * AuditControlInstance has no evidence-guidance column. The guidance lives on
+ * each mapped AuditTestInstance as evidenceGuidanceSnapshot, so AuditeeGuide
+ * reads GET /v1/audit/control-instances/{id}/tests and lists one line per test
+ * that carries guidance.
+ *
+ * Deliberately NOT shown to auditees:
+ *   testProcedureSnapshot - auditor methodology (sampling, reperformance).
+ *     Handing it over invites evidence assembled to satisfy the procedure
+ *     rather than reflecting what happened. Flip AUDITEE_SEES_TEST_PROCEDURE
+ *     below if your internal-audit practice differs.
+ *   testResult / testerNotes - auditor conclusions, mid-fieldwork.
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Zap, Paperclip, CheckCircle2, Clock, XCircle,
   RefreshCw, FlaskConical, Info, Lock, ExternalLink, Link2,
+  ListChecks, CalendarClock,
 } from 'lucide-react'
 import api            from '../../config/axios.config'
 import EvidenceUploader from '../ui/EvidenceUploader'
 import { DocumentPreviewDrawer } from '../ui/DocumentPreviewDrawer'
 import { cn }         from '../../lib/cn'
 import toast          from 'react-hot-toast'
+
+/** Show auditors' test procedures to auditees. Off - see the header comment. */
+const AUDITEE_SEES_TEST_PROCEDURE = false
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 const STATUS_CFG = {
@@ -133,24 +153,105 @@ function AutomatedRow({ link, onAccept, onReject, canReview }) {
 }
 
 // ── How-it-works guide ────────────────────────────────────────────────────────
-function AuditeeGuide() {
+function AuditeeGuide({ controlInstanceId, control }) {
+  // Shares the ['ctrl-inst-tests', id] key with ControlInstanceTestsTab and the
+  // Fieldwork tab, so switching tabs hits cache instead of refetching.
+  const { data, isLoading } = useQuery({
+    queryKey: ['ctrl-inst-tests', controlInstanceId],
+    queryFn: () => api.get(`/v1/audit/control-instances/${controlInstanceId}/tests`),
+    enabled: !!controlInstanceId,
+    staleTime: 60 * 1000,
+  })
+
+  const rows = Array.isArray(data) ? data : (data?.data?.data || data?.data || [])
+  const requirements = rows.filter(r =>
+    (r.evidenceGuidanceSnapshot && r.evidenceGuidanceSnapshot.trim()) ||
+    (AUDITEE_SEES_TEST_PROCEDURE && r.testProcedureSnapshot))
+
+  const dueDate = control?.evidenceDueDate
+
+  const HowTo = () => (
+    <div className="space-y-1.5">
+      {[
+        ['1', 'Upload evidence', 'Attach files that prove this control is operating effectively — policies, screenshots, reports, sign-off logs.'],
+        ['2', 'Submit evidence', 'Once all files are ready, click "Submit evidence" at the top of the page to hand this control to the auditor for review.'],
+        ['3', 'Automated checks', 'If integrations are configured, real-time evidence may also appear below automatically.'],
+      ].map(([n, title, desc]) => (
+        <div key={n} className="flex items-start gap-2">
+          <span className="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-brand-500/15 text-brand-ink text-[8px] font-bold flex items-center justify-center">{n}</span>
+          <span><span className="font-medium text-text-primary">{title}</span> — {desc}</span>
+        </div>
+      ))}
+    </div>
+  )
+
+  // No published guidance yet — keep the original how-to so the panel is never
+  // emptier than it was before.
+  if (isLoading || !requirements.length) {
+    return (
+      <div className="rounded-card border border-brand-500/20 bg-brand-500/5 p-3.5 mb-4">
+        <div className="flex items-start gap-2.5">
+          <Info size={13} className="shrink-0 text-brand-ink mt-0.5" />
+          <div className="space-y-2 text-[11px] text-text-secondary leading-relaxed">
+            <p className="font-medium text-text-primary">How to submit evidence for this control</p>
+            {control?.descriptionSnapshot && (
+              <p className="text-text-secondary">{control.descriptionSnapshot}</p>
+            )}
+            <HowTo />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="rounded-card border border-brand-500/20 bg-brand-500/5 p-3.5 mb-4">
       <div className="flex items-start gap-2.5">
-        <Info size={13} className="shrink-0 text-brand-ink mt-0.5" />
-        <div className="space-y-2 text-[11px] text-text-secondary leading-relaxed">
-          <p className="font-medium text-text-primary">How to submit evidence for this control</p>
-          <div className="space-y-1.5">
-            {[
-              ['1', 'Upload evidence', 'Attach files that prove this control is operating effectively — policies, screenshots, reports, sign-off logs.'],
-              ['2', 'Submit evidence', 'Once all files are ready, click "Submit evidence" at the top of the page to hand this control to the auditor for review.'],
-              ['3', 'Automated checks', 'If integrations are configured, real-time evidence may also appear below automatically.'],
-            ].map(([n, title, desc]) => (
-              <div key={n} className="flex items-start gap-2">
-                <span className="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-brand-500/15 text-brand-ink text-[8px] font-bold flex items-center justify-center">{n}</span>
-                <span><span className="font-medium text-text-primary">{title}</span> — {desc}</span>
-              </div>
+        <ListChecks size={13} className="shrink-0 text-brand-ink mt-0.5" />
+        <div className="flex-1 min-w-0 space-y-2 text-[11px] text-text-secondary leading-relaxed">
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-medium text-text-primary">What to upload for this control</p>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-brand-500/15 text-brand-ink font-medium">
+              {requirements.length} {requirements.length === 1 ? 'requirement' : 'requirements'}
+            </span>
+            {dueDate && (
+              <span className="inline-flex items-center gap-1 text-[9px] text-status-warn-fg ml-auto">
+                <CalendarClock size={9} />
+                due {new Date(dueDate).toLocaleDateString('en-GB', {
+                  day: '2-digit', month: 'short', year: 'numeric',
+                })}
+              </span>
+            )}
+          </div>
+
+          <ul className="space-y-2">
+            {requirements.map(r => (
+              <li key={r.testInstanceId} className="flex items-start gap-2">
+                <span className="shrink-0 mt-[5px] w-1.5 h-1.5 rounded-full bg-brand-500/50" />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {r.testRefSnapshot && (
+                      <span className="font-mono text-[9px] text-brand-ink shrink-0">{r.testRefSnapshot}</span>
+                    )}
+                    {r.isRequired === false && (
+                      <span className="text-[8px] text-text-muted">optional</span>
+                    )}
+                  </div>
+                  <p className="text-text-primary font-medium">{r.testNameSnapshot}</p>
+                  {r.evidenceGuidanceSnapshot && (
+                    <p className="whitespace-pre-wrap mt-0.5">{r.evidenceGuidanceSnapshot}</p>
+                  )}
+                  {AUDITEE_SEES_TEST_PROCEDURE && r.testProcedureSnapshot && (
+                    <p className="whitespace-pre-wrap mt-1 text-text-muted">{r.testProcedureSnapshot}</p>
+                  )}
+                </div>
+              </li>
             ))}
+          </ul>
+
+          <div className="pt-2 border-t border-brand-500/15">
+            <HowTo />
           </div>
         </div>
       </div>
@@ -168,8 +269,8 @@ function AuditorGuide() {
           <div className="space-y-1.5">
             {[
               ['1', 'Review auditee evidence', 'Check the uploaded files below confirm the control is operating effectively.'],
-              ['2', 'Test the control', 'Go to the Tests tab → open the linked test → upload your work papers and record the test result (PASS/FAIL). The result cascades to all controls covered by that test.'],
-              ['3', 'Review linked policies', 'Go to the Policies tab → check the linked policy is current and satisfies the requirement. Record contribution (DIRECT/PARTIAL/GAP).'],
+              ['2', 'Test the control', 'Open the Fieldwork tab — procedure, work papers, result and tester notes for every mapped test, without leaving this control. A result cascades to all controls that test covers.'],
+              ['3', 'Review linked policies', 'Same Fieldwork tab — check each linked policy is current, record its contribution to this control, and set the review result.'],
               ['4', 'Send back if needed', 'Use "Send back" at the top if evidence is insufficient — the auditee will be notified to re-upload before you can evaluate.'],
             ].map(([n, title, desc]) => (
               <div key={n} className="flex items-start gap-2">
@@ -185,7 +286,7 @@ function AuditorGuide() {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export function ControlInstanceEvidenceTab({ controlInstanceId, vc = {} }) {
+export function ControlInstanceEvidenceTab({ controlInstanceId, entity, vc = {} }) {
   const qc = useQueryClient()
   const perms       = vc.permissions || []
   const canSubmit   = perms.includes('audit:control:submit-evidence')
@@ -232,7 +333,7 @@ export function ControlInstanceEvidenceTab({ controlInstanceId, vc = {} }) {
     <div className="flex flex-col gap-3 pb-6 max-w-2xl">
 
       {/* ── Role-specific guide ── */}
-      {isAuditee  && <AuditeeGuide />}
+      {isAuditee  && <AuditeeGuide controlInstanceId={controlInstanceId} control={entity} />}
       {isAuditor  && <AuditorGuide />}
 
       {/* ── Auditee evidence ── */}
