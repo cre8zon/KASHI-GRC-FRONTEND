@@ -31,6 +31,7 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
     minValue:             initial?.minValue     || '',
     maxValue:             initial?.maxValue     || '',
     lookupEntityType:     initial?.lookupEntityType || '',
+    lookupApiPath:        initial?.lookupApiPath || '',
     tagSuggestions:       initial?.tagSuggestions || '',
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -51,6 +52,12 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
         // FIX: MySQL JSON columns reject empty string "" — send null when blank
         validationRulesJson: form.validationRulesJson?.trim() || null,
         dependsOnJson:       form.dependsOnJson?.trim()       || null,
+        // Same treatment for a different reason: UiAdminController.update only
+        // writes a column when the request value is non-null. Sending '' for a
+        // cleared path is a real value and would blank a working lookup; null
+        // leaves it untouched, which is also why this field was safe to omit
+        // entirely before it existed here.
+        lookupApiPath:       form.lookupApiPath?.trim()       || null,
       }
       return initial?.id
         ? sdApi.updateField(initial.id, payload)
@@ -200,6 +207,22 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
         <InspectorSection title="Lookup config">
           <IField label="Entity type">
             <IInp value={form.lookupEntityType} onChange={v => set('lookupEntityType', v)} placeholder="USER, VENDOR, RISK" />
+          </IField>
+          <IField label="API path override">
+            <IInp value={form.lookupApiPath} onChange={v => set('lookupApiPath', v)}
+              placeholder="/v1/users?side=AUDITOR&roleId=33" mono />
+            <p className="text-[9px] text-text-muted mt-0.5">
+              Leave blank to use the entity type's default endpoint. Query params
+              filter the options list.
+            </p>
+            <p className="text-[9px] text-text-muted mt-1">
+              Use <code className="font-mono">{'{{fieldKey}}'}</code> to filter by another
+              field's answer — e.g.{' '}
+              <code className="font-mono">&amp;membershipType={'{{auditorSource}}'}</code>{' '}
+              lists internal or external auditors depending on the Auditor Type field.
+              A token whose field is unanswered drops its parameter, so the
+              unfiltered list is returned.
+            </p>
           </IField>
         </InspectorSection>
       )}

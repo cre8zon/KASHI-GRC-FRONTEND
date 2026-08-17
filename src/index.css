@@ -48,6 +48,28 @@
 .glass-field:focus, .glass-field:focus-within {
   background: var(--field-bg-focus);
 }
+
+/* Fields inside an overlay must be SOLID.
+   --field-bg is 45% white and --field-bd 55% white, which reads correctly on
+   the mesh wash or a frosted card: white translucency over colour looks like a
+   lighter panel. A modal is glass-overlay, i.e. --glass-bg-hi = 82% white in
+   light theme, so a white field on a near-white surface with a white border
+   disappears — the input becomes invisible even though every token resolves.
+   Inside overlays the field gets the inset surface and a real border instead.
+   Dark theme is unaffected: its field tokens are dark on dark and already
+   contrast. */
+.glass-overlay .glass-field {
+  background: rgb(var(--color-surface-inset));
+  border: 1px solid rgb(var(--color-border-strong));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.glass-overlay .glass-field:focus,
+.glass-overlay .glass-field:focus-within {
+  background: rgb(var(--color-surface-raised));
+  border-color: rgb(var(--color-brand-600));
+}
+
 .glass-card {
   background: var(--card-bg);
   border: 1px solid var(--card-bd);
@@ -61,29 +83,34 @@
   -webkit-backdrop-filter: blur(22px) saturate(1.5);
 }
 @supports not (backdrop-filter: blur(1px)) {
+  /* Without backdrop-filter, glass must become solid. This block previously
+     re-declared the glass treatment complete with backdrop-filter, so the
+     fallback provided no fallback at all. */
   .glass-chrome, .glass-overlay, .glass-field {
-  background: var(--field-bg);
-  border: 1px solid var(--field-bd);
-  backdrop-filter: blur(var(--field-blur)) saturate(1.3);
-  -webkit-backdrop-filter: blur(var(--field-blur)) saturate(1.3);
-}
-.glass-field:focus, .glass-field:focus-within {
-  background: var(--field-bg-focus);
-}
-.glass-card { background: rgb(var(--color-surface-raised)); }
+    background: rgb(var(--color-surface-raised));
+    border: 1px solid rgb(var(--color-border));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .glass-field {
+    background: rgb(var(--color-surface-inset));
+    border-color: rgb(var(--color-border-strong));
+  }
+  .glass-field:focus, .glass-field:focus-within {
+    background: rgb(var(--color-surface-raised));
+  }
+  .glass-card { background: rgb(var(--color-surface-raised)); }
 }
 @media print {
   body { background: #fff !important; }
+  /* Translucency and blur do not print. */
   .glass-chrome, .glass-overlay, .glass-field {
-  background: var(--field-bg);
-  border: 1px solid var(--field-bd);
-  backdrop-filter: blur(var(--field-blur)) saturate(1.3);
-  -webkit-backdrop-filter: blur(var(--field-blur)) saturate(1.3);
-}
-.glass-field:focus, .glass-field:focus-within {
-  background: var(--field-bg-focus);
-}
-.glass-card {
+    background: #fff !important;
+    border: 1px solid #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .glass-card {
     background: #fff !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;

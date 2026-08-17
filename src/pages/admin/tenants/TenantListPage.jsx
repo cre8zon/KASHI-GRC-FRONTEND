@@ -33,7 +33,26 @@ const FILTER_TABS = [
 ]
 
 const COLUMNS = [
-  { key: 'name',      label: 'Organization', sortable: true,  width: 220 },
+  {
+    key: 'name', label: 'Organization', sortable: true, width: 260,
+    // DataTable.renderCell only consults col.render when type === 'custom' —
+    // without it the cell falls through to the default branch and prints the
+    // raw value.
+    type: 'custom',
+    // Audit firms sit in the same list as customers and are otherwise
+    // indistinguishable — the badge is the only signal that this tenant's people
+    // can be assigned into other tenants.
+    render: (row) => (
+      <span className="flex items-center gap-2 min-w-0">
+        <span className="truncate">{row.name}</span>
+        {row.isAuditFirm && (
+          <span className="shrink-0 text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded border border-brand-500/40 text-brand-ink">
+            Audit firm
+          </span>
+        )}
+      </span>
+    ),
+  },
   { key: 'code',      label: 'Code',         sortable: false, width: 120, type: 'mono' },
   { key: 'status',    label: 'Status',       sortable: true,  width: 110, type: 'badge', componentKey: 'tenant_status' },
   { key: 'plan',      label: 'Plan',         sortable: true,  width: 120, type: 'badge', componentKey: 'tenant_plan' },
@@ -67,7 +86,15 @@ export default function TenantListPage() {
     else { setSortBy(key); setSortDir('asc') }
   }
 
-  const columns = (() => { try { return screenConfig?.layout?.columnsJson ? JSON.parse(screenConfig.layout.columnsJson) : null } catch { return null } })() || COLUMNS
+  // This is a hardcoded platform-admin screen, not a blueprint-driven module, so
+  // the column set lives here rather than in ui_layouts. It previously read
+  // layout.columnsJson, which silently won over these definitions — and since
+  // JSON cannot carry a function, the custom cell renderer below was dropped and
+  // the audit-firm badge never rendered.
+  //
+  // screenConfig is still used for DataTable's badge components (tenant_status,
+  // tenant_plan); only the columns are owned by this file.
+  const columns = COLUMNS
 
   return (
     <PageLayout

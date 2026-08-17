@@ -18,7 +18,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
   AlertTriangle, CheckCircle2, Shield, Clock,
-  Link, ChevronRight, RefreshCw, FolderKanban,
+  Link, ChevronRight, RefreshCw, FolderKanban, ArrowUpRight,
 } from 'lucide-react'
 import api  from '../../config/axios.config'
 import { cn } from '../../lib/cn'
@@ -92,29 +92,42 @@ function EscalateButton({ findingId, linkedIssueId, projectId }) {
     onError: (e) => toast.error(e?.response?.data?.message || 'Escalation failed'),
   })
 
+  // Already escalated — a link, styled so it does not compete with the action
+  // button on neighbouring rows.
   if (linkedIssueId) {
     return (
       <button
         onClick={(e) => { e.stopPropagation(); navigate(`/module/issue/${linkedIssueId}`) }}
-        className="flex items-center gap-1 text-[9px] text-brand-ink hover:underline"
+        title="Open the linked issue"
+        className="flex items-center gap-1 text-[10px] font-medium text-brand-ink hover:underline whitespace-nowrap"
       >
-        <Link size={9} />ISS #{linkedIssueId}
+        <Link size={11} />ISS #{linkedIssueId}
       </button>
     )
   }
 
+  // Still offered on auto-created findings on purpose: automatic escalation is
+  // skipped when no owner can be resolved, and this is the only route those
+  // findings have into remediation. Hiding it by source would strand exactly the
+  // findings that need attention most.
   return (
     <button
       onClick={(e) => { e.stopPropagation(); mutate() }}
       disabled={isPending}
+      title="Create a remediation issue for this finding and assign it to the control owner"
       className={cn(
-        'flex items-center gap-1 text-[9px] px-2 py-0.5 rounded border',
-        'border-brand-500/40 text-brand-ink bg-brand-500/5 hover:bg-brand-500/10',
-        'disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
+        'inline-flex items-center gap-1.5 h-7 px-2.5 rounded-ctl whitespace-nowrap',
+        'text-[11px] font-medium border transition-colors',
+        'border-brand-500/50 text-brand-ink bg-brand-500/10',
+        'hover:bg-brand-500/20 hover:border-brand-500',
+        'focus:outline-none focus:ring-1 focus:ring-brand-500',
+        'disabled:opacity-40 disabled:cursor-not-allowed',
       )}
     >
-      {isPending ? <RefreshCw size={9} className="animate-spin" /> : <Link size={9} />}
-      Escalate
+      {isPending
+        ? <RefreshCw size={11} className="animate-spin" />
+        : <ArrowUpRight size={11} />}
+      {isPending ? 'Escalating…' : 'Escalate to issue'}
     </button>
   )
 }

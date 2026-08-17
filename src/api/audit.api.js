@@ -477,6 +477,6 @@ export const auditApi = {
     /** List EngagementIntegrationSnapshot rows for an engagement
      *  Used by EngagementIntegrationTab to show automated check status */
     listForEngagement: (engagementId) =>
-      api.get(`/v1/audit/engagements/${engagementId}/integration-snapshots`),
+      api.get(`/v1/integrations/engagements/${engagementId}/snapshots`),
   },
 }

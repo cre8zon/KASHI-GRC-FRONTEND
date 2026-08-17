@@ -3,13 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import {
   Plus, Search, RefreshCw, Send, Shield, UserCheck,
-  UserX, Check, Loader2, ChevronDown, ChevronUp, AlertTriangle,
-} from 'lucide-react'
+  UserX, Check, Loader2, ChevronDown, ChevronUp, AlertTriangle, ShieldCheck, UserMinus } from 'lucide-react'
 import { usersApi } from '../../api/users.api'
 import { rolesApi } from '../../api/roles.api'
 import { vendorsApi } from '../../api/vendors.api'
 import { authApi }            from '../../api/auth.api'
 import { PageLayout }         from '../../components/layout/PageLayout'
+import { auditorAccessApi } from '../../api/auditorAccess.api'
 import { DataTable }          from '../../components/ui/DataTable'
 import { Button }             from '../../components/ui/Button'
 import { Badge }              from '../../components/ui/Badge'
@@ -588,6 +588,110 @@ function OnboardUserModal({ open, onClose, side, tenantId, vendorId }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 // Unchanged from original
 
+/**
+ * External auditors admitted to this tenant.
+ *
+ * Shown here because "who can see our data" is the question this page claims to
+ * answer, and a list of only employees answers it incompletely. The firms
+ * themselves — the commercial grant and its end date — stay on External
+ * Auditors; this is the people view.
+ *
+ * Guests are deliberately NOT rendered as ordinary rows. A DigiOSec auditor
+ * displayed identically to your own staff implies they are an employee, and a
+ * client admin must not be able to edit the name, email or password of another
+ * company's employee — that identity belongs to the firm. Only the membership
+ * is theirs to revoke, so revoke is the only action offered.
+ */
+function ExternalAuditorsSection({ side }) {
+  const qc = useQueryClient()
+  const [open, setOpen] = useState(false)
+  const [confirmRevoke, setConfirmRevoke] = useState(null)
+
+  // Only the organization view has guests — a vendor or auditor-side listing
+  // never does, so skip the request entirely.
+  const enabled = side === 'ORGANIZATION'
+
+  const { data: raw } = useQuery({
+    queryKey: ['tenant-guest-auditors'],
+    queryFn:  () => auditorAccessApi.guests(),
+    enabled,
+  })
+  const guests = Array.isArray(raw) ? raw : (raw?.data?.data || raw?.data || [])
+
+  const { mutate: revoke } = useMutation({
+    mutationFn: (membershipId) => auditorAccessApi.revokeGuest(membershipId),
+    onSuccess: () => {
+      toast.success('Auditor access revoked')
+      qc.invalidateQueries({ queryKey: ['tenant-guest-auditors'] })
+      setConfirmRevoke(null)
+    },
+    onError: (e) => toast.error(
+      e?.response?.data?.error?.message || 'Could not revoke access'),
+  })
+
+  if (!enabled || guests.length === 0) return null
+
+  return (
+    <div className="mx-6 mb-6 rounded-card border border-status-warn-bd/50 bg-status-warn-bg/20">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2 px-4 py-2.5 text-left"
+      >
+        <ShieldCheck size={13} className="text-status-warn-fg shrink-0" />
+        <span className="text-xs font-semibold text-text-primary">
+          External auditors ({guests.length})
+        </span>
+        <span className="text-[11px] text-text-muted">
+          from audit firms — not employees of this organization
+        </span>
+        <ChevronDown
+          size={13}
+          className={cn('ml-auto text-text-muted transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="px-4 pb-3 divide-y divide-border/30">
+          {guests.map(g => (
+            <div key={g.membershipId} className="flex items-center gap-3 py-2.5">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-text-primary truncate">
+                  {g.fullName || g.email}
+                </p>
+                <p className="text-[11px] text-text-muted truncate">
+                  {g.email}
+                  {g.firmName ? ` · ${g.firmName}` : ''}
+                  {g.accessExpiresAt
+                    ? ` · access until ${new Date(g.accessExpiresAt).toLocaleDateString('en-GB',
+                        { day: '2-digit', month: 'short', year: 'numeric' })}`
+                    : ' · no end date'}
+                </p>
+              </div>
+              <span className="shrink-0 text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded border border-status-warn-bd text-status-warn-fg">
+                External
+              </span>
+              {g.usable && (
+                <Button variant="ghost" size="sm" icon={UserMinus}
+                  onClick={() => setConfirmRevoke(g)}>Revoke</Button>
+              )}
+            </div>
+          ))}
+          <p className="pt-2 text-[10px] text-text-muted">
+            Their firm decides who works here. Manage firms on the External Auditors screen.
+          </p>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={!!confirmRevoke}
+        title={`Revoke ${confirmRevoke?.fullName || 'auditor'}?`}
+        message="They lose access to this organization immediately. Their account belongs to their firm and is not affected; work they have already recorded is kept."
+        confirmLabel="Revoke access"
+        onConfirm={() => revoke(confirmRevoke.membershipId)}
+        onCancel={() => setConfirmRevoke(null)} />
+    </div>
+  )
+}
+
 export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: vendorIdProp, tenantIdOverride, subheader }) {
   const { tenantId: ownTenantId } = useSelector(selectAuth)
   // SYSTEM callers browsing a specific tenant's users (see UsersHubPage) pass
@@ -626,6 +730,13 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
     side,
     vendorId: side === 'VENDOR' && vendorId ? vendorId : undefined,
     tenantId: tenantIdOverride || undefined,
+    // Own staff only. listUsers resolves through memberships, so external
+    // auditors were appearing in this table with the full edit, suspend and
+    // Manage Roles actions attached — a client admin could change the name,
+    // email or roles of another company's employee. They are listed in the
+    // External Auditors section above instead, where the only action is
+    // revoking their access, which IS the client's to make.
+    membershipType: 'HOME',
   })
 
   const { mutate: suspend,  isPending: suspending  } = useSuspendUser()
@@ -744,6 +855,11 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
       }
     >
       {subheader}
+
+      {/* Guests first: an admin scanning for unexpected access should meet it
+          before scrolling a list of their own staff. */}
+      <ExternalAuditorsSection side={side} />
+
       <DataTable
         columns={columns}
         data={users}

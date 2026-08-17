@@ -220,7 +220,18 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
             {loading ? (
               <div className="px-3 py-3 text-[10px] text-text-muted text-center">Loading…</div>
             ) : filtered.length === 0 ? (
-              <div className="px-3 py-3 text-[10px] text-text-muted text-center">No users found</div>
+              <div className="px-3 py-3 text-center">
+                <p className="text-[10px] text-text-muted">No users found</p>
+                {/* An empty auditor picker is almost always the external-auditor
+                    case: the client granted the firm, but the firm has not yet
+                    assigned anyone to this client, so no membership exists and
+                    the membership-scoped query returns nothing. Without this the
+                    lead auditor sees a blank list and no reason for it. */}
+                <p className="mt-1 text-[9px] text-text-muted leading-relaxed max-w-[16rem] mx-auto">
+                  Internal auditors need an auditor-side role in this organization.
+                  External auditors appear only after their firm has assigned them here.
+                </p>
+              </div>
             ) : filtered.map(u => (
               <button
                 key={uid(u)}

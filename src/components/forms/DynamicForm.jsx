@@ -120,6 +120,7 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
                 config={config}
                 isEditable={isEditable}
                 contextParams={contextParams}
+                formValues={watchedValues}
               />
             </div>
           )
@@ -154,7 +155,33 @@ function FieldWrapper({ label, isRequired, helperText, error, type, children }) 
   )
 }
 
-function FormField({ field, register, control, error, config, isEditable = true, contextParams = null }) {
+/**
+ * Substitutes {{fieldKey}} tokens in a lookup path from the form's current
+ * values, so one lookup can be filtered by another field's answer.
+ *
+ *   /v1/users?side=AUDITOR&roleId=33&membershipType={{auditorSource}}
+ *
+ * An unanswered token drops its whole query pair rather than sending the literal
+ * "{{auditorSource}}" — so before the user picks internal or external, the
+ * lookup simply returns both, which is the sensible default.
+ */
+function resolveLookupPath(path, values) {
+  if (!path || !path.includes('{{')) return path
+  const [base, qs] = path.split('?')
+  if (!qs) return path
+  const kept = qs.split('&').filter(Boolean).map(pair => {
+    const [k, v] = pair.split('=')
+    const token = /^\{\{(.+)\}\}$/.exec(v || '')
+    if (!token) return pair
+    const resolved = values?.[token[1]]
+    return (resolved === undefined || resolved === null || resolved === '')
+      ? null
+      : `${k}=${encodeURIComponent(resolved)}`
+  }).filter(Boolean)
+  return kept.length ? `${base}?${kept.join('&')}` : base
+}
+
+function FormField({ field, register, control, error, config, isEditable = true, contextParams = null, formValues = null }) {
   const { fieldKey: key, fieldType: type, label, placeholder, helperText, isRequired } = field
 
   // Gap 1: when read-only, render a plain text display instead of any interactive input.
@@ -243,7 +270,7 @@ function FormField({ field, register, control, error, config, isEditable = true,
               onBlur={f.onBlur}
               placeholder={placeholder}
               lookupEntityType={field.lookupEntityType}
-              lookupApiPath={field.lookupApiPath}
+              lookupApiPath={resolveLookupPath(field.lookupApiPath, formValues)}
               // Framework-scoped lookups (e.g. AUDIT_TEMPLATE) get the runtime
               // frameworkRef so they list only this framework's options. Other
               // lookups (USER, WORKFLOW) are unaffected.

@@ -1,7 +1,7 @@
 /**
  * EngagementIntegrationTab — shows automated check status for this engagement.
  *
- * Data: GET /v1/audit/engagements/{engagementId}/integration-snapshots
+ * Data: GET /v1/integrations/engagements/{engagementId}/snapshots
  *       → EngagementIntegrationSnapshot rows (one per AUTOMATED test instance)
  *
  * Per row:
@@ -15,6 +15,7 @@
  *
  * Mirrors ControlInstanceTestsTab pattern exactly.
  */
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -24,6 +25,7 @@ import {
 import api from '../../config/axios.config'
 import { integrationApi } from '../../api/integration.api'
 import { cn } from '../../lib/cn'
+import { AutomationPayloadView } from './AutomationPayloadView'
 import toast from 'react-hot-toast'
 
 // ── Result config ─────────────────────────────────────────────────────────────
@@ -37,6 +39,8 @@ const RESULT = {
 
 const INTEGRATION_COLOR = {
   OKTA:             'text-[#007DC1]',
+  ZOHO:             'text-[#E42527]',
+  MICROSOFT:        'text-[#00A4EF]',
   AWS:              'text-[#FF9900]',
   GITHUB:           'text-text-primary',
   AZURE:            'text-[#0078D4]',
@@ -63,10 +67,12 @@ function RunNowButton({ integrationKey, checkKey, snapshotId, engagementId }) {
     mutationFn: () => integrationApi.checks.run(integrationKey, checkKey),
     onSuccess: () => {
       toast.success('Check triggered — result will appear shortly')
-      // Poll: invalidate after 3s to pick up the updated snapshot result
-      setTimeout(() => {
-        qc.invalidateQueries({ queryKey: ['engagement-integration-snapshots', engagementId] })
-      }, 3000)
+      // Poll a couple of times: the check runs async, then the engagement
+      // snapshot is updated. Invalidate at 2s and 6s so the result appears
+      // without waiting for the 30s refetch interval.
+      const inv = () => qc.invalidateQueries({ queryKey: ['engagement-integration-snapshots', engagementId] })
+      setTimeout(inv, 2000)
+      setTimeout(inv, 6000)
     },
     onError: (e) => toast.error(
       e?.response?.data?.message || 'Run failed — is this integration connected?'
@@ -92,14 +98,115 @@ function RunNowButton({ integrationKey, checkKey, snapshotId, engagementId }) {
   )
 }
 
+// ── Run all button ────────────────────────────────────────────────────────────
+
+/**
+ * The hourly scheduler already runs every check without anyone clicking, but it
+ * skips a check whose nextRunAt has not elapsed — so a DAILY check that ran this
+ * morning stays "Not run" against a snapshot created afterwards. This button
+ * ignores nextRunAt and runs the lot, which is what someone setting up an
+ * engagement actually wants.
+ */
+function RunAllButton({ integrationKeys, engagementId }) {
+  const qc = useQueryClient()
+  const { mutate, isPending } = useMutation({
+    mutationFn: async () => {
+      const results = await Promise.allSettled(
+        integrationKeys.map(k => integrationApi.checks.runAll(k)),
+      )
+      const failed = results.filter(r => r.status === 'rejected')
+      // `failed.length === integrationKeys.length` is also true when BOTH are
+      // zero, and then failed[0] is undefined — so an empty key list threw
+      // `undefined`, producing an error with no message, no status and nothing
+      // to report. Guard the empty case explicitly.
+      if (integrationKeys.length === 0) {
+        throw new Error('No integrations are linked to this engagement')
+      }
+      if (failed.length === integrationKeys.length) throw failed[0].reason
+      return results
+    },
+    onSuccess: (results) => {
+      // A run-all can succeed at the HTTP level and still have every check fail
+      // inside it — triggerRunAll catches per-check exceptions so one bad check
+      // cannot roll back the rest, and reports them in the body. Announcing
+      // "triggered" regardless is how a completely failed run looks like a
+      // working one until someone reads the rows.
+      const bodies = (results || [])
+        .filter(r => r.status === 'fulfilled')
+        .map(r => r.value?.data?.data || r.value?.data || {})
+      const ok     = bodies.reduce((n, b) => n + (b.succeeded ?? 0), 0)
+      const failedChecks = bodies.reduce((n, b) => n + (b.failed ?? 0), 0)
+
+      if (failedChecks > 0 && ok === 0) {
+        const first = bodies.flatMap(b => b.results || [])
+          .find(r => r.result === 'ERROR')
+        toast.error(`All ${failedChecks} checks failed${first?.resultSummary ? ` — ${first.resultSummary}` : ''}`)
+      } else if (failedChecks > 0) {
+        toast.success(`${ok} check${ok === 1 ? '' : 's'} run, ${failedChecks} failed`)
+      } else {
+        toast.success('All checks triggered — results will appear shortly')
+      }
+      const inv = () => qc.invalidateQueries({ queryKey: ['engagement-integration-snapshots', engagementId] })
+      setTimeout(inv, 3000)
+      setTimeout(inv, 10000)
+    },
+    // ApiResponse puts the message at data.error.message. Reading data.message
+    // meant every real reason — not connected, no permission, bad credentials —
+    // was discarded and replaced by a guess that is often wrong.
+    // No response at all means the request never left the browser — a bad
+    // handler reference, a thrown TypeError. Saying "Run failed" for that sends
+    // you looking at the server for something that never reached it, so name it.
+    onError: (e) => toast.error(
+      e?.response?.data?.error?.message
+        || e?.response?.data?.message
+        || (e?.response?.status === 403
+              ? 'You do not have permission to run integration checks'
+              : e?.response?.status === 404
+                ? 'This integration is not connected for this organization'
+                : e?.response
+                  ? `Run failed (${e.response.status})`
+                  : `Run failed before sending — ${e?.message || 'client error'}`)
+    ),
+  })
+
+  if (integrationKeys.length === 0) return null
+
+  return (
+    <button
+      onClick={() => mutate()}
+      disabled={isPending}
+      title="Run every check for this engagement now"
+      className={cn(
+        'flex items-center gap-1 text-[10px] px-2 py-0.5 rounded border',
+        'border-border text-text-secondary hover:text-text-primary hover:border-brand-500/40',
+        'disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
+      )}
+    >
+      {isPending ? <RefreshCw size={9} className="animate-spin" /> : <Play size={9} />}
+      Run all
+    </button>
+  )
+}
+
 // ── Snapshot row ──────────────────────────────────────────────────────────────
 
 function SnapshotRow({ snap, engagementId }) {
   const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+
+  // Payload lives on the IntegrationRun, not the snapshot — fetched only when
+  // the row is expanded so the list stays one request.
+  const { data: runData, isLoading: runLoading } = useQuery({
+    queryKey: ['integration-run', snap.lastIntegrationRunId],
+    queryFn: () => integrationApi.runs.get(snap.lastIntegrationRunId),
+    enabled: open && !!snap.lastIntegrationRunId,
+  })
+  const run = runData?.data?.data || runData?.data || runData
 
   return (
+    <div className="border-b border-border/20">
     <div
-      className="flex items-center gap-2 px-3 py-2.5 border-b border-border/20 hover:bg-surface-overlay/40 transition-colors group cursor-pointer"
+      className="flex items-center gap-2 px-3 py-2.5 hover:bg-surface-overlay/40 transition-colors group cursor-pointer"
       onClick={() => navigate(`/module/audit_test_instance/${snap.testInstanceId}`)}
     >
       {/* Integration key label */}
@@ -137,6 +244,17 @@ function SnapshotRow({ snap, engagementId }) {
         </div>
       </div>
 
+      {/* Evidence disclosure — the collected payload, not just the verdict */}
+      {snap.lastIntegrationRunId && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setOpen(v => !v) }}
+          title={open ? 'Hide collected evidence' : 'Show collected evidence'}
+          className="shrink-0 text-[9px] px-2 py-0.5 rounded border border-border text-text-muted hover:text-text-primary hover:border-brand-500/40 transition-colors"
+        >
+          {open ? 'Hide evidence' : 'Evidence'}
+        </button>
+      )}
+
       {/* Run now */}
       <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
         <RunNowButton
@@ -150,6 +268,24 @@ function SnapshotRow({ snap, engagementId }) {
       <ResultBadge result={snap.lastResult || 'NOT_RUN'} />
       <ChevronRight size={10} className="text-text-muted opacity-0 group-hover:opacity-100 shrink-0" />
     </div>
+
+    {open && (
+      <div className="px-3 pb-3 pl-[4.75rem] bg-surface-overlay/20">
+        {runLoading ? (
+          <div className="py-2 flex items-center gap-2 text-[10px] text-text-muted">
+            <RefreshCw size={10} className="animate-spin" /> Loading collected evidence…
+          </div>
+        ) : run?.rawPayload ? (
+          <AutomationPayloadView payload={run.rawPayload} />
+        ) : (
+          <p className="py-2 text-[10px] text-text-muted">
+            This run recorded no payload — checks that end in ERROR return a message only.
+            {run?.resultSummary ? ` (${run.resultSummary})` : ''}
+          </p>
+        )}
+      </div>
+    )}
+    </div>
   )
 }
 
@@ -160,7 +296,7 @@ export function EngagementIntegrationTab({ engagementId }) {
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['engagement-integration-snapshots', engagementId],
-    queryFn: () => api.get(`/v1/audit/engagements/${engagementId}/integration-snapshots`),
+    queryFn: () => api.get(`/v1/integrations/engagements/${engagementId}/snapshots`),
     enabled: !!engagementId,
     refetchInterval: 30_000, // poll every 30s — automated runs update results
   })
@@ -169,7 +305,9 @@ export function EngagementIntegrationTab({ engagementId }) {
 
   const passing  = snapshots.filter(s => s.lastResult === 'PASS').length
   const failing  = snapshots.filter(s => s.lastResult === 'FAIL').length
+  const errored  = snapshots.filter(s => s.lastResult === 'ERROR').length
   const notRun   = snapshots.filter(s => !s.lastResult || s.lastResult === 'NOT_RUN').length
+  const integrationKeys = [...new Set(snapshots.map(s => s.integrationKey).filter(Boolean))]
 
   if (isLoading) return (
     <div className="py-8 flex items-center justify-center">
@@ -196,10 +334,14 @@ export function EngagementIntegrationTab({ engagementId }) {
         <span className="font-medium text-text-primary">{snapshots.length} automated checks</span>
         {passing > 0  && <span className="text-status-pass-fg">{passing} passing</span>}
         {failing > 0  && <span className="text-status-fail-fg">{failing} failing</span>}
+        {errored > 0  && <span className="text-status-warn-fg">{errored} errored</span>}
         {notRun > 0   && <span className="text-status-warn-fg">{notRun} not yet run</span>}
-        <button onClick={() => refetch()} className="ml-auto text-text-muted hover:text-text-primary" title="Refresh">
-          <RefreshCw size={11} />
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <RunAllButton integrationKeys={integrationKeys} engagementId={engagementId} />
+          <button onClick={() => refetch()} className="text-text-muted hover:text-text-primary" title="Refresh">
+            <RefreshCw size={11} />
+          </button>
+        </div>
       </div>
 
       {/* Warning if checks haven't run yet */}
@@ -208,7 +350,8 @@ export function EngagementIntegrationTab({ engagementId }) {
           <AlertTriangle size={12} className="text-status-warn-fg mt-0.5 shrink-0" />
           <p className="text-[10px] text-status-warn-fg">
             {notRun} check{notRun > 1 ? 's have' : ' has'} not run yet for this engagement.
-            Hover a row and click Run to trigger manually, or wait for the hourly scheduler.
+            Use Run all above, or hover a row and click Run. The hourly scheduler also runs them,
+            but skips any check whose next run is not yet due.
             Ensure the integration is connected in Settings → Integrations.
           </p>
         </div>

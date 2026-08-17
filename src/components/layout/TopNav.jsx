@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useClickOutside } from '../../hooks/useClickOutside'
-import { Bell, ChevronDown, LogOut, User, Settings, ChevronRight } from 'lucide-react'
+import { Bell, ChevronDown, LogOut, User, Settings, ChevronRight, Building2, Check, Loader2 } from 'lucide-react'
 import { useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { selectAuth } from '../../store/slices/authSlice'
-import { useLogout } from '../../hooks/useAuth'
+import { useLogout, useSwitchTenant } from '../../hooks/useAuth'
 import { useNotifications } from '../../hooks/useNotifications'
 import { useNavigation } from '../../hooks/useUIConfig'
 import { initials } from '../../utils/format'
@@ -50,9 +50,99 @@ function humanize(str) {
   return str.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
+// ── Tenant switcher ───────────────────────────────────────────────────────────
+
+/**
+ * Renders only when the identity holds more than one membership — which today
+ * means an external auditor with their own firm plus client tenants. Everyone
+ * else sees exactly what they saw before.
+ *
+ * Showing the membership type next to each name is the point of this control,
+ * not decoration: the same person records test results in several client
+ * tenants, and "which organization am I acting in, and as what" has to be
+ * answerable at a glance before they click anything.
+ */
+function TenantSwitcher({ memberships, activeTenantId }) {
+  const [open, setOpen] = useState(false)
+  const ref = useClickOutside(() => setOpen(false), open)
+  const { mutate: switchTenant, isPending } = useSwitchTenant()
+
+  if (!memberships || memberships.length < 2) return null
+
+  const active = memberships.find(m => m.tenantId === activeTenantId)
+  const isGuest = active?.membershipType === 'GUEST'
+
+  const pick = (m) => {
+    setOpen(false)
+    if (m.tenantId !== activeTenantId) switchTenant(m.tenantId)
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        disabled={isPending}
+        title="Switch organization"
+        className={cn(
+          'flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-colors',
+          isGuest
+            ? 'border-status-warn-bd bg-status-warn-bg text-status-warn-fg'
+            : 'border-border bg-surface-overlay text-text-secondary hover:text-text-primary',
+        )}
+      >
+        {isPending
+          ? <Loader2 size={11} className="animate-spin shrink-0" />
+          : <Building2 size={11} className="shrink-0" />}
+        <span className="text-[11px] font-semibold max-w-[10rem] truncate">
+          {active?.tenantName || 'Organization'}
+        </span>
+        {isGuest && (
+          <span className="text-[9px] uppercase tracking-wide font-medium shrink-0">
+            External
+          </span>
+        )}
+        <ChevronDown size={11} className="shrink-0" />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 mt-1.5 w-72 rounded-card border border-border bg-surface-raised shadow-elevated py-1 z-50">
+          <p className="px-3 py-1.5 text-[9px] uppercase tracking-wide text-text-muted">
+            Switch organization
+          </p>
+          {memberships.map(m => (
+            <button
+              key={m.tenantId}
+              onClick={() => pick(m)}
+              className="w-full flex items-start gap-2 px-3 py-2 hover:bg-surface-overlay text-left transition-colors"
+            >
+              <span className="w-4 shrink-0 pt-0.5">
+                {m.tenantId === activeTenantId && <Check size={12} className="text-status-pass-fg" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs font-medium text-text-primary truncate">
+                  {m.tenantName}
+                </span>
+                <span className="block text-[10px] text-text-muted truncate">
+                  {m.membershipType === 'GUEST'
+                    ? `External auditor${m.firmName ? ` · ${m.firmName}` : ''}`
+                    : 'Your organization'}
+                  {m.accessExpiresAt
+                    ? ` · until ${new Date(m.accessExpiresAt).toLocaleDateString('en-GB', {
+                        day: '2-digit', month: 'short', year: 'numeric' })}`
+                    : ''}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── TopNav ────────────────────────────────────────────────────────────────────
 export function TopNav({ onMenuToggle }) {
-  const { fullName, email, roles, vendorId, tenantName, vendorName } = useSelector(selectAuth)
+  const { fullName, email, roles, vendorId, tenantName, vendorName, tenantId, memberships } = useSelector(selectAuth)
   const { mutate: doLogout }    = useLogout()
   const navigate                = useNavigate()
   const [showUser, setShowUser] = useState(false)
@@ -112,6 +202,9 @@ export function TopNav({ onMenuToggle }) {
 
       {/* Right — badge pill + theme + notifications + user */}
       <div className="flex items-center gap-2 shrink-0">
+
+        {/* Organization switcher — renders only for multi-tenant identities */}
+        <TenantSwitcher memberships={memberships} activeTenantId={tenantId} />
 
         {/* Side + role badge pill — exactly as before */}
         {roles?.length > 0 && (

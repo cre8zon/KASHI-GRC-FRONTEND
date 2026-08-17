@@ -787,6 +787,7 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
             {SIDES.map(s => <option key={s} value={s}>{s}</option>)}
             <option value="ORGANIZATION,SYSTEM">ORG + SYSTEM</option>
             <option value="ORGANIZATION,SYSTEM,AUDITOR">ORG + SYSTEM + AUDITOR</option>
+            <option value="ORGANIZATION,VENDOR">ORG + VENDOR</option>
             <option value="ORGANIZATION,SYSTEM,AUDITOR,AUDITEE">All except VENDOR</option>
           </select>
         </div>

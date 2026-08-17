@@ -43,6 +43,19 @@ const AUTH_FIELDS = {
     { key: 'apiToken', label: 'API Token', type: 'password', placeholder: '00K...', required: true },
     { key: 'domain',   label: 'Okta Domain', type: 'text',  placeholder: 'company.okta.com', required: true },
   ],
+  ZOHO: [
+    { key: 'clientId',       label: 'Client ID',        type: 'text',     placeholder: '1000.XXXXXXXX', required: true },
+    { key: 'clientSecret',   label: 'Client Secret',    type: 'password', placeholder: '...', required: true },
+    { key: 'refreshToken',   label: 'Refresh Token',    type: 'password', placeholder: '1000.xxxx.xxxx', required: true },
+    { key: 'accountsDomain', label: 'Accounts Domain',  type: 'text',     placeholder: 'https://accounts.zoho.com', required: false },
+    { key: 'apiDomain',      label: 'API Domain',       type: 'text',     placeholder: 'https://www.zohoapis.com', required: false },
+    { key: 'orgId',          label: 'Org ID (optional)',type: 'text',     placeholder: 'ZSOID (for MFA policy check)', required: false },
+  ],
+  MICROSOFT: [
+    { key: 'tenantId',     label: 'Directory (tenant) ID', type: 'text',     placeholder: 'xxxxxxxx-xxxx-xxxx-...', required: true },
+    { key: 'clientId',     label: 'Application (client) ID', type: 'text',    placeholder: 'xxxxxxxx-xxxx-xxxx-...', required: true },
+    { key: 'clientSecret', label: 'Client Secret',         type: 'password', placeholder: '...', required: true },
+  ],
   AWS: [
     { key: 'accessKeyId',     label: 'Access Key ID',     type: 'text',     placeholder: 'AKIA...', required: true },
     { key: 'secretAccessKey', label: 'Secret Access Key', type: 'password', placeholder: '...', required: true },
@@ -58,17 +71,19 @@ const AUTH_FIELDS = {
     { key: 'clientSecret', label: 'Client Secret',     type: 'password', placeholder: '...', required: true },
   ],
   GOOGLE_WORKSPACE: [
-    { key: 'serviceAccountJson', label: 'Service Account JSON', type: 'textarea', placeholder: '{"type":"service_account",...}', required: true },
+    { key: 'serviceAccountJson', label: 'Service Account JSON', type: 'textarea', placeholder: '{"type":"service_account",...}', required: true, json: true },
     { key: 'adminEmail',         label: 'Admin Email',          type: 'text',     placeholder: 'admin@company.com', required: true },
   ],
 }
 
 const INTEGRATION_LOGOS = {
   OKTA:             '🔐',
+  ZOHO:             '🟥',
   AWS:              '☁️',
   GITHUB:           '🐙',
+  MICROSOFT:        '🟦',
   AZURE:            '🔷',
-  GOOGLE_WORKSPACE: '🟦',
+  GOOGLE_WORKSPACE: '🟩',
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -89,6 +104,23 @@ function ConnectForm({ integrationKey, displayName, onSuccess }) {
   const [form, setForm] = useState({})
 
   const fields = AUTH_FIELDS[integrationKey] || []
+
+  // Client-side required validation: the backend only rejects an ALL-blank auth
+  // config, so a partial submit (e.g. clientId set but refreshToken empty) would
+  // pass connect and only fail later at run time. Block it here.
+  const missingRequired = fields
+    .filter(f => f.required)
+    .some(f => !(form[f.key] || '').trim())
+
+  // JSON fields (e.g. Google service-account key) must be valid JSON, else the
+  // connect stores garbage and fails cryptically at run time. Validate up front.
+  const isBadJson = (val) => {
+    if (!val || !val.trim()) return false        // emptiness handled by missingRequired
+    try { JSON.parse(val); return false } catch { return true }
+  }
+  const jsonInvalid = fields
+    .filter(f => f.json)
+    .some(f => isBadJson(form[f.key]))
 
   const { mutate, isPending } = useMutation({
     mutationFn: () => integrationApi.connect(integrationKey, {
@@ -129,10 +161,13 @@ function ConnectForm({ integrationKey, displayName, onSuccess }) {
               className="w-full px-3 py-2 rounded border border-border bg-surface-overlay text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           )}
+          {f.json && isBadJson(form[f.key]) && (
+            <p className="mt-1 text-[11px] text-status-fail-fg">Not valid JSON — paste the full service-account key file contents.</p>
+          )}
         </div>
       ))}
       <div className="flex gap-2 pt-1">
-        <Button size="sm" onClick={() => mutate()} loading={isPending}>
+        <Button size="sm" onClick={() => mutate()} loading={isPending} disabled={missingRequired || jsonInvalid}>
           Connect
         </Button>
         <Button size="sm" variant="ghost" onClick={() => onSuccess?.()}>
@@ -434,7 +469,7 @@ function RunHistory({ integrationKey }) {
 
   const { data, isLoading } = useQuery({
     queryKey: ['integration-runs', integrationKey],
-    queryFn: () => integrationApi.runs.list({ checkKey: integrationKey }),
+    queryFn: () => integrationApi.runs.list({ integrationKey }),
     enabled: open,
   })
   const runs = Array.isArray(data) ? data : (data?.data?.data || data?.data || [])

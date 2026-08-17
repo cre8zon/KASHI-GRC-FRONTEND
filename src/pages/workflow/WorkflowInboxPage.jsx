@@ -9,7 +9,7 @@ import { TaskInbox } from '../../components/workflow/TaskInbox'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
-import { List, LayoutGrid, Filter, X } from 'lucide-react'
+import { List, LayoutGrid, Filter, X, Building2 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 
 // ─── Filter bar ───────────────────────────────────────────────────────────────
@@ -49,8 +49,19 @@ export default function WorkflowInboxPage() {
   const [actionFilter, setActionFilter]   = useState('ALL')
   const [priorityFilter, setPriorityFilter] = useState('ALL')
 
-  const { data, isLoading } = useMyTasks({})
-  const { userId } = useSelector(selectAuth)
+  // Cross-organization view.
+  //
+  // Gated on membership COUNT, not on whether the tenant is an audit firm. The
+  // toggle only means something to someone who belongs to more than one
+  // organization, and that set is wider than audit firms: a fractional CISO
+  // across two clients, a group GRC lead with subsidiary access. It is also
+  // narrower in the right way — a firm ADMIN has one membership, their own
+  // firm, and would otherwise get a control that does nothing.
+  const [allOrgs, setAllOrgs] = useState(false)
+  const { userId, memberships = [] } = useSelector(selectAuth)
+  const multiTenant = (memberships || []).length > 1
+
+  const { data, isLoading } = useMyTasks(allOrgs && multiTenant ? { scope: 'ALL' } : {})
 
   useUserTaskSocket(userId)
   const { data: screenConfig } = useScreenConfig('task_inbox')
@@ -67,6 +78,26 @@ export default function WorkflowInboxPage() {
     })
   }, [allTasks, roleFilter, actionFilter, priorityFilter])
 
+  // Grouped by organization, but only in the cross-org view — inside a single
+  // tenant every task shares the same heading, which is noise.
+  const grouped = useMemo(() => {
+    if (!allOrgs || !multiTenant) return null
+    const by = new Map()
+    for (const t of tasks) {
+      const key = t.tenantName || 'Unknown organization'
+      if (!by.has(key)) by.set(key, [])
+      by.get(key).push(t)
+    }
+    // The active organization first — it is where the person is working — then
+    // the rest alphabetically so the order does not shift between loads.
+    const activeName = (memberships.find(m => m.active) || {}).tenantName
+    return [...by.entries()].sort(([a], [b]) => {
+      if (a === activeName) return -1
+      if (b === activeName) return 1
+      return a.localeCompare(b)
+    })
+  }, [tasks, allOrgs, multiTenant, memberships])
+
   const hasActiveFilter = roleFilter !== 'ALL' || actionFilter !== 'ALL' || priorityFilter !== 'ALL'
 
   const clearFilters = () => {
@@ -80,9 +111,28 @@ export default function WorkflowInboxPage() {
   return (
     <PageLayout
       title="Task Inbox"
-      subtitle={`${tasks.length}${hasActiveFilter ? ` of ${allTasks.length}` : ''} task${tasks.length !== 1 ? 's' : ''} pending`}
+      subtitle={`${tasks.length}${hasActiveFilter ? ` of ${allTasks.length}` : ''} task${tasks.length !== 1 ? 's' : ''} pending`
+        + (allOrgs && multiTenant ? ` across ${grouped?.length ?? 0} organizations` : '')}
       actions={
         <div className="flex items-center gap-2">
+          {multiTenant && (
+            <button
+              onClick={() => setAllOrgs(v => !v)}
+              title={allOrgs
+                ? 'Showing tasks from every organization you belong to'
+                : 'Show tasks from every organization you belong to'}
+              className={cn(
+                'flex items-center gap-1.5 h-7 px-2.5 rounded-full border text-[11px] font-medium transition-colors',
+                allOrgs
+                  ? 'border-brand-500 bg-brand-500/15 text-brand-ink'
+                  : 'border-border bg-surface-overlay text-text-secondary hover:text-text-primary',
+              )}
+            >
+              <Building2 size={11} />
+              All organizations
+            </button>
+          )}
+
           {/* Filter toggle */}
           <Button
             variant={showFilters ? 'secondary' : 'ghost'}
@@ -117,7 +167,7 @@ export default function WorkflowInboxPage() {
       <div className="p-6">
         {view === 'cards' ? (
           <Card>
-            <TaskInbox filterFn={t => {
+            <TaskInbox scope={allOrgs && multiTenant ? 'ALL' : 'TENANT'} filterFn={t => {
               if (roleFilter   !== 'ALL' && t.taskRole           !== roleFilter)   return false
               if (actionFilter !== 'ALL' && t.resolvedStepAction !== actionFilter) return false
               if (priorityFilter !== 'ALL' && t.priority         !== priorityFilter) return false
@@ -126,7 +176,9 @@ export default function WorkflowInboxPage() {
           </Card>
         ) : (
           <DataTable
-            columns={columns}
+            columns={allOrgs && multiTenant
+              ? [{ key: 'tenantName', label: 'Organization', width: 160 }, ...columns]
+              : columns}
             data={tasks}
             config={screenConfig}
             loading={isLoading}

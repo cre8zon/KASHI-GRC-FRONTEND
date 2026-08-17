@@ -81,6 +81,8 @@ const WorkflowBlueprintDesigner = lazy(() => import('./pages/admin/workflows/Wor
 
 // Platform Admin — only loaded by SYSTEM role users
 const EmailTemplateManagerPage   = lazy(() => import('./pages/admin/email-templates/EmailTemplateManagerPage'))
+const ExternalAuditorsPage       = lazy(() => import('./pages/auditor/ExternalAuditorsPage'))
+const FirmClientsPage            = lazy(() => import('./pages/auditor/FirmClientsPage'))
 const TenantListPage             = lazy(() => import('./pages/admin/tenants/TenantListPage'))
 const CreateTenantPage           = lazy(() => import('./pages/admin/tenants/CreateTenantPage'))
 const TenantSuccessPage          = lazy(() => import('./pages/admin/tenants/TenantSuccessPage'))
@@ -190,6 +192,10 @@ export default function App() {
           <Route element={<RequireAuth><AppShellWithTheme /></RequireAuth>}>
             <Route path="/dashboard"      element={<DashboardPage />} />
             <Route path="/settings"       element={<SettingsPage />} />
+            {/* Client side: admit audit firms. Firm side: staff clients. Both
+                behave according to the tenant the token names. */}
+            <Route path="/external-auditors" element={<ExternalAuditorsPage />} />
+            <Route path="/firm/clients"      element={<FirmClientsPage />} />
             <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
             <Route path="/workflow/inbox"         element={<WorkflowInboxPage />} />
             <Route path="/workflow/tasks"          element={<AllTasksPage />} />
