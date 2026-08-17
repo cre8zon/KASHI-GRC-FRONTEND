@@ -6,4 +6,6 @@ export const authApi = {
   resetPassword:       (token, newPassword) => api.post('/v1/auth/reset-password', { token, newPassword }),
   refreshToken:        (refreshToken)    => api.post('/v1/auth/refresh', { refreshToken }),
   resendInvitation:  (data)            => api.post('/v1/auth/resend-invitation', data),
+  /** Re-issues the session scoped to another tenant this identity belongs to. */
+  switchTenant:      (tenantId)        => api.post('/v1/auth/switch-tenant', { tenantId }),
 }

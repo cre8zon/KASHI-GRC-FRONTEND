@@ -24,6 +24,10 @@ export const useMyTasks = (params = {}) => {
     queryFn: () => {
       const queryParams = {}
       if (params.status) queryParams.status = params.status
+      // scope=ALL returns tasks from every organization this identity belongs
+      // to, not just the active one. Omitted by default so the endpoint keeps
+      // its TENANT default — the cross-organization view is a deliberate ask.
+      if (params.scope) queryParams.scope = params.scope
       return api.get('/v1/workflows/my-tasks', { params: queryParams })
     },
     refetchInterval: 60 * 1000,

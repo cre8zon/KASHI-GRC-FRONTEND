@@ -1,6 +1,7 @@
+import React from 'react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle, XCircle, CornerDownLeft, ArrowRight, Loader2, Users, UserCheck, AlertTriangle } from 'lucide-react'
+import { CheckCircle, XCircle, CornerDownLeft, ArrowRight, Loader2, Users, UserCheck, AlertTriangle, Building2 } from 'lucide-react'
 import { useMyTasks, useTaskAction } from '../../hooks/useWorkflow'
 import { useNavigation } from '../../hooks/useUIConfig'
 import { useSelector } from 'react-redux'
@@ -156,8 +157,14 @@ const TASK_ROLE_CONFIG = {
   ACTOR:    { label: 'Actor',       icon: Users,     color: 'text-brand-ink bg-brand-500/10'   },
 }
 
-export function TaskInbox({ filterFn } = {}) {
-  const { data, isLoading }  = useMyTasks({})
+/**
+ * @param scope 'TENANT' (default) or 'ALL'. ALL returns tasks from every
+ *        organization this identity belongs to; the component then groups by
+ *        organization, since an ungrouped mix of three clients' work is harder
+ *        to read than the single-tenant list it replaces.
+ */
+export function TaskInbox({ filterFn, scope } = {}) {
+  const { data, isLoading }  = useMyTasks(scope === 'ALL' ? { scope: 'ALL' } : {})
   const { mutate: actOnTask, isPending } = useTaskAction()
   const { userId } = useSelector(selectAuth)
   const roles      = useSelector(selectRoles)
@@ -207,10 +214,23 @@ export function TaskInbox({ filterFn } = {}) {
     </div>
   )
 
+  // In the cross-organization view, a flat list of three clients' work is
+  // harder to read than the single-tenant list it replaces, so insert a heading
+  // whenever the organization changes. Sorted by organization first so those
+  // headings appear once each rather than repeatedly.
+  const orgGrouped = scope === 'ALL'
+  const ordered = orgGrouped
+    ? [...tasks].sort((a, b) => (a.tenantName || '').localeCompare(b.tenantName || ''))
+    : tasks
+
   return (
     <>
       <div className="divide-y divide-border">
-        {tasks.map(task => {
+        {ordered.map((task, idx) => {
+          const orgHeading = orgGrouped
+            && (idx === 0 || ordered[idx - 1].tenantName !== task.tenantName)
+            ? (task.tenantName || 'Unknown organization')
+            : null
           const tid        = task.id
           const stepName   = task.stepName || `Step ${task.stepOrder || '?'}`
           const route      = resolveTaskRoute(task, navItems)
@@ -223,7 +243,16 @@ export function TaskInbox({ filterFn } = {}) {
           const isMisconfigured = mustOpen && !route
 
           return (
-            <div key={tid}
+            <React.Fragment key={tid}>
+            {orgHeading && (
+              <div className="px-4 py-1.5 bg-surface-overlay/60 flex items-center gap-1.5">
+                <Building2 size={10} className="text-text-muted shrink-0" />
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+                  {orgHeading}
+                </span>
+              </div>
+            )}
+            <div
               className="px-4 py-3 hover:bg-surface-overlay/50 transition-colors cursor-pointer"
               onClick={(e) => {
                 if (e.target.closest("button")) return
@@ -315,6 +344,7 @@ export function TaskInbox({ filterFn } = {}) {
                 </div>
               </div>
             </div>
+            </React.Fragment>
           )
         })}
       </div>

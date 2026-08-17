@@ -222,7 +222,17 @@ function UserPicker({ users=[], value, onChange, loading, placeholder }) {
           </div>
           {selected && <button onClick={(e)=>{e.stopPropagation();onChange(null);setOpen(false)}} className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] text-status-fail-fg hover:bg-status-fail-bg"><X size={9}/> Unassign</button>}
           <div className="max-h-40 overflow-y-auto">
-            {filtered.length===0 ? <div className="px-3 py-2 text-[10px] text-text-muted text-center">No users found</div>
+            {filtered.length===0 ? (
+              <div className="px-3 py-2 text-center">
+                <p className="text-[10px] text-text-muted">No users found</p>
+                {/* Same reason as the sections tab: a membership-scoped picker
+                    returns nothing for a firm that has not staffed this client. */}
+                <p className="mt-1 text-[9px] text-text-muted leading-relaxed max-w-[16rem] mx-auto">
+                  Internal auditors need an auditor-side role in this organization.
+                  External auditors appear only after their firm has assigned them here.
+                </p>
+              </div>
+            )
               : filtered.map(u=>(
                 <button key={uidOf(u)} onClick={(e)=>{e.stopPropagation();onChange(uidOf(u));setOpen(false);setQuery('')}}
                   className={cn('w-full flex items-center gap-2 px-2.5 py-1.5 text-[10px] text-left hover:bg-surface-overlay', uidOf(u)===value?'bg-status-tag-bg text-status-tag-fg':'text-text-secondary')}>

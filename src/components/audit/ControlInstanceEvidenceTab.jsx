@@ -40,6 +40,7 @@ import api            from '../../config/axios.config'
 import EvidenceUploader from '../ui/EvidenceUploader'
 import { DocumentPreviewDrawer } from '../ui/DocumentPreviewDrawer'
 import { cn }         from '../../lib/cn'
+import { AutomationPayloadView } from './AutomationPayloadView'
 import toast          from 'react-hot-toast'
 
 /** Show auditors' test procedures to auditees. Off - see the header comment. */
@@ -113,6 +114,8 @@ function Section({ icon: Icon, label, accent, badge, locked, children }) {
 
 // ── Automated evidence row ────────────────────────────────────────────────────
 function AutomatedRow({ link, onAccept, onReject, canReview }) {
+  const [open, setOpen] = useState(false)
+
   // Evidence fields are flat on the link (EvidenceLinkResponse), not nested
   // under `record` — the nested shape was never sent by the API.
   return (
@@ -134,7 +137,26 @@ function AutomatedRow({ link, onAccept, onReject, canReview }) {
               })}
             </span>
           )}
+          {link.integrationKey && (
+            <span className="text-[9px] text-text-muted uppercase tracking-wide">
+              via {link.integrationKey.replace('_', ' ')}
+            </span>
+          )}
+          {link.rawPayload && (
+            <button
+              onClick={() => setOpen(v => !v)}
+              className="text-[9px] text-brand-ink hover:underline"
+            >
+              {open ? 'Hide collected evidence' : 'View collected evidence'}
+            </button>
+          )}
         </div>
+
+        {open && link.rawPayload && (
+          <div className="mt-2 pt-2 border-t border-border/30">
+            <AutomationPayloadView payload={link.rawPayload} />
+          </div>
+        )}
       </div>
       {canReview && link.status === 'PENDING_REVIEW' && (
         <div className="flex items-center gap-1 shrink-0 mt-0.5">

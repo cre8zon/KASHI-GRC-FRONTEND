@@ -200,7 +200,13 @@ function NavItem({ item, depth = 0, collapsed = false, t }) {
         </div>
         {open && (
           <div className={cn('ml-2 pl-2 my-1 space-y-0.5 border-l', t.divider)}>
-            {item.children.map(child => (
+            {/* is_active must be honoured at every depth. groupByModule applies
+                it to top-level items only, so before this a child with
+                is_active = 0 still rendered — which is why hiding a nav entry
+                appeared to work for some items and not others. The backend
+                deliberately returns inactive items (UiConfigServiceImpl: task
+                nav entries rely on it), so the filter has to live here. */}
+            {item.children.filter(child => child.isActive !== false).map(child => (
               <NavItem key={child.navKey} item={child} depth={depth + 1} t={t} />
             ))}
           </div>
@@ -587,6 +593,7 @@ export function Sidebar({ collapsed, onToggle }) {
 function groupByModule(items) {
   const groups = {}
   for (const item of items) {
+    // Top level only — children are filtered where they render, in NavItem.
     if (!item.isActive) continue
     const key = item.module || '_root'
     if (!groups[key]) groups[key] = []

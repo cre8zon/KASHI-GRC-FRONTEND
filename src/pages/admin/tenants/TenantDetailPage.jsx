@@ -56,6 +56,7 @@ export default function TenantDetailPage() {
     <PageLayout
       title={tenant.name}
       subtitle={`TNT-${String(tenant.tenantId).padStart(4, '0')} · ${tenant.code}`}
+      onBack={() => navigate('/tenants')}
       actions={
         <div className="flex items-center gap-2">
           <Button
@@ -99,6 +100,23 @@ export default function TenantDetailPage() {
                   <span className="text-text-muted">Plan</span>
                   <Badge value={tenant.plan} colorTag="blue" label={tenant.plan} />
                 </div>
+                {/* An audit firm is an ordinary tenant in every other respect —
+                    the flag only means its people can be assigned into client
+                    tenants as external auditors. Saying so beats a bare badge
+                    an admin has to guess the meaning of. */}
+                <div className="flex items-center justify-between">
+                  <span className="text-text-muted">Organization Type</span>
+                  <Badge
+                    value={tenant.isAuditFirm ? 'AUDIT_FIRM' : 'CUSTOMER'}
+                    colorTag={tenant.isAuditFirm ? 'purple' : 'gray'}
+                    label={tenant.isAuditFirm ? 'Audit firm' : 'Customer'} />
+                </div>
+                {tenant.isAuditFirm && (
+                  <p className="text-[10px] text-text-muted leading-relaxed pt-0.5">
+                    Auditors from this organization can be assigned into client tenants
+                    once a client grants the firm access.
+                  </p>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-text-muted">Max Users</span>
                   <span className="font-mono text-xs text-text-primary">{tenant.maxUsers ?? '—'}</span>

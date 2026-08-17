@@ -41,6 +41,19 @@ export const integrationApi = {
       api.put(`/v1/integrations/${integrationKey}/checks/${checkKey}`, body),
 
     /** Manually trigger a check run now */
+    /**
+     * POST /v1/integrations/{key}/checks/run-all — every active check, now.
+     *
+     * Lives under `checks`, beside the single-check run, because that is what it
+     * does and where EngagementIntegrationTab looks for it. It was previously
+     * under `snapshots`, so integrationApi.checks.runAll was undefined and
+     * calling it threw a TypeError inside the map — before allSettled, before
+     * any HTTP. The result was a failed run with an empty Network tab and no
+     * error object to report.
+     */
+    runAll: (key) =>
+      api.post(`/v1/integrations/${key}/checks/run-all`),
+
     run: (integrationKey, checkKey) =>
       api.post(`/v1/integrations/${integrationKey}/checks/${checkKey}/run`),
   },
@@ -56,8 +69,9 @@ export const integrationApi = {
 
   // ── Engagement integration snapshots ────────────────────────────────────────
   snapshots: {
-    /** GET /v1/audit/engagements/{engagementId}/integration-snapshots */
+
+    /** GET /v1/integrations/engagements/{engagementId}/snapshots */
     listForEngagement: (engagementId) =>
-      api.get(`/v1/audit/engagements/${engagementId}/integration-snapshots`),
+      api.get(`/v1/integrations/engagements/${engagementId}/snapshots`),
   },
 }

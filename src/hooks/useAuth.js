@@ -1,12 +1,53 @@
 import { useMutation } from '@tanstack/react-query'
 import { useDispatch, useSelector } from 'react-redux'
 import { authApi } from '../api/auth.api'
-import { loginSuccess, logout, selectAuth } from '../store/slices/authSlice'
+import { loginSuccess, logout, tenantSwitched, selectAuth } from '../store/slices/authSlice'
 import { queryClient } from '../config/queryClient'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
 export const useAuth = () => useSelector(selectAuth)
+
+/**
+ * useSwitchTenant — moves the session into another tenant this identity belongs to.
+ *
+ * ISOLATION NOTE
+ *   Nothing here relaxes tenant scoping. The server re-issues a token naming
+ *   exactly one tenant, re-checks the membership is active and unexpired, and
+ *   resolves roles for that membership alone. Every query afterwards runs
+ *   through the same tenant filter as before — it just filters to a different
+ *   tenant.
+ *
+ *   queryClient.clear() is load-bearing, not tidiness: React Query caches are
+ *   keyed by query name, not by tenant, so without it the first render after a
+ *   switch would serve the previous tenant's rows straight from cache. That is
+ *   a visible cross-tenant leak with no server involvement at all.
+ */
+export const useSwitchTenant = () => {
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+
+  return useMutation({
+    mutationFn: (tenantId) => authApi.switchTenant(tenantId),
+    onSuccess: (data) => {
+      const payload = data?.data || data
+      if (!payload?.session?.token) {
+        toast.error('Switch failed — no session returned')
+        return
+      }
+      // Drop the outgoing tenant's cache BEFORE the new state lands, so nothing
+      // can render against a mismatched token.
+      queryClient.clear()
+      dispatch(tenantSwitched(payload))
+      toast.success(`Switched to ${payload.user?.tenantName || 'organization'}`)
+      navigate('/dashboard', { replace: true })
+    },
+    onError: (err) => {
+      const msg = err?.response?.data?.error?.message || err?.message || 'Could not switch organization'
+      toast.error(msg)
+    },
+  })
+}
 
 export const useLogin = () => {
   const dispatch = useDispatch()

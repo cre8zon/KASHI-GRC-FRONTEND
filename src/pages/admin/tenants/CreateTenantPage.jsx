@@ -97,6 +97,7 @@ function ConfigSummary({ form, step }) {
         <SummaryRow label="Name"     value={form.name     || '—'} />
         <SummaryRow label="Code"     value={form.code     || '—'} mono />
         <SummaryRow label="Industry" value={form.industry || '—'} />
+        {form.isAuditFirm && <SummaryRow label="Type" value="Audit firm" />}
       </SummarySection>
 
       {(form.adminEmail || form.adminFirstName) && (
@@ -224,6 +225,7 @@ export default function CreateTenantPage() {
     adminFirstName: '', adminLastName: '', adminEmail: '', adminJobTitle: '',
     plan: 'PROFESSIONAL',
     moduleCompliance: true, moduleTprm: true, modulePolicy: true, moduleIncident: false,
+    isAuditFirm: false,
   })
 
   const { mutate: createTenant, isPending: creatingTenant } = useCreateTenant()
@@ -255,7 +257,7 @@ export default function CreateTenantPage() {
   const handleCreate = () => {
     const plan = PLANS.find(p => p.key === form.plan)
     createTenant(
-      { name: form.name, code: form.code, description: form.description, plan: form.plan, maxUsers: plan?.maxUsers, maxVendors: plan?.maxVendors },
+      { name: form.name, code: form.code, description: form.description, plan: form.plan, maxUsers: plan?.maxUsers, maxVendors: plan?.maxVendors, isAuditFirm: form.isAuditFirm },
       {
         onSuccess: (tenant) => {
           createAdmin(
@@ -332,6 +334,27 @@ export default function CreateTenantPage() {
                         <option value="">Select region</option>
                         {['United States','India','United Kingdom','Europe','Asia Pacific','Middle East','Africa'].map(r => <option key={r}>{r}</option>)}
                       </select>
+                    </div>
+                    {/* Audit firm — the flag that makes this tenant selectable when a
+                        client invites an external auditor. Nothing else about the
+                        tenant changes. */}
+                    <div className="col-span-2">
+                      <label className="flex items-start gap-2.5 p-3 rounded-card border border-border bg-surface-raised cursor-pointer hover:border-brand-500/40 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={form.isAuditFirm}
+                          onChange={e => set('isAuditFirm', e.target.checked)}
+                          className="mt-0.5 h-3.5 w-3.5 rounded border-border accent-brand-500"
+                        />
+                        <span>
+                          <span className="block text-sm text-text-primary">This organization is an audit firm</span>
+                          <span className="block text-[11px] text-text-muted mt-0.5">
+                            Its auditors can be invited into client tenants as external auditors.
+                            The firm still gets its own users, controls and engagements like any
+                            other organization.
+                          </span>
+                        </span>
+                      </label>
                     </div>
                     <div className="col-span-2">
                       <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wide block mb-1.5">Description</label>

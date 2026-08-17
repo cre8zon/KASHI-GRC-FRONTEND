@@ -6,6 +6,9 @@ const initialState = {
   tenantId: null, tenantName: null, status: null,
   vendorId: null, vendorName: null,
   roles: [], permissions: [],
+  // Tenants this identity may act in. One entry for almost everyone; an external
+  // auditor has their firm plus each client they are staffed on.
+  memberships: [],
   requiresPasswordReset: false,
   isAuthenticated: false,
 }
@@ -29,10 +32,34 @@ const authSlice = createSlice({
       state.vendorName           = user.vendorName || null
       state.roles                = user.roles || []
       state.permissions          = user.permissions || []
+      state.memberships          = user.memberships || []
       state.requiresPasswordReset = user.requiresPasswordReset || false
       state.isAuthenticated      = true
     },
     logout() { return initialState },
+
+    /**
+     * Replaces the session after switching tenant.
+     *
+     * The new token is scoped to exactly ONE tenant, same as the old one —
+     * switching re-points access, it does not widen it. Roles and permissions
+     * are overwritten wholesale rather than merged: an auditor is
+     * ORGANIZATION-side at their own firm and AUDITOR-side at a client, so
+     * carrying stale permissions across would render UI they have no right to.
+     */
+    tenantSwitched(state, { payload }) {
+      const { user, session } = payload
+      state.token        = session.token
+      state.refreshToken = session.refreshToken
+      state.expiresAt    = session.expiresAt
+      state.tenantId     = user.tenantId
+      state.tenantName   = user.tenantName || null
+      state.roles        = user.roles || []
+      state.permissions  = user.permissions || []
+      state.memberships  = user.memberships || state.memberships
+      state.vendorId     = user.vendorId || null
+      state.vendorName   = user.vendorName || null
+    },
     updateToken(state, { payload }) {
       state.token     = payload.token
       state.expiresAt = payload.expiresAt
@@ -51,7 +78,7 @@ const authSlice = createSlice({
   },
 })
 
-export const { loginSuccess, logout, updateToken, validateSession, updateContext } = authSlice.actions
+export const { loginSuccess, logout, tenantSwitched, updateToken, validateSession, updateContext } = authSlice.actions
 export default authSlice.reducer
 
 export const selectAuth            = (s) => s.auth
