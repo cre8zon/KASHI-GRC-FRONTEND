@@ -1,5 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { RouteSync } from './RouteSync'
+import { ScrollRestore } from './ScrollRestore'
+import { TenantSync } from './TenantSync'
 
 export function TabContentRenderer() {
   // Transparent scroll container: the pastel wash on <body> must show through.
@@ -8,7 +10,13 @@ export function TabContentRenderer() {
   return (
     <div className="flex-1 min-h-0 overflow-y-auto" id="main-scroll">
       <RouteSync />
-      <Outlet />
+      <ScrollRestore />
+      {/* Wraps Outlet, not a sibling: a route asking for another tenant must not
+          render its page until the switch lands, or child queries fire against
+          the outgoing tenant and cache their failures. */}
+      <TenantSync>
+        <Outlet />
+      </TenantSync>
     </div>
   )
 }

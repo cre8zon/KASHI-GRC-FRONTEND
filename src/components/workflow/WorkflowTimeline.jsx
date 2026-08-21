@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Check, Clock, Circle, X, Zap, ChevronDown, ChevronRight,
-         Users, AlertTriangle, RotateCcw, RefreshCw, RotateCw, AlertCircle, GitBranch, Info } from 'lucide-react'
+         Users, AlertTriangle, RotateCcw, RefreshCw, RotateCw, AlertCircle, GitBranch, Info, ShieldAlert } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { workflowsApi } from '../../api/workflows.api'
 import { assessmentsApi } from '../../api/assessments.api'
@@ -345,6 +345,13 @@ function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
                   used to print the visit count as the revisit count, which read as
                   "×6 revisits" directly above "+5 earlier iterations" for the same
                   step — two different numbers for the same thing. */}
+              {step.overriddenBy && (
+                <span
+                  title={`Forced past its outstanding work by ${step.overriddenByName || 'a lead'}`}
+                  className="text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded border border-status-warn-bd bg-status-warn-bg text-status-warn-fg whitespace-nowrap">
+                  Overridden
+                </span>
+              )}
               {step.timesVisited > 1 && (
                 <span className="text-[10px] text-status-warn-fg font-medium">
                   ×{step.timesVisited - 1} revisit{step.timesVisited > 2 ? 's' : ''}
@@ -383,6 +390,39 @@ function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
         {/* Expanded tasks */}
         {expanded && step.visited && (
           <div className="border-t border-border/50">
+            {/* An overridden step completed WITHOUT its outstanding work being
+                done, and its pending tasks were expired out of every inbox. On
+                an audit record that must not read the same as a step that
+                finished normally — so say who forced it, when, and how much was
+                still open at the time. */}
+            {step.overriddenBy && (
+              <div className="px-3 py-2 border-b border-border/50 bg-status-warn-bg/40">
+                <div className="flex items-start gap-2">
+                  <ShieldAlert size={11} className="text-status-warn-fg shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-status-warn-fg font-medium">
+                      Overridden by {step.overriddenByName || `user ${step.overriddenBy}`}
+                      {step.overriddenAt
+                        ? ` · ${new Date(step.overriddenAt).toLocaleString('en-GB', {
+                            day: '2-digit', month: 'short', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit' })}`
+                        : ''}
+                    </p>
+                    {step.overrideExpiredTasks > 0 && (
+                      <p className="text-[10px] text-text-muted mt-0.5">
+                        {step.overrideExpiredTasks} outstanding task
+                        {step.overrideExpiredTasks === 1 ? ' was' : 's were'} closed without completion.
+                      </p>
+                    )}
+                    {step.overrideReason && (
+                      <p className="text-[10px] text-text-secondary mt-0.5 italic">
+                        "{step.overrideReason}"
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             {isSystem && step.automatedAction && (
               <div className="px-3 py-2 space-y-1.5">
                 <div className="flex items-center gap-2">

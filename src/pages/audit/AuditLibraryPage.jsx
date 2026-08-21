@@ -191,7 +191,7 @@ const RowActions = ({ onEdit, onDelete }) => (
 function ControlForm({ initial, onSubmit, loading }) {
   const [form, setForm] = useState({
     name: '', description: '', controlCode: '', frameworkRef: '',
-    testType: 'DOCUMENT_REVIEW', controlTag: '',
+    testType: 'DOCUMENT_REVIEW', controlTag: '', evidenceGuidance: '',
     ...(initial ?? {}),
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -244,6 +244,19 @@ function ControlForm({ initial, onSubmit, loading }) {
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3}
           placeholder="What this control tests and what evidence is expected"
           className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+      </div>
+      <div>
+        <label className="block text-xs text-text-secondary mb-1">
+          Evidence guidance
+          <span className="ml-1 text-text-muted font-normal">(what the auditor should ask for)</span>
+        </label>
+        <textarea value={form.evidenceGuidance} onChange={e => set('evidenceGuidance', e.target.value)} rows={3}
+          placeholder={'e.g. Screenshot of MFA enforcement policy\nUser access review sign-off for the period\nExport of privileged accounts'}
+          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+        <p className="text-[10px] text-text-muted mt-1">
+          One item per line. Snapshotted into every control instance when an engagement is created,
+          so later edits do not change engagements already under way.
+        </p>
       </div>
       <Button variant="primary" onClick={() => onSubmit(form)} loading={loading} disabled={!form.name.trim()}>
         {initial ? 'Update control' : 'Add control'}

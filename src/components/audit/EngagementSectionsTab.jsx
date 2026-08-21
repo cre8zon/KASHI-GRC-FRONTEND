@@ -32,6 +32,8 @@ const fetchControls   = (id)   => api.get(`/v1/audit/engagements/${id}/controls`
 const fetchUsers      = (side) => api.get(`/v1/users`, { params: { side, take: 200 } })
 const fetchEligibleUsers = (stepInstanceId) =>
   api.get(`/v1/workflow-instances/steps/${stepInstanceId}/eligible-users`)
+const fetchEligibleUsersForSide = (stepInstanceId, side) =>
+  api.get(`/v1/workflow-instances/steps/${stepInstanceId}/eligible-users`, { params: { side } })
     .then(r => Array.isArray(r) ? r : (r?.data?.data || r?.data || r || []))
 
 const assignAuditor        = (eid, sid, body) => api.put(`/v1/audit/engagements/${eid}/sections/${sid}/assign`, body)
@@ -651,32 +653,34 @@ export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, o
   const canAssignAuditee     = isAssignStep && perms.includes('audit:section:assign-auditee')
   const canAssignCtrlAuditee = isAssignStep && perms.includes('audit:control:assign-auditee')
 
-  const [auditorRoleFilter, setAuditorRoleFilter] = useState(null)
-  const [auditeeRoleFilter, setAuditeeRoleFilter] = useState(null)
   const tenantId = auth?.tenantId
-  const { data: rolesData } = useQuery({
-    queryKey: ['tenant-roles-hierarchy', tenantId],
-    queryFn:  () => api.get(`/v1/tenants/${tenantId}/roles/hierarchy`),
-    staleTime: 5 * 60_000,
-    enabled:  !!(tenantId && (canAssignAuditor || canAssignAuditee || canAssignCtrlAuditee)),
-  })
-  const { auditorRoles, auditeeRoles } = useMemo(() => {
-    const payload   = rolesData?.data?.data || rolesData?.data || rolesData
-    const hierarchy = payload?.hierarchy || {}
-    const flatten   = (side) => (Array.isArray(hierarchy[side]) ? hierarchy[side] : [])
-      .map(r => ({ id: r.role_id ?? r.id, name: r.name }))
-    return { auditorRoles: flatten('AUDITOR'), auditeeRoles: flatten('AUDITEE') }
-  }, [rolesData])
   const canSubmit = perms.includes('audit:section:submit')
   const canReopen = perms.includes('audit:section:reopen')
 
-  // eligible-users — gated only on stepInstanceId being present
-  const { data: eligibleUsersRaw = [], isLoading: eligibleLoading } = useQuery({
-    queryKey: ['step-eligible-users', stepInstanceId],
-    queryFn:  () => fetchEligibleUsers(stepInstanceId),
+  // eligible-users, resolved PER SIDE.
+  //
+  // Both pickers previously shared one result, resolved against whichever step
+  // was current — so viewing during step 3 (AUDITEE), the auditor picker offered
+  // auditee-eligible users. An auditor assigned from that list is then dropped
+  // by the ASSIGNMENT_SCOPED role filter at step 5, which falls back to
+  // ROLE_BASED and fans the task out to every holder of the role in the tenant.
+  //
+  // ?side=AUDITOR answers from the step that actually assigns auditors, wherever
+  // the workflow currently sits, and applies the same membership scope task
+  // assignment uses — so an external engagement offers only the firm's guests.
+  const { data: eligibleAuditors = [], isLoading: eligibleAuditorLoading } = useQuery({
+    queryKey: ['step-eligible-users', stepInstanceId, 'AUDITOR'],
+    queryFn:  () => fetchEligibleUsersForSide(stepInstanceId, 'AUDITOR'),
     staleTime: 60 * 1000,
-    enabled:  !!stepInstanceId,
+    enabled:  !!stepInstanceId && canAssignAuditor,
   })
+  const { data: eligibleAuditees = [], isLoading: eligibleAuditeeLoading } = useQuery({
+    queryKey: ['step-eligible-users', stepInstanceId, 'AUDITEE'],
+    queryFn:  () => fetchEligibleUsersForSide(stepInstanceId, 'AUDITEE'),
+    staleTime: 60 * 1000,
+    enabled:  !!stepInstanceId && (canAssignAuditee || canAssignCtrlAuditee),
+  })
+  const eligibleLoading = eligibleAuditorLoading || eligibleAuditeeLoading
 
   const needsFallback = !stepInstanceId
   const { data: auditorData, isLoading: auditorUsersLoading } = useQuery({
@@ -698,17 +702,18 @@ export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, o
   // When stepInstanceId is present, eligible-users endpoint returns exactly the right list.
   // Use it directly — no filtering, no fallback logic needed.
   // When not present (direct browse), fall back to side-filtered user lists.
+  // No manual role filter: the eligible-users endpoint already answers per side
+  // from the workflow's own configuration, so a filter here could only ever
+  // narrow a list that is already correct — or widen it to people the workflow
+  // will not route to. The fallback below applies only when there is no step
+  // instance to ask about (direct browse).
   const auditorUsers = !needsFallback
-    ? eligibleUsersRaw
-    : (auditorRoleFilter
-        ? allAuditorUsers.filter(u => (u.roles||[]).some(r => (r.id||r.roleId) === auditorRoleFilter))
-        : filterByRole(allAuditorUsers, ROLE_AUDITOR_ROLE))
+    ? eligibleAuditors
+    : filterByRole(allAuditorUsers, ROLE_AUDITOR_ROLE)
 
   const auditeeUsers = !needsFallback
-    ? eligibleUsersRaw
-    : (auditeeRoleFilter
-        ? allAuditeeUsers.filter(u => (u.roles||[]).some(r => (r.id||r.roleId) === auditeeRoleFilter))
-        : filterByRole(allAuditeeUsers, ROLE_AUDITEE_CONTRIBUTOR))
+    ? eligibleAuditees
+    : filterByRole(allAuditeeUsers, ROLE_AUDITEE_CONTRIBUTOR)
 
   const sections = useMemo(() => {
     const raw = secData?.data?.data || secData?.data || secData
@@ -883,43 +888,6 @@ export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, o
           )}
         </div>
       </div>
-
-      {(canAssignAuditor || canAssignAuditee || canAssignCtrlAuditee) &&
-       (auditorRoles.length > 0 || auditeeRoles.length > 0) && (
-        <div className="px-3 py-1.5 border-b border-border/30 shrink-0 flex items-center gap-3 flex-wrap bg-surface-raised/30">
-          <span className="text-[9px] text-text-muted font-medium uppercase tracking-wide shrink-0">Filter assignable:</span>
-          {canAssignAuditor && auditorRoles.length > 0 && (
-            <div className="flex items-center gap-1.5">
-              <UserCheck size={9} className="text-brand-ink shrink-0"/>
-              <select
-                value={auditorRoleFilter ?? ''}
-                onChange={e => setAuditorRoleFilter(e.target.value ? Number(e.target.value) : null)}
-                className="text-[10px] bg-surface border border-border rounded px-1.5 py-0.5 text-text-secondary focus:outline-none focus:border-brand-500/50 cursor-pointer">
-                <option value="">All auditors</option>
-                {auditorRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
-            </div>
-          )}
-          {(canAssignAuditee || canAssignCtrlAuditee) && auditeeRoles.length > 0 && (
-            <div className="flex items-center gap-1.5">
-              <Users size={9} className="text-status-warn-fg shrink-0"/>
-              <select
-                value={auditeeRoleFilter ?? ''}
-                onChange={e => setAuditeeRoleFilter(e.target.value ? Number(e.target.value) : null)}
-                className="text-[10px] bg-surface border border-border rounded px-1.5 py-0.5 text-text-secondary focus:outline-none focus:border-status-warn-bd cursor-pointer">
-                <option value="">All auditees</option>
-                {auditeeRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
-            </div>
-          )}
-          {(auditorRoleFilter || auditeeRoleFilter) && (
-            <button onClick={() => { setAuditorRoleFilter(null); setAuditeeRoleFilter(null) }}
-              className="text-[9px] text-text-muted hover:text-text-primary ml-auto">
-              Clear
-            </button>
-          )}
-        </div>
-      )}
 
       {/* ── Bulk assignment toolbar (mirrors EngagementControlsTab) ── */}
       {bulkEnabled && allVisibleSectionIds.length > 0 && (

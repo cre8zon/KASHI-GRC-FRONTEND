@@ -39,6 +39,8 @@ import { TestPolicyCsvImportModal }  from '../../components/audit/TestPolicyCsvI
 import { WorkflowTimeline }       from '../../components/workflow/WorkflowTimeline'
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useUrlState, useUrlNumber } from '../../hooks/useUrlState'
+import { useSwitchTenant } from '../../hooks/useAuth'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as LucideIcons from 'lucide-react'
 // Destructure commonly used icons for direct JSX use
@@ -208,7 +210,7 @@ export default function UniversalModulePage() {
   const bp = bpRes?.data || bpRes
 
   if (bpLoading) return <LoadingState />
-  if (bpError)   return <ServerErrorState />
+  if (bpError)   return <ServerErrorState error={bpError} />
   if (!bp) return <NotFoundState entityType={entityType} />
 
   // ── Resolve API base path — substitute parentId if blueprint defines parentContextJson ──
@@ -242,7 +244,7 @@ export default function UniversalModulePage() {
 function ModuleListView({ bp }) {
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   // Framework-aware label so the search placeholder and empty state read
   // 'ISO 27001 engagements' (not the blueprint's fixed 'soc 2 engagements')
   // when reached via a framework nav row.
@@ -255,13 +257,40 @@ function ModuleListView({ bp }) {
   const entitySingular = _frameworkRef
     ? `${formatFrameworkRef(_frameworkRef)} ${stripFrameworkPrefix(_baseSingular)}`
     : _baseSingular
-  const [search, setSearch] = useState('')
-  const [page, setPage] = useState(0)
+  // Search / page / sort live in the URL so a refresh, Back, or an app-tab
+  // switch lands on the same view rather than page 1 of an unsorted, unfiltered
+  // list. Defaults are stripped from the URL, so the plain list URL stays clean.
+  //
+  // `search` keeps a local mirror: the input must repaint on every keystroke,
+  // but writing a history entry (even a replaced one) per character makes
+  // typing stutter and floods RouteSync. The mirror renders, a debounce
+  // publishes to the URL, and the query reads the URL.
+  const [urlSearch, setUrlSearch] = useUrlState('q', '')
+  const [search, setSearch] = useState(urlSearch)
+  const [page, setPage] = useUrlNumber('page', 0)
   const [createOpen, setCreateOpen] = useState(false)
   const [importOpen,  setImportOpen]  = useState(false)
-  const [sortBy,       setSortBy]       = useState(null)
-  const [sortDir,      setSortDir]      = useState('desc')
+  const [sortBy,       setSortBy]       = useUrlState('sortBy', '')
+  const [sortDir,      setSortDir]      = useUrlState('sortDir', 'desc')
   const [selectedIds,  setSelectedIds]  = useState([])
+
+  // Publish the typed value to the URL once typing settles.
+  useEffect(() => {
+    if (search === urlSearch) return
+    const t = setTimeout(() => {
+      setUrlSearch(search)
+      // A changed filter invalidates the page index — without this, searching
+      // while on page 4 asks for rows 60-80 of a result set that now has 3.
+      setPage(0)
+    }, 350)
+    return () => clearTimeout(t)
+  }, [search]) // eslint-disable-line
+
+  // Adopt the URL value when it changes underneath us — Back/Forward, or an
+  // app-tab switch restoring a different saved route.
+  useEffect(() => {
+    setSearch(prev => (prev === urlSearch ? prev : urlSearch))
+  }, [urlSearch])
 
   const { data: vcRes, isLoading: vcLoading } = useViewContext(bp.entityType, null)
   const vc = vcRes?.data || vcRes || {}
@@ -288,7 +317,9 @@ function ModuleListView({ bp }) {
   // framework, so an ISO-only tenant reaching the page via the ISO nav row sees
   // only ISO rows — never SOC2/RBI. Comes from the nav route's ?frameworkRef=.
   const frameworkRef = searchParams.get('frameworkRef') || undefined
-  const params = { search: search || undefined, skip: page * 20, take: 20,
+  // urlSearch, not `search`: the query follows the debounced value so typing
+  // does not fire a request per character.
+  const params = { search: urlSearch || undefined, skip: page * 20, take: 20,
     frameworkRef,
     sortBy: sortBy || undefined, sortDirection: sortBy ? sortDir : undefined }
   const { data: listRes, isLoading } = useEntityList(bp.apiBasePath, params)
@@ -337,7 +368,28 @@ function ModuleListView({ bp }) {
 
   // Drawer — row click opens a slide-over with full entity data + interactive fields + actions.
   // The drawer uses detailScreenKey config (same as full page) — configure once, applies to both.
-  const [drawerId, setDrawerId] = useState(null)
+  // Which record's side panel is open, in the URL for the same reason the tab is:
+  // refreshing with a drawer open used to close it and lose the row the user was
+  // reading. Pushed rather than replaced — opening a record IS a new place, so
+  // Back should close the drawer and return to the bare list, which is what
+  // Escape and the close button do anyway.
+  const [drawerIdRaw, setDrawerIdRaw] = useUrlState('drawer', '', { replace: false })
+  // Numeric where possible: this used to be row.id straight off the entity, and
+  // a URL round-trip turns it into a string. Anything downstream doing a ===
+  // comparison against a numeric id would silently stop matching.
+  const drawerId = drawerIdRaw ? (Number.isFinite(Number(drawerIdRaw)) ? Number(drawerIdRaw) : drawerIdRaw) : null
+  const setDrawerId = setDrawerIdRaw
+  // Closing clears the drawer's sub-tab as well. Two separate hook writes would
+  // work but produce two history operations, and leaving drawerTab behind means
+  // the next record opens on the tab the previous one was left on.
+  const closeDrawer = useCallback(() => {
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev)
+      p.delete('drawer')
+      p.delete('drawerTab')
+      return p
+    }, { replace: false })
+  }, [setSearchParams])
   // Fetch screen config for list view — needed for layoutMode
   const { data: listScreenRes } = useScreenConfig(bp.detailScreenKey)
   // layoutMode from DB: 'DRAWER' (default) or 'FULL_PAGE'
@@ -413,6 +465,7 @@ function ModuleListView({ bp }) {
   const handleSort = (key) => {
     if (sortBy === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setSortBy(key); setSortDir('asc') }
+    setPage(0)   // re-sorting reorders the whole set; page 4 no longer means anything
   }
 
   // Bulk action executor — reads payloadTemplateJson.__bulk = true to identify bulk actions
@@ -549,10 +602,10 @@ function ModuleListView({ bp }) {
         <EntityDrawer
           entityId={drawerId}
           bp={bp}
-          onClose={() => setDrawerId(null)}
+          onClose={closeDrawer}
           onOpenFull={() => {
             navigate(`/module/${bp.entityType.toLowerCase()}/${drawerId}`)
-            setDrawerId(null)
+            closeDrawer()
           }}
         />
       )}
@@ -722,17 +775,29 @@ function ModuleDetailView({ bp, id }) {
   const stepInstanceId = searchParams.get('stepInstanceId') || undefined
   const taskId         = searchParams.get('taskId') || undefined
 
-  // Tab state persisted in Redux app tab store so switching app tabs restores it.
-  // Falls back to URL param then 'overview'.
+  // Tab state lives in the URL, with the Redux app-tab store kept in sync.
+  //
+  // It used to live in Redux alone. That restored the tab when switching app
+  // tabs, but Redux is memory: a browser refresh dropped every detail screen
+  // back to Overview, and Back could not restore what the previous history
+  // entry had been looking at. The URL survives both, and RouteSync already
+  // stores `pathname + search` on the app tab, so writing here keeps the
+  // app-tab behaviour working for free rather than replacing it.
+  //
+  // Redux is still written so that anything reading selectActiveSubTab
+  // continues to see the current tab, and so an app tab restored from a route
+  // that predates this change still has a sub-tab to fall back on.
   const dispatch       = useDispatch()
   const activeAppTabId = useSelector(selectActiveTabId)
   const savedSubTab    = useSelector(selectActiveSubTab)
-  // An explicit ?tab= in the URL (e.g. a comment-notification deep-link to
-  // ?tab=comments) takes priority over the Redux-saved sub-tab, so deep-links
-  // always land on the intended tab. Falls back to saved tab, then overview.
-  const urlTab = searchParams.get('tab')
+  // Priority: explicit ?tab= (deep link, e.g. a comment notification) → the
+  // app tab's remembered sub-tab → overview.
+  const [urlTab, setUrlTab] = useUrlState('tab', '')
   const tab = urlTab || savedSubTab || 'overview'
   const setTab = (key) => {
+    // replace, not push: one history entry per record, so Back leaves the
+    // record instead of walking backwards through every tab the user clicked.
+    setUrlTab(key)
     dispatch(saveSubTab({ tabId: activeAppTabId, subTab: key }))
   }
 
@@ -821,7 +886,7 @@ function ModuleDetailView({ bp, id }) {
     })
   }, [bp.apiBasePath, id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { data: entityRes, isLoading, isError } = useEntityDetail(bp.apiBasePath, id)
+  const { data: entityRes, isLoading, isError, error: detailError } = useEntityDetail(bp.apiBasePath, id)
   const entity = entityRes?.data || entityRes
 
   // Gap 3: pass stepInstanceId so backend resolves step-action-aware editableFields
@@ -1050,7 +1115,22 @@ function ModuleDetailView({ bp, id }) {
       } catch {}
       // requiredPermission gate
       if (action.requiredPermission && vc.permissions?.length > 0) {
-        if (!vc.permissions.includes(action.requiredPermission)) return false
+        // Override is exempt on workflow transitions, and only there.
+        //
+        // COMPLETE_STEP requires workflow:task:act — "act on your task". Someone
+        // overriding has NO task by definition, so requiring it contradicts the
+        // thing they are doing: the backend says canOverride=true and this gate
+        // hides the button anyway. Granting task:act to the lead instead would
+        // hand them every task-acting action across every module, which is a far
+        // wider change than intended.
+        //
+        // Deliberately narrow: only for the four workflow transition keys, only
+        // when the backend has already confirmed override authority for this
+        // step (permission held AND same side, checked server-side too).
+        const isTransition = ['APPROVE', 'REJECT', 'SEND_BACK', 'COMPLETE_STEP']
+              .includes(action.actionKey)
+        const overrideExempt = isTransition && vc.canOverride === true
+        if (!overrideExempt && !vc.permissions.includes(action.requiredPermission)) return false
       }
       // Workflow-advancing actions: derived from blueprint statusFlowJson transitions.
       // Each transition has an actionKey — if the current action matches one,
@@ -1069,13 +1149,24 @@ function ModuleDetailView({ bp, id }) {
         //   - Path A: user has a pending task at this step (vc.taskId populated)
         //   - Path B: user has workflow:step:override permission (vc.taskId null, vc.stepInstanceId set)
         // Hide action if backend says canAct=false (wrong role, wrong step, no task, no override)
-        const effectiveCanAct = vc.canAct === true
+        // canOverride is a SEPARATE authority: the user holds
+        // workflow:step:override and the step is on their side, but has no task
+        // here. It gates transition buttons only — never canEdit below, which
+        // stays tied to canAct so override authority does not put every tab form
+        // into edit mode.
+        const effectiveCanAct = vc.canAct === true || vc.canOverride === true
         if (transitionKeys.has(action.actionKey) && !effectiveCanAct) return false
         // When a step uses compound-task section gates (hasSections=true), completion
         // happens automatically when all section items are done — hide the manual button
         // to prevent premature APPROVE calls that would fail the gate check.
         // This is fully generic — works for any module, not just AUDIT_PROJECT.
-        if (action.actionKey === 'COMPLETE_STEP' && vc.hasSections === true) return false
+        // ...unless the user can override. A section-gated step completes
+        // itself when every item is done, so the manual button is noise for
+        // normal users — but override exists precisely for the gated step that
+        // will NEVER complete, because some controls have no evidence and never
+        // will. Hiding it from overriders too leaves them no route at all.
+        if (action.actionKey === 'COMPLETE_STEP' && vc.hasSections === true
+              && vc.canOverride !== true) return false
 
         // Assignment-scoped actions: flagged in ui_actions.requires_assignment = true.
         // When set, the action is only visible if the entity reports the current user
@@ -1089,7 +1180,7 @@ function ModuleDetailView({ bp, id }) {
       if (!isActionAllowed(roleAccess, currentSide, currentRoleIds, action.actionKey)) return false
       return true
     })
-  }, [screenConfig?.actions, entity?.status, vc.permissions, vc.canAct, entity, roleAccess, currentSide, currentRoleIds])
+  }, [screenConfig?.actions, entity?.status, vc.permissions, vc.canAct, vc.canOverride, entity, roleAccess, currentSide, currentRoleIds])
 
   // Execute a screen action — resolves path params, handles confirmation + remarks.
   // Three action types via payloadTemplateJson convention:
@@ -1139,7 +1230,15 @@ function ModuleDetailView({ bp, id }) {
       // When backend returns canAct=true but no taskId, the user has override authority.
       // Route APPROVE/REJECT/SEND_BACK to the step override endpoint instead of task action.
       const isWorkflowTransition = ['APPROVE', 'REJECT', 'SEND_BACK', 'COMPLETE_STEP'].includes(action.actionKey)
-      const isOverridePath = isWorkflowTransition && vc.canAct && !vc.taskId && vc.stepInstanceId
+      // WAS: vc.canAct && !vc.taskId. Arriving from the inbox always carries a
+      // taskId, so the override path was unreachable for exactly the people who
+      // hold the permission. canOverride answers it directly.
+      //
+      // !vc.taskId is kept deliberately: someone who holds BOTH a task and
+      // override authority should complete the task normally, not silently
+      // override their own step.
+      const isOverridePath = isWorkflowTransition && !vc.taskId
+            && vc.canOverride === true && vc.stepInstanceId
       if (isOverridePath) {
         await api.post(`/v1/workflow-instances/steps/${vc.stepInstanceId}/override`, {
           action: action.actionKey === 'COMPLETE_STEP' ? 'APPROVE' : action.actionKey,
@@ -1360,7 +1459,7 @@ function ModuleDetailView({ bp, id }) {
   try { schema = JSON.parse(bp.fieldsSchemaJson || '{}') } catch {}
 
   if (isLoading || screenLoading || (overviewFormKey && overviewLoading)) return <LoadingState />
-  if (isError)   return <ServerErrorState />
+  if (isError)   return <ServerErrorState error={detailError} />
   if (!entity) return <NotFoundState entityType={bp.displayName} />
 
   // canEdit: vc.canEdit (backend permission check) — system:write holders get canEdit=true
@@ -1465,7 +1564,18 @@ function ModuleDetailView({ bp, id }) {
               icon={ActionIcon || undefined}
               onClick={() => handleActionClick(action)}
             >
-              {(() => { try { const m = JSON.parse(action.payloadTemplateJson||'{}'); return m.__label || action.label } catch { return action.label } })()}
+              {(() => {
+                // Same button, honest label. When this click will take the
+                // override path — the user has authority here but no task — say
+                // "Override step" rather than "Complete step": they are forcing
+                // it past work that is not done, and the record will name them.
+                const willOverride = ['APPROVE','REJECT','SEND_BACK','COMPLETE_STEP']
+                      .includes(action.actionKey)
+                      && !vc.taskId && vc.canOverride === true && vc.stepInstanceId
+                if (willOverride) return 'Override step'
+                try { const m = JSON.parse(action.payloadTemplateJson||'{}'); return m.__label || action.label }
+                catch { return action.label }
+              })()}
             </Button>
             )
           })}
@@ -2598,23 +2708,108 @@ function NotFoundState({ entityType }) {
 }
 
 // After the existing NotFoundState function (line ~1615), add:
-function ServerErrorState() {
-  const navigate = useNavigate()
+/**
+ * @param error  the failed query's error, so the message can tell the truth.
+ *
+ * This used to say "the server is not responding" for every failure. The most
+ * common real cause was a 403 — an external auditor opening a task belonging to
+ * a client they were not currently switched into. Telling them the server is
+ * down on a task the platform put in their own inbox sends them to reload,
+ * which cannot help, instead of to the one control that can.
+ */
+function ServerErrorState({ error }) {
+  const navigate     = useNavigate()
+  // The axios interceptor rejects with the API error body, not the axios error,
+  // so error.response does not exist here — reading it was why every 403 still
+  // rendered as "the server is not responding". status is now carried through
+  // by the interceptor; code is the fallback when it is not (older callers,
+  // or an error surfaced from somewhere that never touched HTTP).
+  const status       = error?.status
+  const code         = error?.code
+  const serverMsg    = error?.message
+  const memberships  = useSelector(st => st.auth.memberships) || []
+  const activeTenant = useSelector(st => st.auth.tenantId)
+  const switchTenant = useSwitchTenant({ silent: true })
+
+  const forbidden = status === 403
+    || /ACCESS_DENIED|NOT_ACCESSIBLE|ADMIN_ONLY|MEMBERSHIP_INACTIVE|FORBIDDEN/.test(code || '')
+
+  // The server names the owning tenant when the caller already holds a usable
+  // membership there. That is the authoritative answer — it beats searching the
+  // task inbox (which misses tasks held by someone else and opened under
+  // override authority) and it beats asking a firm with ten clients to guess.
+  const ownerTenantId = error?.details?.tenantId ?? null
+  const canAutoSwitch = forbidden
+    && ownerTenantId != null
+    && Number(ownerTenantId) !== Number(activeTenant)
+
+  const autoFired = useRef(false)
+  useEffect(() => {
+    if (!canAutoSwitch || autoFired.current) return
+    autoFired.current = true            // one token reissue, not one per render
+    switchTenant.mutate(Number(ownerTenantId))
+  }, [canAutoSwitch, ownerTenantId]) // eslint-disable-line
+
+  if (canAutoSwitch) {
+    const name = memberships.find(m => Number(m.tenantId) === Number(ownerTenantId))?.tenantName
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
+        <div className="w-8 h-8 rounded-full border-2 border-border border-t-brand-500 animate-spin" />
+        <p className="text-sm text-text-secondary">Opening in {name || 'the right organisation'}…</p>
+        <p className="text-xs text-text-muted max-w-xs">
+          This record belongs to another organisation you work with, so your workspace is switching to it.
+        </p>
+      </div>
+    )
+  }
+  // Only offer a switch when there is somewhere to switch TO. A guest denied by
+  // engagement scope is already in the right tenant, and offering to switch
+  // would send them round a loop that ends in the same 403.
+  const otherOrgs = memberships.filter(m => Number(m.tenantId) !== Number(activeTenant))
+  const scopeDenied = code === 'ENGAGEMENT_NOT_ACCESSIBLE' || code === 'ISSUE_NOT_ACCESSIBLE'
+  const offerSwitch = forbidden && !scopeDenied && otherOrgs.length > 0
+
   return (
     <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
       <div className="w-12 h-12 rounded-card bg-status-fail-bg border border-status-fail-bd flex items-center justify-center">
-        <ServerCrash size={20} className="text-status-fail-fg" strokeWidth={1.5} />
+        {forbidden
+          ? <Lock size={20} className="text-status-fail-fg" strokeWidth={1.5} />
+          : <ServerCrash size={20} className="text-status-fail-fg" strokeWidth={1.5} />}
       </div>
       <div>
-        <p className="text-sm font-medium text-text-secondary">Could not load this page</p>
-        <p className="text-xs text-text-muted mt-1 max-w-xs">
-          The server is not responding. It may be restarting — please try again in a moment.
+        <p className="text-sm font-medium text-text-secondary">
+          {forbidden ? 'You do not have access to this record' : 'Could not load this page'}
         </p>
+        <p className="text-xs text-text-muted mt-1 max-w-sm">
+          {forbidden
+            ? (serverMsg || 'Your current organisation does not have access to this record.')
+            : 'The server is not responding. It may be restarting — please try again in a moment.'}
+        </p>
+        {offerSwitch && (
+          <p className="text-xs text-text-muted mt-2 max-w-sm">
+            {/* Reaching this means the tenant could not be determined automatically —
+                no ?t= on the route and no matching task in the inbox (an old link, or
+                a record opened outside a task). Picking from a list is the fallback,
+                not the normal path. */}
+            We could not work out which organisation this belongs to. Pick one, or
+            open it from My Tasks instead.
+          </p>
+        )}
       </div>
-      <div className="flex items-center gap-2">
-        <Button size="sm" variant="secondary" onClick={() => window.location.reload()}>
-          Reload page
-        </Button>
+      <div className="flex items-center gap-2 flex-wrap justify-center">
+        {offerSwitch
+          ? otherOrgs.slice(0, 3).map(m => (
+              <Button key={m.tenantId} size="sm" variant="secondary"
+                disabled={switchTenant.isPending}
+                onClick={() => switchTenant.mutate(Number(m.tenantId))}>
+                Open in {m.tenantName || `organisation ${m.tenantId}`}
+              </Button>
+            ))
+          : !forbidden && (
+              <Button size="sm" variant="secondary" onClick={() => window.location.reload()}>
+                Reload page
+              </Button>
+            )}
         <Button size="sm" variant="ghost" onClick={() => navigate(-1)}>Go back</Button>
       </div>
     </div>
@@ -2875,7 +3070,9 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
     { id: 'history',   label: 'History',   hidden: !hasHistory },
   ].filter(t => !t.hidden)
 
-  const [activeTab, setActiveTab] = useState('overview')
+  // Namespaced as drawerTab so it cannot collide with the full-page detail's
+  // ?tab= when a drawer is opened from a screen that has its own tabs.
+  const [activeTab, setActiveTab] = useUrlState('drawerTab', 'overview')
   const [commentText, setCommentText] = useState('')
 
   // Escape to close

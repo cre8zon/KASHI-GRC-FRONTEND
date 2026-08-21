@@ -17,10 +17,16 @@
  *
  * Evidence requirements
  * ---------------------
- * AuditControlInstance has no evidence-guidance column. The guidance lives on
- * each mapped AuditTestInstance as evidenceGuidanceSnapshot, so AuditeeGuide
- * reads GET /v1/audit/control-instances/{id}/tests and lists one line per test
- * that carries guidance.
+ * Two sources, in precedence order:
+ *   1. control.evidenceGuidanceSnapshot - authored on the library control and
+ *      frozen at engagement creation. One requirement per line.
+ *   2. the mapped AuditTestInstance rows, each carrying their own
+ *      evidenceGuidanceSnapshot - the original source, kept as a fallback so
+ *      engagements created before control-level guidance existed are unchanged.
+ *
+ * When (1) is present the tests query is not needed for this panel, but it is
+ * still issued because ControlInstanceTestsTab and Fieldwork share the cache
+ * key - skipping it here would just move the fetch to the next tab.
  *
  * Deliberately NOT shown to auditees:
  *   testProcedureSnapshot - auditor methodology (sampling, reperformance).
@@ -192,6 +198,13 @@ function AuditeeGuide({ controlInstanceId, control }) {
 
   const dueDate = control?.evidenceDueDate
 
+  // Free text, one requirement per line. Leading bullet characters are stripped
+  // so guidance pasted from a Word checklist does not render a double bullet.
+  const ownItems = (control?.evidenceGuidanceSnapshot || '')
+    .split(/\r?\n/)
+    .map(l => l.replace(/^[-•*\u2022]\s*/, '').trim())
+    .filter(Boolean)
+
   const HowTo = () => (
     <div className="space-y-1.5">
       {[
@@ -206,6 +219,53 @@ function AuditeeGuide({ controlInstanceId, control }) {
       ))}
     </div>
   )
+
+  // Control-level guidance wins. Matches the server precedence in
+  // AuditInstanceController.getControlInstance, so the Overview tab and this
+  // panel can never disagree about what the auditee was asked for.
+  if (ownItems.length) {
+    return (
+      <div className="rounded-card border border-brand-500/20 bg-brand-500/5 p-3.5 mb-4">
+        <div className="flex items-start gap-2.5">
+          <ListChecks size={13} className="shrink-0 text-brand-ink mt-0.5" />
+          <div className="flex-1 min-w-0 space-y-2 text-[11px] text-text-secondary leading-relaxed">
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-medium text-text-primary">What to upload for this control</p>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-brand-500/15 text-brand-ink font-medium">
+                {ownItems.length} {ownItems.length === 1 ? 'item' : 'items'}
+              </span>
+              {dueDate && (
+                <span className="inline-flex items-center gap-1 text-[9px] text-status-warn-fg ml-auto">
+                  <CalendarClock size={9} />
+                  due {new Date(dueDate).toLocaleDateString('en-GB', {
+                    day: '2-digit', month: 'short', year: 'numeric',
+                  })}
+                </span>
+              )}
+            </div>
+
+            {control?.descriptionSnapshot && (
+              <p className="text-text-secondary">{control.descriptionSnapshot}</p>
+            )}
+
+            <ul className="space-y-1.5">
+              {ownItems.map((item, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="shrink-0 mt-[5px] w-1.5 h-1.5 rounded-full bg-brand-500/50" />
+                  <p className="text-text-primary min-w-0">{item}</p>
+                </li>
+              ))}
+            </ul>
+
+            <div className="pt-2 border-t border-brand-500/15">
+              <HowTo />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // No published guidance yet — keep the original how-to so the panel is never
   // emptier than it was before.

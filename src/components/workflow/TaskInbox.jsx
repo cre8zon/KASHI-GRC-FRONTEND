@@ -52,6 +52,25 @@ const WORK_STEP_ACTIONS = new Set(['FILL', 'REVIEW', 'EVALUATE', 'GENERATE', 'AC
  * navKey still wins when the nav table has a row for it — this only runs when
  * the lookup found nothing.
  */
+/**
+ * Appends the task's owning tenant to a route.
+ *
+ * The inbox is cross-tenant — TaskInstance has no tenant column and my-tasks
+ * queries by assigned user — so an external auditor's list mixes clients. The
+ * route alone does not say which one, and the session stays pointed at whatever
+ * the user last switched to, so opening a task from another client used to load
+ * a page that could not read its own data.
+ *
+ * TenantSync reads this parameter and switches before the page renders. Omitted
+ * when the task already belongs to the active tenant, so ordinary single-tenant
+ * users get unchanged, clean URLs.
+ */
+function withTenant(route, task, activeTenantId) {
+  if (!route || !task?.tenantId) return route
+  if (Number(task.tenantId) === Number(activeTenantId)) return route
+  return route + (route.includes('?') ? '&' : '?') + 't=' + task.tenantId
+}
+
 function resolveVendorAssessmentRoute(task) {
   const side   = (task.resolvedStepSide   || '').toUpperCase()
   const action = (task.resolvedStepAction || '').toUpperCase()
@@ -172,6 +191,7 @@ export function TaskInbox({ filterFn, scope } = {}) {
   const canSendBack = roles?.some(r => ['ORG_ADMIN','ORG_OWNER'].includes(r.name || r.roleName || ''))
   const { data: navItems = [] } = useNavigation()
   const navigate = useNavigate()
+  const activeTenantId = useSelector(st => st.auth.tenantId)
   const [activeTask, setActiveTask] = useState(null)
   const [action, setAction]         = useState(null)
   const [remarks, setRemarks]       = useState('')
@@ -196,7 +216,7 @@ export function TaskInbox({ filterFn, scope } = {}) {
   }
 
   const openTask = (task) => {
-    const route = resolveTaskRoute(task, navItems)
+    const route = withTenant(resolveTaskRoute(task, navItems), task, activeTenantId)
     if (route) navigate(route)
   }
 
@@ -260,8 +280,8 @@ export function TaskInbox({ filterFn, scope } = {}) {
                 // The entity page (UniversalModulePage) reads stepInstanceId from the URL and
                 // passes it to useViewContext for step-aware field access resolution.
                 // If no route (APPROVE/ASSIGN inline task) → open task detail for metadata view.
-                if (route) navigate(route)
-                else navigate(`/workflow/tasks/${tid}`)
+                if (route) navigate(withTenant(route, task, activeTenantId))
+                else navigate(withTenant(`/workflow/tasks/${tid}`, task, activeTenantId))
               }}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
