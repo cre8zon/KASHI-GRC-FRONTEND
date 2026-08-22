@@ -18,20 +18,26 @@ import toast from 'react-hot-toast'
  */
 export const useMyTasks = (params = {}) => {
   const { userId } = useSelector(selectAuth)
+  // `enabled` is a caller-side switch, not a request parameter — it is pulled
+  // out of params so it never reaches queryParams and never varies the query
+  // key. Keeping the key stable is the point: TenantSync asks for the same
+  // { scope: 'ALL' } the inbox already fetched, so it reads that cache instead
+  // of issuing a second request.
+  const { enabled = true, ...queryArgs } = params
 
   return useQuery({
-    queryKey: [...QUERY_KEYS.MY_TASKS, userId, params],
+    queryKey: [...QUERY_KEYS.MY_TASKS, userId, queryArgs],
     queryFn: () => {
       const queryParams = {}
-      if (params.status) queryParams.status = params.status
+      if (queryArgs.status) queryParams.status = queryArgs.status
       // scope=ALL returns tasks from every organization this identity belongs
       // to, not just the active one. Omitted by default so the endpoint keeps
       // its TENANT default — the cross-organization view is a deliberate ask.
-      if (params.scope) queryParams.scope = params.scope
+      if (queryArgs.scope) queryParams.scope = queryArgs.scope
       return api.get('/v1/workflows/my-tasks', { params: queryParams })
     },
     refetchInterval: 60 * 1000,
-    enabled: !!userId,
+    enabled: !!userId && enabled,
     staleTime: 30 * 1000,
   })
 }

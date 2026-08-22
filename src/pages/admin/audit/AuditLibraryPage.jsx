@@ -423,25 +423,42 @@ const GuardTagBadge = ({ tag }) => tag
 
 // ─── Inline row action buttons ─────────────────────────────────────────────────
 
-const RowActions = ({ onEdit, onDelete }) => (
+// `editable` comes from the API (false for global library rows a tenant may not
+// modify). The server refuses these writes regardless — this only stops the UI
+// offering a button whose sole outcome is a 403.
+const RowActions = ({ onEdit, onDelete, editable = true }) => (
   <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-    <button onClick={onEdit} title="Edit"
-      className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
-      <Pencil size={12} />
-    </button>
-    <button onClick={onDelete} title="Delete"
-      className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
-      <Trash2 size={12} />
-    </button>
+    {editable ? (
+      <>
+        <button onClick={onEdit} title="Edit"
+          className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
+          <Pencil size={12} />
+        </button>
+        <button onClick={onDelete} title="Delete"
+          className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
+          <Trash2 size={12} />
+        </button>
+      </>
+    ) : (
+      <span title="Maintained by the platform — read-only for your organisation"
+        className="h-6 w-6 flex items-center justify-center text-text-muted">
+        <Lock size={11} />
+      </span>
+    )}
   </div>
 )
+
+/** Global vs org origin, shown next to library rows so read-only is legible. */
+const OriginBadge = ({ origin }) => origin === 'GLOBAL'
+  ? <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-surface-overlay text-text-muted border border-border">Global</span>
+  : <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-brand-500/10 text-brand-ink border border-brand-500/20">Org</span>
 
 // ─── Control form ─────────────────────────────────────────────────────────────
 
 function ControlForm({ initial, onSubmit, loading }) {
   const [form, setForm] = useState({
     name: '', description: '', controlCode: '', frameworkRef: '',
-    testType: 'DOCUMENT_REVIEW', controlTag: '',
+    testType: 'DOCUMENT_REVIEW', controlTag: '', evidenceGuidance: '',
     ...(initial ?? {}),
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -491,6 +508,19 @@ function ControlForm({ initial, onSubmit, loading }) {
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3}
           placeholder="What this control tests and what evidence is expected"
           className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+      </div>
+      <div>
+        <label className="block text-xs text-text-secondary mb-1">
+          Evidence guidance
+          <span className="ml-1 text-text-muted font-normal">(what the auditor should ask for)</span>
+        </label>
+        <textarea value={form.evidenceGuidance} onChange={e => set('evidenceGuidance', e.target.value)} rows={3}
+          placeholder={'e.g. Screenshot of MFA enforcement policy\nUser access review sign-off for the period\nExport of privileged accounts'}
+          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+        <p className="text-[10px] text-text-muted mt-1">
+          One item per line. Snapshotted into every control instance when an engagement is created,
+          so later edits do not change engagements already under way.
+        </p>
       </div>
       <Button variant="primary" onClick={() => onSubmit(form)} loading={loading} disabled={!form.name.trim()}>
         {initial ? 'Update control' : 'Add control'}
@@ -1369,6 +1399,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
   const [newType, setNewType]   = useState('DOCUMENT_REVIEW')
   const [newTag,  setNewTag]    = useState('')
   const [newDesc, setNewDesc]   = useState('')
+  const [newGuide, setNewGuide] = useState('')
 
   // Step-2: control just created — stay open for test/policy mapping
   const [createdControl, setCreatedControl] = useState(null) // { id, name, controlCode }
@@ -1448,7 +1479,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
       } else {
         toast.success('Control created — select it from the list')
         setMode('pick')
-        setNewName(''); setNewCode(''); setNewFw(''); setNewType('DOCUMENT_REVIEW'); setNewTag(''); setNewDesc('')
+        setNewName(''); setNewCode(''); setNewFw(''); setNewType('DOCUMENT_REVIEW'); setNewTag(''); setNewDesc(''); setNewGuide('')
       }
     },
     onError: () => toast.error('Failed to create control'),
@@ -1457,7 +1488,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
   const handleClose = () => {
     setMode('pick'); setSearch(''); setTypeFilter(''); setSelected(null)
     setWeight(''); setMandatory(false); setRightTab('config')
-    setNewName(''); setNewCode(''); setNewFw(''); setNewType('DOCUMENT_REVIEW'); setNewTag(''); setNewDesc('')
+    setNewName(''); setNewCode(''); setNewFw(''); setNewType('DOCUMENT_REVIEW'); setNewTag(''); setNewDesc(''); setNewGuide('')
     setTestSearch(''); setPolSearch(''); setShowTestPicker(false); setShowPolPicker(false)
     setShowCreateTestStep2(false); setNt2Name(''); setNt2Ref(''); setNt2Freq(''); setNt2Auto('MANUAL')
     setCreatedControl(null)
@@ -1713,7 +1744,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                   <Button variant="ghost" size="sm" onClick={handleClose}>Cancel</Button>
                   {mode === 'pick'
                     ? <Button size="sm" loading={isPending} onClick={handleAdd} disabled={!selected}>Add to Section</Button>
-                    : <Button size="sm" loading={creating || isPending} onClick={() => createControl({ name: newName.trim(), controlCode: newCode.trim() || null, frameworkRef: newFw.trim() || null, testType: newType, controlTag: newTag.trim().toUpperCase() || null, description: newDesc.trim() || null })} disabled={!newName.trim()}>Create & Add</Button>
+                    : <Button size="sm" loading={creating || isPending} onClick={() => createControl({ name: newName.trim(), controlCode: newCode.trim() || null, frameworkRef: newFw.trim() || null, testType: newType, controlTag: newTag.trim().toUpperCase() || null, description: newDesc.trim() || null, evidenceGuidance: newGuide.trim() || null })} disabled={!newName.trim()}>Create & Add</Button>
                   }
                 </>
             }
@@ -1861,6 +1892,15 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                 <div>
                   <label className="block text-xs text-text-secondary mb-1">Description</label>
                   <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} rows={2}
+                    className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block text-xs text-text-secondary mb-1">
+                    Evidence guidance
+                    <span className="ml-1 text-text-muted font-normal">(one item per line)</span>
+                  </label>
+                  <textarea value={newGuide} onChange={e => setNewGuide(e.target.value)} rows={2}
+                    placeholder="What the auditor should ask for to test this control"
                     className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <div className="flex items-start gap-2 p-3 bg-brand-500/5 border border-brand-500/20 rounded-card">
@@ -2080,6 +2120,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
   const [libTestType, setLibTestType] = useState('DOCUMENT_REVIEW')
   const [libTag, setLibTag]           = useState('')
   const [libDesc, setLibDesc]         = useState('')
+  const [libGuide, setLibGuide]       = useState('')
   const [libErrors, setLibErrors]     = useState({})
 
   // ── Mapping-level fields (specific to this section’s mapping) ──
@@ -2178,6 +2219,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
     setLibTestType(control.testType ?? 'DOCUMENT_REVIEW')
     setLibTag(control.controlTag   ?? '')
     setLibDesc(control.description ?? '')
+    setLibGuide(control.evidenceGuidance ?? '')
     setMapWeight(String(control.weight ?? '1.0'))
     setMapMandatory(control.mandatory ?? false)
     setLibErrors({})
@@ -2203,6 +2245,9 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
         testType:    libTestType,
         controlTag:  libTag.trim().toUpperCase() || null,
         description: libDesc.trim() || null,
+        // Sent as '' rather than null when cleared: the server treats blank as
+        // "remove the guidance", and null as "no change".
+        evidenceGuidance: libGuide.trim(),
       },
     })
 
@@ -2332,6 +2377,17 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
               <div>
                 <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Description</label>
                 <textarea rows={2} value={libDesc} onChange={e => setLibDesc(e.target.value)}
+                  className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">
+                  Evidence guidance
+                  <span className="ml-1 normal-case tracking-normal text-text-muted font-normal">
+                    — one item per line, snapshotted at engagement creation
+                  </span>
+                </label>
+                <textarea rows={3} value={libGuide} onChange={e => setLibGuide(e.target.value)}
+                  placeholder={'e.g. Screenshot of MFA enforcement policy\nUser access review sign-off for the period'}
                   className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </div>
             </div>
@@ -3802,7 +3858,8 @@ export default function AuditLibraryPage({ defaultTab = 'projects' }) {
         : <span className="flex items-center gap-1 text-[10px] text-text-muted"><Lock size={10} />Private</span>,
     },
     { key: '__actions',    label: '',            width: 72,       type: 'custom',
-      render: (row) => <RowActions onEdit={() => setEditControl(row)} onDelete={() => setDeleteControl(row)} />,
+      render: (row) => <RowActions editable={row.editable !== false}
+                  onEdit={() => setEditControl(row)} onDelete={() => setDeleteControl(row)} />,
     },
   ]
 
@@ -4084,8 +4141,11 @@ export default function AuditLibraryPage({ defaultTab = 'projects' }) {
                 render: (row) => <GuardTagBadge tag={row.controlTag} />,
               },
               { key: 'frameworkRef',label: 'Framework',  sortable: false, width: 90 },
+              { key: 'origin',      label: 'Source',     sortable: false, width: 70, type: 'custom',
+                render: (row) => <OriginBadge origin={row.origin} />,
+              },
               { key: '__actions',   label: '',           width: 72, type: 'custom',
-                render: (row) => <RowActions
+                render: (row) => <RowActions editable={row.editable !== false}
                   onEdit={() => toast('Edit test — coming soon')}
                   onDelete={() => auditApi.library.tests.delete(row.id)
                     .then(() => { testRefetch(); toast.success('Test deleted') })
@@ -4109,8 +4169,11 @@ export default function AuditLibraryPage({ defaultTab = 'projects' }) {
               { key: 'ownerTeam',         label: 'Owner',      sortable: false, width: 130 },
               { key: 'frameworkRefs',      label: 'Framework',  sortable: false, width: 90 },
               { key: 'reviewFrequencyMonths', label: 'Review (mo)', sortable: false, width: 80, type: 'mono' },
+              { key: 'origin',      label: 'Source',       sortable: false, width: 70, type: 'custom',
+                render: (row) => <OriginBadge origin={row.origin} />,
+              },
               { key: '__actions',   label: '',             width: 72, type: 'custom',
-                render: (row) => <RowActions
+                render: (row) => <RowActions editable={row.editable !== false}
                   onEdit={() => toast('Edit policy — coming soon')}
                   onDelete={() => auditApi.library.policies.delete(row.id)
                     .then(() => { polRefetch(); toast.success('Policy deleted') })

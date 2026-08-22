@@ -218,7 +218,17 @@ export default function TaskDetailPage() {
 
   // Resolve entity route — if one exists this is a work task and we show an
   // "Open entity" CTA. If null it's an APPROVE/ASSIGN task handled inline.
-  const entityRoute = task ? resolveTaskRoute(task, navItems) : null
+  const { tenantId: activeTenantId } = useSelector(selectAuth)
+
+  // Carry the task's owning tenant, exactly as TaskInbox does. This page has
+  // its own copy of resolveTaskRoute, so patching the inbox alone left every
+  // "Open entity" link here pointing at the right record in the wrong tenant —
+  // which is how a task opened from a deep link still 403'd.
+  const rawEntityRoute = task ? resolveTaskRoute(task, navItems) : null
+  const entityRoute = (rawEntityRoute && task?.tenantId
+        && Number(task.tenantId) !== Number(activeTenantId))
+    ? rawEntityRoute + (rawEntityRoute.includes('?') ? '&' : '?') + 't=' + task.tenantId
+    : rawEntityRoute
 
   if (isLoading) return (
     <div className="flex items-center justify-center min-h-screen">

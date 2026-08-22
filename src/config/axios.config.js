@@ -105,7 +105,17 @@ api.interceptors.response.use(
       window.location.href = '/auth/login'
     }
     const apiError = error.response?.data?.error
-    return Promise.reject(apiError || { code: 'NETWORK_ERROR', message: error.message })
+    // Carry the HTTP status through. This used to reject with the API error body
+    // alone, so every consumer saw { code, message } and nothing could tell a 403
+    // from a 500 from a dropped connection — error.response does not survive this
+    // interceptor. Anything that wants to react to the status (offer a tenant
+    // switch on a 403, retry on a 502) needs it here.
+    const status = error.response?.status ?? null
+    // apiError already carries `details` when the server attached any (see
+    // BusinessException), so spreading it forwards them untouched.
+    return Promise.reject(apiError
+      ? { ...apiError, status }
+      : { code: 'NETWORK_ERROR', message: error.message, status })
   }
 )
 

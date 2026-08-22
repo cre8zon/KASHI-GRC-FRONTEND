@@ -23,9 +23,17 @@ export const useAuth = () => useSelector(selectAuth)
  *   switch would serve the previous tenant's rows straight from cache. That is
  *   a visible cross-tenant leak with no server involvement at all.
  */
-export const useSwitchTenant = () => {
+/**
+ * @param opts.silent  suppress the toast and the /dashboard redirect. Used by
+ *                     TenantSync, which switches on the user's behalf while they
+ *                     are already standing on the page they asked for — bouncing
+ *                     them to the dashboard would undo the navigation that
+ *                     triggered the switch in the first place.
+ */
+export const useSwitchTenant = (opts = {}) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const { silent = false } = opts
 
   return useMutation({
     mutationFn: (tenantId) => authApi.switchTenant(tenantId),
@@ -39,6 +47,7 @@ export const useSwitchTenant = () => {
       // can render against a mismatched token.
       queryClient.clear()
       dispatch(tenantSwitched(payload))
+      if (silent) return   // caller is already on the right route
       toast.success(`Switched to ${payload.user?.tenantName || 'organization'}`)
       navigate('/dashboard', { replace: true })
     },
