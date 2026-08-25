@@ -70,7 +70,17 @@ POLICY,Information Security Policy,POL-002,RICH_TEXT,INFORMATION_SECURITY,"ISO 2
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function TestPolicyCsvImportModal({ open, onClose, onImported }) {
+export function TestPolicyCsvImportModal({ open, onClose, onImported,
+                                           endpoint, title }) {
+  // The upload target is a prop because there are THREE importers and this modal
+  // was hardcoded to the wrong one for policies:
+  //   /v1/audit/library/templates/import       — templates, sections, controls
+  //   /v1/audit/library/tests-policies/import  — the combined library importer
+  //   /v1/audit/library/policies/import        — policies only (tenant-facing)
+  // It posted to the TEMPLATE importer regardless of which screen opened it, so
+  // a policy CSV was parsed as template rows. Default preserves the old target
+  // for every existing caller.
+  const uploadUrl = endpoint || '/v1/audit/library/templates/import'
   const qc      = useQueryClient()
   const fileRef = useRef(null)
 
@@ -114,7 +124,7 @@ export function TestPolicyCsvImportModal({ open, onClose, onImported }) {
     try {
       const form = new FormData()
       form.append('file', selectedFile)
-      const res  = await api.post('/v1/audit/library/templates/import', form, {
+      const res  = await api.post(uploadUrl, form, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 5 * 60_000,
       })

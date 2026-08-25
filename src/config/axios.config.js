@@ -113,9 +113,25 @@ api.interceptors.response.use(
     const status = error.response?.status ?? null
     // apiError already carries `details` when the server attached any (see
     // BusinessException), so spreading it forwards them untouched.
-    return Promise.reject(apiError
+    const rejected = apiError
       ? { ...apiError, status }
-      : { code: 'NETWORK_ERROR', message: error.message, status })
+      : { code: 'NETWORK_ERROR', message: error.message, status }
+
+    // ── Back-compat shim: keep an axios-shaped `response` ─────────────────
+    // 128 call sites across 39 files read e?.response?.data?.message to build
+    // their error toasts. None of them has ever worked: this interceptor
+    // rejects the API error body, so `response` was always undefined and every
+    // one of them silently fell through to its generic fallback — which is why
+    // a refusal the server explained clearly surfaced as "Deprecate failed".
+    //
+    // Re-attaching the shape fixes all of them at once instead of editing 39
+    // files. Only set when there genuinely was an HTTP response, so code that
+    // tests `if (err.response)` to distinguish a server error from a dropped
+    // connection keeps working.
+    if (error.response) {
+      rejected.response = { status, data: { error: apiError, message: rejected.message } }
+    }
+    return Promise.reject(rejected)
   }
 )
 

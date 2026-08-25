@@ -81,3 +81,37 @@ export function useUrlNumber(key, defaultValue = 0, opts) {
 
   return [value, set]
 }
+
+/**
+ * Write SEVERAL params in one navigation.
+ *
+ * ── WHY THIS IS NECESSARY ───────────────────────────────────────────────────
+ * setSearchParams(fn) evaluates fn against the CURRENT location, not against a
+ * pending update. Two calls in the same event handler therefore both read the
+ * original params and the second overwrites the first:
+ *
+ *   setOrigin("GLOBAL")   // -> ?origin=GLOBAL
+ *   setPage(0)            // recomputes from the ORIGINAL params, drops origin
+ *
+ * The visible symptom is a control that appears completely dead — the URL ends
+ * up exactly as it started, so nothing refetches and nothing re-renders. This
+ * is not React state; there is no batching to rely on.
+ *
+ * Anything that changes a filter AND resets paging has to go through here.
+ *
+ * Pass null/undefined/"" to remove a key.
+ */
+export function useUrlWriter({ replace = true } = {}) {
+  const [, setSearchParams] = useSearchParams()
+
+  return useCallback((updates) => {
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev)
+      Object.entries(updates).forEach(([k, v]) => {
+        if (v === null || v === undefined || v === '') p.delete(k)
+        else p.set(k, String(v))
+      })
+      return p
+    }, { replace })
+  }, [setSearchParams, replace])
+}
