@@ -20,6 +20,14 @@ const COLOR_FIELD_DEFAULT = BRAND_PRESETS[0].hex
 // create form's template picker); add others (e.g. AUDIT_CONTROL) as needed.
 const FRAMEWORK_SCOPED_LOOKUPS = new Set(['AUDIT_TEMPLATE'])
 
+/**
+ * submitLabel accepts a STRING or a (values) => string.
+ *
+ * A consequential choice hidden in a toggle is easy to miss — the button
+ * should say what it is about to do. "Adopt and approve 38 policies" is a
+ * different act from "Adopt as drafts", and the user is about to click one
+ * of them.
+ */
 export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig, submitLabel = 'Submit', loading,
   hiddenFields = [],      // from vc.hiddenFields  — fields to hide entirely
   readOnlyFields = [],    // from vc.readOnlyFields — fields rendered as read-only text
@@ -57,7 +65,21 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
   const handleFormSubmit = async (data) => {
     setServerError(null)
     try {
-      await onSubmit(data)
+      // TAG fields hold an array in form state, but several backing columns
+      // are comma-separated strings — AuditPolicy.controlTags and
+      // frameworkRefs are VARCHAR(500), and the DTO getters return String.
+      // Posting ["A","B"] at those either fails deserialisation or stores the
+      // literal brackets. Joining here rather than in each caller so every
+      // form using TAG behaves the same.
+      //
+      // MULTI_SELECT is deliberately NOT joined: its consumers expect arrays.
+      const tagKeys = new Set((fields || [])
+        .filter(f => f.fieldType === 'TAG')
+        .map(f => f.fieldKey))
+      const payload = Object.fromEntries(Object.entries(data).map(([k, v]) =>
+        [k, tagKeys.has(k) && Array.isArray(v) ? v.join(',') : v]))
+
+      await onSubmit(payload)
     } catch (err) {
       const fieldErrors = err?.fieldErrors
       if (fieldErrors && Object.keys(fieldErrors).length > 0) {
@@ -127,7 +149,7 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
         })}
       </div>
       <div className="flex justify-end pt-2">
-        <Button type="submit" loading={loading || isSubmitting} loadingText="Saving…" disabled={loading || isSubmitting}>{submitLabel}</Button>
+        <Button type="submit" loading={loading || isSubmitting} loadingText="Saving…" disabled={loading || isSubmitting}>{typeof submitLabel === 'function' ? submitLabel(watchedValues) : submitLabel}</Button>
       </div>
     </form>
   )
@@ -292,9 +314,23 @@ function FormField({ field, register, control, error, config, isEditable = true,
       )
 
     case 'SECTION_HEADER':
+      // Renders helperText beneath the label when present.
+      //
+      // Only `label` was output, so any explanatory text on a section header
+      // was silently dropped — and putting the explanation IN the label gets
+      // it styled as a small uppercase heading, which reads as shouting for
+      // anything longer than a few words.
+      //
+      // Existing headers are unaffected: without helperText the markup is
+      // exactly what it was.
       return (
         <div className="col-span-12 pt-2 pb-1 border-b border-border">
           <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">{label}</p>
+          {helperText && (
+            <p className="mt-1 text-xs font-normal normal-case tracking-normal text-text-secondary">
+              {helperText}
+            </p>
+          )}
         </div>
       )
 

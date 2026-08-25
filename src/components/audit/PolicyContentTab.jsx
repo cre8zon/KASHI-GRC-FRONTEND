@@ -5,7 +5,7 @@
  * Supports three content types (snapshotted from library):
  *   RICH_TEXT    → rendered HTML (from contentBodySnapshot)
  *   EXTERNAL_URL → link-out button + embedded iframe (when allowed)
- *   DOCUMENT     → link to the evidence record (PDF, DOCX etc.)
+ *   PDF_UPLOAD   → link to the evidence record (PDF, DOCX etc.)
  *
  * Auditor review panel (below content):
  *   - ReviewResult: NOT_REVIEWED / ADEQUATE / ADEQUATE_WITH_GAPS / INADEQUATE
@@ -179,7 +179,9 @@ export function PolicyContentTab({ entity, vc = {} }) {
         )}
 
         {/* ── DOCUMENT (evidence record) ── */}
-        {contentType === 'DOCUMENT' && entity?.evidenceRecordIdSnapshot && (
+        {/* PDF_UPLOAD — the enum has no DOCUMENT value, so this branch never
+            rendered and an uploaded policy showed nothing at all. */}
+        {contentType === 'PDF_UPLOAD' && entity?.evidenceRecordIdSnapshot && (
           <div className="px-4 py-4">
             <div className="flex items-center gap-3 p-3 bg-surface-overlay
                             rounded-card border border-border">

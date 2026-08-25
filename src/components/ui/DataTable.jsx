@@ -70,10 +70,25 @@ export function DataTable({
   selectable = false,
   selectedIds = [],
   onSelectionChange,
+  /**
+   * Optional (row) => boolean. Rows returning false get a disabled checkbox and
+   * are excluded from Select all.
+   *
+   * Telling the user AFTERWARDS that 8 of their 12 were skipped is a worse
+   * experience than not letting them pick those 8 — they have already committed
+   * to an action by then. Defaults to everything selectable, so every existing
+   * caller is unaffected.
+   */
+  isRowSelectable,
 }) {
   const [hoveredRow,  setHoveredRow]  = useState(null)
   const [dragColIdx,  setDragColIdx]  = useState(null)  // column drag-to-reorder
   const [localCols,   setLocalCols]   = useState(null)  // null = use prop columns
+  // Defined once rather than inline, so the header checkbox and the row
+  // checkboxes cannot drift apart in what they consider selectable.
+  const selectableRow  = (row) => (isRowSelectable ? isRowSelectable(row) : true)
+  const selectableCount = selectable ? data.filter(selectableRow).length : 0
+
   const displayCols = localCols || columns
 
   const renderCell = (row, col) => {
@@ -157,8 +172,13 @@ export function DataTable({
                   <input
                     type="checkbox"
                     className="rounded border-border bg-surface-raised accent-brand-500"
-                    onChange={e => onSelectionChange?.(e.target.checked ? data.map(r => r.id) : [])}
-                    checked={selectedIds.length === data.length && data.length > 0}
+                    onChange={e => onSelectionChange?.(
+                      e.target.checked ? data.filter(selectableRow).map(r => r.id) : [])}
+                    // Compared against the SELECTABLE rows, not all rows —
+                    // otherwise "select all" could never show as checked on a
+                    // page containing anything ineligible.
+                    checked={selectableCount > 0 && selectedIds.length === selectableCount}
+                    disabled={selectableCount === 0}
                   />
                 </th>
               )}
@@ -236,6 +256,9 @@ export function DataTable({
                       type="checkbox"
                       className="rounded border-border bg-surface-raised accent-brand-500"
                       checked={selectedIds.includes(row.id)}
+                      disabled={!selectableRow(row)}
+                      title={selectableRow(row) ? undefined
+                        : 'This record cannot be included in a bulk action'}
                       onChange={e => {
                         const next = e.target.checked
                           ? [...selectedIds, row.id]

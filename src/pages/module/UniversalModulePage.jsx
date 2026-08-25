@@ -30,6 +30,7 @@ import { IssueEvidenceTab }              from '../../components/audit/IssueEvide
 import { TestInstanceMappedControlsTab } from '../../components/audit/TestInstanceMappedControlsTab'
 import { PolicyInstanceMappedControlsTab } from '../../components/audit/PolicyInstanceMappedControlsTab'
 import { PolicyContentTab }              from '../../components/audit/PolicyContentTab'
+import { PolicyDocumentTab }             from '../../components/audit/PolicyDocumentTab'
 import { PolicyVersionsTab }             from '../../components/audit/PolicyVersionsTab'
 import { EngagementFindingsTab }         from '../../components/audit/EngagementFindingsTab'
 import { EngagementIntegrationTab }      from '../../components/audit/EngagementIntegrationTab'
@@ -39,7 +40,7 @@ import { TestPolicyCsvImportModal }  from '../../components/audit/TestPolicyCsvI
 import { WorkflowTimeline }       from '../../components/workflow/WorkflowTimeline'
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { useUrlState, useUrlNumber } from '../../hooks/useUrlState'
+import { useUrlState, useUrlNumber, useUrlWriter } from '../../hooks/useUrlState'
 import { useSwitchTenant } from '../../hooks/useAuth'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as LucideIcons from 'lucide-react'
@@ -52,7 +53,7 @@ const {
   Shield, ShieldCheck, Tag, UserPlus, Send, Archive, RotateCcw, PauseCircle,
   ShieldOff, Layers, Globe, FolderKanban, CornerDownLeft, Clipboard,
   Settings, Users, Bell, Star, Zap, Flag, BookOpen, List, LayoutGrid,
-  Calendar, Clock, TrendingUp, Target, Award, Briefcase,
+  Calendar, Clock, TrendingUp, Target, Award, Briefcase, Copy,
 } = LucideIcons
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Button } from '../../components/ui/Button'
@@ -78,6 +79,7 @@ import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
 import api from '../../config/axios.config'
 import { uiConfigApi } from '../../api/uiConfig.api'
+import { useNavigation } from '../../hooks/useUIConfig'
 import { commentsApi } from '../../api/comments.api'
 import { useSelector, useDispatch } from 'react-redux'
 import { selectActiveTabId, saveSubTab, selectActiveSubTab } from '../../store/slices/tabsSlice'
@@ -270,6 +272,27 @@ function ModuleListView({ bp }) {
   const [page, setPage] = useUrlNumber('page', 0)
   const [createOpen, setCreateOpen] = useState(false)
   const [importOpen,  setImportOpen]  = useState(false)
+  // Origin filter — GLOBAL | ORG | '' (both). In the URL with the other list
+  // state so it survives refresh and Back, and only rendered when the list
+  // actually reports an origin, so no other module grows a stray filter.
+  // Default to a tenant's OWN policies.
+  //
+  // With the platform library adopted, "All" is 38 platform rows plus 38 copies
+  // of the same documents — the tenant's actual policy register is buried in a
+  // list that is twice the size and mostly not theirs. Platform admins default
+  // to All, because the global library IS their register.
+  //
+  // Only applied where the module reports an origin, so no other list changes.
+  // selectRoleSides, not currentSide — that identifier belongs to the DETAIL
+  // component and is not in scope here.
+  const listRoleSides = useSelector(selectRoleSides) || []
+  const isPlatformSide = listRoleSides.includes('SYSTEM')
+  const defaultOrigin = (isPlatformSide || bp?.entityType !== 'AUDIT_POLICY') ? '' : 'ORG'
+  const [origin, setOrigin] = useUrlState('origin', defaultOrigin)
+  // Batched writer — anything that changes a filter AND resets paging must use
+  // this. Two separate setSearchParams calls in one handler both read the
+  // pre-update location, so the second silently discards the first.
+  const writeUrl = useUrlWriter()
   const [sortBy,       setSortBy]       = useUrlState('sortBy', '')
   const [sortDir,      setSortDir]      = useUrlState('sortDir', 'desc')
   const [selectedIds,  setSelectedIds]  = useState([])
@@ -278,10 +301,11 @@ function ModuleListView({ bp }) {
   useEffect(() => {
     if (search === urlSearch) return
     const t = setTimeout(() => {
-      setUrlSearch(search)
-      // A changed filter invalidates the page index — without this, searching
-      // while on page 4 asks for rows 60-80 of a result set that now has 3.
-      setPage(0)
+      // Search and page reset in one write. A changed filter invalidates the
+      // page index — searching while on page 4 would otherwise ask for rows
+      // 60-80 of a result set that now has 3 — but done as two writes the page
+      // reset simply discarded the search.
+      writeUrl({ q: search, page: null })
     }, 350)
     return () => clearTimeout(t)
   }, [search]) // eslint-disable-line
@@ -310,6 +334,32 @@ function ModuleListView({ bp }) {
     return raw.filter(a => a.isActive !== false)
   }, [listActionsRes])
 
+  // Toolbar actions exclude anything row-scoped.
+  //
+  // An endpoint containing {id} needs a record to act on, so it cannot be a
+  // toolbar button — pressing it fires the literal string "{id}" at the API and
+  // the user gets "An unexpected error occurred" for a button that could never
+  // have worked. Those actions are rendered per row instead (see the __adopt
+  // column below), from this same list.
+  const toolbarActions = useMemo(
+    () => listScreenActions.filter(a => {
+      // Row-scoped: needs an entity, rendered per row instead.
+      if ((a.apiEndpoint || '').includes('{id}')) return false
+
+      // Bulk-scoped: needs a SELECTION, rendered in the selection bar instead.
+      //
+      // Missing this was the NO_IDS error. A bulk action has no {id}, so it
+      // slipped past the row-scoped filter and rendered in the toolbar as well —
+      // two identically-labelled "Delete selected" buttons, one of which went
+      // through handleListAction and fired the request with no body at all.
+      try {
+        if (JSON.parse(a.payloadTemplateJson || '{}')['__bulk'] === true) return false
+      } catch { /* unparseable payload — treat as a normal toolbar action */ }
+
+      return true
+    }),
+    [listScreenActions])
+
   const { data: screenRes } = useScreenConfig(bp.listScreenKey)
   const screenConfig = screenRes?.data || screenRes
 
@@ -321,6 +371,7 @@ function ModuleListView({ bp }) {
   // does not fire a request per character.
   const params = { search: urlSearch || undefined, skip: page * 20, take: 20,
     frameworkRef,
+    origin: origin || undefined,
     sortBy: sortBy || undefined, sortDirection: sortBy ? sortDir : undefined }
   const { data: listRes, isLoading } = useEntityList(bp.apiBasePath, params)
   // Handle all API response shapes:
@@ -412,12 +463,200 @@ function ModuleListView({ bp }) {
   // FIX: ScreenConfigResponse wraps columns inside layout.columnsJson (a JSON string stored in UiLayout).
   // The previous check `screenConfig?.columns` always returns undefined — the correct path is
   // screenConfig.layout.columnsJson which must be parsed from JSON.
+  // ── Per-row adopt action ───────────────────────────────────────────────────
+  // Any configured action whose key marks it as an adopt (CUSTOMISE / ADOPT /
+  // COPY_TO) and whose endpoint is row-scoped (contains {id}) also gets a
+  // per-row button, not just a button on the detail page. Finding a platform
+  // policy you want and having to open it first to take a copy is a pointless
+  // round trip when the list already tells you which rows are adoptable.
+  //
+  // Driven by the same ui_actions row as the detail button, so the label,
+  // endpoint, method and confirmation text stay in one place. Nothing is
+  // hardcoded to policies — configure an adopt action on another list and it
+  // gets the same column.
+  const rowAdoptAction = useMemo(
+    () => listScreenActions.find(a =>
+      /^(CUSTOMISE|CUSTOMIZE|ADOPT|COPY_TO)/i.test(a.actionKey || '')
+      && (a.apiEndpoint || '').includes('{id}')),
+    [listScreenActions])
+
+  // Guards against a double click creating two copies — the endpoint is not
+  // idempotent, and a second call would leave the org with two identical
+  // policies differing only by id.
+  const [adoptingId, setAdoptingId] = useState(null)
+
+  // Row pending deletion. Confirmation is not optional here: the server refuses
+  // an approved policy and one already used by an engagement, but everything
+  // else deletes immediately and irreversibly, mappings included.
+  const [deleteRow, setDeleteRow] = useState(null)
+  const [deleting, setDeleting]   = useState(false)
+  const [deprecateRow, setDeprecateRow] = useState(null)
+
+  const deprecateOne = useCallback(async (row) => {
+    try {
+      await api.post(`${bp.apiBasePath}/${row.id}/deprecate`)
+      qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+      toast.success('Policy deprecated')
+    } catch (e) {
+      toast.error(e?.response?.data?.message || e?.message || 'Deprecate failed')
+    } finally {
+      setDeprecateRow(null)
+    }
+  }, [bp.apiBasePath, qc])
+
+  // Single source of truth for "can this row be deleted", used by BOTH the row
+  // button and the bulk checkbox. Two copies of this rule would drift, and the
+  // drift would show up as a checkbox you can tick for something the server
+  // then refuses — the exact confusion the checkbox is meant to prevent.
+  //
+  // Mirrors deletePolicy: platform admins may delete anything they own; a tenant
+  // only DRAFT or DEPRECATED. The server still enforces it independently, and
+  // additionally refuses a policy an engagement already uses — which the client
+  // cannot know from the list row.
+  const canDeleteRow = useCallback((row) => row?.editable !== false
+    && (isPlatformSide || ['DRAFT', 'DEPRECATED'].includes(row?.status)),
+    [isPlatformSide])
+
+  const deleteOne = useCallback(async (row) => {
+    if (deleting) return          // double-click guard — delete is not idempotent
+    setDeleting(true)
+    try {
+      await api.delete(`${bp.apiBasePath}/${row.id}`)
+      qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+      toast.success('Deleted')
+    } catch (e) {
+      // The server's refusals are specific and worth showing verbatim — "3
+      // engagements already include this policy" tells the user what to do next,
+      // where "Delete failed" does not.
+      toast.error(e?.response?.data?.message || e?.message || 'Delete failed')
+    } finally {
+      setDeleting(false)
+      setDeleteRow(null)
+    }
+  }, [bp.apiBasePath, qc, deleting])
+
+  const runRowAction = useCallback(async (action, row) => {
+    if (adoptingId) return
+    setAdoptingId(row.id)
+    try {
+      const res = await api({ method: action.httpMethod || 'POST',
+                             url: action.apiEndpoint.replace('{id}', row.id) })
+      qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+
+      // Land them ON the copy. "Successful" told the user nothing about what
+      // happened or what to do next — the new record is a DRAFT that still
+      // needs review and approval before an engagement will pick it up, and
+      // it sits under the same title in an alphabetical list, so telling them
+      // to go find it is a worse answer than taking them there.
+      const newId = res?.id ?? res?.data?.id
+      if (newId) {
+        toast.success('Your copy is ready — edit it, then send for review')
+        navigate(`/module/${bp.entityType.toLowerCase()}/${newId}`)
+      } else {
+        toast.success('Copied to your organisation as a draft')
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.message || action.label + ' failed')
+    } finally {
+      setAdoptingId(null)
+    }
+  }, [bp.apiBasePath, bp.entityType, qc, adoptingId, navigate])
+
   const columns = useMemo(() => {
+    let base = null
     if (screenConfig?.layout?.columnsJson) {
       try {
         const cols = JSON.parse(screenConfig.layout.columnsJson)
-        if (Array.isArray(cols) && cols.length > 0) return cols
+        if (Array.isArray(cols) && cols.length > 0) base = cols
       } catch {}
+    }
+    if (base) {
+      // The column appears when the module has ANY per-row action — not only
+      // when an adopt action is configured.
+      //
+      // Gating on rowAdoptAction alone meant the platform side lost the whole
+      // column: CUSTOMISE_POLICY is ORGANIZATION-only, so a platform admin had
+      // no adopt action, and Edit and Delete disappeared with it. `editable` is
+      // the honest signal that a module has per-row actions at all.
+      const rowsReportEditable = items.some(r => r?.editable !== undefined)
+      if (!rowAdoptAction && !rowsReportEditable) return base
+      // Appended here rather than stored in columns_json because `render` is a
+      // function and cannot survive a trip through JSON config.
+      return [...base, {
+        // type MUST be 'custom' — DataTable.renderCell only consults col.render
+        // under that case; anything else falls through to the default cell and
+        // prints an em dash, which is exactly what a column of empty rows was.
+        key: '__adopt', label: 'Actions', type: 'custom', width: 130, sortable: false,
+        // Platform rows offer Customise; the tenant's own rows offer Edit. An
+        // empty cell on half the table read as "nothing you can do here", which
+        // is the opposite of true for the records they actually own.
+        render: (row) => {
+          // Delete sits beside the primary action rather than replacing it, so a
+          // row can offer Edit AND Delete. Mirrors the server rules exactly
+          // (deletePolicy): platform admins may delete any policy they own;
+          // a tenant only DRAFT or DEPRECATED, because deleting an approved one
+          // destroys their own approval and version history.
+          const canDelete = canDeleteRow(row)
+
+          const deleteBtn = canDelete ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); setDeleteRow(row) }}
+              title="Delete"
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-ctl text-[11px] font-medium
+                         border border-border text-text-muted hover:text-status-fail-fg
+                         hover:border-status-fail-bd transition-colors">
+              <Trash2 size={11} />
+            </button>
+          ) : null
+
+          // Platform admins have no adopt action, so there is no primary button
+          // on a global row — only Delete. Guarded rather than assumed.
+          const primary = (row.editable === false && rowAdoptAction) ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); runRowAction(rowAdoptAction, row) }}
+            disabled={adoptingId === row.id}
+            title={rowAdoptAction.confirmationMessage || rowAdoptAction.label}
+            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-ctl text-[11px] font-medium
+                       border border-brand-500/30 text-brand-ink bg-brand-500/10
+                       hover:bg-brand-500/20 disabled:opacity-50 disabled:cursor-wait transition-colors">
+            <Copy size={11} />
+            {adoptingId === row.id ? 'Copying…' : rowAdoptAction.label}
+          </button>
+          ) : row.editable === false ? null : row.status === 'APPROVED' ? (
+            // An approved policy is in force. Edit is the wrong verb for it —
+            // silently rewriting a document an engagement may have snapshotted
+            // and an auditor may have cited. Deprecate withdraws it and keeps
+            // the history; New version supersedes it. Both live on the detail
+            // screen, so this row offers the one that is a decision.
+            <button
+              onClick={(e) => { e.stopPropagation(); setDeprecateRow(row) }}
+              title="Withdraw this policy from force"
+              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-ctl text-[11px] font-medium
+                         border border-status-warn-bd text-status-warn-fg
+                         hover:bg-status-warn-bg transition-colors">
+              <Archive size={11} />
+              Deprecate
+            </button>
+          ) : (
+            <button
+              onClick={(e) => { e.stopPropagation()
+                navigate(`/module/${bp.entityType.toLowerCase()}/${row.id}`) }}
+              title="Open to edit"
+              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-ctl text-[11px] font-medium
+                         border border-border text-text-secondary hover:bg-surface-overlay transition-colors">
+              <Pencil size={11} />
+              Edit
+            </button>
+          )
+
+          return (
+            <div className="flex items-center gap-1.5">
+              {primary}
+              {deleteBtn}
+            </div>
+          )
+        },
+      }]
     }
     // Fallback: build from first section's fields in blueprint schema
     let schema = { sections: [] }
@@ -428,7 +667,12 @@ function ModuleListView({ bp }) {
       ?.filter(f => f.showInList !== false && f.type !== 'SECTION_HEADER' && f.type !== 'DIVIDER')
       ?.slice(0, 6)
       ?.map(f => ({ key: f.key, label: f.label })) || [{ key: 'id', label: 'ID' }]
-  }, [screenConfig, bp.fieldsSchemaJson])
+  // `items` IS a dependency: it decides whether the Actions column exists at
+  // all. Without it the memo ran once against an empty list, dropped the
+  // column, and never recomputed when the rows arrived — which is why the
+  // platform side had no Actions column even after the gating was fixed.
+  }, [screenConfig, bp.fieldsSchemaJson, rowAdoptAction, runRowAction, adoptingId,
+      items, canDeleteRow, deprecateRow])
 
   // FIX: canCreate flashed because `vc.permissions?.includes() !== false` is `true`
   // while vc is still loading (permissions === undefined → undefined !== false → true).
@@ -463,24 +707,57 @@ function ModuleListView({ bp }) {
   }, [bp.apiBasePath, navigate, qc])
 
   const handleSort = (key) => {
-    if (sortBy === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    else { setSortBy(key); setSortDir('asc') }
-    setPage(0)   // re-sorting reorders the whole set; page 4 no longer means anything
+    // One write, not three. sortBy, sortDir and page each went through their own
+    // setSearchParams call, and every one of them recomputed from the same
+    // pre-update location — so only the last survived. Sorting a new column set
+    // the direction and lost the column.
+    const nextDir = sortBy === key ? (sortDir === 'asc' ? 'desc' : 'asc') : 'asc'
+    writeUrl({ sortBy: key, sortDir: nextDir, page: null })
   }
 
   // Bulk action executor — reads payloadTemplateJson.__bulk = true to identify bulk actions
+  // Which bulk action is in flight. Not a plain boolean: several bulk actions can
+  // share the toolbar, and only the one that was clicked should show a spinner.
+  const [bulkRunning, setBulkRunning] = useState(null)
+
   const handleBulkAction = useCallback(async (action) => {
     if (selectedIds.length === 0) { toast('Select at least one record'); return }
+    // Guard, not just a disabled attribute. A bulk delete is destructive and not
+    // idempotent — a double click before the first response lands would fire the
+    // same ids twice, and the second call reports "0 deleted" for rows that are
+    // already gone, which reads like a failure.
+    if (bulkRunning) return
+
     let meta = {}
     try { meta = JSON.parse(action.payloadTemplateJson || '{}') } catch {}
+
+    setBulkRunning(action.id)
+    const count = selectedIds.length
     try {
-      await api({ method: action.httpMethod || 'POST',
+      const res = await api({ method: action.httpMethod || 'POST',
         url: action.apiEndpoint, data: { ids: selectedIds, ...Object.fromEntries(Object.entries(meta).filter(([k]) => !k.startsWith('__'))) } })
+
       qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
       setSelectedIds([])
-      toast.success(action.label + ' applied to ' + selectedIds.length + ' records')
-    } catch (e) { toast.error(e?.response?.data?.message || action.label + ' failed') }
-  }, [bp.apiBasePath, qc, selectedIds])
+
+      // Report what the SERVER did, not what was asked. bulkDeletePolicies skips
+      // anything the caller does not own or that an engagement uses, so
+      // "applied to 36 records" could be true of none of them.
+      const deleted = res?.deleted ?? res?.data?.deleted
+      const skipped = res?.skipped ?? res?.data?.skipped
+      if (typeof deleted === 'number') {
+        toast.success(skipped
+          ? `${deleted} deleted, ${skipped} skipped`
+          : `${deleted} deleted`)
+      } else {
+        toast.success(`${action.label} applied to ${count} records`)
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.message || e?.message || action.label + ' failed')
+    } finally {
+      setBulkRunning(null)
+    }
+  }, [bp.apiBasePath, qc, selectedIds, bulkRunning])
 
   // ── v2: live list updates via WebSocket ─────────────────────────────────────
   useModuleListSocket(bp)
@@ -508,6 +785,28 @@ function ModuleListView({ bp }) {
         : `${total} record${total !== 1 ? 's' : ''}`}
       actions={
         <div className="flex items-center gap-2">
+          {/* Origin segmented filter. Rendered only when the current page of
+              results actually reports an origin, so it appears on the library
+              modules and nowhere else — no blueprint flag to maintain. Platform
+              and Custom copies interleave alphabetically (POL-03 twice, once
+              each), which is unreadable at 40+ rows. */}
+          {items.some(r => r?.origin) && (
+            <div className="inline-flex items-center rounded-ctl border border-border overflow-hidden">
+              {[{ v: '',       l: 'All'      },
+                { v: 'GLOBAL', l: 'Platform' },
+                { v: 'ORG',    l: 'Custom'   }].map(opt => (
+                <button key={opt.v || 'all'}
+                  onClick={() => writeUrl({ origin: opt.v, page: null })}
+                  className={cn(
+                    'px-2.5 h-8 text-[11px] font-medium transition-colors',
+                    origin === opt.v
+                      ? 'bg-brand-500/15 text-brand-ink'
+                      : 'text-text-secondary hover:bg-surface-overlay')}>
+                  {opt.l}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
             <input value={search} onChange={e => setSearch(e.target.value)}
@@ -520,15 +819,22 @@ function ModuleListView({ bp }) {
               controls what happens: __formKey → form modal, __navRoute → navigate,
               direct endpoint → API call. Fallback: show create button if no
               screen actions are configured yet. */}
-          {listScreenActions.length > 0
-            ? listScreenActions.map(action => {
+          {toolbarActions.length > 0
+            ? toolbarActions.map(action => {
               const ListIcon = resolveIcon(action.icon) || (action.actionKey?.includes('CREATE') || action.actionKey?.includes('NEW') ? Plus : undefined)
+              // Several labels are stored with a leading "+" from before the icon
+              // existed, so the button rendered "+ + New policy". Stripped at render
+              // rather than in the data: the icon is the code's decision, so the
+              // code should own not duplicating it.
+              // Renamed from listLabel — that identifier is already used further
+              // down for the breadcrumb, and shadowing it here would be a trap.
+              const actionLabel = String(action.label || '').replace(/^\s*\+\s*/, '')
               return (
               <Button key={action.id} size="sm"
                 variant={action.variant === 'secondary' ? 'secondary' : 'primary'}
                 icon={ListIcon}
                 onClick={() => handleListAction(action)}>
-                {action.label}
+                {actionLabel}
               </Button>
               )
             })
@@ -569,7 +875,19 @@ function ModuleListView({ bp }) {
                     <span className="text-brand-ink font-medium">{selectedIds.length} selected</span>
                     <div className="flex items-center gap-2">
                       {bulkActions.map(a => (
-                        <Button key={a.id} size="sm" variant="secondary" onClick={() => handleBulkAction(a)}>{a.label}</Button>
+                        <Button key={a.id} size="sm" variant="secondary"
+                          // Button already disables itself while loading and
+                          // renders loadingText, so no need to reimplement either.
+                          loading={bulkRunning === a.id}
+                          loadingText={a.label.replace(/^Delete/, 'Deleting')}
+                          // The extra disabled covers the OTHER buttons: they all
+                          // act on the same selection, so a second action firing
+                          // mid-flight would apply to ids the first may already
+                          // have consumed.
+                          disabled={!!bulkRunning && bulkRunning !== a.id}
+                          onClick={() => handleBulkAction(a)}>
+                          {a.label}
+                        </Button>
                       ))}
                     </div>
                     <button onClick={() => setSelectedIds([])} className="ml-auto text-text-muted hover:text-text-primary transition-colors">✕ Clear</button>
@@ -589,6 +907,10 @@ function ModuleListView({ bp }) {
                 pagination={listRes?.pagination || listRes?.data?.pagination}
                 onPageChange={(p) => setPage(p - 1)}
                 selectable={!!screenConfig?.layout?.selectable && listScreenActions.some(a => { try { return JSON.parse(a.payloadTemplateJson || '{}')['__bulk'] === true } catch { return false } })}
+                // Only meaningful where rows carry an `editable` flag — i.e. the
+                // library modules. Elsewhere it returns true for everything and
+                // selection behaves exactly as before.
+                isRowSelectable={bp.entityType === 'AUDIT_POLICY' ? canDeleteRow : undefined}
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}
               />
@@ -604,9 +926,49 @@ function ModuleListView({ bp }) {
           bp={bp}
           onClose={closeDrawer}
           onOpenFull={() => {
+            // navigate() only — do NOT call closeDrawer() here.
+            //
+            // closeDrawer is a router navigation now that the drawer lives in the
+            // URL (?drawer=). Firing it straight after navigate() issues a SECOND
+            // navigation, computed from the still-current list location, which
+            // lands back on the list and cancels the one we just asked for — the
+            // drawer's "open full page" did nothing at all.
+            //
+            // Leaving the list URL discards ?drawer= and ?drawerTab= anyway, so
+            // there is nothing to clean up.
             navigate(`/module/${bp.entityType.toLowerCase()}/${drawerId}`)
-            closeDrawer()
           }}
+        />
+      )}
+
+      {deprecateRow && (
+        <ConfirmDialog
+          open
+          title={`Deprecate ${deprecateRow.title || 'this policy'}?`}
+          message={'This withdraws the policy from force. Engagements that already '
+                 + 'snapshotted it keep their copy, and the approval history is '
+                 + 'preserved — but it will not be included in new engagements. '
+                 + 'To revise it instead, use New version.'}
+          confirmLabel="Deprecate"
+          variant="danger"
+          onConfirm={() => deprecateOne(deprecateRow)}
+          onClose={() => setDeprecateRow(null)}
+        />
+      )}
+
+      {deleteRow && (
+        <ConfirmDialog
+          open
+          title={`Delete ${deleteRow.title || deleteRow.name || 'this record'}?`}
+          message={'This permanently deletes the record and its control mappings. '
+                 + 'It cannot be undone.'}
+          confirmLabel="Delete"
+          variant="danger"
+          // ConfirmDialog passes this to its confirm Button, which disables
+          // itself while loading — so the dialog cannot be double-submitted.
+          loading={deleting}
+          onConfirm={() => deleteOne(deleteRow)}
+          onClose={() => setDeleteRow(null)}
         />
       )}
 
@@ -615,7 +977,18 @@ function ModuleListView({ bp }) {
         <TestPolicyCsvImportModal
           open={importOpen}
           onClose={() => setImportOpen(false)}
-          onImported={() => { setImportOpen(false) }}
+          // Policies get their own importer, which refuses TEST rows rather than
+          // applying them. Every other module keeps the modal's default target.
+          endpoint={bp.entityType === 'AUDIT_POLICY'
+            ? '/v1/audit/library/policies/import' : undefined}
+          title={bp.entityType === 'AUDIT_POLICY' ? 'Import policies from CSV' : undefined}
+          onImported={() => {
+            setImportOpen(false)
+            // The list is cached server-side and query-cached client-side; an
+            // import changes it, so both need invalidating or the user sees the
+            // old rows and assumes the import failed.
+            qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+          }}
         />
       )}
 
@@ -666,12 +1039,23 @@ function ModuleListView({ bp }) {
               onSubmit={async (data) => {
                 const endpoint = listFormAction.apiEndpoint || bp.apiBasePath
                 const payload = frameworkRef ? { frameworkRef, ...data } : data
-                await api({ method: listFormAction.httpMethod || 'POST', url: endpoint, data: payload })
+                const res = await api({ method: listFormAction.httpMethod || 'POST', url: endpoint, data: payload })
                 qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
-                toast.success(`${entitySingular} created`)
+                // "Policy created" is wrong for an adopt-all run — nothing was
+                // created here, a background job was queued. The server's own
+                // message says what happened; fall back to the generic one.
+                toast.success(res?.message || res?.data?.message
+                  || `${entitySingular} created`)
                 setListFormAction(null)  // close only after success
               }}
-              submitLabel={listFormAction.label}
+              // The button states the consequence rather than repeating the
+              // action name. Approving 38 documents and drafting 38 documents
+              // are different acts, and the toggle that decides which is easy to
+              // skim past.
+              submitLabel={(values) =>
+                listFormAction.actionKey === 'CUSTOMISE_ALL_POLICIES'
+                  ? (values?.approve ? 'Adopt and approve all' : 'Adopt as drafts')
+                  : listFormAction.label}
             />
           </Modal>
         )
@@ -808,13 +1192,49 @@ function ModuleDetailView({ bp, id }) {
   // no polling, no page reload. Works for ALL modules generically:
   // Issues, Audit Projects, TPRM, anything on UniversalModulePage.
 
+  // The sidebar's own query — shared cache, not a second request. Reusing the
+  // real hook rather than a local copy, because its key includes userId and a
+  // hand-rolled ['navigation'] key would silently miss that cache.
+  const { data: navItems = [] } = useNavigation()
+
   const handleTaskAssigned = useCallback(({ taskId: newTaskId, stepInstanceId: newStepInstanceId, stepName, navKey, artifactId }) => {
     // Cross-page transition: navKey differs from current page blueprint navKey
     // e.g. user is on audit_project_detail, new task is on audit_engagement_detail
+    //
+    // ── WHY THIS LOOKS UP ui_navigation INSTEAD OF STRIPPING '_detail' ───────
+    // This used to build the route as `/module/${navKey.replace('_detail','')}`.
+    // Of the twelve distinct snap_nav_key values actually present in
+    // step_instances, only four survive that: the rest produce routes that match
+    // nothing.
+    //   audit_project_list  → /module/audit_project_list/{id}   (a LIST key)
+    //   issue_list          → /module/issue_list/{id}
+    //   org_assessment_review → /module/org_assessment_review/{id}
+    //   soc2_engagement_detail → /module/soc2_engagement/{id}   (no such entity)
+    //   vendor_assessment_fill → /module/vendor_assessment_fill/{id}
+    //                            (really /vendor/assessments/{id}/fill)
+    // The vendor steps are the worst case: they are dedicated pages, not module
+    // routes, so no amount of string surgery reaches them.
+    //
+    // ui_navigation.route is the authoritative mapping and already holds the
+    // full path with :id. TaskInbox.resolveTaskRoute has always used it; this
+    // handler was the odd one out.
     if (navKey && bp?.navKey && navKey !== bp.navKey && artifactId) {
-      const route = navKey.replace('_detail', '')
-      navigate(`/module/${route}/${artifactId}?taskId=${newTaskId}&stepInstanceId=${newStepInstanceId}`)
-      toast.success(`Next step: ${stepName || 'Step'}`, { icon: '→', duration: 3000 })
+      const qp  = `?taskId=${newTaskId}&stepInstanceId=${newStepInstanceId}`
+      const nav = (navItems || []).find(n => n.navKey === navKey)
+
+      if (nav?.route) {
+        navigate(nav.route.replace(':id', artifactId) + qp)
+        toast.success(`Next step: ${stepName || 'Step'}`, { icon: '→', duration: 3000 })
+        return
+      }
+
+      // Two keys in step_instances have no ui_navigation row at all
+      // (soc2_engagement_detail, vendor_assessment_select_template). Rather than
+      // navigate somewhere wrong, tell the user the step moved and leave them
+      // where they are — the task is in their inbox either way.
+      console.warn('[TASK-ASSIGNED] No ui_navigation route for navKey:', navKey)
+      toast.success(`Next step: ${stepName || 'Step'} — open it from My Tasks`,
+        { icon: '→', duration: 5000 })
       return
     }
     // Same-page transition — just update URL params
@@ -830,7 +1250,7 @@ function ModuleDetailView({ bp, id }) {
     } else {
       toast.success(`You've been assigned: ${stepName || 'New task'}`, { icon: '📋', duration: 5000 })
     }
-  }, [setSearchParams, taskId, navigate, bp?.navKey])
+  }, [setSearchParams, taskId, navigate, bp?.navKey, navItems])
 
 
   // ── transitionToNextTask ─────────────────────────────────────────────────
@@ -978,12 +1398,22 @@ function ModuleDetailView({ bp, id }) {
         ? `${parentEntityType.replace(/_/g, ' ')} #${breadcrumbParentId}`
         : null)
 
-  // List page breadcrumb — navigate to the entity's list using its navKey.
-  // bp.navKey matches ui_navigation.nav_key which has the correct route.
-  // We navigate to /module/{navKey} which resolves to the list view.
+  // List page breadcrumb — navigate to the entity's own list.
+  //
+  // The route segment is :entityType (see App.jsx), and every other navigate()
+  // in this file builds it from bp.entityType.toLowerCase(). This one used
+  // bp.navKey instead, which is a NAVIGATION identifier and is often plural —
+  // ui_navigation.nav_key for policies is 'audit_policies', so Back went to
+  // /module/audit_policies, which matches no entity type and renders nothing.
+  //
+  // entityType is the authoritative segment; navKey is only a label/menu key.
+  // listNavKey is still honoured first for the deliberate case where a module's
+  // list lives under a different entity, but it now falls back to entityType
+  // rather than to a nav key.
+  //
   // Suppress when entity has a parent (scoped entity — list would be misleading).
   const listNavKey = !breadcrumbParentId
-    ? (bp.listNavKey || bp.navKey || null)
+    ? (bp.listNavKey || bp.entityType?.toLowerCase() || null)
     : null
   // The record carries its own frameworkRef — use it so the breadcrumb reads
   // 'ISO 27001 Engagements' and the back link returns to the FRAMEWORK-scoped
@@ -1098,6 +1528,40 @@ function ModuleDetailView({ bp, id }) {
       // inserted multiple times in DB (e.g. ISSUE_REOPEN inserted per-role)
       if (seen.has(action.actionKey)) return false
       seen.add(action.actionKey)
+
+      // ── Gate 0: platform-owned records are read-only here ────────────────
+      // `editable` comes from the API and is false for global library rows a
+      // tenant may not modify. Without this, a client opening a global policy
+      // was offered Deprecate and New version, both of which the server refuses
+      // with POLICY_ACCESS_DENIED — an action that exists only to fail.
+      //
+      // Runs before every other gate because it is a property of the record,
+      // not of the user's role, status or assignment: no permission makes a
+      // global policy writable by a tenant.
+      //
+      // Only mutating actions are hidden. Read-only ones (export, print, view)
+      // stay, and entities that do not report `editable` are unaffected.
+      //
+      // CUSTOMISE/ADOPT is the deliberate exception: it does write, but it writes
+      // a NEW record into the caller's own tenant rather than touching the global
+      // one, and it is the only route out of a read-only record. Hiding it would
+      // leave a client staring at a policy they want with no way to take it.
+      const isAdopt = /^(CUSTOMISE|CUSTOMIZE|ADOPT|COPY_TO)/i.test(action.actionKey || '')
+
+      // An adopt action is the MIRROR of every other gate here: it belongs only
+      // on records the caller does NOT own. On their own record there is nothing
+      // to adopt — the server refuses with POLICY_ALREADY_OWNED — so it showed a
+      // button beside Edit content that could only ever error.
+      //
+      // Checked separately rather than folded into the condition below, because
+      // that one only runs when editable === false; an owned record never
+      // reached it, which is exactly how this slipped through.
+      if (isAdopt && entity?.editable !== false) return false
+
+      if (entity?.editable === false && action.actionType !== 'READ' && !isAdopt
+          && !/^(EXPORT|PRINT|VIEW|DOWNLOAD)/i.test(action.actionKey || '')) {
+        return false
+      }
       if (action.allowedStatusesJson) {
         try {
           const allowed = JSON.parse(action.allowedStatusesJson)
@@ -1448,11 +1912,30 @@ function ModuleDetailView({ bp, id }) {
       ...customTabs,
       ...base.slice(overviewIdx + 1),
     ]
+    // ── Platform-owned records: no collaboration surface ────────────────────
+    // A global library record is read-only to this tenant, so the tabs that
+    // exist to DO something with it are noise at best and misleading at worst:
+    // Workflow shows a lifecycle they cannot advance, Evidence and Comments
+    // invite contributions to a record they do not own, Versions and History
+    // narrate a document maintained by someone else.
+    //
+    // Overview, Document and the mapping tabs stay — those are how a tenant
+    // decides whether to adopt it. Once they customise, their own copy is
+    // editable and gets the full set.
+    //
+    // editable is undefined on entities that do not report it (most modules),
+    // so this only ever fires where the API says the record is not theirs.
+    const PLATFORM_HIDDEN = ['workflow', 'evidence', 'comments', 'history', 'versions']
+    const platformOwned = entity?.editable === false
+    const afterOwnership = platformOwned
+      ? merged.filter(t => !PLATFORM_HIDDEN.includes(t.key))
+      : merged
+
     // Apply Screen Designer's per-role tab visibility (roleAccessJson.tabs).
     // Falls through to "allowed" for any tab/role combination that hasn't
     // been explicitly configured — existing screens are unaffected.
-    return merged.filter(t => isTabAllowed(roleAccess, currentSide, currentRoleIds, t.key))
-  }, [bp, vc, sdCustomTabs, sdLayout?.tabsJson, roleAccess, currentSide, currentRoleIds])
+    return afterOwnership.filter(t => isTabAllowed(roleAccess, currentSide, currentRoleIds, t.key))
+  }, [bp, vc, sdCustomTabs, sdLayout?.tabsJson, roleAccess, currentSide, currentRoleIds, entity?.editable])
 
   // Build field sections from blueprint schema
   let schema = { sections: [] }
@@ -2107,6 +2590,13 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
     return <TestInstanceMappedControlsTab testInstanceId={entity?.id} testResult={entity?.testResult} vc={vc} />
   }
 
+  // AUDIT_POLICY (library) — the document itself, rendered rather than shown as
+  // raw markup in an Overview field. Accepts either tab key so it works whether
+  // tabs_json calls it 'content' or reuses 'policy-content'.
+  if ((tabKey === 'content' || tabKey === 'policy-content') && entityType === 'AUDIT_POLICY') {
+    return <PolicyDocumentTab entity={entity} />
+  }
+
   // AUDIT_POLICY_INSTANCE — policy content + mapped controls
   if (tabKey === 'policy-content' && entityType === 'AUDIT_POLICY_INSTANCE') {
     return <PolicyContentTab entity={entity} vc={vc} />
@@ -2128,7 +2618,25 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
       <LibraryMappingTab
         entityType={entityType === 'AUDIT_TEST' ? 'TEST' : 'POLICY'}
         entityId={entity?.id}
-        canEdit={vc?.canEdit !== false}
+        // Ownership, not vc.canEdit.
+        //
+        // vc.canEdit is computed as effectivePermissions.contains(entityPrefix +
+        // ".edit") — i.e. "audit.policy.edit", DOT style. Every permission this
+        // platform actually seeds is colon style ("audit:policy:read"), so
+        // vc.canEdit is false for every non-system user on a library screen and
+        // the Add/Remove buttons never appeared, even on a policy the tenant
+        // owns outright. That is the two-naming-conventions problem, not a
+        // deliberate restriction.
+        //
+        // entity.editable is the honest gate here: it is exactly what the server
+        // enforces (requireOwnedPolicy on unlink, tenant stamping on link), so
+        // the UI now offers precisely the actions that will succeed. A platform
+        // policy stays read-only; the tenant's own copy is editable.
+        canEdit={entity?.editable !== false}
+        origin={entity?.origin}
+        // previousVersionId is set by customisePolicy and points at the platform
+        // row this copy supersedes — used only to word the note accurately.
+        supersedes={entity?.previousVersionId != null}
       />
     )
   }
@@ -2152,7 +2660,15 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
         entityType="CONTROL"
         linkedType="POLICY"
         entityId={entity?.id}
-        canEdit={vc?.canEdit !== false}
+        // NOT entity.editable here — that is the CONTROL's ownership, and controls
+        // are platform-owned, so gating on it would block the one thing a tenant
+        // is meant to do from this screen: attach their own policy to a global
+        // control. linkControlPolicy stamps the mapping with their tenant and
+        // never touches the control, so the write is legitimately theirs.
+        //
+        // Removal is gated per row instead (policyUnlinkable), because unlinking
+        // a PLATFORM policy is what the server refuses.
+        canEdit
       />
     )
   }
