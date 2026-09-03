@@ -51,7 +51,11 @@ export function Modal({ open, onClose, title, subtitle, children, size = 'md', f
   )
 }
 
-export function ConfirmDialog({ open, onClose, onCancel, onConfirm, title, message, description, confirmLabel = 'Confirm', variant = 'danger', loading }) {
+export function ConfirmDialog({ open, onClose, onCancel, onConfirm, title, message, description,
+                               confirmLabel = 'Confirm', variant = 'danger', loading,
+                               /** Shown in place of confirmLabel while loading. A bare '…'
+                                *  reads as a stalled button rather than work in progress. */
+                               loadingText }) {
   const handleClose = onClose || onCancel
   return (
     <Modal open={open} onClose={handleClose} title={title} size="sm"
@@ -67,7 +71,7 @@ export function ConfirmDialog({ open, onClose, onCancel, onConfirm, title, messa
               loading && 'opacity-50 cursor-not-allowed'
             )}
           >
-            {loading ? '…' : confirmLabel}
+            {loading ? (loadingText || '…') : confirmLabel}
           </button>
         </div>
       }

@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useSyncExternalStore } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   ChevronDown, ChevronRight, PanelLeft, PanelRight,
-  LogOut, Settings, User, ShieldCheck, WifiOff, RefreshCw,
+  LogOut, Settings, User, ShieldCheck, WifiOff, RefreshCw, Search, X,
 } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { cn } from '../../lib/cn'
@@ -31,12 +31,20 @@ function useBadgeCount(endpoint) {
     queryFn:  () => api.get(endpoint),
     enabled:  !!endpoint,
     refetchInterval: 60_000,
+    // Two unwraps, not one. queryFn returns the axios RESPONSE, so d.data is
+    // the ApiResponse envelope and d.data.data is the value. Checking only
+    // d.data meant every badge fell through to 0 — including the ones already
+    // configured, which is why /v1/tenants?take=1 and the action-item counts
+    // have never shown a number.
     select: (d) => {
-      if (typeof d === 'number') return d
-      if (typeof d?.data === 'number') return d.data
-      if (typeof d?.count === 'number') return d.count
-      if (typeof d?.total === 'number') return d.total
-      if (Array.isArray(d)) return d.length
+      const body    = d?.data ?? d       // axios response -> ApiResponse
+      const payload = body?.data ?? body // ApiResponse    -> the value
+      if (typeof payload === 'number') return payload
+      if (typeof payload?.count === 'number') return payload.count
+      if (typeof payload?.total === 'number') return payload.total
+      // ?take=1 list endpoints: the count is in the pagination block.
+      if (typeof payload?.pagination?.totalItems === 'number') return payload.pagination.totalItems
+      if (Array.isArray(payload)) return payload.length
       return 0
     },
   })
@@ -136,7 +144,105 @@ function KashiLogo({ size = 28, className }) {
 }
 
 // ── NavItem ───────────────────────────────────────────────────────────────────
-function NavItem({ item, depth = 0, collapsed = false, t }) {
+/**
+ * Which nav groups are expanded, remembered across reloads.
+ *
+ * ── WHY OPEN BY DEFAULT ────────────────────────────────────
+ * The old default was routeMatches(item.route), which reads as "open the group
+ * you are inside". But the group rows that have children mostly carry route: ''
+ * — 'compliance' and 'audit_config' both do — so the match was never true and
+ * they collapsed on every single load. Closed-by-default hides the whole
+ * information architecture behind a click nobody wants to repeat.
+ *
+ * ── WHY undefined AND false ARE DIFFERENT ──────────────────────
+ * Only keys the user has actually toggled are stored. An absent key means
+ * "never touched" and opens; an explicit false stays shut. Writing every group
+ * on first render would freeze today's defaults into the browser and make a
+ * future change to them invisible to existing users.
+ */
+const NAV_OPEN_KEY = 'kashi_nav_open'
+
+function readNavOpen() {
+  try { return JSON.parse(localStorage.getItem(NAV_OPEN_KEY)) || {} } catch { return {} }
+}
+
+/**
+ * ── WHY A STORE AND NOT useState ────────────────────────────
+ * Each NavItem used to hold its own useState seeded from localStorage. That is
+ * fine while the only thing that opens a group is a click on that same group.
+ * It stops working the moment something OUTSIDE the item needs to open it —
+ * which is exactly what revealing the active route after a search requires:
+ * writing to localStorage from the Sidebar would change nothing on screen,
+ * because every NavItem already read its value at mount and nothing tells it to
+ * look again.
+ *
+ * One module-level object with subscribers, read through useSyncExternalStore.
+ * Every NavItem sees the same state, and anyone can open a group.
+ */
+let navOpenState = readNavOpen()
+const navOpenListeners = new Set()
+
+function subscribeNavOpen(listener) {
+  navOpenListeners.add(listener)
+  return () => navOpenListeners.delete(listener)
+}
+
+function writeNavOpen(navKey, value) {
+  if (navOpenState[navKey] === value) return   // no-op: don't wake every subscriber
+  navOpenState = { ...navOpenState, [navKey]: value }
+  try { localStorage.setItem(NAV_OPEN_KEY, JSON.stringify(navOpenState)) } catch { /* private mode */ }
+  navOpenListeners.forEach((fn) => fn())
+}
+
+function useNavOpen(navKey, forceOpen) {
+  // Returns the raw stored value — boolean or undefined — so the snapshot is a
+  // primitive and useSyncExternalStore never sees a new object identity.
+  const stored = useSyncExternalStore(
+    subscribeNavOpen,
+    () => navOpenState[navKey],
+    () => undefined,
+  )
+  const open = stored === undefined ? true : stored
+
+  const setOpen = (next) =>
+    writeNavOpen(navKey, typeof next === 'function' ? next(open) : next)
+
+  // Search forces every matching group open without touching what was saved,
+  // so clearing the box restores exactly the shape the user left behind.
+  return [forceOpen || open, setOpen]
+}
+
+/**
+ * The navKey of the group containing the route currently being viewed.
+ *
+ * Compares pathname AND the query string, because two nav rows can share a path
+ * and differ only by ?frameworkRef= — matching on pathname alone would reveal
+ * whichever of them happened to come first.
+ */
+function findActiveParentKey(groups, location) {
+  const matches = (route) => {
+    if (!route) return false
+    const [routePath, routeQuery] = route.split('?')
+    if (location.pathname !== routePath) return false
+    if (!routeQuery) return true
+    const want = new URLSearchParams(routeQuery)
+    const have = new URLSearchParams(location.search)
+    for (const [k, v] of want) if (have.get(k) !== v) return false
+    return true
+  }
+
+  for (const items of Object.values(groups)) {
+    for (const item of items) {
+      if (matches(item.route)) return null            // top level: nothing to open
+      for (const child of item.children || []) {
+        if (matches(child.route)) return item.navKey  // open the parent
+      }
+    }
+  }
+  return null
+}
+
+function NavItem({ item, depth = 0, collapsed = false, t, forceOpen = false }) {
   const location = useLocation()
   const routeMatches = (route) => {
     if (!route) return false
@@ -169,7 +275,7 @@ function NavItem({ item, depth = 0, collapsed = false, t }) {
     if (curFrameworkRef) return false
     return true
   }
-  const [open, setOpen] = useState(() => routeMatches(item.route))
+  const [open, setOpen] = useNavOpen(item.navKey, forceOpen)
   const hasChildren = item.children?.length > 0
 
   if (hasChildren) {
@@ -207,7 +313,7 @@ function NavItem({ item, depth = 0, collapsed = false, t }) {
                 deliberately returns inactive items (UiConfigServiceImpl: task
                 nav entries rely on it), so the filter has to live here. */}
             {item.children.filter(child => child.isActive !== false).map(child => (
-              <NavItem key={child.navKey} item={child} depth={depth + 1} t={t} />
+              <NavItem key={child.navKey} item={child} depth={depth + 1} t={t} forceOpen={forceOpen} />
             ))}
           </div>
         )}
@@ -457,6 +563,10 @@ export function Sidebar({ collapsed, onToggle }) {
     : undefined
   const t              = getSidebarTokens(effectiveTheme)
   const grouped        = groupByModule(navItems)
+  const [navQuery, setNavQuery] = useState('')
+  const visible        = useMemo(() => filterNav(grouped, navQuery), [grouped, navQuery])
+  const searching      = navQuery.trim().length > 0
+  const searchRef      = useRef(null)
   const displayName    = branding?.companyName || 'KashiGRC'
 
   // Glass applies ONLY to the light sidebar: over the pastel wash it reads as
@@ -472,11 +582,29 @@ export function Sidebar({ collapsed, onToggle }) {
   const navRef = useRef(null)
 
   useEffect(() => {
+    // Open the group containing the route we just landed on, then scroll to it.
+    //
+    // This is what makes searching usable end to end: you type, click a result,
+    // and clear the box — and the sidebar shows you where you are rather than
+    // snapping back to the shape it had before you searched. The group is
+    // genuinely opened (and remembered), not force-opened, because you are now
+    // working inside it.
+    //
+    // Keyed on the full location, not just pathname: two nav rows can share a
+    // path and differ only by ?frameworkRef=.
+    const parentKey = findActiveParentKey(grouped, location)
+    if (parentKey) writeNavOpen(parentKey, true)
+
+    // After the state write, so the row exists in the DOM before we scroll.
     // NavLink sets aria-current="page" on the active link — use that instead of
-    // class-based selection which also matches parent labels with font-medium
-    const active = navRef.current?.querySelector('a[aria-current="page"]')
-    active?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-  }, [location.pathname])
+    // class-based selection, which also matches parent labels with font-medium.
+    const raf = requestAnimationFrame(() => {
+      const active = navRef.current?.querySelector('a[aria-current="page"]')
+      active?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    })
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, location.search, grouped])
 
   return (
     <aside
@@ -527,6 +655,48 @@ export function Sidebar({ collapsed, onToggle }) {
         )}
       </div>
 
+      {/* Search — hidden while collapsed, where there is no room for results */}
+      {!collapsed && !isLoading && !isError && (
+        <div className="shrink-0 px-2.5 pb-2">
+          {/* glass-field rather than the flat t.searchBg. It is the token built
+              for inputs — blur, a focus-within state, a solid @supports
+              fallback and a solid print rule — and it makes this read as a
+              sibling of the workspace card above it instead of a painted
+              rectangle sitting on the panel. */}
+          <div className="glass-field flex items-center gap-2 h-8 px-2.5 rounded-ctl">
+            <Search size={13} className={cn('shrink-0', t.subtext)} />
+            <input
+              ref={searchRef}
+              /* type="text", NOT type="search". Chrome and Edge render their
+                 own clear button inside a search input, which lands next to
+                 ours and gives the field two X's doing the same thing. The
+                 -webkit-search-cancel-button rule that hides it is a no-op in
+                 Firefox and Safari, so the input type carries the fix instead
+                 of the stylesheet. */
+              type="text"
+              autoComplete="off"
+              spellCheck={false}
+              value={navQuery}
+              onChange={(e) => setNavQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') { setNavQuery(''); e.currentTarget.blur() } }}
+              placeholder="Search menu"
+              aria-label="Search navigation"
+              className={cn(
+                'w-full min-w-0 bg-transparent border-0 p-0 text-[12.5px] focus:outline-none focus:ring-0',
+                t.textBase, 'placeholder:opacity-60'
+              )}
+            />
+            {searching && (
+              <button type="button" onClick={() => { setNavQuery(''); searchRef.current?.focus() }}
+                      aria-label="Clear search"
+                      className={cn('shrink-0 transition-opacity hover:opacity-100 opacity-70', t.subtext)}>
+                <X size={12} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Nav */}
       <nav ref={navRef} className={cn('flex-1 overflow-y-auto py-3 space-y-4 min-h-0', collapsed ? 'px-1.5' : 'px-2.5')}>
         {isLoading && (
@@ -568,7 +738,7 @@ export function Sidebar({ collapsed, onToggle }) {
           />
         )}
 
-        {!isLoading && !isError && Object.entries(grouped).map(([module, items]) => (
+        {!isLoading && !isError && Object.entries(visible).map(([module, items]) => (
           <div key={module}>
             {!collapsed && module !== '_root' && (
               <p className={cn('px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest', t.section)}>
@@ -577,17 +747,64 @@ export function Sidebar({ collapsed, onToggle }) {
             )}
             <div className="space-y-0.5">
               {items.map(item => (
-                <NavItem key={item.navKey} item={item} collapsed={collapsed} t={t} />
+                <NavItem key={item.navKey} item={item} collapsed={collapsed} t={t} forceOpen={searching} />
               ))}
             </div>
           </div>
         ))}
+
+        {!isLoading && !isError && searching && Object.keys(visible).length === 0 && (
+          <p className={cn('px-3 py-6 text-center text-[12px]', t.subtext)}>
+            Nothing matches “{navQuery}”.
+          </p>
+        )}
       </nav>
 
       {/* Bottom user panel */}
       <SidebarUserPanel collapsed={collapsed} t={t} auth={auth} branding={branding} />
     </aside>
   )
+}
+
+/**
+ * Filter the grouped nav by a free-text query.
+ *
+ * Three things match, in the order someone would expect them to:
+ *
+ *   the module heading  — "audit" keeps everything under AUDIT CONFIG
+ *   a top-level label   — keeps that item and all of its children
+ *   a child label       — keeps the parent, narrowed to the matching children
+ *
+ * The third case is the one that matters. Keeping a matched child but dropping
+ * its parent would show a leaf with no context; keeping the parent with all its
+ * siblings would bury the thing you searched for. So the parent stays and its
+ * children are filtered.
+ *
+ * Inactive rows are excluded here as well as in NavItem — search must not
+ * surface a route that is deliberately hidden.
+ */
+function filterNav(groups, query) {
+  const q = query.trim().toLowerCase()
+  if (!q) return groups
+
+  const hit = (text) => (text || '').toLowerCase().includes(q)
+  const out = {}
+
+  for (const [module, items] of Object.entries(groups)) {
+    const moduleHit = module !== '_root' && hit(module)
+    const kept = []
+
+    for (const item of items) {
+      const children = (item.children || []).filter(c => c.isActive !== false)
+      if (moduleHit || hit(item.label)) { kept.push(item); continue }
+
+      const matchingChildren = children.filter(c => hit(c.label))
+      if (matchingChildren.length) kept.push({ ...item, children: matchingChildren })
+    }
+
+    if (kept.length) out[module] = kept
+  }
+  return out
 }
 
 function groupByModule(items) {

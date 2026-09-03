@@ -223,45 +223,66 @@ const useUiComponentOptions = (componentKey) => {
 
 function makeControlMutations() {
   const qc = useQueryClient()
-  const inv = () => {
-    qc.invalidateQueries({ queryKey: ['audit-library-controls'] })
-    qc.invalidateQueries({ queryKey: ['audit-library-controls-all'] })
-  }
+  // Returns the promise so callers can AWAIT the refetch.
+  //
+  // Fired and forgotten, react-query ends the mutation the moment the
+  // POST resolves — the button stops loading and the dialog closes while
+  // the refetch that updates the screen is still running. At this
+  // deployment's latency that is a second or two showing the OLD state
+  // with no sign anything is happening, then a silent flip.
+  const inv = () => Promise.all([
+      qc.invalidateQueries({ queryKey: ['audit-library-controls'] }),
+      qc.invalidateQueries({ queryKey: ['audit-library-controls-all'] })
+  ])
   return {
     create: useMutation({ mutationFn: auditApi.library.controls.create, onSuccess: inv, onError: () => toast.error('Failed') }),
-    update: useMutation({ mutationFn: ({ id, data }) => auditApi.library.controls.update(id, data), onSuccess: () => { inv(); toast.success('Control updated') }, onError: () => toast.error('Failed') }),
-    del:    useMutation({ mutationFn: (id) => auditApi.library.controls.delete(id), onSuccess: () => { inv(); toast.success('Control deleted') }, onError: () => toast.error('Failed') }),
+    update: useMutation({ mutationFn: ({ id, data }) => auditApi.library.controls.update(id, data), onSuccess: async () => { await inv(); toast.success('Control updated') }, onError: () => toast.error('Failed') }),
+    del:    useMutation({ mutationFn: (id) => auditApi.library.controls.delete(id), onSuccess: async () => { await inv(); toast.success('Control deleted') }, onError: () => toast.error('Failed') }),
   }
 }
 
 function makeSectionMutations() {
   const qc = useQueryClient()
-  const inv = () => {
-    qc.invalidateQueries({ queryKey: ['audit-library-sections'] })
-    qc.invalidateQueries({ queryKey: ['audit-section-children'] })
-    qc.invalidateQueries({ queryKey: ['audit-library-sections-all'] })
-  }
+  // Returns the promise so callers can AWAIT the refetch.
+  //
+  // Fired and forgotten, react-query ends the mutation the moment the
+  // POST resolves — the button stops loading and the dialog closes while
+  // the refetch that updates the screen is still running. At this
+  // deployment's latency that is a second or two showing the OLD state
+  // with no sign anything is happening, then a silent flip.
+  const inv = () => Promise.all([
+      qc.invalidateQueries({ queryKey: ['audit-library-sections'] }),
+      qc.invalidateQueries({ queryKey: ['audit-section-children'] }),
+      qc.invalidateQueries({ queryKey: ['audit-library-sections-all'] })
+  ])
   return {
     create: useMutation({ mutationFn: auditApi.library.sections.create, onSuccess: inv, onError: () => toast.error('Failed') }),
-    update: useMutation({ mutationFn: ({ id, data }) => auditApi.library.sections.update(id, data), onSuccess: () => { inv(); toast.success('Section updated') }, onError: () => toast.error('Failed') }),
-    del:    useMutation({ mutationFn: (id) => auditApi.library.sections.delete(id), onSuccess: () => { inv(); toast.success('Section deleted') }, onError: () => toast.error('Failed') }),
-    move:   useMutation({ mutationFn: ({ id, newParentId }) => auditApi.library.sections.move(id, newParentId), onSuccess: () => { inv(); toast.success('Section moved') }, onError: () => toast.error('Move failed') }),
+    update: useMutation({ mutationFn: ({ id, data }) => auditApi.library.sections.update(id, data), onSuccess: async () => { await inv(); toast.success('Section updated') }, onError: () => toast.error('Failed') }),
+    del:    useMutation({ mutationFn: (id) => auditApi.library.sections.delete(id), onSuccess: async () => { await inv(); toast.success('Section deleted') }, onError: () => toast.error('Failed') }),
+    move:   useMutation({ mutationFn: ({ id, newParentId }) => auditApi.library.sections.move(id, newParentId), onSuccess: async () => { await inv(); toast.success('Section moved') }, onError: () => toast.error('Move failed') }),
   }
 }
 
 function makeTemplateMutations() {
   const qc = useQueryClient()
-  const inv = () => {
-    qc.invalidateQueries({ queryKey: ['audit-library-templates'] })
-    qc.invalidateQueries({ queryKey: ['audit-library-template-full'] })
-    qc.invalidateQueries({ queryKey: ['audit-library-templates-all'] })
-  }
+  // Returns the promise so callers can AWAIT the refetch.
+  //
+  // Fired and forgotten, react-query ends the mutation the moment the
+  // POST resolves — the button stops loading and the dialog closes while
+  // the refetch that updates the screen is still running. At this
+  // deployment's latency that is a second or two showing the OLD state
+  // with no sign anything is happening, then a silent flip.
+  const inv = () => Promise.all([
+      qc.invalidateQueries({ queryKey: ['audit-library-templates'] }),
+      qc.invalidateQueries({ queryKey: ['audit-library-template-full'] }),
+      qc.invalidateQueries({ queryKey: ['audit-library-templates-all'] })
+  ])
   return {
     create:    useMutation({ mutationFn: auditApi.library.templates.create, onSuccess: inv }),
-    update:    useMutation({ mutationFn: ({ id, data }) => auditApi.library.templates.update(id, data), onSuccess: () => { inv(); toast.success('Template updated') } }),
-    del:       useMutation({ mutationFn: (id) => auditApi.library.templates.delete(id), onSuccess: () => { inv(); toast.success('Deleted') }, onError: e => toast.error(e?.message || 'Failed') }),
-    publish:   useMutation({ mutationFn: (id) => auditApi.library.templates.publish(id), onSuccess: () => { inv(); toast.success('Published') } }),
-    unpublish: useMutation({ mutationFn: (id) => auditApi.library.templates.unpublish(id), onSuccess: () => { inv(); toast.success('Unpublished — now DRAFT') } }),
+    update:    useMutation({ mutationFn: ({ id, data }) => auditApi.library.templates.update(id, data), onSuccess: async () => { await inv(); toast.success('Template updated') } }),
+    del:       useMutation({ mutationFn: (id) => auditApi.library.templates.delete(id), onSuccess: async () => { await inv(); toast.success('Deleted') }, onError: e => toast.error(e?.message || 'Failed') }),
+    publish:   useMutation({ mutationFn: (id) => auditApi.library.templates.publish(id), onSuccess: async () => { await inv(); toast.success('Published') } }),
+    unpublish: useMutation({ mutationFn: (id) => auditApi.library.templates.unpublish(id), onSuccess: async () => { await inv(); toast.success('Unpublished — now DRAFT') } }),
     importCsv: useMutation({ mutationFn: (file) => auditApi.library.templates.importCsv(file), onSuccess: inv }),
   }
 }
@@ -315,8 +336,12 @@ function useUpdateControlMapping(templateId) {
   return useMutation({
     mutationFn: ({ sectionId, controlId, weight, isMandatory }) =>
       auditApi.library.sections.addControl(sectionId, controlId, { weight, isMandatory }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['audit-library-template-full', templateId] })
+    // Awaited: the mutation stays pending until the refetch lands, so the
+    // button keeps its loading state until the screen is actually current.
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['audit-library-template-full', templateId] })
+      ])
       toast.success('Mapping updated')
     },
     onError: () => toast.error('Failed to update mapping'),
@@ -327,9 +352,13 @@ function useUpdateSectionInBuilder(templateId) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }) => auditApi.library.sections.update(id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['audit-library-template-full', templateId] })
-      qc.invalidateQueries({ queryKey: ['audit-library-sections'] })
+    // Awaited: the mutation stays pending until the refetch lands, so the
+    // button keeps its loading state until the screen is actually current.
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['audit-library-template-full', templateId] }),
+        qc.invalidateQueries({ queryKey: ['audit-library-sections'] })
+      ])
       toast.success('Section updated')
     },
     onError: () => toast.error('Failed to update section'),
@@ -340,10 +369,14 @@ function useUpdateControlInBuilder(templateId) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }) => auditApi.library.controls.update(id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['audit-library-template-full', templateId] })
-      qc.invalidateQueries({ queryKey: ['audit-library-controls'] })
-      qc.invalidateQueries({ queryKey: ['audit-section-controls'] })
+    // Awaited: the mutation stays pending until the refetch lands, so the
+    // button keeps its loading state until the screen is actually current.
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['audit-library-template-full', templateId] }),
+        qc.invalidateQueries({ queryKey: ['audit-library-controls'] }),
+        qc.invalidateQueries({ queryKey: ['audit-section-controls'] })
+      ])
       toast.success('Control updated')
     },
     onError: () => toast.error('Failed to update control'),
@@ -354,9 +387,13 @@ function usePublishTemplate() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id) => auditApi.library.templates.publish(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['audit-library-templates'] })
-      qc.invalidateQueries({ queryKey: ['audit-library-template-full'] })
+    // Awaited: the mutation stays pending until the refetch lands, so the
+    // button keeps its loading state until the screen is actually current.
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['audit-library-templates'] }),
+        qc.invalidateQueries({ queryKey: ['audit-library-template-full'] })
+      ])
       toast.success('Template published')
     },
     onError: (err) => toast.error(err?.message || 'Failed to publish'),
@@ -367,9 +404,13 @@ function useUnpublishTemplate() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id) => auditApi.library.templates.unpublish(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['audit-library-templates'] })
-      qc.invalidateQueries({ queryKey: ['audit-library-template-full'] })
+    // Awaited: the mutation stays pending until the refetch lands, so the
+    // button keeps its loading state until the screen is actually current.
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['audit-library-templates'] }),
+        qc.invalidateQueries({ queryKey: ['audit-library-template-full'] })
+      ])
       toast.success('Template unpublished — now DRAFT')
     },
     onError: (err) => toast.error(err?.message || 'Failed to unpublish'),
@@ -385,11 +426,15 @@ function useCreateChildSection(templateId) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data) => auditApi.library.sections.create(data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['audit-library-template-full', templateId] })
-      qc.invalidateQueries({ queryKey: ['audit-library-sections'] })
-      qc.invalidateQueries({ queryKey: ['audit-library-sections-all'] })
-      qc.invalidateQueries({ queryKey: ['audit-section-children'] })
+    // Awaited: the mutation stays pending until the refetch lands, so the
+    // button keeps its loading state until the screen is actually current.
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['audit-library-template-full', templateId] }),
+        qc.invalidateQueries({ queryKey: ['audit-library-sections'] }),
+        qc.invalidateQueries({ queryKey: ['audit-library-sections-all'] }),
+        qc.invalidateQueries({ queryKey: ['audit-section-children'] })
+      ])
       toast.success('Child section added')
     },
     onError: () => toast.error('Failed to create section'),
@@ -405,10 +450,14 @@ function useDeleteSectionFromLibrary(templateId) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id) => auditApi.library.sections.delete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['audit-library-template-full', templateId] })
-      qc.invalidateQueries({ queryKey: ['audit-library-sections'] })
-      qc.invalidateQueries({ queryKey: ['audit-section-children'] })
+    // Awaited: the mutation stays pending until the refetch lands, so the
+    // button keeps its loading state until the screen is actually current.
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['audit-library-template-full', templateId] }),
+        qc.invalidateQueries({ queryKey: ['audit-library-sections'] }),
+        qc.invalidateQueries({ queryKey: ['audit-section-children'] })
+      ])
       toast.success('Section deleted from library')
     },
     onError: () => toast.error('Failed to delete section'),
@@ -3039,11 +3088,22 @@ function AuditTemplateBuilder({ templateId, onBack }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" icon={Pencil} onClick={() => setEditTemplate(true)}>Edit</Button>
+          {/* Everything in this header disables while a publish or unpublish is in
+              flight. The state is mid-transition — the template is neither draft
+              nor published until the refetch lands — so editing it or adding a
+              section now would act on a status that is about to change. */}
+          <Button variant="ghost" size="sm" icon={Pencil} disabled={publishing || unpublishing}
+            onClick={() => setEditTemplate(true)}>Edit</Button>
           {!isPublished && (
             <>
-              <Button variant="secondary" size="sm" icon={Plus} onClick={() => setShowAddSection(true)}>Add Section</Button>
+              <Button variant="secondary" size="sm" icon={Plus} disabled={publishing}
+                onClick={() => setShowAddSection(true)}>Add Section</Button>
+              {/* loading here as well as on the dialog: once the confirm closes,
+                  this is the only control on screen, and without it the page sits
+                  showing an enabled Publish button while the publish is still
+                  running — inviting a second click. */}
               <Button size="sm" icon={Send}
+                loading={publishing} loadingText="Publishing…"
                 disabled={rootSections.length === 0 || totalControls === 0}
                 onClick={() => setShowPublishConfirm(true)}>
                 Publish
@@ -3055,7 +3115,7 @@ function AuditTemplateBuilder({ templateId, onBack }) {
               <div className="flex items-center gap-1.5 text-xs text-status-pass-fg">
                 <CheckCircle2 size={14} /> Published
               </div>
-              <Button variant="secondary" size="sm" icon={ArrowLeft} loading={unpublishing} onClick={() => unpublish(templateId)}>
+              <Button variant="secondary" size="sm" icon={ArrowLeft} loading={unpublishing} loadingText="Unpublishing…" onClick={() => unpublish(templateId)}>
                 Unpublish
               </Button>
             </div>
@@ -3139,7 +3199,7 @@ function AuditTemplateBuilder({ templateId, onBack }) {
         title="Publish Template"
         description={`Publish "${template?.name}" with ${rootSections.length} root sections and ${totalControls} total controls? Once published, engagements can be created from it.`}
         confirmLabel="Publish" variant="primary"
-        loading={publishing}
+        loading={publishing} loadingText="Publishing…"
         onConfirm={() => publish(templateId, { onSuccess: () => setShowPublishConfirm(false) })}
         onCancel={() => setShowPublishConfirm(false)}
       />
@@ -3358,41 +3418,48 @@ function AuditProjectBuilder({ projectId, onBack }) {
   const allTenants = Array.isArray(tenantsRaw) ? tenantsRaw : []
   const grantedIds = new Set(accessList.map(a => a.tenantId))
 
-  const inv = () => {
-    qc.invalidateQueries({ queryKey: ['audit-project-builder-templates', projectId] })
-    qc.invalidateQueries({ queryKey: ['admin-audit-library-projects'] })
-    qc.invalidateQueries({ queryKey: ['audit-project-builder', projectId] })
-  }
+  // Returns the promise so callers can AWAIT the refetch.
+  //
+  // Fired and forgotten, react-query ends the mutation the moment the
+  // POST resolves — the button stops loading and the dialog closes while
+  // the refetch that updates the screen is still running. At this
+  // deployment's latency that is a second or two showing the OLD state
+  // with no sign anything is happening, then a silent flip.
+  const inv = () => Promise.all([
+      qc.invalidateQueries({ queryKey: ['audit-project-builder-templates', projectId] }),
+      qc.invalidateQueries({ queryKey: ['admin-audit-library-projects'] }),
+      qc.invalidateQueries({ queryKey: ['audit-project-builder', projectId] })
+  ])
   const invAccess = () => qc.invalidateQueries({ queryKey: ['audit-project-tenant-access', projectId] })
 
   const addMut = useMutation({
     mutationFn: (templateId) => auditApi.projects.templates.add(projectId, templateId),
-    onSuccess: () => { inv(); setShowPicker(false); toast.success('Template added') },
+    onSuccess: async () => { await inv(); setShowPicker(false); toast.success('Template added') },
     onError: e => toast.error(e?.response?.data?.message ?? 'Failed to add'),
   })
   const removeMut = useMutation({
     mutationFn: (templateId) => auditApi.projects.templates.remove(projectId, templateId),
-    onSuccess: () => { inv(); setRemoveTarget(null); toast.success('Template removed') },
+    onSuccess: async () => { await inv(); setRemoveTarget(null); toast.success('Template removed') },
     onError: e => toast.error(e?.response?.data?.message ?? 'Failed to remove'),
   })
   const updateMut = useMutation({
     mutationFn: (data) => auditApi.projects.update(projectId, data),
-    onSuccess: () => { inv(); toast.success('Project updated'); setEditMode(false) },
+    onSuccess: async () => { await inv(); toast.success('Project updated'); setEditMode(false) },
     onError: e => toast.error(e?.response?.data?.message ?? 'Failed to update'),
   })
   const publishMut = useMutation({
     mutationFn: () => auditApi.projects.publish(projectId),
-    onSuccess: () => { inv(); toast.success('Project published') },
+    onSuccess: async () => { await inv(); toast.success('Project published') },
     onError: e => toast.error(e?.response?.data?.message ?? 'Failed to publish'),
   })
   const unpublishMut = useMutation({
     mutationFn: () => auditApi.projects.unpublish(projectId),
-    onSuccess: () => { inv(); toast.success('Project moved to draft') },
+    onSuccess: async () => { await inv(); toast.success('Project moved to draft') },
     onError: e => toast.error(e?.response?.data?.message ?? 'Failed to unpublish'),
   })
   const visibilityMut = useMutation({
     mutationFn: (visibility) => auditApi.projects.setVisibility(projectId, visibility),
-    onSuccess: () => { inv(); toast.success('Visibility updated') },
+    onSuccess: async () => { await inv(); toast.success('Visibility updated') },
     onError: e => toast.error(e?.response?.data?.message ?? 'Failed to update visibility'),
   })
   const grantMut = useMutation({
@@ -3882,11 +3949,36 @@ export default function AuditLibraryPage({ defaultTab = 'projects' }) {
             className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
             <Pencil size={12} />
           </button>
+          {/* Raw <button>s here, so none of the Button component's loading
+              handling applied — no spinner, no text change, no disable. The
+              row simply sat there until the refetch landed, which is what made
+              this look like nothing had happened.
+
+              variables.id is compared so only the ROW being acted on changes;
+              a shared isPending would spin every row in the table at once. */}
           {row.status === 'DRAFT'
-            ? <button onClick={() => TM.publish.mutate(row.id)} title="Publish"
-                className="h-6 px-2 text-[10px] rounded text-brand-ink hover:bg-brand-500/10 transition-colors">Publish</button>
-            : <button onClick={() => TM.unpublish.mutate(row.id)} title="Unpublish"
-                className="h-6 px-2 text-[10px] rounded text-status-warn-fg hover:bg-status-warn-bg transition-colors">Unpublish</button>
+            ? (() => {
+                const busy = TM.publish.isPending && TM.publish.variables === row.id
+                return (
+                  <button onClick={() => TM.publish.mutate(row.id)} title="Publish"
+                    disabled={busy}
+                    className="h-6 px-2 text-[10px] rounded text-brand-ink hover:bg-brand-500/10
+                               transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                    {busy ? 'Publishing…' : 'Publish'}
+                  </button>
+                )
+              })()
+            : (() => {
+                const busy = TM.unpublish.isPending && TM.unpublish.variables === row.id
+                return (
+                  <button onClick={() => TM.unpublish.mutate(row.id)} title="Unpublish"
+                    disabled={busy}
+                    className="h-6 px-2 text-[10px] rounded text-status-warn-fg hover:bg-status-warn-bg
+                               transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                    {busy ? 'Unpublishing…' : 'Unpublish'}
+                  </button>
+                )
+              })()
           }
           <button onClick={() => setDeleteTemplate(row)} title="Delete"
             className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">

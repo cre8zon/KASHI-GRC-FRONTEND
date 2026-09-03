@@ -36,12 +36,12 @@ import {
   CheckCircle2, AlertCircle, XCircle, Minus,
   ChevronDown, AlertTriangle, Eye,
 } from 'lucide-react'
-import { auditTestsApi } from '../../api/auditTestsApi'
-import { Button }        from '../../components/ui/Button'
-import { Badge }         from '../../components/ui/Badge'
-import { Modal }         from '../../components/ui/Modal'
-import { cn }            from '../../lib/cn'
-import { formatDate }    from '../../utils/format'
+import { auditTestsApi } from '../../../../api/auditTestsApi'
+import { Button }        from '../../../../components/ui/Button'
+import { Badge }         from '../../../../components/ui/Badge'
+import { Modal }         from '../../../../components/ui/Modal'
+import { cn }            from '../../../../lib/cn'
+import { formatDate }    from '../../../../utils/format'
 import toast             from 'react-hot-toast'
 
 // ── Config ────────────────────────────────────────────────────────────────────

@@ -112,6 +112,11 @@ const AuditTemplatesPage         = lazy(() => import('./pages/admin/audit/AuditT
 const ControlFrameworksPage      = lazy(() => import('./pages/admin/audit/ControlFrameworksPage'))
 const AdminAuditLibraryPage      = lazy(() => import('./pages/admin/audit/AuditLibraryPage'))
 
+// Content platform — its own route subtree rather than a page per screen.
+// Everything under /admin/content is served by ContentRoutes, so adding a
+// screen there does not touch this file. See pages/admin/content/ContentRoutes.
+const ContentRoutes              = lazy(() => import('./pages/admin/content/ContentRoutes'))
+
 // ─── Loading fallback ─────────────────────────────────────────────────────────
 // Shown while a lazy chunk is being fetched — only happens on first visit to a route.
 function PageLoader() {
@@ -279,6 +284,11 @@ export default function App() {
             <Route path="/admin/controls/library"       element={<RequireSystem><ControlsLibraryPage /></RequireSystem>} />
             <Route path="/admin/audit/templates"        element={<RequireSystem><AuditTemplatesPage /></RequireSystem>} />
             <Route path="/admin/controls/frameworks"    element={<RequireSystem><ControlFrameworksPage /></RequireSystem>} />
+
+            {/* Content platform (www.digiosec.com). Platform-owned, so it sits
+                behind the same System guard as the rest of /admin. The splat is
+                deliberate: ContentRoutes owns its own routing. */}
+            <Route path="/admin/content/*" element={<RequireSystem><ContentRoutes /></RequireSystem>} />
 
             {/* Universal Module Page */}
             <Route path="/module"                                              element={<Navigate to="/admin/modules" replace />} />
