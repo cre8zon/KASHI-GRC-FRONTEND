@@ -22,6 +22,8 @@
  *   - Save draft button (manual)
  *   - Word count, last-saved timestamp in footer
  *   - Read-only mode when policy is APPROVED or DEPRECATED
+ *   - AI: rewrite selection (bubble menu), draft whole policy (empty DRAFT
+ *     only), suggested control mappings (side panel)
  *
  * LIFECYCLE ACTIONS (approve, send-for-review, new-version, deprecate) are NOT here.
  * They live in ui_actions rows (screen_key = audit_policy_detail) and execute
@@ -34,6 +36,16 @@
  * BACKEND ENDPOINTS USED:
  *   GET /v1/audit/library/policies/:id  — load policy
  *   PUT /v1/audit/library/policies/:id  — save (title required by @NotBlank)
+ *
+ * AI ENDPOINTS — every one returns a SUGGESTION; none of them writes the policy:
+ *   POST /v1/ai/policies/rewrite/stream   — bubble menu, SSE
+ *   POST /v1/ai/policies/draft            — full draft
+ *   POST /v1/ai/policies/suggest-mappings — control mappings
+ *   POST /v1/ai/feedback                  — accept / reject / edit, on every one
+ *
+ * onAccept only puts HTML in the editor as an unsaved change. The existing
+ * DRAFT -> UNDER_REVIEW -> APPROVED lifecycle is untouched, because that
+ * approval chain is the audit evidence.
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
@@ -47,7 +59,7 @@ import {
   Table, Undo, Redo, Eye, EyeOff, AlertTriangle,
   FileText, Loader2, Strikethrough, Highlighter,
   Link2, Link2Off, AlignLeft, AlignCenter, AlignRight,
-  Code2,
+  Code2, Sparkles,
 } from 'lucide-react'
 import { useEditor, EditorContent }                  from '@tiptap/react'
 import { BubbleMenu }                                 from '@tiptap/react/menus'
@@ -62,6 +74,9 @@ import { Badge }      from '../../components/ui/Badge'
 import { cn }         from '../../lib/cn'
 import api            from '../../config/axios.config'
 import toast          from 'react-hot-toast'
+import AiBubbleAction from '../../components/ai/AiBubbleAction'
+import AiDraftModal   from '../../components/ai/AiDraftModal'
+import AiMappingPanel from '../../components/ai/AiMappingPanel'
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
 
@@ -121,6 +136,8 @@ export default function PolicyEditorPage() {
   const [isDirty,       setIsDirty]       = useState(false)
   const [linkInput,     setLinkInput]     = useState('')
   const [linkMenuOpen,  setLinkMenuOpen]  = useState(false)
+  const [aiDraftOpen,   setAiDraftOpen]   = useState(false)
+  const [aiPanelOpen,   setAiPanelOpen]   = useState(false)
 
   // ── Fetch policy ──────────────────────────────────────────────────────────
   const { data: policyRes, isLoading } = useQuery({
@@ -135,6 +152,20 @@ export default function PolicyEditorPage() {
   const versions = policy ? [{ id: policy.id, version: policy.version, approvedAt: policy.approvedAt, previousVersionId: policy.previousVersionId }] : []
 
   const isReadOnly = policy && !EDITABLE_STATUSES.has(policy.status)
+
+  // ── AI context ─────────────────────────────────────────────────────────
+  // frameworkRefs and controlTags are delimited strings on the entity, so
+  // they are split once here rather than inside each AI component.
+  const aiFrameworks = (policy?.frameworkRefs || '')
+    .split(',').map(v => v.trim()).filter(Boolean)
+
+  const aiControlCodes = (policy?.commonControlCodes || policy?.controlTags || '')
+    .split(/[,\s]+/).map(v => v.trim()).filter(Boolean)
+
+  // "Draft with AI" appears on an EMPTY draft only. Offering it over a policy
+  // someone has already written invites replacing their work with one click.
+  const isEmptyDraft = policy?.status === 'DRAFT'
+    && !(policy?.contentBody || '').replace(/<[^>]+>/g, '').trim()
 
   // ── TipTap editor ──────────────────────────────────────────────────
   const editor = useEditor({
@@ -271,6 +302,35 @@ export default function PolicyEditorPage() {
             {previewMode ? 'Edit' : 'Preview'}
           </button>
 
+          {/* AI: suggested control mappings. The panel explains itself before
+              it runs, so it is available on any saved policy. */}
+          {policy?.id && (
+            <button
+              onClick={() => setAiPanelOpen(o => !o)}
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-ctl text-xs transition-colors',
+                aiPanelOpen
+                  ? 'bg-brand-500/10 text-brand-ink border border-brand-500/30'
+                  : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay border border-transparent',
+              )}
+            >
+              <Sparkles size={12} /> AI
+            </button>
+          )}
+
+          {/* AI: generate the BODY. Empty DRAFT only — see isEmptyDraft.
+              Metadata is not asked for here: the policy already has a title,
+              owner team, frameworks and cadence, chosen when it was created.
+              Creating a policy FROM scratch with AI is AiPolicyCreatePage. */}
+          {!isReadOnly && isEmptyDraft && (
+            <Button
+              size="sm" variant="secondary" icon={Sparkles}
+              onClick={() => setAiDraftOpen(true)}
+            >
+              Draft content
+            </Button>
+          )}
+
           {!isReadOnly && (
             <Button
               size="sm" variant="secondary" icon={Save}
@@ -359,6 +419,11 @@ export default function PolicyEditorPage() {
               <ToolBtn icon={Underline} title="Underline" active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()} />
               <ToolSep />
               <ToolBtn icon={Link2}     title="Link"      active={editor.isActive('link')}      onClick={() => { setLinkInput(editor.getAttributes('link').href || ''); setLinkMenuOpen(o => !o) }} />
+              <ToolSep />
+              {/* Streams the rewrite into a preview and replaces the selection
+                  only on Apply. Disables itself under 15 selected characters —
+                  rewriting three words produces three different words. */}
+              <AiBubbleAction editor={editor} policyId={policy?.id} disabled={isReadOnly} />
             </BubbleMenu>
           )}
 
@@ -396,6 +461,30 @@ export default function PolicyEditorPage() {
             <span>{policy.policyRef || policy.id}</span>
           </div>
         </div>
+
+        {/* ── AI panel ── */}
+        {aiPanelOpen && policy?.id && (
+          <div className="w-80 shrink-0 border-l border-border flex flex-col overflow-y-auto">
+            <div className="px-4 py-3 border-b border-border shrink-0 flex items-center justify-between">
+              <p className="text-xs font-semibold text-text-secondary">AI assistance</p>
+              <button onClick={() => setAiPanelOpen(false)}
+                className="text-text-muted hover:text-text-secondary text-xs">Close</button>
+            </div>
+            <div className="p-3 space-y-3">
+              {/* onAccept calls the existing link-control endpoint. The AI never
+                  writes the mapping itself — a mapping is a compliance assertion
+                  and a human accepts each one individually. */}
+              <AiMappingPanel
+                policyId={policy.id}
+                frameworks={aiFrameworks}
+                existingCodes={aiControlCodes}
+                onAccept={(code) => {
+                  toast.success(`${code} accepted — link it from the control mapping panel`)
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* ── Version history panel ── */}
         {historyOpen && (
@@ -447,6 +536,27 @@ export default function PolicyEditorPage() {
           </div>
         )}
       </div>
+
+      {/* AI content modal. Generates the BODY for this policy, grounded in its
+          own saved metadata — no title field, because the policy has one.
+          onAccept sets editor content and marks the page dirty; the normal
+          autosave and Save draft path then applies, unchanged. */}
+      {policy?.id && (
+        <AiDraftModal
+          open={aiDraftOpen}
+          onClose={() => setAiDraftOpen(false)}
+          policyId={policy.id}
+          policyTitle={policy.title}
+          controlCodes={aiControlCodes}
+          frameworks={aiFrameworks}
+          onAccept={(html) => {
+            editor?.commands.setContent(html)
+            setIsDirty(true)
+            const text = editor?.getText() || ''
+            setWordCount(text.trim().split(/\s+/).filter(Boolean).length)
+          }}
+        />
+      )}
 
       {/* Policy content styles live in index.css (.policy-content, .policy-link, .tiptap)
           so they also apply when content is rendered in the EntityDrawer on the module page. */}

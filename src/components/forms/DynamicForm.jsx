@@ -54,9 +54,33 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
     return z.object(shape)
   }, [formConfig])
 
+  // Seed form state from each field's default_value.
+  //
+  // useForm was given ONLY the defaultValues prop, so a default_value set in
+  // ui_form_fields never reached form state — it was used for hidden inputs and
+  // read-only display and nowhere else.
+  //
+  // That is invisible on a text input and actively misleading on a SELECT: the
+  // dropdown renders its first option, so the screen reads "Internal auditor"
+  // while the value is undefined. Anything depending on that field
+  // (depends_on_json) then evaluates against undefined and stays hidden until
+  // the user changes the dropdown and changes it back.
+  //
+  // The passed prop still wins — editing an existing record must not be
+  // overwritten by a field default.
+  const seededDefaults = useMemo(() => {
+    const fromFields = {}
+    for (const f of formConfig?.fields || []) {
+      if (f.defaultValue !== undefined && f.defaultValue !== null && f.defaultValue !== '') {
+        fromFields[f.fieldKey] = f.defaultValue
+      }
+    }
+    return { ...fromFields, ...defaultValues }
+  }, [formConfig, defaultValues])
+
   const { register, control, handleSubmit, setError, watch, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues,
+    defaultValues: seededDefaults,
     mode: 'onTouched',
   })
   const watchedValues = watch()
@@ -118,7 +142,15 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
             }
             return (
               <input
-                key={field.fieldKey}
+                // key on the row id, not fieldKey.
+                //
+                // Two rows can legitimately share a fieldKey when only one is ever
+                // visible — the internal and external lead auditor, selected by
+                // depends_on_json. With fieldKey as the key React saw "same
+                // element" and REUSED the instance, so EntityLookupField kept the
+                // results it had fetched as the internal field and showed staff in
+                // the external picker.
+                key={field.id ?? field.fieldKey}
                 type="hidden"
                 {...register(field.fieldKey)}
                 defaultValue={field.defaultValue ?? ''}
@@ -133,7 +165,7 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
           const isEditable = (editableFields === null || editableFields.includes(field.fieldKey))
             && !readOnlyFields.includes(field.fieldKey)
           return (
-            <div key={field.fieldKey} className={`col-span-${field.gridCols || 12}`}>
+            <div key={field.id ?? field.fieldKey} className={`col-span-${field.gridCols || 12}`}>
               <FormField
                 field={field}
                 register={register}
@@ -650,11 +682,25 @@ function isFieldVisible(field, values) {
   try {
     const dep = typeof field.dependsOnJson === 'string'
       ? JSON.parse(field.dependsOnJson) : field.dependsOnJson
-    const actual = values[dep.field]
-    if (dep.operator === 'eq')  return actual === dep.value
-    if (dep.operator === 'neq') return actual !== dep.value
-    if (dep.operator === 'in')  return Array.isArray(dep.value) && dep.value.includes(actual)
-    return true
+    // A dependency may be a SINGLE condition or an ARRAY of them, all of which
+    // must hold. One condition cannot express "external auditor AND a firm has
+    // been chosen", and showing the auditor picker before the firm is chosen
+    // means offering every invited auditor from every firm — the thing the firm
+    // picker exists to prevent.
+    const conditions = Array.isArray(dep) ? dep : [dep]
+    return conditions.every(c => {
+      const actual = values[c.field]
+      if (c.operator === 'eq')  return actual === c.value
+      if (c.operator === 'neq') return actual !== c.value
+      if (c.operator === 'in')  return Array.isArray(c.value) && c.value.includes(actual)
+      // notEmpty: for "this depends on something being chosen, whatever it is".
+      if (c.operator === 'notEmpty')
+        return actual !== undefined && actual !== null && actual !== ''
+      // Unknown operator → visible. Failing OPEN is deliberate: a typo should
+      // show a field that might not belong, not hide one that does, because a
+      // missing field looks like a broken form and is far harder to diagnose.
+      return true
+    })
   } catch { return true }
 }
 
@@ -677,7 +723,13 @@ function isFieldVisible(field, values) {
 
 const LOOKUP_CONFIG = {
   // USER: already works — existing UserLookupField format preserved
-  USER:           { path: '/v1/users',                    search: (q) => `firstname=${q};lastname=${q}`, labelFn: (r) => [r.firstName, r.lastName].filter(Boolean).join(' ') || r.email, subFn: (r) => r.email, idFn: (r) => r.userId ?? r.id },
+  // subFn shows the AUDIT FIRM when the user is an invited guest, falling back
+  // to the email for your own staff. Without it an external auditor lookup is a
+  // list of names and addresses with nothing saying who they work for — and a
+  // client can have several firms invited at once.
+  USER:           { path: '/v1/users',                    search: (q) => `firstname=${q};lastname=${q}`, labelFn: (r) => [r.firstName, r.lastName].filter(Boolean).join(' ') || r.email, subFn: (r) => r.firmName ? `${r.firmName} · ${r.email}` : r.email, idFn: (r) => r.userId ?? r.id },
+  // AUDIT_FIRM: firms with at least one active invited auditor in this tenant.
+  AUDIT_FIRM:     { path: '/v1/users/audit-firms',        search: (q) => `name=${q}`, labelFn: (r) => r.name, subFn: (r) => r.auditorCount ? `${r.auditorCount} auditor${r.auditorCount === 1 ? '' : 's'}` : '', idFn: (r) => r.id },
   // ROLE: correct endpoint is /v1/admin/roles (not /v1/admin/rbac/roles which has no list)
   ROLE:           { path: '/v1/admin/roles',              search: (q) => `name=${q}`, labelFn: (r) => r.name, subFn: (r) => r.side || r.roleSide || '' },
   // AUDIT_TEMPLATE: GET /v1/audit/library/templates — supports search=name=X via DbRepository

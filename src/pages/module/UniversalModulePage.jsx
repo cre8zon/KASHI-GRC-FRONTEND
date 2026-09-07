@@ -37,6 +37,7 @@ import { EngagementIntegrationTab }      from '../../components/audit/Engagement
 import { ProjectFindingsTab }            from '../../components/audit/ProjectFindingsTab'
 import ProjectEngagementsTab             from '../../components/audit/ProjectEngagementsTab'
 import { TestPolicyCsvImportModal }  from '../../components/audit/TestPolicyCsvImportModal'
+import AiPolicyCreateModal          from '../../components/ai/AiPolicyCreateModal'
 import { WorkflowTimeline }       from '../../components/workflow/WorkflowTimeline'
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
@@ -272,6 +273,7 @@ function ModuleListView({ bp }) {
   const [page, setPage] = useUrlNumber('page', 0)
   const [createOpen, setCreateOpen] = useState(false)
   const [importOpen,  setImportOpen]  = useState(false)
+  const [aiDraftOpen, setAiDraftOpen] = useState(false)
   // Origin filter — GLOBAL | ORG | '' (both). In the URL with the other list
   // state so it survives refresh and Back, and only rendered when the list
   // actually reports an origin, so no other module grows a stray filter.
@@ -287,6 +289,19 @@ function ModuleListView({ bp }) {
   // component and is not in scope here.
   const listRoleSides = useSelector(selectRoleSides) || []
   const isPlatformSide = listRoleSides.includes('SYSTEM')
+  // Default to the tenant's OWN policies.
+  //
+  // Once the platform library is adopted, "All" is ~38 platform rows plus ~38
+  // near-identical copies, and the register the tenant actually maintains is
+  // buried in a list twice the size that is mostly not theirs.
+  //
+  // This DID create a dead end, but the cause was the origin toggle being
+  // rendered from `items` — it vanished when the list was empty, which is the
+  // one moment it is needed. That is fixed separately; the toggle now renders
+  // from the module. What remains is explaining the empty list rather than
+  // showing a bare "0 records" — see emptyMessage below.
+  //
+  // Platform admins default to All: the global library IS their register.
   const defaultOrigin = (isPlatformSide || bp?.entityType !== 'AUDIT_POLICY') ? '' : 'ORG'
   const [origin, setOrigin] = useUrlState('origin', defaultOrigin)
   // Batched writer — anything that changes a filter AND resets paging must use
@@ -341,6 +356,15 @@ function ModuleListView({ bp }) {
   // the user gets "An unexpected error occurred" for a button that could never
   // have worked. Those actions are rendered per row instead (see the __adopt
   // column below), from this same list.
+
+  // A bare "0 records" is the wrong answer for a tenant who simply has not
+  // adopted anything yet — nothing is missing, they have not started. Say which
+  // of the two situations it is, and name the way out.
+  const emptyMessage = (bp.entityType === 'AUDIT_POLICY' && origin === 'ORG' && !search)
+    ? "You have not created or adopted any policies yet. Switch to Platform to browse the "
+      + "library, or use Adopt all platform policies to copy it into your organisation."
+    : `No ${entityPlural.toLowerCase()} found`
+
   const toolbarActions = useMemo(
     () => listScreenActions.filter(a => {
       // Row-scoped: needs an entity, rendered per row instead.
@@ -691,6 +715,11 @@ function ModuleListView({ bp }) {
   //   anything else / absent              → direct API call (POST/PUT/PATCH/DELETE)
   // This means screen designer's "New Issue" action can set __formKey = issue_create_form
   // and the button will open the correct form without any hardcoded wiring.
+  // Declared HERE, above handleListAction — its first use. Anchored to
+  // bulkRunning it landed 40 lines below the callback that closes over it,
+  // and const is not hoisted: "Cannot access before initialization" on mount.
+  const [listActingId, setListActingId] = useState(null)
+
   const handleListAction = useCallback(async (action) => {
     let meta = {}
     try { meta = JSON.parse(action.payloadTemplateJson || '{}') } catch {}
@@ -698,13 +727,29 @@ function ModuleListView({ bp }) {
     if (meta.__formKey) { setListFormAction(action); return }
     if (meta.__navRoute) { navigate(meta.__navRoute); return }
     if (meta.__openImport) { setImportOpen(true); return }
+    // {"__aiDraft": true} — same shape as __openImport: a payload flag flips a
+    // boolean and a sibling modal renders. Keeps the AI flow inside the module
+    // screen rather than breaking to a full page, which is how every other
+    // create path here already behaves.
+    if (meta.__aiDraft) { setAiDraftOpen(true); return }
     if (!action.apiEndpoint) return
+
+    // Toolbar actions had NO pending state at all — unlike the detail-screen
+    // ones, which track actingId. A seeded toolbar action fired, the list
+    // refetched, and nothing on screen moved in between.
+    if (listActingId) return          // guard: these are not all idempotent
+    setListActingId(action.id)
     try {
       await api({ method: action.httpMethod || 'POST', url: action.apiEndpoint })
-      qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+      // Awaited, so the button holds its state until the list is actually current.
+      await qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
       toast.success(action.label + ' successful')
-    } catch (e) { toast.error(e?.response?.data?.message || action.label + ' failed') }
-  }, [bp.apiBasePath, navigate, qc])
+    } catch (e) {
+      toast.error(e?.response?.data?.message || action.label + ' failed')
+    } finally {
+      setListActingId(null)
+    }
+  }, [bp.apiBasePath, navigate, qc, listActingId])
 
   const handleSort = (key) => {
     // One write, not three. sortBy, sortDir and page each went through their own
@@ -790,7 +835,10 @@ function ModuleListView({ bp }) {
               modules and nowhere else — no blueprint flag to maintain. Platform
               and Custom copies interleave alphabetically (POL-03 twice, once
               each), which is unreadable at 40+ rows. */}
-          {items.some(r => r?.origin) && (
+          {/* Rendered from the MODULE, not from the rows. Deriving it from
+              items meant the control vanished exactly when the list was
+              empty — the one moment a user needs it. */}
+          {bp.entityType === 'AUDIT_POLICY' && (
             <div className="inline-flex items-center rounded-ctl border border-border overflow-hidden">
               {[{ v: '',       l: 'All'      },
                 { v: 'GLOBAL', l: 'Platform' },
@@ -833,6 +881,12 @@ function ModuleListView({ bp }) {
               <Button key={action.id} size="sm"
                 variant={action.variant === 'secondary' ? 'secondary' : 'primary'}
                 icon={ListIcon}
+                // Same treatment the detail-screen actions already had: the
+                // clicked button shows progress, its siblings disable so a
+                // second action cannot start mid-flight.
+                loading={listActingId === action.id}
+                loadingText={actionLabel + '…'}
+                disabled={listActingId != null && listActingId !== action.id}
                 onClick={() => handleListAction(action)}>
                 {actionLabel}
               </Button>
@@ -860,7 +914,7 @@ function ModuleListView({ bp }) {
               screenConfig={screenConfig}
               loading={isLoading}
               onRowClick={handleRowClick}
-              emptyMessage={`No ${entityPlural.toLowerCase()} found`}
+              emptyMessage={emptyMessage}
             />
           ) : (
             <>
@@ -900,7 +954,7 @@ function ModuleListView({ bp }) {
                 data={items}
                 loading={isLoading || !screenConfig}
                 onRowClick={handleRowClick}
-                emptyMessage={`No ${entityPlural.toLowerCase()} found`}
+                emptyMessage={emptyMessage}
                 sortBy={sortBy}
                 sortDir={sortDir}
                 onSort={handleSort}
@@ -987,6 +1041,20 @@ function ModuleListView({ bp }) {
             // The list is cached server-side and query-cached client-side; an
             // import changes it, so both need invalidating or the user sees the
             // old rows and assumes the import failed.
+            qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+          }}
+        />
+      )}
+
+      {/* AI draft modal — sibling of the list, same as the CSV importer above.
+          Creates one AuditPolicy in DRAFT and navigates to the editor; the
+          adoption workflow still starts when the drafter submits for review. */}
+      {aiDraftOpen && (
+        <AiPolicyCreateModal
+          open={aiDraftOpen}
+          onClose={() => setAiDraftOpen(false)}
+          onCreated={() => {
+            // The new policy will not appear until the cached list is dropped.
             qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
           }}
         />
@@ -1711,18 +1779,33 @@ function ModuleDetailView({ bp, id }) {
       } else {
         await api({ method: action.httpMethod || 'POST', url, data: payload })
       }
-      qcDetail.invalidateQueries({ queryKey: ['module-detail', bp.apiBasePath, id] })
-      qcDetail.invalidateQueries({ queryKey: ['view-context', bp.entityType, id] })
-      qcDetail.invalidateQueries({ queryKey: ['module-workflow', bp.entityType, id] })
-      qcDetail.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+      // Awaited: without it the action button stops spinning the moment the
+      // POST resolves, while the refetch that updates the screen is still in
+      // flight — the same lag the Publish button had.
+      await Promise.all([
+        qcDetail.invalidateQueries({ queryKey: ['module-detail', bp.apiBasePath, id] }),
+        qcDetail.invalidateQueries({ queryKey: ['view-context', bp.entityType, id] }),
+        qcDetail.invalidateQueries({ queryKey: ['module-workflow', bp.entityType, id] }),
+        qcDetail.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+      ])
       // Invalidate audit instance sub-tabs so they reflect result changes immediately
       if (bp.entityType === 'AUDIT_TEST_INSTANCE') {
-        qcDetail.invalidateQueries({ queryKey: ['test-inst-controls', Number(id)] })
-        qcDetail.invalidateQueries({ queryKey: ['ctrl-inst-tests'] })
+        // Awaited: without it the action button stops spinning the moment the
+        // POST resolves, while the refetch that updates the screen is still in
+        // flight — the same lag the Publish button had.
+        await Promise.all([
+          qcDetail.invalidateQueries({ queryKey: ['test-inst-controls', Number(id)] }),
+          qcDetail.invalidateQueries({ queryKey: ['ctrl-inst-tests'] })
+        ])
       }
       if (bp.entityType === 'AUDIT_POLICY_INSTANCE') {
-        qcDetail.invalidateQueries({ queryKey: ['policy-inst-controls', Number(id)] })
-        qcDetail.invalidateQueries({ queryKey: ['ctrl-inst-policies'] })
+        // Awaited: without it the action button stops spinning the moment the
+        // POST resolves, while the refetch that updates the screen is still in
+        // flight — the same lag the Publish button had.
+        await Promise.all([
+          qcDetail.invalidateQueries({ queryKey: ['policy-inst-controls', Number(id)] }),
+          qcDetail.invalidateQueries({ queryKey: ['ctrl-inst-policies'] })
+        ])
       }
       toast.success(action.label + ' successful')
 
@@ -2043,6 +2126,10 @@ function ModuleDetailView({ bp, id }) {
               size="sm"
               variant={action.variant || 'secondary'}
               loading={actingId != null && actingId === action.id}
+              // Explicit text rather than a bare spinner beside the unchanged
+              // label — "Approve" with a spinner reads as an unresponsive
+              // button; "Approving…" reads as work in progress.
+              loadingText={String(action.label || '').replace(/^\s*\+\s*/, '') + '…'}
               disabled={actingId != null && actingId !== action.id}
               icon={ActionIcon || undefined}
               onClick={() => handleActionClick(action)}
@@ -2328,8 +2415,13 @@ function ModuleDetailView({ bp, id }) {
                 try {
                   setActingId(detailFormAction.id)
                   await api({ method: detailFormAction.httpMethod || 'POST', url: submitUrl, data })
-                  qcDetail.invalidateQueries({ queryKey: ['module-detail', bp.apiBasePath, id] })
-                  qcDetail.invalidateQueries({ queryKey: ['view-context', bp.entityType, id] })
+                  // Awaited: without it the action button stops spinning the moment the
+                  // POST resolves, while the refetch that updates the screen is still in
+                  // flight — the same lag the Publish button had.
+                  await Promise.all([
+                    qcDetail.invalidateQueries({ queryKey: ['module-detail', bp.apiBasePath, id] }),
+                    qcDetail.invalidateQueries({ queryKey: ['view-context', bp.entityType, id] })
+                  ])
                   toast.success(detailFormAction.label + ' saved')
                   setDetailFormAction(null)
                 } catch (e) {
