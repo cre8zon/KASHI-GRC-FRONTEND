@@ -54,7 +54,7 @@ export const useContentTaxonomy = () => {
  * retries on the next change; it does not roll back what is on screen, because
  * the thing on screen is what the person wrote.
  */
-export const useAutosave = (postId, { delay = 2000 } = {}) => {
+export const useAutosave = (postId, { delay = 2000, enabled = true } = {}) => {
   // 'idle' | 'pending' | 'saving' | 'saved' | 'error'
   const [status, setStatus] = useState('idle')
   const [savedAt, setSavedAt] = useState(null)
@@ -65,7 +65,10 @@ export const useAutosave = (postId, { delay = 2000 } = {}) => {
   const client  = useQueryClient()
 
   const flush = useCallback(async () => {
-    if (inFlight.current || !queued.current || !postId) return
+    // enabled=false for a published post. The server rejects those writes, and
+    // without this the editor spends the session collecting rejections and
+    // showing "Save failed" over work that was never going to save.
+    if (!enabled || inFlight.current || !queued.current || !postId) return
 
     const payload = queued.current
     queued.current = null
@@ -89,7 +92,7 @@ export const useAutosave = (postId, { delay = 2000 } = {}) => {
       inFlight.current = false
       if (queued.current) flush()
     }
-  }, [postId, client])
+  }, [postId, client, enabled])
 
   const save = useCallback((patch) => {
     // Merge rather than replace: two fields changed inside one debounce window

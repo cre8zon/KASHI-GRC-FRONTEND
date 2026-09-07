@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Calendar, ShieldCheck, Image as ImageIcon, Plus } from 'lucide-react'
+import { contentApi } from '../../../../api/content.api'
+import { Calendar, ShieldCheck, Image as ImageIcon, Plus, Check } from 'lucide-react'
 import { QuickCreateModal } from './QuickCreateModal'
 import { Input } from '../../../../components/ui/Input'
 import { Select } from '../../../../components/ui/Select'
@@ -67,6 +69,15 @@ export function SettingsPanel({ post, patch, taxonomy, media, onPickHero, onPick
   // Held as a pair so the same modal can serve Author and Reviewed by without
   // either one guessing which of them asked.
   const [quick, setQuick] = useState(null)   // { kind, apply } | null
+
+  // The hub pages a post can belong to. Cheap, and only fetched while the
+  // Settings tab is mounted.
+  const { data: pillarPage } = useQuery({
+    queryKey: ['content-pillars'],
+    queryFn: () => contentApi.listPosts({ type: 'PILLAR', size: 50 }),
+    staleTime: 60_000,
+  })
+  const pillars = (pillarPage?.items || []).filter((p) => p.id !== post.id)
 
   const selectedTags = post.tagIds || []
   const toggleTag = (id) => patch({
@@ -148,13 +159,20 @@ export function SettingsPanel({ post, patch, taxonomy, media, onPickHero, onPick
               key={t.id}
               type="button"
               onClick={() => toggleTag(t.id)}
+              aria-pressed={selectedTags.includes(t.id)}
               className={cn(
-                'rounded-badge px-2.5 py-1 text-[11.5px] transition-colors',
+                // Selected carries a border, a tick and a filled ground. Colour
+                // alone was doing the work and the two tonal backgrounds sat
+                // four percent apart — indistinguishable in daylight, invisible
+                // to anyone with a colour vision deficiency, and no use at all
+                // on a printed screenshot.
+                'flex items-center gap-1 rounded-badge border px-2.5 py-1 text-[11.5px] transition-colors',
                 selectedTags.includes(t.id)
-                  ? 'bg-status-tag-bg text-status-tag-fg'
-                  : 'bg-surface-inset text-text-secondary hover:bg-surface-overlay'
+                  ? 'border-brand-800 bg-brand-500 font-medium text-brand-900'
+                  : 'border-transparent bg-surface-inset text-text-secondary hover:bg-surface-overlay'
               )}
             >
+              {selectedTags.includes(t.id) && <Check size={10} className="shrink-0" />}
               {t.name}
             </button>
           ))}
@@ -226,30 +244,50 @@ export function SettingsPanel({ post, patch, taxonomy, media, onPickHero, onPick
       </Field>
 
       <Field label="Hero image" hint="Required to publish. Also the social card fallback.">
-        <ImageSlot asset={hero} onPick={onPickHero} />
+        <ImageSlot asset={hero} onPick={onPickHero}
+                   onRemove={() => patch({ heroImageId: null })} />
       </Field>
 
       <Field label="Social image" hint="Social crops are 1.91:1 — a hero built for a content column loses its subject.">
-        <ImageSlot asset={og} onPick={onPickOg} fallbackLabel="Uses the hero image" />
+        <ImageSlot asset={og} onPick={onPickOg} fallbackLabel="Uses the hero image"
+                   onRemove={() => patch({ ogImageId: null })} />
       </Field>
 
-      <Field label="Pillar cluster" hint="Drives prev/next in the series and related posts.">
-        <div className="flex gap-2">
-          <Input
-            type="number"
-            value={post.pillarClusterId || ''}
-            onChange={(e) => patch({ pillarClusterId: e.target.value ? Number(e.target.value) : null })}
-            placeholder="Hub post id"
-            className="flex-1"
-          />
-          <Input
-            type="number"
-            value={post.clusterOrder ?? ''}
-            onChange={(e) => patch({ clusterOrder: e.target.value ? Number(e.target.value) : null })}
-            placeholder="Order"
-            className="w-20"
-          />
-        </div>
+      {/*
+        This asked for "Hub post id" as a number. Nobody knows the numeric id of
+        a hub page, so the field was unusable without opening the database — and
+        a wrong number silently attached the post to the wrong series.
+        It is a list of the pillar pages that exist.
+      */}
+      <Field
+        label="Part of a series"
+        hint="Adds prev/next links between the posts in a cluster, and lists this one on the hub page."
+      >
+        {pillars.length === 0 ? (
+          <p className="rounded-ctl border border-dashed border-border px-2.5 py-2 text-[11.5px] text-text-faint">
+            No hub pages yet. Create a post with the type <strong>Pillar / hub page</strong> and
+            it will appear here.
+          </p>
+        ) : (
+          <div className="flex gap-2">
+            <Select
+              value={post.pillarClusterId || ''}
+              onChange={(e) => patch({ pillarClusterId: e.target.value ? Number(e.target.value) : null })}
+              placeholder="Not in a series"
+              options={pillars.map((p) => ({ value: p.id, label: p.title }))}
+              className="min-w-0 flex-1"
+            />
+            <Input
+              type="number"
+              min={1}
+              value={post.clusterOrder ?? ''}
+              onChange={(e) => patch({ clusterOrder: e.target.value ? Number(e.target.value) : null })}
+              placeholder="#"
+              title="Position in the series — decides what prev and next point at"
+              className="w-16 shrink-0"
+            />
+          </div>
+        )}
       </Field>
 
       {/* Freshness as a maintenance commitment rather than a claim of accuracy.
@@ -311,7 +349,7 @@ function Field({ label, hint, children }) {
   )
 }
 
-function ImageSlot({ asset, onPick, fallbackLabel = 'None chosen' }) {
+function ImageSlot({ asset, onPick, onRemove, fallbackLabel = 'None chosen' }) {
   if (!asset) {
     return (
       <button
@@ -323,12 +361,23 @@ function ImageSlot({ asset, onPick, fallbackLabel = 'None chosen' }) {
       </button>
     )
   }
+  // Replace AND remove. Only Replace existed, so clearing a hero image meant
+  // choosing a different one you did not want — there was no way back to none.
   return (
-    <button type="button" onClick={onPick} className="group relative overflow-hidden rounded-card border border-border">
+    <div className="group relative overflow-hidden rounded-card border border-border">
       <img src={asset.url} alt={asset.altText} className="h-20 w-full object-cover" />
-      <span className="absolute inset-0 flex items-center justify-center bg-surface-overlay text-xs text-text-primary opacity-0 transition-opacity group-hover:opacity-95">
-        Replace
-      </span>
-    </button>
+      <div className="absolute inset-0 flex items-center justify-center gap-2 bg-surface-overlay opacity-0 transition-opacity group-hover:opacity-95">
+        <button type="button" onClick={onPick}
+                className="rounded-ctl bg-surface px-2 py-1 text-[11px] text-text-primary hover:text-brand-900">
+          Replace
+        </button>
+        {onRemove && (
+          <button type="button" onClick={onRemove}
+                  className="rounded-ctl bg-surface px-2 py-1 text-[11px] text-text-secondary hover:text-status-fail-fg">
+            Remove
+          </button>
+        )}
+      </div>
+    </div>
   )
 }

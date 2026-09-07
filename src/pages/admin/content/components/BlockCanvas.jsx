@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { GripVertical, Plus, Trash2, Copy, ChevronUp, ChevronDown } from 'lucide-react'
 import { BlockEditor } from './blocks'
 import { BlockPicker } from './BlockPicker'
+import { SectionDrafter } from './SectionDrafter'
 import { blocks as factories } from '../../../../api/content.api'
 import { cn } from '../../../../lib/cn'
 
@@ -21,6 +22,7 @@ import { cn } from '../../../../lib/cn'
 export function BlockCanvas({
   blocks, patch, remove, duplicate, move, insertAt, replaceBlock,
   onPickMedia, onAiRewrite, media, competitors,
+  postId, aiEnabled = false,
 }) {
   const [dragIndex, setDragIndex] = useState(null)
   const [overIndex, setOverIndex] = useState(null)
@@ -42,6 +44,35 @@ export function BlockCanvas({
   /** An empty paragraph is a placeholder, not content — picking replaces it. */
   const isBlankParagraph = (b) =>
     b.type === 'paragraph' && !String(b.html || '').replace(/<[^>]*>/g, '').trim()
+
+  /**
+   * The heading structure, as context for drafting one section.
+   *
+   * The model writes better when it can see what the sections either side of
+   * this one are for — without it, two adjacent sections cover the same ground
+   * in different words.
+   */
+  const documentOutline = blocks
+    .filter((b) => b.type === 'heading')
+    .map((b) => ({ level: b.level || 2, heading: b.text || '' }))
+
+  /**
+   * Put a drafted section where the outline left room for it.
+   *
+   * Accepting an outline produces heading, empty paragraph, heading, empty
+   * paragraph. So the paragraph to fill is almost always the very next block —
+   * inserting a new one instead would leave the empty placeholder stranded
+   * above the prose that was written for it.
+   */
+  const acceptDraft = (index) => (html) => {
+    const next = blocks[index + 1]
+    if (next && isBlankParagraph(next)) {
+      patch(next._id, { html })
+      setFocusId(next._id)
+    } else {
+      setFocusId(insertAt(index + 1, { ...factories.paragraph(html) }))
+    }
+  }
 
   // The block that should take the caret on its next render. Cleared as soon as
   // it is consumed, so a re-render for any other reason does not yank focus
@@ -134,6 +165,16 @@ export function BlockCanvas({
                 ? 'opacity-100'
                 : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'
             )}>
+              {/* Only on headings, and only when a provider is configured.
+                  A sparkle that always errors is worse than no sparkle. */}
+              {aiEnabled && block.type === 'heading' && postId && (
+                <SectionDrafter
+                  postId={postId}
+                  heading={block}
+                  outline={documentOutline}
+                  onAccept={acceptDraft(i)}
+                />
+              )}
               <button
                 type="button"
                 onClick={() => setPickerFor(pickerFor === block._id ? null : block._id)}

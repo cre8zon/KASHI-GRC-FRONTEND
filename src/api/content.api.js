@@ -59,6 +59,10 @@ export const contentApi = {
   publishCheck: (id) => api.get(`/v1/content/admin/posts/${id}/publish-check`),
 
   publish: (id) => api.post(`/v1/content/admin/posts/${id}/publish`),
+  // Releasing banked edits on an already-live post. Distinct from publish(),
+  // which moves a DRAFT post to PUBLISHED — different precondition entirely.
+  publishChanges: (id) => api.post(`/v1/content/admin/posts/${id}/publish-changes`),
+  discardDraft:   (id) => api.delete(`/v1/content/admin/posts/${id}/draft`),
 
   unpublish: (id) => api.post(`/v1/content/admin/posts/${id}/unpublish`),
 
@@ -126,6 +130,10 @@ export const contentApi = {
   },
 
   updateMedia: (id, payload) => api.put(`/v1/content/admin/media/${id}`, payload),
+  // The endpoint has existed since the module shipped, complete with a
+  // usage guard that refuses to delete anything still on a page. Nothing
+  // ever called it, so the library only ever grew.
+  deleteMedia: (id) => api.delete(`/v1/content/admin/media/${id}`),
 
   // ── redirects ──────────────────────────────────────────────────────────────
 

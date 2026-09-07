@@ -4,6 +4,8 @@ import {
   AlertTriangle, Info, Lightbulb, ChevronDown,
 } from 'lucide-react'
 import { RichText } from '../RichText'
+import { AutoTextarea } from '../AutoTextarea'
+import { toEmbedUrl, isEmbeddable } from '../embed'
 import { Input, Textarea } from '../../../../../components/ui/Input'
 import { Select } from '../../../../../components/ui/Select'
 import { Button } from '../../../../../components/ui/Button'
@@ -31,8 +33,6 @@ import { cn } from '../../../../../lib/cn'
 
 const label = 'text-[11px] font-medium uppercase tracking-wide text-text-faint'
 const fieldRow = 'flex flex-col gap-1.5'
-
-/* ── shared bits ───────────────────────────────────────────────────────────── */
 
 function ItemList({ items, onChange, placeholder, min = 1, renderItem }) {
   const set = (i, v) => onChange(items.map((it, n) => (n === i ? v : it)))
@@ -96,31 +96,70 @@ function ParagraphBlock({ block, patch, onAiRewrite, flow = {} }) {
  * not a block. The server demotes a stray level-1 anyway; not showing it here
  * means nobody has to be told.
  */
-function HeadingBlock({ block, patch }) {
+function HeadingBlock({ block, patch, flow = {} }) {
+  const level = block.level || 2
+
+  /**
+   * Enter makes a paragraph below. It does NOT put a newline in the heading.
+   *
+   * Making headings a textarea so they wrap had a side effect: Enter started
+   * inserting line breaks into the heading text. A heading is one line
+   * semantically however many lines it occupies, and — more to the point —
+   * Enter at the end of a heading is the single most common keystroke in
+   * drafting. It has to open the paragraph you are about to write.
+   *
+   * Paragraph blocks got this via handleKeyDown in RichText. Headings are a
+   * plain textarea and were left out, so an accepted outline could only be
+   * filled in by reaching for the mouse on every one of its sections.
+   */
+  const onKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && flow.onEnterAtEnd) {
+      e.preventDefault()
+      flow.onEnterAtEnd()
+      return
+    }
+    // Same rule as an empty paragraph: backspace on an empty heading removes
+    // the block rather than doing nothing.
+    if (e.key === 'Backspace' && !(block.text || '').length && flow.onDeleteEmpty) {
+      e.preventDefault()
+      flow.onDeleteEmpty()
+    }
+  }
   return (
-    <div className="flex items-center gap-3">
+    // items-start, not items-center: once the heading wraps to three lines the
+    // level selector belongs beside the first line, not floating in the middle.
+    <div className="flex items-start gap-3">
       <select
-        value={block.level || 2}
+        value={level}
         onChange={(e) => patch({ level: Number(e.target.value) })}
-        className="h-8 rounded-ctl border border-border bg-surface px-2 text-xs text-text-secondary"
+        className="mt-0.5 h-8 shrink-0 rounded-ctl border border-border bg-surface px-2 text-xs text-text-secondary"
         aria-label="Heading level"
       >
         <option value={2}>H2</option>
         <option value={3}>H3</option>
         <option value={4}>H4</option>
       </select>
-      <input
-        value={block.text || ''}
-        onChange={(e) => patch({ text: e.target.value })}
-        placeholder="A heading that works as an answer on its own"
-        className={cn(
-          'flex-1 border-0 bg-transparent p-0 font-semibold text-text-primary placeholder:font-normal placeholder:text-text-faint focus:outline-none focus:ring-0',
-          (block.level || 2) === 2 ? 'text-[22px]' : (block.level === 3 ? 'text-[18px]' : 'text-[16px]')
+
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <AutoTextarea
+          value={block.text || ''}
+          onChange={(e) => patch({ text: e.target.value })}
+          onKeyDown={onKeyDown}
+          autoFocus={flow.autoFocus}
+          placeholder="A heading that works as an answer on its own"
+          className={cn(
+            'w-full border-0 bg-transparent p-0 font-semibold leading-snug text-text-primary placeholder:font-normal placeholder:text-text-faint focus:outline-none focus:ring-0',
+            level === 2 ? 'text-[22px]' : level === 3 ? 'text-[18px]' : 'text-[16px]'
+          )}
+        />
+        {/* Under the heading rather than beside it. On the right it competed
+            with the text for the same horizontal space, and lost. */}
+        {block.anchor && (
+          <span className="reg-code truncate font-mono text-[11px] text-text-faint">
+            #{block.anchor}
+          </span>
         )}
-      />
-      {block.anchor && (
-        <span className="reg-code shrink-0 font-mono text-[11px] text-text-faint">#{block.anchor}</span>
-      )}
+      </div>
     </div>
   )
 }
@@ -149,12 +188,11 @@ function ListBlock({ block, patch }) {
 function QuoteBlock({ block, patch }) {
   return (
     <div className="flex flex-col gap-3 border-l-2 border-brand-500 pl-4">
-      <Textarea
+      <AutoTextarea
         value={block.text || ''}
         onChange={(e) => patch({ text: e.target.value })}
         placeholder="The most quotable line in the piece"
-        rows={2}
-        className="text-[17px] leading-relaxed"
+        className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[17px] leading-relaxed text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-800/40"
       />
       <Input
         value={block.attribution || ''}
@@ -363,11 +401,11 @@ function FaqBlock({ block, patch }) {
               onChange={(e) => set({ ...item, q: e.target.value })}
               placeholder="A question someone would actually type"
             />
-            <Textarea
+            <AutoTextarea
               value={item.a}
               onChange={(e) => set({ ...item, a: e.target.value })}
               placeholder="Lead with the answer, then the qualification. Two to four sentences."
-              rows={3}
+              className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[13px] text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-800/40"
             />
           </div>
         )}
@@ -417,8 +455,28 @@ function CodeBlock({ block, patch }) {
         placeholder="Code"
         rows={8}
         spellCheck={false}
+        onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = `${e.target.scrollHeight}px` }}
         className="reg-code w-full rounded-card border border-border bg-surface-inset p-3 font-mono text-[13px] leading-relaxed text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-800/40"
       />
+    </div>
+  )
+}
+
+/**
+ * Attach, swap, detach — all three, everywhere media is used.
+ *
+ * Every media surface offered exactly one of these: pick when empty, replace
+ * when full. Detaching was impossible, so an image added by mistake could only
+ * be swapped for a different one, or the whole block deleted and rebuilt.
+ */
+function MediaActions({ onPick, onRemove, replaceLabel = 'Replace' }) {
+  return (
+    <div className="flex items-center gap-2">
+      <Button size="sm" variant="ghost" onClick={onPick}>{replaceLabel}</Button>
+      <Button size="sm" variant="ghost" onClick={onRemove}
+              className="text-text-secondary hover:text-status-fail-fg">
+        Remove
+      </Button>
     </div>
   )
 }
@@ -438,7 +496,8 @@ function ImageBlock({ block, patch, onPickMedia, media }) {
               thing most likely to be wrong and the thing that blocks publish. */}
           <figcaption className="flex items-center gap-2 text-xs text-text-secondary">
             <span className="rounded-badge bg-status-pass-bg px-2 py-0.5 text-status-pass-fg">alt</span>
-            {asset.altText}
+            <span className="min-w-0 flex-1 truncate">{asset.altText}</span>
+            <MediaActions onPick={onPickMedia} onRemove={() => patch({ mediaId: null })} />
           </figcaption>
         </figure>
       ) : (
@@ -464,9 +523,10 @@ function ImageBlock({ block, patch, onPickMedia, media }) {
                  className="rounded-ctl border-border" />
           Full width
         </label>
-        {asset && (
-          <Button variant="ghost" size="sm" onClick={onPickMedia}>Replace</Button>
-        )}
+        {/* A second Replace lived here. It predated the pair on the caption row
+            and did the same thing, so the block ended up offering Replace
+            twice and Remove once — the asymmetry made the duplicate read like
+            two different actions. One set, on the row that names the asset. */}
       </div>
     </div>
   )
@@ -488,8 +548,9 @@ function CtaBlock({ block, patch }) {
       </div>
       <Input value={block.heading || ''} onChange={(e) => patch({ heading: e.target.value })}
              placeholder="Heading" className="font-medium" />
-      <Textarea value={block.body || ''} onChange={(e) => patch({ body: e.target.value })}
-                placeholder="One sentence. This is a nudge, not a pitch." rows={2} />
+      <AutoTextarea value={block.body || ''} onChange={(e) => patch({ body: e.target.value })}
+                placeholder="One sentence. This is a nudge, not a pitch."
+                className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[13px] text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-800/40" />
       <div className="flex gap-3">
         <Input value={block.buttonText || ''} onChange={(e) => patch({ buttonText: e.target.value })}
                placeholder="Button text" className="flex-1" />
@@ -509,12 +570,23 @@ function DownloadBlock({ block, patch, onPickMedia, media }) {
         <Input value={block.title || ''} onChange={(e) => patch({ title: e.target.value })}
                placeholder="What they are downloading" className="flex-1 font-medium" />
       </div>
-      <Textarea value={block.description || ''} onChange={(e) => patch({ description: e.target.value })}
-                placeholder="One line on why it is worth having" rows={2} />
+      <AutoTextarea value={block.description || ''} onChange={(e) => patch({ description: e.target.value })}
+                placeholder="One line on why it is worth having"
+                className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[13px] text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-800/40" />
       <div className="flex items-center gap-3">
-        <Button variant="secondary" size="sm" onClick={onPickMedia}>
-          {asset ? asset.url.split('/').pop() : 'Attach file'}
-        </Button>
+        {asset ? (
+          <>
+            {/* The filename, not the URL's last segment dressed up as one — a
+                presigned or hashed key makes that unreadable. altText holds the
+                original filename for attachments. */}
+            <span className="min-w-0 truncate text-[12.5px] text-text-primary">
+              {asset.altText || 'Attached file'}
+            </span>
+            <MediaActions onPick={onPickMedia} onRemove={() => patch({ mediaId: null })} />
+          </>
+        ) : (
+          <Button variant="secondary" size="sm" onClick={onPickMedia}>Attach file</Button>
+        )}
         <label className="flex items-center gap-2 text-xs text-text-secondary">
           <input type="checkbox" checked={!!block.gated}
                  onChange={(e) => patch({ gated: e.target.checked })}
@@ -536,7 +608,14 @@ function EmbedBlock({ block, patch }) {
         options={[{ value: 'youtube', label: 'YouTube' }, { value: 'loom', label: 'Loom' }]}
         className="w-32"
       />
-      <Input value={block.url || ''} onChange={(e) => patch({ url: e.target.value })}
+      <Input value={block.url || ''}
+             onChange={(e) => patch({ url: e.target.value })}
+             onBlur={(e) => {
+               // On blur, not on every keystroke: rewriting the field while
+               // someone is still pasting into it fights the cursor.
+               const normalised = toEmbedUrl(e.target.value)
+               if (normalised !== e.target.value) patch({ url: normalised })
+             }}
              placeholder="Paste the URL" className="flex-1" />
     </div>
   )

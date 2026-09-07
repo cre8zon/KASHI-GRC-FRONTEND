@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {
   Sparkles, ListTree, PenLine, Tags, HelpCircle, Link2, Share2, Check, X, Loader2,
+  Heading2, TextCursorInput,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { aiApi } from '../../../../api/ai.api'
@@ -27,6 +28,12 @@ import { cn } from '../../../../lib/cn'
  * it happens.
  */
 
+/** Is this occurrence of `text` already inside an anchor? */
+function alreadyLinked(html, text) {
+  const escaped = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`<a[^>]*>[^<]*${escaped}`, 'i').test(html)
+}
+
 const TASKS = [
   { key: 'CONTENT_TLDR',  label: 'Key takeaways', icon: Sparkles,
     hint: 'Three to five extractable bullets', needsBody: true },
@@ -42,7 +49,23 @@ const TASKS = [
     hint: 'LinkedIn post or X thread', needsBody: true },
 ]
 
-export function AiPanel({ postId, post, blocks, onInsertBlock, onPatchPost, hasBody }) {
+/**
+ * Where each proposal lands in the document.
+ *
+ * ── THE PROBLEM THIS FIXES ───────────────────────────────────────────────────
+ * "Accept" used to mean "append every piece of this at the end", for every
+ * task. Accepting an outline appended fourteen consecutive headings with
+ * nothing between them — not an article skeleton, a wall of headings you then
+ * have to click into fourteen times to make room to write. And a TL;DR box
+ * landed at the BOTTOM of the article, which is the one place it does nothing:
+ * its whole job is to be read before the body.
+ *
+ * Every task now states where its output goes and what shape it goes in.
+ */
+export function AiPanel({
+  postId, post, blocks, hasBody,
+  onAppendBlocks, onPrependBlock, onTransformBlocks, onPatchPost,
+}) {
   const [active, setActive] = useState(null)
   const [topic, setTopic] = useState('')
 
@@ -51,6 +74,44 @@ export function AiPanel({ postId, post, blocks, onInsertBlock, onPatchPost, hasB
       <p className="text-[11px] text-text-faint">
         Everything below is a suggestion. Nothing is written until you accept it.
       </p>
+
+      {/*
+        Two tasks act on a selection or a heading rather than the whole post, so
+        they live in the document instead of here. Listed anyway, because a
+        feature nobody can find is indistinguishable from one that does not
+        exist — which is what both of these were.
+      */}
+      <div className="flex flex-col gap-2 rounded-card border border-dashed border-border p-3">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-text-faint">
+          In the document
+        </p>
+
+        <div className="flex items-start gap-2.5">
+          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-ctl bg-surface-inset text-text-secondary">
+            <TextCursorInput size={11} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[12.5px] text-text-primary">Rewrite a selection</span>
+            <span className="block text-[11px] text-text-faint">
+              Select any text, then press <Sparkles size={9} className="inline" /> in the
+              toolbar that appears. It replaces the selection, not the block.
+            </span>
+          </span>
+        </div>
+
+        <div className="flex items-start gap-2.5">
+          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-ctl bg-surface-inset text-text-secondary">
+            <Heading2 size={11} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[12.5px] text-text-primary">Draft a section</span>
+            <span className="block text-[11px] text-text-faint">
+              Hover any heading and press <Sparkles size={9} className="inline" /> in its
+              left margin. Writes the prose under that one heading.
+            </span>
+          </span>
+        </div>
+      </div>
 
       {TASKS.map((task) => (
         <TaskRow
@@ -64,7 +125,9 @@ export function AiPanel({ postId, post, blocks, onInsertBlock, onPatchPost, hasB
           onToggle={() => setActive(active === task.key ? null : task.key)}
           topic={topic}
           setTopic={setTopic}
-          onInsertBlock={onInsertBlock}
+          onAppendBlocks={onAppendBlocks}
+          onPrependBlock={onPrependBlock}
+          onTransformBlocks={onTransformBlocks}
           onPatchPost={onPatchPost}
         />
       ))}
@@ -73,8 +136,8 @@ export function AiPanel({ postId, post, blocks, onInsertBlock, onPatchPost, hasB
 }
 
 function TaskRow({
-  task, postId, post, disabled, expanded, onToggle,
-  topic, setTopic, onInsertBlock, onPatchPost,
+  task, postId, post, blocks, disabled, expanded, onToggle,
+  topic, setTopic, onAppendBlocks, onPrependBlock, onTransformBlocks, onPatchPost,
 }) {
   const { run, running, proposal, warnings, clear } = useAiProposal(task.key)
   const Icon = task.icon
@@ -93,28 +156,86 @@ function TaskRow({
     if (!payload) return
 
     switch (task.key) {
+      // Above the body, not below it. A key-takeaways box appended to the end
+      // of an article is a summary nobody reaches.
       case 'CONTENT_TLDR':
-        onInsertBlock({ ...factories.tldr(), items: payload.items || [] })
+        onPrependBlock({ ...factories.tldr(), items: payload.items || [] })
         break
+
+      // At the end, which is where an FAQ belongs and where the FAQPage schema
+      // expects to find it.
       case 'CONTENT_FAQ':
-        onInsertBlock({ ...factories.faq(), items: payload.items || [] })
+        onAppendBlocks([{ ...factories.faq(), items: payload.items || [] }])
         break
+
       case 'CONTENT_META':
         onPatchPost({ metaTitle: payload.metaTitle, metaDescription: payload.metaDescription })
         break
-      case 'CONTENT_OUTLINE':
-        // An outline becomes headings, not prose. The author writes the prose;
-        // that boundary is the whole reason drafting is section-by-section.
-        (payload.sections || []).forEach((s) => {
-          onInsertBlock({ ...factories.heading(s.heading, s.level || 2) })
-          ;(s.subheadings || []).forEach((sub) =>
-            onInsertBlock({ ...factories.heading(sub, 3) }))
-        })
+
+      case 'CONTENT_OUTLINE': {
+        // A heading followed by somewhere to write. Headings alone are not a
+        // skeleton — they are a list, and turning a list into a draft means
+        // making room under every one of them by hand.
+        const out = []
+        for (const section of payload.sections || []) {
+          const level = Math.min(Math.max(Number(section.level) || 2, 2), 4)
+          out.push(factories.heading(section.heading, level))
+          out.push(factories.paragraph(''))
+          for (const sub of section.subheadings || []) {
+            out.push(factories.heading(sub, Math.min(level + 1, 4)))
+            out.push(factories.paragraph(''))
+          }
+        }
+        if (!out.length) { toast.error('That outline had no sections'); return }
+        onAppendBlocks(out)
+
+        // The outline also proposes a title and an angle. Taking the title only
+        // when there is not one already: overwriting a headline somebody wrote
+        // is not what "accept the outline" means.
+        const untitled = !post?.title?.trim() || post.title.trim() === 'Untitled'
+        if (untitled && payload.workingTitle) onPatchPost({ title: payload.workingTitle })
+        toast.success(`Added ${out.length / 2} sections`)
         break
+      }
+
+      // Applied inline, in place, where the anchor text actually appears —
+      // which is the only form in which an internal link is worth anything.
+      // Accepting this used to do nothing at all: the case was missing and it
+      // fell through to `default: break`.
+      case 'CONTENT_INTERNAL_LINKS': {
+        const applied = []
+        const missed = []
+        onTransformBlocks((current) => {
+          const next = current.map((b) => ({ ...b }))
+          for (const link of payload.links || []) {
+            if (!link.slug || !link.anchorText) continue
+            const target = next.find((b) =>
+              b.type === 'paragraph' &&
+              typeof b.html === 'string' &&
+              b.html.includes(link.anchorText) &&
+              // Never nest an anchor inside an anchor.
+              !alreadyLinked(b.html, link.anchorText))
+            if (!target) { missed.push(link.anchorText); continue }
+            target.html = target.html.replace(
+              link.anchorText,
+              `<a href="/blog/${link.slug}">${link.anchorText}</a>`)
+            applied.push(link.anchorText)
+          }
+          return next
+        })
+        // Say what did not happen. A silent partial apply is worse than a
+        // refusal, because the author believes all five links are in.
+        if (applied.length) toast.success(`Linked ${applied.length} of ${(payload.links || []).length}`)
+        if (missed.length) toast.error(`Could not place: ${missed.join(', ')}`)
+        if (!applied.length && !missed.length) toast.error('No links to apply')
+        break
+      }
+
       case 'CONTENT_SOCIAL':
         navigator.clipboard?.writeText((payload.posts || []).join('\n\n'))
         toast.success('Copied')
         break
+
       default:
         break
     }
@@ -183,7 +304,9 @@ function TaskRow({
               <ProposalPreview taskKey={task.key} payload={proposal.payload} />
               <div className="flex gap-2">
                 <Button size="sm" variant="primary" icon={Check} onClick={accept}>
-                  {task.key === 'CONTENT_SOCIAL' ? 'Copy' : 'Accept'}
+                  {task.key === 'CONTENT_SOCIAL' ? 'Copy'
+                    : task.key === 'CONTENT_INTERNAL_LINKS' ? 'Apply links'
+                    : 'Accept'}
                 </Button>
                 <Button size="sm" variant="ghost" icon={X} onClick={reject}>Reject</Button>
               </div>

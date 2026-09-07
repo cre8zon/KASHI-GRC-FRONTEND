@@ -24,6 +24,25 @@ export function PublishBar({
   publishing, problems, onDismissProblems, onPreview, onOpenRevisions, onBack,
 }) {
   const [scheduling, setScheduling] = useState(false)
+
+  /**
+   * One busy flag covering the WHOLE action, not just the mutation.
+   *
+   * `loading={publishing}` was already wired, and still looked dead — because
+   * onPublish saves first and only then calls publish(). During the save the
+   * mutation has not started, isPending is false, and the button sits there
+   * looking clickable. On a slow save that is a second or more of a live
+   * Publish button, which is long enough to press twice.
+   *
+   * Unpublish and Schedule had no state at all.
+   */
+  const [busy, setBusy] = useState(null)
+  const run = (name, fn) => async (...args) => {
+    if (busy) return
+    setBusy(name)
+    try { await fn?.(...args) } finally { setBusy(null) }
+  }
+  const anyBusy = !!busy || publishing
   const [when, setWhen] = useState('')
 
   return (
@@ -59,14 +78,24 @@ export function PublishBar({
         )}
 
         {post.status === 'PUBLISHED' ? (
-          <Button variant="secondary" size="sm" onClick={onUnpublish}>Unpublish</Button>
+          <Button variant="secondary" size="sm"
+                  onClick={run('unpublish', onUnpublish)}
+                  loading={busy === 'unpublish'} loadingText="Unpublishing…"
+                  disabled={anyBusy}>
+            Unpublish
+          </Button>
         ) : (
           <>
             <Button variant="secondary" size="sm" icon={Clock}
-                    onClick={() => setScheduling(!scheduling)}>
+                    onClick={() => setScheduling(!scheduling)}
+                    disabled={anyBusy}>
               Schedule
             </Button>
-            <Button variant="primary" size="sm" onClick={onPublish} loading={publishing}>
+            <Button variant="primary" size="sm"
+                    onClick={run('publish', onPublish)}
+                    loading={busy === 'publish' || publishing}
+                    loadingText="Publishing…"
+                    disabled={anyBusy}>
               Publish
             </Button>
           </>
@@ -81,7 +110,10 @@ export function PublishBar({
             onChange={(e) => setWhen(e.target.value)}
             className="h-8 rounded-ctl border border-border bg-surface px-2.5 text-[13px] text-text-primary"
           />
-          <Button size="sm" variant="primary" onClick={() => { onSchedule(when); setScheduling(false) }}>
+          <Button size="sm" variant="primary"
+                  onClick={run('schedule', async () => { await onSchedule(when); setScheduling(false) })}
+                  loading={busy === 'schedule'} loadingText="Scheduling…"
+                  disabled={anyBusy || !when}>
             Schedule
           </Button>
           {/* Validation runs now, not at 3am. A post that silently fails to

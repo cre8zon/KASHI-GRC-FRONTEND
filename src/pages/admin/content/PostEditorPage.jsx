@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useBeforeUnload } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { Search, Settings2, Sparkles } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Search, Settings2, Sparkles, FileWarning, FileEdit } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { contentApi } from '../../../api/content.api'
 import { usePost, useContentTaxonomy, useAutosave, usePublish, useAiEnabled } from '../../../hooks/useContent'
@@ -14,7 +14,9 @@ import { AiPanel } from './components/AiPanel'
 import { MediaPicker } from './components/MediaPicker'
 import { RevisionDrawer } from './components/RevisionDrawer'
 import { PublishBar } from './components/PublishBar'
-import { PageSkeleton } from '../../../components/ui/EmptyState'
+import { PageSkeleton, EmptyState } from '../../../components/ui/EmptyState'
+import { AutoTextarea } from './components/AutoTextarea'
+import { Button } from '../../../components/ui/Button'
 import { cn } from '../../../lib/cn'
 
 /**
@@ -35,17 +37,63 @@ const TABS = [
   { key: 'ai',       label: 'AI',       icon: Sparkles, requiresAi: true },
 ]
 
+/**
+ * Fetch out here; edit in there.
+ *
+ * ── THE BUG THIS FIXES ───────────────────────────────────────────────────────
+ * useBlocks seeds its state with useState(() => withIds(initial)), and an
+ * initialiser runs exactly once — on the first render. On a cold cache the
+ * first render has no data, so the editor initialised with an empty array and
+ * stayed empty no matter what arrived afterwards.
+ *
+ * It looked intermittent because React Query made it intermittent. Navigate
+ * away and back and the post is already in cache, so the first render DOES have
+ * data and everything works. First visit after a reload: nothing.
+ *
+ * The early `if (loaded.isLoading) return <PageSkeleton />` did not help. Hooks
+ * run before any return, so useBlocks had already committed to [].
+ *
+ * ── WHY THIS MATTERED MORE THAN IT LOOKED ────────────────────────────────────
+ * An empty canvas over a full post is one keystroke away from data loss:
+ * typing into it makes the block array [something], and autosave writes that
+ * over fourteen sections. The revision history would have held the previous
+ * state, but nothing would have told you to go looking.
+ */
 export default function PostEditorPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const postId = Number(id)
-
   const loaded = usePost(postId)
+
+  if (loaded.isLoading || (!loaded.data && !loaded.isError)) return <PageSkeleton />
+
+  if (loaded.isError || !loaded.data) {
+    return (
+      <EmptyState
+        icon={FileWarning}
+        title="This post didn’t load"
+        description="It may have been archived, or the content service didn’t respond."
+        action={<Button variant="secondary" onClick={() => navigate('/admin/content/posts')}>
+          Back to all posts
+        </Button>}
+      />
+    )
+  }
+
+  // key: switching between two posts must not reuse the first one's block
+  // state, undo stack or autosave queue.
+  return <PostEditor key={postId} postId={postId} initialPost={loaded.data} />
+}
+
+function PostEditor({ postId, initialPost }) {
+  const navigate = useNavigate()
+  const client = useQueryClient()
+
   const taxonomy = useContentTaxonomy()
   const { save, saveNow, status: saveStatus, savedAt } = useAutosave(postId)
   const { publish, publishing, problems, setProblems } = usePublish(postId)
 
-  const [post, setPost] = useState(null)
+  const [post, setPost] = useState(initialPost)
   const [tab, setTab] = useState('seo')
   // AI is an accelerator, never a dependency: a post is written, saved and
   // published without it. When no provider is configured the tab is not shown.
@@ -54,24 +102,73 @@ export default function PostEditorPage() {
   const [activeBlock, setActiveBlock] = useState(null)
   const [mediaTarget, setMediaTarget] = useState(null)   // 'hero' | 'og' | blockId
   const [showRevisions, setShowRevisions] = useState(false)
-  const hydrated = useRef(false)
 
-  // Hydrate once. See the note above about why this does not track the query.
-  useEffect(() => {
-    if (loaded.data && !hydrated.current) {
-      setPost(loaded.data)
-      hydrated.current = true
+  /**
+   * A live post is editable — into a working copy, not onto the article.
+   *
+   * There is one row per post and the public API reads it directly, so while a
+   * post is PUBLISHED its row IS the live article. Autosaving into it put a
+   * half-typed sentence in front of readers, and the build hook shipped it
+   * about ninety seconds later.
+   *
+   * The server now routes autosaves on a published post into
+   * content_post_drafts and leaves the live row alone. So typing here is safe,
+   * the page stays up, and what changes is the release step.
+   */
+  const isLive = post?.status === 'PUBLISHED'
+  const hasDraft = !!post?.hasUnpublishedChanges
+
+  /**
+   * Releasing takes seconds, so it has to look like it is working.
+   *
+   * publish-changes runs 23 queries — it applies the draft, rewrites the link
+   * graph, may record a slug redirect and fires the build hook. The log has it
+   * at 3.5s. Both buttons were raw onClick handlers with no state, so for those
+   * three and a half seconds nothing moved and the obvious response was to
+   * press again — which would have released twice and, on the second pass,
+   * failed with NO_DRAFT.
+   */
+  const [releasing, setReleasing] = useState(null)   // 'release' | 'discard' | null
+
+  const releaseChanges = async () => {
+    setReleasing('release')
+    try {
+      // Flush first: the last two seconds of typing are still queued, and
+      // releasing without them ships a version the writer never saw.
+      await saveNow()
+      await contentApi.publishChanges(postId)
+      await client.invalidateQueries({ queryKey: ['content-post', postId] })
+      toast.success('Changes are live')
+    } catch (e) {
+      toast.error(e?.response?.data?.error?.message || 'Could not release those changes')
+    } finally {
+      setReleasing(null)
     }
-  }, [loaded.data])
+  }
+
+  const discardChanges = async () => {
+    setReleasing('discard')
+    try {
+      await contentApi.discardDraft(postId)
+      await client.invalidateQueries({ queryKey: ['content-post', postId] })
+      toast.success('Changes discarded')
+    } catch (e) {
+      toast.error(e?.response?.data?.error?.message || 'Could not discard')
+    } finally {
+      setReleasing(null)
+    }
+  }
 
   const onBlocksChange = useCallback((next) => {
     save({ contentBlocks: JSON.stringify(next) })
   }, [save])
 
   const blockApi = useBlocks(
+    // Parsed once. initialPost is guaranteed to exist — the wrapper does not
+    // render this component until it does.
     useMemo(() => {
-      try { return JSON.parse(loaded.data?.contentBlocks || '[]') } catch { return [] }
-    }, [loaded.data?.contentBlocks]),
+      try { return JSON.parse(initialPost.contentBlocks || '[]') } catch { return [] }
+    }, [initialPost.contentBlocks]),
     onBlocksChange
   )
 
@@ -107,7 +204,24 @@ export default function PostEditorPage() {
   // Flush before leaving. The debounce means up to two seconds of writing is
   // otherwise still in the queue when the route changes.
   useBeforeUnload(useCallback(() => { saveNow() }, [saveNow]))
-  useEffect(() => () => { saveNow() }, [saveNow])
+
+  /**
+   * Flush on the way out, and drop the cached copy of this post.
+   *
+   * useAutosave invalidates the LIST query but not this post's detail query, so
+   * ['content-post', 7] still held whatever the server returned when the editor
+   * opened. Navigate away and back and React Query hands that stale copy
+   * straight to the new editor — your edits are on the server and not on the
+   * screen, and the next keystroke saves the old version back over them.
+   *
+   * Invalidating here rather than after every autosave is deliberate: doing it
+   * on save would refetch the whole post every two seconds while someone types,
+   * to produce data this component ignores by design.
+   */
+  useEffect(() => () => {
+    saveNow()
+    client.invalidateQueries({ queryKey: ['content-post', postId] })
+  }, [saveNow, client, postId])
 
   // Cmd/Ctrl-S flushes rather than doing nothing. People press it regardless of
   // whether an app autosaves, and having it appear to do something wrong is
@@ -127,14 +241,29 @@ export default function PostEditorPage() {
     return () => window.removeEventListener('keydown', onKey)
   }, [saveNow, blockApi])
 
+  /** null clears the slot — the picker's Remove sends it. */
   const onMediaSelected = (asset) => {
-    if (mediaTarget === 'hero') patchPost({ heroImageId: asset.id })
-    else if (mediaTarget === 'og') patchPost({ ogImageId: asset.id })
-    else if (mediaTarget) blockApi.patch(mediaTarget, { mediaId: asset.id })
+    const id = asset?.id ?? null
+    if (mediaTarget === 'hero') patchPost({ heroImageId: id })
+    else if (mediaTarget === 'og') patchPost({ ogImageId: id })
+    else if (mediaTarget) blockApi.patch(mediaTarget, { mediaId: id })
     setMediaTarget(null)
   }
 
-  if (loaded.isLoading || !post) return <PageSkeleton />
+  /**
+   * What the slot being edited already holds.
+   *
+   * The picker had no idea, so it could not show you the current choice or
+   * offer to clear it — opening it to "replace" gave you a grid with nothing
+   * marked as selected.
+   */
+  const currentMediaId =
+    mediaTarget === 'hero' ? post?.heroImageId
+    : mediaTarget === 'og' ? post?.ogImageId
+    : mediaTarget ? blockApi.blocks.find((b) => b._id === mediaTarget)?.mediaId
+    : null
+
+  if (!post) return <PageSkeleton />
 
   const hasBody = blockApi.stats.words > 20
 
@@ -165,6 +294,37 @@ export default function PostEditorPage() {
         onBack={async () => { await saveNow(); navigate('/admin/content/posts') }}
       />
 
+      {isLive && (
+        <div className="flex items-center gap-3 border-b border-border-subtle bg-status-info-bg px-5 py-2.5">
+          <FileEdit size={13} className="shrink-0 text-status-info-fg" />
+          <p className="min-w-0 flex-1 text-[12.5px] text-status-info-fg">
+            {hasDraft ? (
+              <><strong>Unpublished changes.</strong> The live article still shows the
+              last published version — these go out when you release them.</>
+            ) : (
+              <><strong>This article is live.</strong> Edits save as a working copy;
+              readers keep seeing the published version until you release them.</>
+            )}
+          </p>
+          {hasDraft && (
+            <>
+              <Button size="sm" variant="ghost"
+                      onClick={discardChanges}
+                      loading={releasing === 'discard'} loadingText="Discarding…"
+                      disabled={!!releasing}>
+                Discard
+              </Button>
+              <Button size="sm" variant="primary"
+                      onClick={releaseChanges}
+                      loading={releasing === 'release'} loadingText="Releasing…"
+                      disabled={!!releasing}>
+                Release changes
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="grid min-h-0 flex-1 grid-cols-[15rem_minmax(0,1fr)_20rem]">
         {/* ── left: outline ─────────────────────────────────────────────── */}
         <aside className="min-h-0 border-r border-border-subtle bg-surface">
@@ -187,21 +347,17 @@ export default function PostEditorPage() {
             {/* Title and dek are not blocks. There is exactly one H1 and it is
                 this — making it a block would let someone delete it or add a
                 second. */}
-            <textarea
+            <AutoTextarea
               value={post.title || ''}
               onChange={(e) => patchPost({ title: e.target.value })}
               placeholder="Headline"
-              rows={1}
-              className="w-full resize-none border-0 bg-transparent p-0 text-[32px] font-bold leading-tight text-text-primary placeholder:font-normal placeholder:text-text-faint focus:outline-none focus:ring-0"
-              onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = `${e.target.scrollHeight}px` }}
+              className="w-full border-0 bg-transparent p-0 text-[32px] font-bold leading-tight text-text-primary placeholder:font-normal placeholder:text-text-faint focus:outline-none focus:ring-0"
             />
-            <textarea
+            <AutoTextarea
               value={post.subtitle || ''}
               onChange={(e) => patchPost({ subtitle: e.target.value })}
               placeholder="One sentence expanding on the promise of the headline"
-              rows={1}
-              className="mt-3 w-full resize-none border-0 bg-transparent p-0 text-[17px] leading-relaxed text-text-secondary placeholder:text-text-faint focus:outline-none focus:ring-0"
-              onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = `${e.target.scrollHeight}px` }}
+              className="mt-3 w-full border-0 bg-transparent p-0 text-[17px] leading-relaxed text-text-secondary placeholder:text-text-faint focus:outline-none focus:ring-0"
             />
 
             <div className="mt-8">
@@ -215,6 +371,8 @@ export default function PostEditorPage() {
                 replaceBlock={blockApi.replaceBlock}
                 media={mediaById}
                 competitors={competitors.data || []}
+                postId={postId}
+                aiEnabled={aiEnabled}
                 onPickMedia={(blockId) => setMediaTarget(blockId)}
                 onAiRewrite={(selection, ctx) => {
                   contentApi.ai('CONTENT_REWRITE', { postId, selection })
@@ -273,7 +431,13 @@ export default function PostEditorPage() {
                 post={post}
                 blocks={blockApi.blocks}
                 hasBody={hasBody}
-                onInsertBlock={(b) => blockApi.append(b)}
+                // Passing blockApi.blocks (which carry _id) rather than
+                // stripped copies: useBlocks keeps an existing _id and only
+                // mints new ones, so untouched blocks keep their identity and
+                // their editors are not remounted — which would drop the caret.
+                onAppendBlocks={(list) => blockApi.replaceAll([...blockApi.blocks, ...list])}
+                onPrependBlock={(b) => blockApi.replaceAll([b, ...blockApi.blocks])}
+                onTransformBlocks={(fn) => blockApi.replaceAll(fn(blockApi.blocks))}
                 onPatchPost={patchPost}
               />
             )}
@@ -285,6 +449,7 @@ export default function PostEditorPage() {
         open={!!mediaTarget}
         onClose={() => setMediaTarget(null)}
         onSelect={onMediaSelected}
+        currentId={currentMediaId}
       />
       <RevisionDrawer
         open={showRevisions}
