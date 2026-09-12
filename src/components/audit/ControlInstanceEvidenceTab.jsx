@@ -181,7 +181,47 @@ function AutomatedRow({ link, onAccept, onReject, canReview }) {
 }
 
 // ── How-it-works guide ────────────────────────────────────────────────────────
-function AuditeeGuide({ controlInstanceId, control }) {
+
+/**
+ * Split evidence guidance into items.
+ *
+ * Newlines are the intended separator, but guidance pasted from Word or from a
+ * rendered HTML list arrives with them stripped:
+ *
+ *   "1. Context of Organization Document2. SWOT/PESTLE Analysis3. ..."
+ *
+ * Splitting on newlines alone turned that into ONE item — a single bullet
+ * containing the whole list. So when a line still holds several "N." markers,
+ * split on those too.
+ *
+ * Leading bullets AND numbering are stripped either way, or the rendered bullet
+ * sits next to the author's own "1." and every item looks double-numbered.
+ */
+export function parseGuidanceItems(raw) {
+  if (!raw) return []
+
+  const lines = String(raw).split(/\r?\n/).flatMap(line => {
+    const t = line.trim()
+    if (!t) return []
+    // Two or more "N." markers on one line means the newlines were lost.
+    // Split BEFORE each marker that is not at the very start.
+    const markers = t.match(/\d+[.)]\s*/g) || []
+    if (markers.length >= 2) {
+      return t.split(/(?=\d+[.)]\s)/).map(p => p.trim()).filter(Boolean)
+    }
+    return [t]
+  })
+
+  return lines
+    .map(l => l.replace(/^[-•*\u2022]\s*/, '')       // bullet characters
+               .replace(/^\d+[.)]\s*/, '')            // "1." / "1)" numbering
+               .trim())
+    .filter(Boolean)
+}
+// auditorView: same guidance, read as a checklist to judge evidence AGAINST
+// rather than instructions to follow. Suppresses the upload how-to steps and
+// retitles the panel — an auditor is not being told to upload anything.
+function AuditeeGuide({ controlInstanceId, control, auditorView = false }) {
   // Shares the ['ctrl-inst-tests', id] key with ControlInstanceTestsTab and the
   // Fieldwork tab, so switching tabs hits cache instead of refetching.
   const { data, isLoading } = useQuery({
@@ -200,10 +240,7 @@ function AuditeeGuide({ controlInstanceId, control }) {
 
   // Free text, one requirement per line. Leading bullet characters are stripped
   // so guidance pasted from a Word checklist does not render a double bullet.
-  const ownItems = (control?.evidenceGuidanceSnapshot || '')
-    .split(/\r?\n/)
-    .map(l => l.replace(/^[-•*\u2022]\s*/, '').trim())
-    .filter(Boolean)
+  const ownItems = parseGuidanceItems(control?.evidenceGuidanceSnapshot)
 
   const HowTo = () => (
     <div className="space-y-1.5">
@@ -231,7 +268,7 @@ function AuditeeGuide({ controlInstanceId, control }) {
           <div className="flex-1 min-w-0 space-y-2 text-[11px] text-text-secondary leading-relaxed">
 
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-medium text-text-primary">What to upload for this control</p>
+              <p className="font-medium text-text-primary">{auditorView ? 'What the auditee was asked to provide' : 'What to upload for this control'}</p>
               <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-brand-500/15 text-brand-ink font-medium">
                 {ownItems.length} {ownItems.length === 1 ? 'item' : 'items'}
               </span>
@@ -258,9 +295,11 @@ function AuditeeGuide({ controlInstanceId, control }) {
               ))}
             </ul>
 
-            <div className="pt-2 border-t border-brand-500/15">
-              <HowTo />
-            </div>
+            {!auditorView && (
+              <div className="pt-2 border-t border-brand-500/15">
+                <HowTo />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -417,6 +456,18 @@ export function ControlInstanceEvidenceTab({ controlInstanceId, entity, vc = {} 
       {/* ── Role-specific guide ── */}
       {isAuditee  && <AuditeeGuide controlInstanceId={controlInstanceId} control={entity} />}
       {isAuditor  && <AuditorGuide />}
+
+      {/* ── What was asked for ──
+
+          The evidence guidance was rendering for the AUDITEE only, inside
+          AuditeeGuide. An auditor saw the "Auditor actions" box instead and no
+          guidance at all — so the person judging whether evidence is sufficient
+          could not see what had been asked for, which is the one thing they need
+          to judge it against.
+
+          Same component, same server precedence (control guidance wins, else the
+          rolled-up test guidance), so both roles read identical text. */}
+      {isAuditor && <AuditeeGuide controlInstanceId={controlInstanceId} control={entity} auditorView />}
 
       {/* ── Auditee evidence ── */}
       <Section

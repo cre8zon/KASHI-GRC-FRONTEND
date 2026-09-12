@@ -1644,6 +1644,15 @@ function ModuleDetailView({ bp, id }) {
         if (meta.__hideIfField && entity?.[meta.__hideIfField]) return false
         if (meta.__showIfFieldNull && entity?.[meta.__showIfFieldNull] != null
             && entity?.[meta.__showIfFieldNull] !== '') return false
+        // __requiresField: show only when the field IS set — the mirror of
+        // __showIfFieldNull, and what an action whose ENDPOINT contains that
+        // field needs. Cancel workflow is the case: with no instance the token
+        // resolved to empty and the request went to
+        // /v1/workflow-instances//cancel.
+        if (meta.__requiresField) {
+          const v = entity?.[meta.__requiresField]
+          if (v == null || v === '') return false
+        }
       } catch {}
       // requiredPermission gate
       if (action.requiredPermission && vc.permissions?.length > 0) {
@@ -1687,7 +1696,21 @@ function ModuleDetailView({ bp, id }) {
         // stays tied to canAct so override authority does not put every tab form
         // into edit mode.
         const effectiveCanAct = vc.canAct === true || vc.canOverride === true
-        if (transitionKeys.has(action.actionKey) && !effectiveCanAct) return false
+
+        // Only gate on a task once a workflow ACTUALLY EXISTS.
+        //
+        // The first transition is the one that STARTS the workflow —
+        // SEND_FOR_REVIEW on a policy, and the equivalent on every other module.
+        // Requiring an active task to reach it is circular: there is no task
+        // because there is no workflow, and there is no workflow because the
+        // action that creates it is hidden. A saved draft had Edit content and
+        // Delete and no way forward.
+        //
+        // Once workflowInstanceId is set the gate applies as before, so approvals
+        // mid-flow still require the task or an override. The server re-checks
+        // regardless; this only decides whether the button is offered.
+        const workflowStarted = entity?.workflowInstanceId != null
+        if (transitionKeys.has(action.actionKey) && !effectiveCanAct && workflowStarted) return false
         // When a step uses compound-task section gates (hasSections=true), completion
         // happens automatically when all section items are done — hide the manual button
         // to prevent premature APPROVE calls that would fail the gate check.
@@ -1742,6 +1765,24 @@ function ModuleDetailView({ bp, id }) {
       .replace('{engagementId}', entity?.engagementId || entity?.engagement_id || id)
       .replace('{taskId}', taskId || '')
       .replace('{stepInstanceId}', stepInstanceId || '')
+      // Every workflow-enabled module carries workflowInstanceId, so this belongs
+      // in the shared list rather than being special-cased for policies. Without
+      // it the literal '{workflowInstanceId}' reached the server and came back as
+      // "Failed to convert value of type String to required type Long".
+      .replace('{workflowInstanceId}', entity?.workflowInstanceId ?? '')
+
+    // An unresolved token means the action is misconfigured for this entity —
+    // usually a field the module does not have. Better to say so than to send a
+    // URL with braces in it and let the server reject it with a type error that
+    // names neither the action nor the field.
+    // Catch BOTH failure shapes: a token left unreplaced, and a token replaced
+    // with nothing. The second is worse — it produces a valid-looking URL with an
+    // empty path segment that the server answers with a confusing error rather
+    // than a 404.
+    if (url.includes('{') || url.includes('//', url.indexOf('://') + 3)) {
+      toast.error(`${action.label}: this record has no value for one of the fields the action needs`)
+      return
+    }
     try {
       setActingId(action.id)
       // Strip internal __ meta keys from the payload before sending
@@ -2191,7 +2232,14 @@ function ModuleDetailView({ bp, id }) {
       {vc.sodViolations?.length > 0 && <SodBanner violations={vc.sodViolations} />}
 
       {/* Tab bar */}
-      <div className="flex items-center gap-1 px-6 border-b border-border overflow-x-auto scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      {/* sticky: the tab strip stays put while the tab body scrolls.
+          On a 116-control engagement the tabs scrolled away immediately and
+          switching tabs meant scrolling back to the top first.
+          glass-chrome, not bg-surface: it is the app's chrome/toolbar glass
+          (blur + saturate over --glass-bg) and already degrades to solid via
+          the @supports fallback where backdrop-filter is unavailable. A flat
+          bg-surface read as a hard band against everything around it. */}
+      <div className="sticky top-0 z-10 glass-chrome flex items-center gap-1 px-6 border-b border-border overflow-x-auto scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {visibleTabs.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={cn(

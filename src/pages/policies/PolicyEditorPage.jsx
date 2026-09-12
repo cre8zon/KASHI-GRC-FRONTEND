@@ -48,7 +48,7 @@
  * approval chain is the audit evidence.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate }                    from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient }     from '@tanstack/react-query'
 import {
@@ -59,7 +59,7 @@ import {
   Table, Undo, Redo, Eye, EyeOff, AlertTriangle,
   FileText, Loader2, Strikethrough, Highlighter,
   Link2, Link2Off, AlignLeft, AlignCenter, AlignRight,
-  Code2, Sparkles,
+  Code2, Sparkles, Braces,
 } from 'lucide-react'
 import { useEditor, EditorContent }                  from '@tiptap/react'
 import { BubbleMenu }                                 from '@tiptap/react/menus'
@@ -134,8 +134,73 @@ export default function PolicyEditorPage() {
   const [lastSaved,     setLastSaved]     = useState(null)
   const [wordCount,     setWordCount]     = useState(0)
   const [isDirty,       setIsDirty]       = useState(false)
+  const [saving,        setSaving]        = useState(false)
   const [linkInput,     setLinkInput]     = useState('')
   const [linkMenuOpen,  setLinkMenuOpen]  = useState(false)
+
+  // ── Variable picker ──────────────────────────────────────────────────────
+  // Authors should never have to type mustache. The catalog is fetched, not
+  // hardcoded: the same list drives the resolver and the generation prompt, and
+  // a fourth copy here would drift — the editor would keep offering a variable
+  // the resolver stopped handling, and the document ships with raw {{braces}}.
+  //
+  // The endpoint already returns a `syntax` field per variable saying exactly
+  // what to insert, so this does not reimplement the brace rules.
+  const [varMenuOpen, setVarMenuOpen] = useState(false)
+  const { data: varCatalog } = useQuery({
+    queryKey: ['policy-variable-catalog'],
+    queryFn:  () => api.get('/v1/ai/admin/policy-variables').then(r => r.data?.data ?? r.data),
+    staleTime: 30 * 60 * 1000,   // a deploy-time constant, not live data
+  })
+
+  // The list is the RESOLVER's keys, not the catalog's WORKFLOW subset.
+  //
+  // PolicyVariableCatalog.Source describes what the AI should EMIT — company_name
+  // is TENANT because the model is told to write the literal. But a human authoring
+  // a GLOBAL policy must write {{company_name}}, because the platform text is read
+  // by every organisation and the resolver substitutes it per tenant at read time.
+  //
+  // Filtering on source === WORKFLOW therefore hid the single most important
+  // variable, and on this deployment left the menu empty.
+  //
+  // PolicyVariableResolver substitutes these twelve. Kept here rather than derived
+  // from the endpoint because the endpoint groups by a source that means something
+  // else; if the resolver gains a key, add it here too.
+  const RESOLVER_KEYS = [
+    { key: 'company_name',    label: 'Company name',   example: 'Northwind Data Systems' },
+    { key: 'policy_owner',    label: 'Policy owner',   example: 'Head of Security' },
+    { key: 'approver_name',   label: 'Approver',       example: 'Meera Raghavan' },
+    { key: 'approval_date',   label: 'Approval date',  example: '14 March 2026' },
+    { key: 'effective_date',  label: 'Effective date', example: '1 April 2026' },
+    { key: 'next_review_date',label: 'Next review date', example: '1 April 2027' },
+    { key: 'review_cycle',    label: 'Review cycle',   example: 'Annual' },
+    { key: 'policy_title',    label: 'Policy title',   example: 'Access Control Policy' },
+    { key: 'policy_ref',      label: 'Policy reference', example: 'POL-02' },
+    { key: 'policy_version',  label: 'Version',        example: '1.0' },
+  ]
+
+  // Catalog labels/examples when the endpoint answers; the static list otherwise,
+  // so the picker still works if the AI admin endpoint is unavailable to this user.
+  const insertableVars = useMemo(() => {
+    const cats = varCatalog?.categories || {}
+    const meta = {}
+    Object.values(cats).forEach(list => (list || []).forEach(v => { meta[v.key] = v }))
+    return [{
+      category: 'Filled in automatically',
+      vars: RESOLVER_KEYS.map(k => ({
+        key:     k.key,
+        label:   meta[k.key]?.label   || k.label,
+        example: meta[k.key]?.example || k.example,
+        syntax:  `{{${k.key}}}`,   // always mustache — this is the resolver's syntax
+      })),
+    }]
+  }, [varCatalog])
+
+  const insertVariable = (v) => {
+    if (!editor) return
+    editor.chain().focus().insertContent(v.syntax).run()
+    setVarMenuOpen(false)
+  }
   const [aiDraftOpen,   setAiDraftOpen]   = useState(false)
   const [aiPanelOpen,   setAiPanelOpen]   = useState(false)
 
@@ -208,17 +273,26 @@ export default function PolicyEditorPage() {
   // ── Auto-save every 30s ─────────────────────────────────────────────────────
   const doSave = useCallback(async (silent = false) => {
     if (!editor || isReadOnly) return
+    // Guard re-entry. Without it the 30s autosave can fire mid-manual-save and
+    // two PUTs race for the same document, last-write-wins on a body that may be
+    // a keystroke behind.
+    if (saving) return
     const contentBody = editor.getHTML()
+    setSaving(true)
     try {
       await policyApi.update(id, { title: policy.title, contentBody })
-      qc.invalidateQueries({ queryKey: ['policy-editor', id] })
+      // Awaited: the button stays in its saving state until the refetch lands,
+      // rather than releasing the moment the PUT returns.
+      await qc.invalidateQueries({ queryKey: ['policy-editor', id] })
       setLastSaved(new Date())
       setIsDirty(false)
       if (!silent) toast.success('Saved')
     } catch (e) {
       if (!silent) toast.error(e?.response?.data?.message || 'Save failed')
+    } finally {
+      setSaving(false)
     }
-  }, [editor, id, isReadOnly, qc])
+  }, [editor, id, isReadOnly, qc, saving, policy?.title])
 
   useEffect(() => {
     autoSaveRef.current = setInterval(() => {
@@ -334,15 +408,31 @@ export default function PolicyEditorPage() {
           {!isReadOnly && (
             <Button
               size="sm" variant="secondary" icon={Save}
+              loading={saving} loadingText="Saving…"
+              // Disabled when there is nothing to save. The button previously
+              // looked identical before and after a save, so the only signal that
+              // anything happened was a toast that disappears — and clicking again
+              // sent an identical PUT.
+              disabled={!isDirty && !saving}
               onClick={() => doSave(false)}
             >
-              Save draft
+              {isDirty || saving ? 'Save draft' : 'Saved'}
             </Button>
           )}
         </div>
       }
     >
-      <div className="flex flex-1 min-h-0">
+      {/* h-full, not flex-1.
+
+          PageLayout puts its children inside <div className="flex-1
+          overflow-y-auto">, which is a BLOCK. flex-1 on a child of a block does
+          nothing, so this row had auto height, grew to fit the document, and
+          PageLayout scrolled the whole thing — toolbar and side rails included.
+          That is why the rail scrolled away with the content.
+
+          h-full pins the row to the scroller's own height, so nothing overflows
+          it and each column scrolls internally instead. */}
+      <div className="flex h-full min-h-0 overflow-hidden">
 
         {/* ── Editor area ── */}
         <div className="flex-1 flex flex-col min-h-0 min-w-0">
@@ -375,6 +465,14 @@ export default function PolicyEditorPage() {
               <ToolSep />
               <ToolBtn icon={Table}         title="Insert table"    onClick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} />
               <ToolBtn icon={Minus}         title="Horizontal rule" onClick={() => editor?.chain().focus().setHorizontalRule().run()} />
+              <ToolSep />
+              {/* Insert variable — placed before Link because it is the one
+                  authors are most likely to need and least likely to know exists. */}
+              <div className="relative">
+                <ToolBtn icon={Braces} title="Insert variable"
+                  active={varMenuOpen}
+                  onClick={() => setVarMenuOpen(o => !o)} />
+              </div>
               <ToolSep />
               {/* Link insert */}
               <div className="relative">
@@ -461,6 +559,48 @@ export default function PolicyEditorPage() {
             <span>{policy.policyRef || policy.id}</span>
           </div>
         </div>
+
+        {/* ── Variable rail ──
+
+            Sibling of the editor area, not a child of the scrolling canvas — the
+            same place the history and AI panels live. Nested inside the canvas it
+            scrolled away with the document, which defeats the point: variables are
+            consulted WHILE writing, so the list has to stay put.
+
+            min-h-0 on the parent row is what lets this scroll independently rather
+            than stretching the page. */}
+        {varMenuOpen && !isReadOnly && (
+          <div className="w-72 shrink-0 border-l border-border flex flex-col">
+            <div className="px-4 py-3 border-b border-border shrink-0 flex items-center justify-between">
+              <p className="text-xs font-semibold text-text-secondary">Insert variable</p>
+              <button onClick={() => setVarMenuOpen(false)}
+                className="text-text-muted hover:text-text-primary text-xs leading-none p-1"
+                title="Close">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3">
+              <p className="text-[10px] text-text-muted leading-snug mb-3">
+                Filled in automatically when the policy is read. Use these instead of
+                typing a company or person name — a platform policy is read by every
+                organisation, and a name typed here appears in all of them.
+              </p>
+              {insertableVars.map(group => (
+                <div key={group.category}>
+                  {group.vars.map(v => (
+                    <button key={v.key} onClick={() => insertVariable(v)}
+                      className="w-full text-left px-2 py-2 rounded hover:bg-surface-overlay
+                                 border border-transparent hover:border-border mb-0.5">
+                      <span className="block text-xs text-text-primary">{v.label}</span>
+                      <span className="block text-[10px] font-mono text-text-muted">{v.syntax}</span>
+                      {v.example && (
+                        <span className="block text-[10px] text-text-muted mt-0.5">e.g. {v.example}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── AI panel ── */}
         {aiPanelOpen && policy?.id && (

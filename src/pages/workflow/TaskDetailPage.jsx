@@ -181,6 +181,23 @@ function resolveTaskRoute(task, navItems) {
     const vendorRoute = resolveVendorAssessmentRoute(task)
     if (vendorRoute) return vendorRoute.replace(':id', task.artifactId) + qp
   }
+
+  // Entity fallback — kept in step with TaskInbox.
+  //
+  // This copy had navKey and VENDOR only, so any task whose navKey lookup
+  // missed was a dead end here even when the inbox could route it. AUDIT_POLICY
+  // was missing from the inbox map too, which is why policy tasks opened
+  // nowhere from either surface while issue tasks worked — ISSUE was in the
+  // inbox's map and never needed the nav lookup to succeed.
+  const ENTITY_ROUTES = {
+    AUDIT_PROJECT:    '/module/audit_project/:id',
+    AUDIT_ENGAGEMENT: '/module/audit_engagement/:id',
+    AUDIT_POLICY:     '/module/audit_policy/:id',
+    ISSUE:            '/module/issue/:id',
+  }
+  const fallbackRoute = ENTITY_ROUTES[task.entityType]
+  if (fallbackRoute) return fallbackRoute.replace(':id', task.artifactId) + qp
+
   return null
 }
 

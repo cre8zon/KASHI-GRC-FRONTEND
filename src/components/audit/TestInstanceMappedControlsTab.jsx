@@ -39,7 +39,11 @@ function CtrlResultBadge({ result }) {
 export function TestInstanceMappedControlsTab({ testInstanceId, testResult, vc = {} }) {
   const navigate  = useNavigate()
   const qc        = useQueryClient()
+  // Same standing rule as ControlInstanceTestsTab — cascading a result to every
+  // mapped control is the same act, reached from the test side instead of the
+  // control side, so it cannot be a weaker gate.
   const canRecord = (vc.permissions||[]).includes('audit:control:record-test-result')
+    && (vc.canAct === true || vc.canOverride === true)
 
   const { data, isLoading } = useQuery({
     queryKey: ['test-inst-controls', testInstanceId],

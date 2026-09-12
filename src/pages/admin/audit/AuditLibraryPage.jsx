@@ -563,9 +563,27 @@ function ControlForm({ initial, onSubmit, loading }) {
           Evidence guidance
           <span className="ml-1 text-text-muted font-normal">(what the auditor should ask for)</span>
         </label>
+        {/* Normalise on blur.
+
+            Guidance pasted from Word or a rendered list arrives as one run-on
+            line — "1. Context Document2. SWOT Analysis3. ..." — and a plain
+            textarea gives no hint that it will render as a SINGLE bullet.
+            Splitting numbered runs back onto their own lines on blur means the
+            author sees what was actually stored, before they save. */}
         <textarea value={form.evidenceGuidance} onChange={e => set('evidenceGuidance', e.target.value)} rows={3}
+          onBlur={e => set('evidenceGuidance', normaliseGuidance(e.target.value))}
           placeholder={'e.g. Screenshot of MFA enforcement policy\nUser access review sign-off for the period\nExport of privileged accounts'}
           className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+        {(() => {
+          const n = guidanceItemCount(form.evidenceGuidance)
+          if (!n) return null
+          return (
+            <p className="text-[10px] text-brand-ink mt-1">
+              {n} {n === 1 ? 'item' : 'items'} will be shown to the auditee and auditor.
+              {n === 1 && ' — if you meant several, put each on its own line.'}
+            </p>
+          )
+        })()}
         <p className="text-[10px] text-text-muted mt-1">
           One item per line. Snapshotted into every control instance when an engagement is created,
           so later edits do not change engagements already under way.
@@ -3816,6 +3834,25 @@ function AuditProjectsLibraryTab({ onOpen }) {
   )
 }
 
+
+/** Put numbered runs back onto their own lines. Mirrors parseGuidanceItems in
+ *  ControlInstanceEvidenceTab so authoring and display always agree. */
+function normaliseGuidance(raw) {
+  if (!raw) return raw
+  return String(raw).split(/\r?\n/).flatMap(line => {
+    const t = line.trim()
+    if (!t) return []
+    const markers = t.match(/\d+[.)]\s*/g) || []
+    return markers.length >= 2
+      ? t.split(/(?=\d+[.)]\s)/).map(p => p.trim()).filter(Boolean)
+      : [t]
+  }).join('\n')
+}
+
+function guidanceItemCount(raw) {
+  if (!raw) return 0
+  return String(raw).split(/\r?\n/).map(l => l.trim()).filter(Boolean).length
+}
 export default function AuditLibraryPage({ defaultTab = 'projects' }) {
   const auth = useSelector(selectAuth)
   const { data: auditLibConfig } = useScreenConfig('audit_library')
