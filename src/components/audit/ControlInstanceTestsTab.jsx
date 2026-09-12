@@ -91,7 +91,26 @@ function ResultPicker({ current, onSelect, saving }) {
 export function ControlInstanceTestsTab({ controlInstanceId, vc = {} }) {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  // Permission AND standing on this step: either you hold the task, or you are
+  // on the right side with override rights.
+  //
+  // The permission alone was the whole gate, so every ORG_ADMIN saw the result
+  // picker on every control in every engagement — including ones where Evidence
+  // Review had not been reached and nobody was assigned to test anything.
+  // Recording a result is a workflow act, not a role capability.
+  //
+  // canOverride is accepted because it is SIDE-SCOPED, not blanket:
+  //   canOverride = hasPerm && (stepSide == null || stepSide == SYSTEM
+  //                             || userSides contains stepSide)
+  // An ORGANIZATION admin on an AUDITOR step fails sideOk and still sees
+  // nothing, which is the case that prompted this. Dropping canOverride instead
+  // would have removed a legitimate escape hatch to fix a problem the side check
+  // already handles.
+  //
+  // Caveat: a step with stepSide = null passes sideOk for anyone holding the
+  // permission. That is a blueprint data gap, not a gate to close here.
   const canRecord = (vc.permissions||[]).includes('audit:control:record-test-result')
+    && (vc.canAct === true || vc.canOverride === true)
 
   const { data, isLoading } = useQuery({
     queryKey: ['ctrl-inst-tests', controlInstanceId],

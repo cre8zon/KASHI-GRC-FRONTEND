@@ -118,6 +118,7 @@ function resolveTaskRoute(task, navItems) {
   const ENTITY_ROUTES = {
     AUDIT_PROJECT:    '/module/audit_project/:id',
     AUDIT_ENGAGEMENT: '/module/audit_engagement/:id',
+    AUDIT_POLICY:     '/module/audit_policy/:id',
     ISSUE:            '/module/issue/:id',
   }
   const fallbackRoute = ENTITY_ROUTES[task.entityType]

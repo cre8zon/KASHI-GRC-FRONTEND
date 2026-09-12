@@ -648,7 +648,16 @@ export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, o
   })
 
   const perms              = vc.permissions || []
+  // stepAction describes the step the ENGAGEMENT is on — not whether THIS user
+  // has standing on it. On an ASSIGN step every viewer got stepAction='ASSIGN'
+  // and therefore the auditee pickers, whether or not the work was theirs.
+  //
+  // canAct = holds the live task. canOverride = right side + override rights,
+  // and is side-scoped, so an ORGANIZATION admin looking at an AUDITOR assign
+  // step fails sideOk and sees nothing — the case that prompted this.
+  const hasStanding        = vc.canAct === true || vc.canOverride === true
   const isAssignStep       = (vc.stepAction || '').toUpperCase() === 'ASSIGN'
+                             && hasStanding
   const canAssignAuditor     = isAssignStep && perms.includes('audit:section:assign-auditor')
   const canAssignAuditee     = isAssignStep && perms.includes('audit:section:assign-auditee')
   const canAssignCtrlAuditee = isAssignStep && perms.includes('audit:control:assign-auditee')
