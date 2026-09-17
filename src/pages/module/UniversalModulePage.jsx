@@ -85,6 +85,7 @@ import { commentsApi } from '../../api/comments.api'
 import { useSelector, useDispatch } from 'react-redux'
 import { selectActiveTabId, saveSubTab, selectActiveSubTab } from '../../store/slices/tabsSlice'
 import { selectAuth, selectRoleSides } from '../../store/slices/authSlice'
+import { previousEntry } from '../../components/layout/navTrail'
 import { parseRoleAccessJson, isTabAllowed, isActionAllowed } from '../../components/screen-designer/roleAccessJson'
 // ── v2 additions ─────────────────────────────────────────────────────────────
 import EntityTreeView          from '../../components/module/EntityTreeView'
@@ -2092,8 +2093,24 @@ function ModuleDetailView({ bp, id }) {
 
   // Navigate to parent entity preserving task context
   const navigateToParent = () => {
-    if (breadcrumbParentId && breadcrumbParentNavKey) {
-      navigate(`/module/${breadcrumbParentNavKey}/${breadcrumbParentId}${buildTaskParams()}`)
+    const parentPath = (breadcrumbParentId && breadcrumbParentNavKey)
+      ? `/module/${breadcrumbParentNavKey}/${breadcrumbParentId}`
+      : null
+
+    // If Back would land on exactly the page we are about to push, POP instead.
+    // Pushing built a FRESH entry: no ?tab= in the URL (so the parent opened on
+    // its default tab) and a new location.key with no saved scroll offset (so
+    // the list opened at the top). A POP reuses the original entry and gets both
+    // back. The push is still the fallback, because history may hold nothing -
+    // opened from a notification, a bookmark or a new tab.
+    const prev = previousEntry()
+    if (prev && (!parentPath || prev.pathname === parentPath)) {
+      navigate(-1)
+      return
+    }
+
+    if (parentPath) {
+      navigate(`${parentPath}${buildTaskParams()}`)
     } else {
       navigate(-1)
     }

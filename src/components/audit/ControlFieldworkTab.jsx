@@ -27,6 +27,8 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'
+import { selectRoleSides } from '../../store/slices/authSlice'
 import {
   CheckCircle2, XCircle, AlertTriangle, MinusCircle, FileText, FlaskConical,
   Zap, ChevronDown, ChevronRight, ExternalLink, Loader2, Users, Save,
@@ -169,6 +171,54 @@ function SnapshotBlock({ icon: Icon, label, body }) {
   )
 }
 
+
+/**
+ * Policy content is HTML (TipTap), and SnapshotBlock renders its body as TEXT —
+ * which is why the row showed raw <h1>/<p>/&nbsp; markup. Rendered here with the
+ * same .policy-content styles the Policies tab uses, scaled down for a row and
+ * clamped: a full policy is longer than everything else in the row combined.
+ */
+function PolicySnapshot({ body }) {
+  const [expanded, setExpanded] = useState(false)
+  if (!body) return null
+
+  return (
+    <div className="rounded-ctl border border-border/50 bg-surface-overlay/30 px-2.5 py-2">
+      <div className="flex items-center gap-1.5 mb-1">
+        <FileText size={9} className="text-text-muted shrink-0" />
+        <span className="text-[9px] font-semibold uppercase tracking-wide text-text-muted">
+          Policy content
+        </span>
+      </div>
+
+      <div className="relative">
+        <div
+          className={cn(
+            'policy-content text-[11px] text-text-secondary leading-relaxed',
+            '[&_h1]:text-[13px] [&_h1]:mt-2 [&_h1]:mb-1 [&_h1]:pb-1',
+            '[&_h2]:text-[12px] [&_h2]:mt-2 [&_h2]:mb-1',
+            '[&_h3]:text-[11px] [&_h3]:mt-1.5 [&_h3]:mb-0.5',
+            '[&_p]:text-[11px] [&_p]:my-1 [&_li]:text-[11px]',
+            !expanded && 'max-h-40 overflow-hidden'
+          )}
+          dangerouslySetInnerHTML={{ __html: body }}
+        />
+        {!expanded && (
+          <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t
+                          from-surface-overlay to-transparent pointer-events-none" />
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setExpanded(v => !v)}
+        className="mt-1 text-[10px] text-brand-ink hover:underline">
+        {expanded ? 'Show less' : 'Show full policy'}
+      </button>
+    </div>
+  )
+}
+
 function RowShell({ open, onToggle, badge, children, header, disabled }) {
   return (
     <div className={cn(
@@ -305,6 +355,19 @@ function TestRow({ row, controlInstanceId, open, onToggle, onSaveNext, canRecord
               emptyLabel="No work papers attached yet"
             />
           </Field>
+
+          {/* Evidence gate: the server refuses a PASS with nothing attached, so
+              say it here rather than letting the auditor find out via a 400. */}
+          {canRecord && row?.hasEvidence === false && (
+            <div className="rounded-card border border-amber-500/30 bg-amber-500/5 px-3 py-2 flex items-start gap-2">
+              <Info size={12} className="shrink-0 mt-0.5 text-amber-500" />
+              <p className="text-[11px] leading-relaxed text-text-secondary">
+                <span className="font-medium text-text-primary">No evidence attached.</span>{' '}
+                Upload a work paper above, or attach evidence on the control, before
+                recording a pass.
+              </p>
+            </div>
+          )}
 
           {canRecord ? (
             <>
@@ -482,7 +545,7 @@ function PolicyRow({ row, controlInstanceId, open, onToggle, onSaveNext, canRevi
       {isLoading ? <ExpandSkeleton /> : (
         <div className="flex flex-col gap-3 max-w-2xl">
 
-          <SnapshotBlock icon={FileText} label="Policy content" body={detail.contentBodySnapshot} />
+          <PolicySnapshot body={detail.contentBodySnapshot} />
           {detail.externalUrlSnapshot && (
             <a href={detail.externalUrlSnapshot} target="_blank" rel="noreferrer"
               className="inline-flex items-center gap-1 text-[10px] text-brand-ink hover:underline w-fit">
@@ -741,6 +804,11 @@ export function ControlFieldworkTab({ controlInstanceId, entity, vc = {} }) {
   const perms       = vc.permissions || []
   const canRecord   = perms.includes('audit:control:record-test-result')
   const canReview   = perms.includes('audit:policy:review') || canRecord
+  // AUDITOR-side users without either write permission (lead auditors, QA
+  // reviewers) still need to SEE fieldwork. Every editor below already gates
+  // on canRecord/canReview, so letting them through renders read-only.
+  const userSides     = useSelector(selectRoleSides)
+  const isAuditorSide = (userSides || []).includes('AUDITOR')
 
   // openKey is 'test:{id}' | 'policy:{id}' | null — one row open at a time.
   const [openKey, setOpenKey] = useState(null)
@@ -800,7 +868,7 @@ export function ControlFieldworkTab({ controlInstanceId, entity, vc = {} }) {
   // so they shouldn't render for someone who holds neither permission even
   // if the tab is reached anyway. Delete this block if you'd rather the
   // layout config be the single source of truth.
-  if (!canRecord && !canReview) {
+  if (!canRecord && !canReview && !isAuditorSide) {
     return (
       <div className="max-w-2xl">
         <div className="rounded-card border border-dashed border-border/60 px-4 py-8 flex flex-col items-center gap-2 text-center">
@@ -841,11 +909,15 @@ export function ControlFieldworkTab({ controlInstanceId, entity, vc = {} }) {
   return (
     <div ref={containerRef} tabIndex={-1} className="flex flex-col gap-3 pb-6 max-w-3xl focus:outline-none">
 
+      {/* canRecordResult is control-level, so every row carries the same value -
+          .every() also yields true for a control with no tests, keeping the old
+          behaviour there. Without this the conclusion bar (Override, Add a note)
+          stayed visible to unassigned auditors whose writes the server rejects. */}
       <ConclusionBar
         controlInstanceId={controlInstanceId}
         control={entity}
         tests={tests}
-        canRecord={canRecord}
+        canRecord={canRecord && tests.every(t => t.canRecordResult !== false)}
       />
 
       {/* Tests */}
@@ -860,12 +932,15 @@ export function ControlFieldworkTab({ controlInstanceId, entity, vc = {} }) {
             <span className="ml-auto text-[9px] text-text-muted hidden sm:inline">j / k to move</span>
           </div>
           <div>
+            {/* canRecord alone is not enough - the server also requires assignment.
+                Without t.canRecordResult the editor rendered for anyone holding the
+                permission and Save failed with TEST_NOT_ASSIGNED. */}
             {tests.map((t, i) => (
               <TestRow
                 key={t.testInstanceId}
                 row={t}
                 controlInstanceId={controlInstanceId}
-                canRecord={canRecord}
+                canRecord={canRecord && t.canRecordResult !== false}
                 open={openKey === `test:${t.testInstanceId}`}
                 onToggle={() => toggle(`test:${t.testInstanceId}`)}
                 onSaveNext={() => advance(`test:${t.testInstanceId}`)}
