@@ -9,11 +9,31 @@
  * Every rule below maps to a Hard Rule in DESIGN.md. If you need a genuine
  * exception (third-party brand colour, print-stable report value), add the
  * file to ALLOWLIST with a reason — never weaken a rule.
+ *
+ * BASELINE — existing debt does not block the build, new debt does.
+ *   tools/design-baseline.json holds how many violations each file has per
+ *   rule today. A file/rule over its baseline count fails the build (that is
+ *   new hardcoded styling); at or under it passes. Counts, not line numbers,
+ *   so editing a file elsewhere does not trip it.
+ *
+ *   node tools/check-design-system.mjs --update-baseline
+ *     rewrites the baseline from the current code. Run it once to adopt the
+ *     baseline, and again after cleaning a file up, so the lower count becomes
+ *     the new ceiling (the guard tells you when that is possible). Never run it
+ *     to make a NEW violation pass.
  */
-import { readFileSync, readdirSync, statSync } from 'fs'
+import { readFileSync, readdirSync, statSync, writeFileSync, existsSync } from 'fs'
 import { join, relative, sep } from 'path'
 
 const SRC = 'src'
+const BASELINE_FILE = 'tools/design-baseline.json'
+// No baseline yet (first run after adopting it): record today's code as the
+// baseline instead of failing on all of it. Every later run compares against it.
+const FIRST_RUN = !existsSync(BASELINE_FILE)
+const UPDATE = FIRST_RUN || process.argv.includes('--update-baseline')
+const baseline = !UPDATE
+  ? JSON.parse(readFileSync(BASELINE_FILE, 'utf8'))
+  : {}
 
 // Genuine exceptions, each justified. Keep this list SHORT.
 const ALLOWLIST = [
@@ -73,7 +93,9 @@ function walk(dir, out = []) {
   return out
 }
 
-let violations = 0
+let violations = 0     // over the baseline — these fail the build
+let known = 0          // within the baseline — existing debt, reported as a count
+const counts = {}      // "file|rule" → count, for --update-baseline and the ratchet hint
 const files = walk(SRC)
 
 for (const file of files) {
@@ -86,22 +108,48 @@ for (const file of files) {
     // structural rules like gradients or radii.
     if (allowed && ['raw-hex', 'palette-classes', 'white-black'].includes(rule.name)) continue
 
+    const hits = []
     const lines = text.split('\n')
     lines.forEach((line, i) => {
       if (/^\s*(\/\/|\*|\/\*)/.test(line)) return   // skip comments
       const m = line.match(rule.re)
-      if (m) {
-        violations++
-        console.error(`✗ ${rel}:${i + 1}  [${rule.name}]  ${m.slice(0, 3).join(', ')}`)
-        console.error(`    ${rule.desc}`)
-      }
+      if (m) hits.push({ line: i + 1, m })
     })
+    if (!hits.length) continue
+
+    const key = `${rel}|${rule.name}`
+    counts[key] = hits.length
+    const allowedCount = baseline[key] || 0
+    if (UPDATE || hits.length <= allowedCount) { known += hits.length; continue }
+
+    // Over the baseline: we cannot tell which lines are the new ones, so list
+    // them all for this file and rule.
+    violations += hits.length - allowedCount
+    console.error(`✗ ${rel}  [${rule.name}]  ${hits.length} found, baseline allows ${allowedCount}`)
+    console.error(`    ${rule.desc}`)
+    for (const h of hits) console.error(`      :${h.line}  ${h.m.slice(0, 3).join(', ')}`)
   }
 }
 
+if (UPDATE) {
+  const sorted = Object.fromEntries(Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)))
+  writeFileSync(BASELINE_FILE, JSON.stringify(sorted, null, 2) + '\n')
+  const total = Object.values(sorted).reduce((a, b) => a + b, 0)
+  console.log(`✓ Baseline written to ${BASELINE_FILE} — ${total} existing violation(s) in ${Object.keys(sorted).length} file/rule pair(s).`)
+  if (FIRST_RUN) console.log('  First run: no baseline existed, so today\'s code was recorded as the baseline. Commit it.')
+  process.exit(0)
+}
+
 if (violations) {
-  console.error(`\n✗ Design-system guard FAILED — ${violations} violation(s).`)
+  console.error(`\n✗ Design-system guard FAILED — ${violations} new violation(s) above the baseline.`)
   console.error('  See DESIGN.md. Use semantic tokens; do not hardcode colours or radii.')
   process.exit(1)
 }
-console.log(`✓ Design-system guard passed — ${files.length} files, 0 hardcoded styles.`)
+
+// Ratchet hint: debt went down somewhere, so the ceiling can come down too.
+const improved = Object.keys(baseline).filter(k => (counts[k] || 0) < baseline[k])
+console.log(`✓ Design-system guard passed — ${files.length} files, no new hardcoded styles`
+  + (known ? ` (${known} existing, in the baseline).` : '.'))
+if (improved.length) {
+  console.log(`  ${improved.length} file/rule pair(s) now below the baseline — run with --update-baseline to lock that in.`)
+}
