@@ -831,12 +831,13 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
     for(const c of controls) for(const d of (Array.isArray(c.delegations)?c.delegations:[])) if(d.assignedTo!=null&&d.assignedTo!==currentUserId) m.set(d.assignedTo,d.assignedToName||`User #${d.assignedTo}`)
     return [...m.entries()].sort((a,b)=>String(a[1]).localeCompare(String(b[1])))
   },[controls,currentUserId])
-  // A control is "mine" for My view when it is delegated to me or by me — open
-  // OR finished. hasMyObligation alone (live items only) dropped a control from
-  // the delegate's list the moment the work was submitted, so "Delegated to me"
-  // could never show the finished ones.
+  // A control is "mine" for My view when it is delegated TO me — open or
+  // finished, so a delegate keeps the work they did after submitting it.
+  // Delegated BY me is deliberately not "mine": handing out (or sending back)
+  // one control turned My view into just that control and hid everything else.
+  // The delegation filter's "Delegated by me" covers that instead.
   const delegationMine = useCallback(c => c.hasMyObligation === true
-    || (Array.isArray(c.delegations) && c.delegations.some(d => d.assignedTo === currentUserId || d.delegatedBy === currentUserId)),
+    || (Array.isArray(c.delegations) && c.delegations.some(d => d.assignedTo === currentUserId)),
     [currentUserId])
   // Default for My View: on when I have anything of my own here.
   const hasOwnControls = useMemo(() => controls.some(c =>
