@@ -1,7 +1,6 @@
 import { useEffect, lazy, Suspense } from 'react'
 import { useDispatch } from 'react-redux'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { ScrollToTop } from './components/ScrollToTop'
 import { useSelector } from 'react-redux'
 import { selectIsAuthenticated, selectRoleSides, validateSession } from './store/slices/authSlice'
 import { useTheme } from './hooks/useTheme'
@@ -177,7 +176,6 @@ export default function App() {
 
   return (
     <>
-      <ScrollToTop />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Public */}

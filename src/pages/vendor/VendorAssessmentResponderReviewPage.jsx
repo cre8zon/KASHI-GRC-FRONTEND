@@ -9,7 +9,7 @@
  * All other logic is unchanged from the original implementation.
  */
 
-import { useState, useEffect, useLayoutEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -215,13 +215,10 @@ export default function VendorAssessmentResponderReviewPage() {
   const userRole = roles?.find(r => r.name || r.roleName)?.name
                 ?? roles?.find(r => r.name || r.roleName)?.roleName ?? ''
 
-  // Scroll to top immediately on mount — before paint, before data loads.
-  // useLayoutEffect fires synchronously after DOM mutations but before the browser
-  // paints, so the user never sees the previous page's scroll position.
-  useLayoutEffect(() => {
-    const el = document.getElementById('main-scroll')
-    if (el) el.scrollTop = 0
-  }, [])
+  // Scroll handling lives in ScrollRestore (TabContent), which resets to the top
+  // on PUSH and restores the saved offset on POP. A local reset here duplicated
+  // the PUSH case and, on Back, set 0 for one frame before ScrollRestore put the
+  // offset back - a visible jump for no gain.
 
   // openWork=1: arrived from action item — let backend decide access
   const isOpenWork     = urlParams.get('openWork') === '1'

@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { RouteSync } from './RouteSync'
 import { ScrollRestore } from './ScrollRestore'
+import { NavTrail } from './navTrail'
 import { TenantSync } from './TenantSync'
 
 export function TabContentRenderer() {
@@ -11,6 +12,7 @@ export function TabContentRenderer() {
     <div className="flex-1 min-h-0 overflow-y-auto" id="main-scroll">
       <RouteSync />
       <ScrollRestore />
+      <NavTrail />
       {/* Wraps Outlet, not a sibling: a route asking for another tenant must not
           render its page until the switch lands, or child queries fire against
           the outgoing tenant and cache their failures. */}

@@ -415,6 +415,9 @@ export function ControlInstanceEvidenceTab({ controlInstanceId, entity, vc = {} 
   const isAuditor   = perms.includes('audit:control:record-test-result')
   // Auditee = can submit but NOT record test result
   const isAuditee   = canSubmit && !isAuditor
+  // Read-only org viewer: neither submits evidence nor records test results.
+  // Without this branch both guides were skipped and the tab rendered bare.
+  const isViewer    = !canSubmit && !isAuditor
 
   // Reused-evidence preview — same drawer EvidenceUploader uses for manual
   // uploads, so a reused link opens identically to a manually attached file
@@ -467,19 +470,19 @@ export function ControlInstanceEvidenceTab({ controlInstanceId, entity, vc = {} 
 
           Same component, same server precedence (control guidance wins, else the
           rolled-up test guidance), so both roles read identical text. */}
-      {isAuditor && <AuditeeGuide controlInstanceId={controlInstanceId} control={entity} auditorView />}
+      {(isAuditor || isViewer) && <AuditeeGuide controlInstanceId={controlInstanceId} control={entity} auditorView />}
 
       {/* ── Auditee evidence ── */}
       <Section
         icon={Paperclip}
-        label={isAuditor ? 'Auditee evidence' : 'Your evidence'}
-        locked={isAuditor}   // auditors see it read-only
+        label={isAuditor || isViewer ? 'Auditee evidence' : 'Your evidence'}
+        locked={isAuditor || isViewer}   // auditors and viewers see it read-only
       >
         <EvidenceUploader
           entityType="AUDIT_CONTROL_INSTANCE"
           entityId={controlInstanceId}
-          canUpload={!isAuditor}   // auditors can't upload here
-          canRemove={!isAuditor}
+          canUpload={isAuditee}   // auditors and viewers can't upload here
+          canRemove={isAuditee}
         />
       </Section>
 

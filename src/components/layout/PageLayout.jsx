@@ -28,8 +28,13 @@ export function PageLayout({ title, subtitle, actions, children, className, onBa
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
       )}
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Content — THE scroll container for every page built on PageLayout.
+          #main-scroll (TabContent) wraps this but never moves, because this div
+          is height-constrained by the h-full/overflow-hidden parent above and
+          takes the overflow itself. ScrollRestore was written assuming
+          #main-scroll scrolled, so it watched an element with nothing to save;
+          the attribute points it at the real one. */}
+      <div className="flex-1 overflow-y-auto" data-scroll-restore="page">
         {children}
       </div>
     </div>

@@ -19,16 +19,21 @@ const schema = z.object({
  */
 export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false)
-  const { register, handleSubmit, getValues, formState: { errors } } = useForm({
+  const { register, handleSubmit, getValues, setError, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { email: '' },
   })
 
   const { mutate, isPending } = useMutation({
     mutationFn: (email) => authApi.requestReset(email),
-    // Always land on the confirmation screen — even on error — to avoid leaking
-    // whether an account exists. Real failures are logged server-side.
-    onSettled: () => setSent(true),
+    // The reset endpoint now 404s on an unknown email (deliberate: this is an
+    // admin portal, not a public signup). onSettled would show the confirmation
+    // panel on top of the error toast, so success and failure are split.
+    onSuccess: () => setSent(true),
+    onError: (err) => setError('email', {
+      type: 'server',
+      message: err?.response?.data?.message || 'No account found with this email address',
+    }),
   })
 
   const onSubmit = ({ email }) => mutate(email)
