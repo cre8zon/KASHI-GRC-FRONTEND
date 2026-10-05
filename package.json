@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "lint:design": "node tools/check-design-system.mjs",
+    "lint:design:baseline": "node tools/check-design-system.mjs --update-baseline",
     "prebuild": "npm run lint:design"
   },
   "dependencies": {
