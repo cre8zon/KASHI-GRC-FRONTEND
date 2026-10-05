@@ -11,6 +11,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { useOpenEntityDrawer } from '../../hooks/useEntityDrawer'
 import {
   CheckSquare, CheckCircle2, XCircle, AlertTriangle, MinusCircle,
   Zap, ChevronRight, Info,
@@ -38,6 +39,9 @@ function CtrlResultBadge({ result }) {
 
 export function TestInstanceMappedControlsTab({ testInstanceId, testResult, vc = {} }) {
   const navigate  = useNavigate()
+  // Opens the record in a drawer over this page (same screen as its full
+  // page, embedded) instead of navigating away from the work in progress.
+  const openDrawer = useOpenEntityDrawer()
   const qc        = useQueryClient()
   // Same standing rule as ControlInstanceTestsTab — cascading a result to every
   // mapped control is the same act, reached from the test side instead of the
@@ -84,7 +88,7 @@ export function TestInstanceMappedControlsTab({ testInstanceId, testResult, vc =
         {controls.map(c => (
           <div key={c.controlInstanceId}
             className="flex items-center gap-2 px-3 py-2.5 border-b border-border/20 hover:bg-surface-overlay/40 group cursor-pointer"
-            onClick={() => navigate(`/module/audit_control_instance/${c.controlInstanceId}`)}>
+            onClick={() => openDrawer('AUDIT_CONTROL_INSTANCE', c.controlInstanceId)}>
             <CheckSquare size={10} className="text-text-muted shrink-0"/>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-0.5">

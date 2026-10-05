@@ -139,7 +139,7 @@ async function generatePDF(engagement, controls = [], findings = [], progress = 
                : c.testResult === 'PARTIALLY_EFFECTIVE' ? 'var(--rpt-warn-bg)' : 'var(--rpt-bg-soft)'
       return `<tr style="background:${i%2===0?'var(--rpt-white)':'var(--rpt-paper)'}">
         <td style="padding:7px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:11px;font-weight:600;color:var(--rpt-ink)">${c.controlCodeSnapshot||c.controlRef||'—'}</td>
-        <td style="padding:7px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:11px">${(c.controlNameSnapshot||c.name||'').replace(/</g,'&lt;')}</td>
+        <td style="padding:7px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:11px">${(c.controlNameSnapshot||c.name||'').replace(/</g,'&lt;')}${c.notTestedReason ? `<div style="font-size:9px;color:var(--rpt-muted);margin-top:2px">Not tested — ${String(c.notTestedReason).replace(/</g,'&lt;')}</div>` : ''}</td>
         <td style="padding:7px 14px;border-bottom:1px solid var(--rpt-bg-soft);font-size:11px;color:var(--rpt-muted)">${c.frameworkRefSnapshot||c.frameworkRef||'—'}</td>
         <td style="padding:7px 14px;border-bottom:1px solid var(--rpt-bg-soft);text-align:center">
           <span style="padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;background:${rb};color:${rc}">
@@ -587,8 +587,15 @@ export default function AuditReportPage() {
                         <span className="text-[10px] font-mono text-text-muted shrink-0">
                           {ctrl.controlCodeSnapshot || ctrl.controlRefSnapshot || `#${ctrl.id}`}
                         </span>
-                        <span className="text-xs text-text-primary truncate">
-                          {ctrl.controlNameSnapshot || ctrl.nameSnapshot || '—'}
+                        <span className="min-w-0">
+                          <span className="block text-xs text-text-primary truncate">
+                            {ctrl.controlNameSnapshot || ctrl.nameSnapshot || '—'}
+                          </span>
+                          {ctrl.notTestedReason && (
+                            <span className="block text-[10px] text-text-muted truncate" title={ctrl.notTestedReason}>
+                              Not tested — {ctrl.notTestedReason}
+                            </span>
+                          )}
                         </span>
                       </div>
                       <ResultChip result={ctrl.testResult} />

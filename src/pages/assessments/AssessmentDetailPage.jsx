@@ -54,6 +54,7 @@
  *   All roles see findings. Resolve action gated by canResolve flag from backend.
  */
 
+import { resolveTaskRoute } from '../../lib/inboxRoute'
 import { useState, useMemo }   from 'react'
 import { usePersistedTab, usePersistedTabReset } from '../../hooks/usePersistedTab'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -187,15 +188,15 @@ function useMyActiveTask(assessmentId, vendorId) {
 
       // Build URL exactly the same way TaskInbox does:
       // navKey → look up route template from navItems DB → replace :id → append taskId params
-      const qp = `?taskId=${task.id}&stepInstanceId=${task.stepInstanceId}`
-      if (task.navKey) {
+      // The SAME resolver TaskInbox and the action items page use. This was a
+      // third hand-rolled copy of it, and the copies had already drifted: this
+      // one concatenated the query string, so a nav row carrying ?tab= turned
+      // taskId into part of the tab value and the task opened without its task.
+      const url = resolveTaskRoute(
+        { ...task, artifactId: assessmentId }, navItems)
+      if (url) {
         const nav = navItems.find(n => n.navKey === task.navKey)
-        if (nav?.route) {
-          return {
-            url:   nav.route.replace(':id', assessmentId) + qp,
-            label: nav.label || 'Go to your task',
-          }
-        }
+        return { url, label: nav?.label || 'Go to your task' }
       }
 
       // navKey missing or not in navItems — blueprint misconfiguration, fallback to inbox

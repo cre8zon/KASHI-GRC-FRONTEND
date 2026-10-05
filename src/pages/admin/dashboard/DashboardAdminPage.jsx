@@ -353,8 +353,26 @@ function WidgetEditorModal({ widget, onClose }) {
     sortOrder:              widget?.sortOrder              ?? 0,
     refreshIntervalSeconds: widget?.refreshIntervalSeconds || 300,
     isActive:               widget?.isActive               !== false,
+
+    // ── THE SIX COLUMNS THE DESIGNER COULD NOT SET ──────────────────────
+    // Until now this form did not know these existed, so every widget it
+    // created landed with dashboard_id NULL — belonging to no dashboard and
+    // therefore appearing nowhere. The editor was quietly producing dead rows.
+    dashboardId:            widget?.dashboardId            || '',
+    valueFormat:            widget?.valueFormat            || 'NUMBER',
+    thresholdsJson:         widget?.thresholdsJson         || '',
+    filtersJson:            widget?.filtersJson            || '',
+    drillThroughJson:       widget?.drillThroughJson       || '',
+    emptyMessage:           widget?.emptyMessage           || '',
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  // Which dashboards this widget could belong to. Required, not optional: a
+  // widget belonging to none renders on none.
+  const { data: dashboards = [] } = useQuery({
+    queryKey: ['dashboards-all'],
+    queryFn:  () => api.get('/v1/dashboards'),
+  })
 
   // Live data test
   const { data: testData, refetch: testFetch, isFetching: testing } = useQuery({
@@ -372,7 +390,21 @@ function WidgetEditorModal({ widget, onClose }) {
   const handleSave = () => {
     if (!form.widgetKey.trim()) { toast.error('Widget key is required'); return }
     if (!form.title.trim())     { toast.error('Title is required'); return }
-    save(form, { onSuccess: onClose })
+    // A widget with no dashboard is invisible everywhere. Refusing beats saving
+    // something that silently never appears.
+    if (!form.dashboardId)      { toast.error('Choose which dashboard this belongs to'); return }
+
+    // Malformed JSON in any of these three is swallowed by a try/catch at
+    // render time and the feature just does nothing, with no clue why. Catch it
+    // here, where there is somebody to tell.
+    for (const [label, val] of [['Thresholds', form.thresholdsJson],
+                                ['Filters', form.filtersJson],
+                                ['Drill-through', form.drillThroughJson]]) {
+      if (val && val.trim()) {
+        try { JSON.parse(val) } catch { toast.error(`${label} is not valid JSON`); return }
+      }
+    }
+    save({ ...form, dashboardId: Number(form.dashboardId) }, { onSuccess: onClose })
   }
 
   const widgetTypeMeta = WIDGET_TYPES.find(t => t.value === form.widgetType)
@@ -415,6 +447,23 @@ function WidgetEditorModal({ widget, onClose }) {
           )}
         </div>
 
+        {/* Which dashboard. First, because it is the one field that decides
+            whether the widget is ever seen, and it had no control at all. */}
+        <Field label="Dashboard">
+          <select value={form.dashboardId} onChange={e => set('dashboardId', e.target.value)}
+            className={INPUT}>
+            <option value="">Choose a dashboard…</option>
+            {dashboards.map(d => (
+              <option key={d.id} value={d.id}>
+                {d.name}{d.entityType ? ` · ${d.entityType}` : ''}{d.platformProvided ? ' (platform)' : ''}
+              </option>
+            ))}
+          </select>
+          <p className="text-[11px] text-text-muted mt-1">
+            A widget belonging to no dashboard appears on none of them.
+          </p>
+        </Field>
+
         {/* Identity */}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Widget key (unique)">
@@ -432,6 +481,75 @@ function WidgetEditorModal({ widget, onClose }) {
           <Field label="Subtitle">
             <input value={form.subtitle} onChange={e => set('subtitle', e.target.value)}
               placeholder="Unresolved · requires action" className={INPUT} />
+          </Field>
+        </div>
+
+        {/* Presentation and behaviour — the remaining new columns. */}
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Value format">
+            <select value={form.valueFormat} onChange={e => set('valueFormat', e.target.value)}
+              className={INPUT}>
+              <option value="NUMBER">Number</option>
+              <option value="PERCENT">Percent</option>
+              <option value="DURATION_HOURS">Duration (hours → 30m, 3.2h, 3d)</option>
+              <option value="CURRENCY">Currency</option>
+              <option value="DATE">Date</option>
+            </select>
+          </Field>
+          <Field label="Empty message">
+            <input value={form.emptyMessage} onChange={e => set('emptyMessage', e.target.value)}
+              placeholder="No incidents recorded." className={INPUT} />
+          </Field>
+        </div>
+
+        <Field label="Thresholds — colour by value">
+          <textarea value={form.thresholdsJson} onChange={e => set('thresholdsJson', e.target.value)}
+            rows={2} spellCheck={false}
+            placeholder='[{"gte": 10, "colorTag": "red"}, {"gte": 1, "colorTag": "amber"}, {"gte": 0, "colorTag": "green"}]'
+            className={INPUT + ' font-mono text-[11px]'} />
+          <p className="text-[11px] text-text-muted mt-1">
+            Evaluated top down, first match wins, so order the rules worst-first. Supports
+            gte, gt, lte, lt and eq. Leave blank to use the flat colour from config.
+            Without this a KPI is the same colour at 0 as at 40, which is the main reason a
+            dashboard stops being read.
+          </p>
+          <div className="flex gap-1.5 mt-1.5 flex-wrap">
+            <button type="button" onClick={() => set('thresholdsJson',
+              '[{"gte": 1, "colorTag": "red"}, {"gte": 0, "colorTag": "green"}]')}
+              className="px-2 py-0.5 text-[10px] rounded-ctl border border-border text-text-muted hover:text-text-primary">
+              Any is bad
+            </button>
+            <button type="button" onClick={() => set('thresholdsJson',
+              '[{"gte": 10, "colorTag": "red"}, {"gte": 1, "colorTag": "amber"}, {"gte": 0, "colorTag": "green"}]')}
+              className="px-2 py-0.5 text-[10px] rounded-ctl border border-border text-text-muted hover:text-text-primary">
+              Graduated
+            </button>
+            <button type="button" onClick={() => set('thresholdsJson',
+              '[{"gte": 90, "colorTag": "green"}, {"gte": 70, "colorTag": "amber"}, {"gte": 0, "colorTag": "red"}]')}
+              className="px-2 py-0.5 text-[10px] rounded-ctl border border-border text-text-muted hover:text-text-primary">
+              Higher is better
+            </button>
+            <button type="button" onClick={() => set('thresholdsJson', '')}
+              className="px-2 py-0.5 text-[10px] rounded-ctl border border-border text-text-muted hover:text-text-primary">
+              Clear
+            </button>
+          </div>
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Filters sent to the endpoint">
+            <input value={form.filtersJson} onChange={e => set('filtersJson', e.target.value)}
+              placeholder='{"severity": "CRITICAL"}' className={INPUT + ' font-mono text-[11px]'} />
+            <p className="text-[11px] text-text-muted mt-1">
+              Lets two widgets share one endpoint at different scopes.
+            </p>
+          </Field>
+          <Field label="Drill-through filters">
+            <input value={form.drillThroughJson} onChange={e => set('drillThroughJson', e.target.value)}
+              placeholder='{"status": "{clicked}"}' className={INPUT + ' font-mono text-[11px]'} />
+            <p className="text-[11px] text-text-muted mt-1">
+              Carried onto the click-through route. {'{clicked}'} becomes the slice clicked.
+            </p>
           </Field>
         </div>
 

@@ -10,6 +10,7 @@ import { ROLE_SIDES } from './config/constants'
 // Layout — NOT lazy: needed immediately on every page
 import { AppShell } from './components/layout/AppShell'
 import { ThemeProvider } from './providers/ThemeProvider'
+import { CallDock } from './components/collab/call/CallDock'
 
 // ── Lazy page imports — each page only loads when its route is first visited ──
 // This eliminates the 280+ JS requests on cold load by splitting into chunks.
@@ -23,6 +24,7 @@ const PasswordChangedPage     = lazy(() => import('./pages/auth/PasswordChangedP
 
 // Core — high-traffic pages, loaded early
 const DashboardPage     = lazy(() => import('./pages/dashboard/DashboardPage'))
+const TrustCenterPage   = lazy(() => import('./pages/trust/TrustCenterPage'))
 const SettingsPage      = lazy(() => import('./pages/settings/SettingsPage'))
 const WorkflowInboxPage = lazy(() => import('./pages/workflow/WorkflowInboxPage'))
 const AllTasksPage      = lazy(() => import('./pages/workflow/AllTasksPage'))
@@ -82,6 +84,15 @@ const WorkflowBlueprintDesigner = lazy(() => import('./pages/admin/workflows/Wor
 const EmailTemplateManagerPage   = lazy(() => import('./pages/admin/email-templates/EmailTemplateManagerPage'))
 const ExternalAuditorsPage       = lazy(() => import('./pages/auditor/ExternalAuditorsPage'))
 const FirmClientsPage            = lazy(() => import('./pages/auditor/FirmClientsPage'))
+// Collaboration — workspaces shared with an audit firm (phase 1)
+const CollabWorkspacesPage       = lazy(() => import('./pages/collaboration/WorkspacesPage'))
+const CollabWorkspaceDetailPage  = lazy(() => import('./pages/collaboration/WorkspaceDetailPage'))
+const CollabMyWeekPage           = lazy(() => import('./pages/collaboration/MyWeekPage'))
+const CollabMeetingsPage         = lazy(() => import('./pages/collaboration/MeetingsPage'))
+const CollabMeetingPage          = lazy(() => import('./pages/collaboration/MeetingPage'))
+const CollabRoomPage             = lazy(() => import('./pages/collaboration/RoomPage'))
+// Internal chat — the organisation's own staff
+const ChatPage                   = lazy(() => import('./pages/chat/ChatPage'))
 const TenantListPage             = lazy(() => import('./pages/admin/tenants/TenantListPage'))
 const CreateTenantPage           = lazy(() => import('./pages/admin/tenants/CreateTenantPage'))
 const TenantSuccessPage          = lazy(() => import('./pages/admin/tenants/TenantSuccessPage'))
@@ -162,6 +173,8 @@ function AppShellWithTheme() {
   return (
     <ThemeProvider>
       <AppShell />
+      {/* In-app call window (Collaboration) — floats over every page while a call runs */}
+      <CallDock />
     </ThemeProvider>
   )
 }
@@ -194,11 +207,28 @@ export default function App() {
           {/* Protected AppShell */}
           <Route element={<RequireAuth><AppShellWithTheme /></RequireAuth>}>
             <Route path="/dashboard"      element={<DashboardPage />} />
+            {/* Every dashboard — global, per-module and personal — is a row in
+                `dashboards` distinguished by scope, so one route serves all
+                three. A new dashboard is a database row, not a deploy. */}
+            <Route path="/dashboard/:dashboardKey" element={<DashboardPage />} />
+            {/* The trust page editor. There is exactly ONE per tenant, so it is
+                its own screen rather than a UniversalModulePage list that would
+                always contain a single row. The nav entry seeded in 46 points
+                here; without this line it went nowhere. */}
+            <Route path="/trust-center" element={<TrustCenterPage />} />
             <Route path="/settings"       element={<SettingsPage />} />
             {/* Client side: admit audit firms. Firm side: staff clients. Both
                 behave according to the tenant the token names. */}
             <Route path="/external-auditors" element={<ExternalAuditorsPage />} />
             <Route path="/firm/clients"      element={<FirmClientsPage />} />
+            <Route path="/collaboration/workspaces"     element={<CollabWorkspacesPage />} />
+            <Route path="/collaboration/workspaces/:id" element={<CollabWorkspaceDetailPage />} />
+            <Route path="/collaboration/my-week"        element={<CollabMyWeekPage />} />
+            <Route path="/collaboration/meetings"       element={<CollabMeetingsPage />} />
+            <Route path="/collaboration/meetings/:id"   element={<CollabMeetingPage />} />
+            <Route path="/collaboration/rooms/:id"      element={<CollabRoomPage />} />
+            <Route path="/chat"                         element={<ChatPage />} />
+            <Route path="/chat/:id"                     element={<ChatPage />} />
             <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
             <Route path="/workflow/inbox"         element={<WorkflowInboxPage />} />
             <Route path="/workflow/tasks"          element={<AllTasksPage />} />

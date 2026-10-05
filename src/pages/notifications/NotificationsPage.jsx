@@ -41,7 +41,26 @@ const DEFAULT_TYPE = { icon: Bell, color: 'text-text-muted', label: 'Notificatio
 
 // ── Build navigation URL from notification entity ─────────────────────────────
 function buildNavUrl(notification) {
-  const { entityType, entityId, type } = notification
+  const { entityType, entityId, type, actionUrl } = notification
+
+  // ── THE SENDER'S ANSWER WINS ────────────────────────────────────────────
+  //
+  // notifications.action_url has existed since the table was created and
+  // nothing wrote it, nothing exposed it on the DTO, and nothing read it — so
+  // everything below this line was the only resolution there was, and it is
+  // the fourth copy of route resolution in the product.
+  //
+  // It is also the only one that cannot be right about a question: a
+  // notification about a QUESTION_RESPONSE carries the QUESTION's id and the
+  // route needs the ASSESSMENT's, which is why eleven of the vendor module's
+  // notifications all landed on /action-items. Only something that can read a
+  // question instance can answer that, so now the module that owns the entity
+  // does — see NotificationRouteContributor — and this prefers its answer.
+  //
+  // The switch below stays as the fallback, for rows written before this and
+  // for modules that have not added a contributor yet. That is what makes this
+  // adoptable one module at a time instead of all at once.
+  if (actionUrl) return actionUrl
   // /action-items has no per-item route, so pass the entity as query params and
   // let the page find + highlight the matching card. Without this the user lands
   // on a long list with no indication of which item the notification was about.
@@ -93,7 +112,9 @@ function buildNavUrl(notification) {
   switch (entityType) {
     case 'ACTION_ITEM':           return actionItems()
     case 'QUESTION_RESPONSE':     return actionItems()
-    case 'ASSESSMENT':            return `/assessments/${entityId}`
+    // The module page, not the hardcoded one. A fallback is allowed to be
+    // coarse — it is not allowed to send people to a screen we are retiring.
+    case 'ASSESSMENT':            return withCommentTab(`/module/vendor_assessment/${entityId}`)
     case 'TASK':                  return '/workflow/inbox'
     case 'VENDOR':                return `/tprm/vendors/${entityId}`
     case 'AUDIT_CONTROL_INSTANCE': return withCommentTab(`/module/audit_control_instance/${entityId}`)

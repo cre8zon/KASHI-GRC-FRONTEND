@@ -161,6 +161,19 @@ export const assessmentsApi = {
     list:    (params)           => api.get('/v1/assessments', { params }),
     get:     (id)               => api.get(`/v1/assessments/${id}`),
     review:  (id)               => api.get(`/v1/assessments/${id}/review`),
+
+    /**
+     * Review progress across EVERY reviewer, not just the caller.
+     *
+     * `review` above and `/my-reviewer-sections` are both caller-scoped: they
+     * answer "what am I reviewing". This one walks every section of the
+     * assessment and returns the verdict distribution, the reviewer of record
+     * per section and per question, and any linked Issue.
+     *
+     * Gated server-side on assessment.sections.view_all, so a plain reviewer
+     * gets a 403 — which the Review tab renders as a sentence, not an error.
+     */
+    reviewSummary: (id)         => api.get(`/v1/assessments/${id}/review-summary`),
     submit:  (id, data)         => api.post(`/v1/assessments/${id}/submit`, data),
     respond: (id, data)         => api.post(`/v1/assessments/${id}/responses`, data),
     comment: (responseId, data) => api.post(`/v1/assessments/responses/${responseId}/comments`, data),
@@ -176,6 +189,28 @@ export const assessmentsApi = {
     cancel: (id, remarks) =>
       api.patch(`/v1/assessments/${id}/cancel`, null,
         remarks ? { params: { remarks } } : undefined),
+
+    /**
+     * Assignable users for the step behind a workflow task.
+     *
+     * The assessment-keyed assignableUsers and assignmentConstraint that used
+     * to sit here are GONE, with their endpoints. They resolved the answer a
+     * different way from the server-side enforcement behind them — missing the
+     * mode where a step declares no assignable side and eligible-users derives
+     * who is assignable from the NEXT step's actor roles — so they listed
+     * people the server then refused.
+     *
+     * Anything holding a stepInstanceId should call the platform endpoint
+     * directly instead:
+     *     GET /v1/workflow-instances/steps/{stepInstanceId}/eligible-users
+     * which is what components/vendor and the fill/assign pages now do.
+     *
+     * This one remains only for callers that hold a taskId and no step id.
+     * It resolves task -> step instance and runs the identical resolution.
+     * Returns a plain array, not a paginated envelope.
+     */
+    assignableUsersForTask: (taskId) =>
+      api.get(`/v1/workflows/tasks/${taskId}/assignable-users`),
 
     // ── Step 4: CISO assigns section to Responder ──────────────
     assignSection: (assessmentId, sectionInstanceId, userId) =>
@@ -237,6 +272,17 @@ export const assessmentsApi = {
     contributorSectionStatus: (assessmentId, taskId) =>
       api.get(`/v1/assessments/${assessmentId}/contributor-section-status`,
               { params: { taskId } }),
+
+    // ── The org-side mirror of the two above ────────────────────────────
+    // ReviewController's assistantSubmitSection says in its own @Operation
+    // that it "mirrors contributorSubmitSection exactly", and the status
+    // endpoint mirrors contributor-section-status. Both have existed all
+    // along with nothing calling them from the module page.
+    assistantSubmitSection: (assessmentId, sectionInstanceId, taskId) =>
+      api.post(`/v1/assessments/${assessmentId}/sections/${sectionInstanceId}/assistant-submit`,
+               null, { params: taskId ? { taskId } : {} }),
+    assistantSectionStatus: (assessmentId) =>
+      api.get(`/v1/assessments/${assessmentId}/assistant-section-status`),
     // Kept for backward compat — no longer used for step 4
     markSectionComplete: (id, taskId) =>
       api.post(`/v1/assessments/${id}/mark-section-complete`, null, { params: { taskId } }),
@@ -295,6 +341,76 @@ export const assessmentsApi = {
       api.post(`/v1/assessments/${id}/ciso-approve`, null, { params: { taskId } }),
     assignRiskRating:          (id, taskId, riskRating) =>
       api.post(`/v1/assessments/${id}/risk-rating`, null, { params: { taskId, riskRating } }),
+
+    /**
+     * Reviewer validates a vendor remediation.
+     *
+     * NOT the generic PATCH /v1/action-items/{id}/status. This endpoint also
+     * decrements openRemediationCount and triggers the next report version when
+     * it reaches zero; the generic PATCH does neither, which is why the two
+     * DetailPage surfaces that use it leave the count drifting.
+     */
+    /**
+     * Reviewer raises a remediation against one question.
+     *
+     * Body keys verified against ReviewController.requestRemediation:
+     * description (required, 400 if blank), severity (LOW/MEDIUM/HIGH/CRITICAL,
+     * 400 on anything else), expectedEvidence, dueDate.
+     *
+     * Not a comment. This endpoint also increments the assessment's
+     * openRemediationCount, sets resolutionReservedFor to the reviewer, writes
+     * the navContext the vendor's inbox link is built from, and notifies the
+     * vendor CISO. A REMEDIATION comment does none of that.
+     */
+    requestRemediation:        (assessmentId, questionInstanceId, body) =>
+      api.post(`/v1/assessments/${assessmentId}/questions/${questionInstanceId}/request-remediation`,
+               body),
+
+    validateRemediation:       (assessmentId, actionItemId, note) =>
+      api.post(`/v1/assessments/${assessmentId}/action-items/${actionItemId}/validate-remediation`,
+               note ? { note } : undefined),
+
+    /** Reviewer accepts the risk instead — closes the item with no vendor fix. */
+    acceptRiskOnRemediation:   (assessmentId, actionItemId, note) =>
+      api.post(`/v1/assessments/${assessmentId}/action-items/${actionItemId}/accept-risk`,
+               { note: note || 'Risk accepted by reviewer' }),
+
+    /**
+     * Escalate a remediation into a tracked Issue, the way an audit finding is.
+     *
+     * workflowId is optional and overrides the service's name-ordered
+     * resolution ("Vendor Remediation Lifecycle", then "External Issue
+     * Remediation", then "Issue Remediation Lifecycle"). Pass it to pin a
+     * blueprint per tenant while that choice is still being settled.
+     */
+    escalateToIssue:           (assessmentId, actionItemId, workflowId) =>
+      api.post(`/v1/assessments/${assessmentId}/action-items/${actionItemId}/escalate-to-issue`,
+               workflowId ? { workflowId } : {}),
+
+    // ── REPORT VERSIONS ───────────────────────────────────────────────────
+    //
+    // Every version, newest last, each with documentId, reportVersion,
+    // generatedAt, generatedByName, compliancePct, riskRating,
+    // openRemediationCount, openClarificationCount, triggerEvent and remarks
+    // (ReviewController:832).
+    //
+    // triggerEvent is the field worth reading: 'MANUAL' means somebody pressed
+    // Re-generate, anything else means the platform stamped it — generation
+    // fires on its own from decrementAndMaybeReport the moment the last open
+    // remediation closes. Which is why the header action is "View report"
+    // rather than "Generate report": by the time anyone looks, a version
+    // almost always exists.
+    reports: (assessmentId) =>
+      api.get(`/v1/assessments/${assessmentId}/reports`),
+
+    /**
+     * Stamp a new version from the current scores. Kept for the case the
+     * automatic trigger cannot cover — scores corrected after the last
+     * remediation closed — and deliberately not the primary control.
+     */
+    generateReport: (assessmentId, remarks) =>
+      api.post(`/v1/assessments/${assessmentId}/generate-report`,
+               remarks ? { remarks } : {}),
   },
 
   // ── VENDOR SIDE — RESPONDER → CONTRIBUTOR COMMAND ACTIONS ──────────────────

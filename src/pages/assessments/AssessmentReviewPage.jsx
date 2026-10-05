@@ -44,7 +44,7 @@ import {
 import { assessmentsApi } from '../../api/assessments.api'
 import { reviewApi }      from '../../api/review.api'
 import { workflowsApi }   from '../../api/workflows.api'
-import { usersApi }       from '../../api/users.api'
+import api               from '../../config/axios.config'
 import { actionItemsApi } from '../../api/actionItems.api'
 import { Button }         from '../../components/ui/Button'
 import { Card, CardHeader, CardBody } from '../../components/ui/Card'
@@ -79,11 +79,33 @@ const useMyReviewerSections = (id, taskId, enabled) => useQuery({
   select: (d) => Array.isArray(d) ? d : (d?.data || []),
 })
 
-const useOrgUsers = (search) => useQuery({
-  queryKey: ['org-users-search', search],
-  queryFn:  () => usersApi.list({ take: 20, search: search || undefined, side: 'ORGANIZATION' }),
-  enabled:  (search?.length ?? 0) >= 2,
-  staleTime: 30_000,
+// Assignable users, from the workflow's own answer.
+//
+// Was usersApi.list({ side: 'ORGANIZATION' }) — every org user, because the
+// side was hardcoded here and no role was passed. assertAssignable now
+// enforces the real rule server-side, so an unfiltered picker means a pick
+// gets rejected after the user has made it.
+//
+// Keyed on the TASK because this page's panels hold a taskId and no step id.
+// The endpoint resolves task -> step instance and runs the same resolution as
+// /v1/workflow-instances/steps/{id}/eligible-users, which is what the other
+// two assignment pages call directly. One answer, two ways in.
+const fetchAssignableForTask = (taskId) =>
+  api.get(`/v1/workflows/tasks/${taskId}/assignable-users`)
+    .then(r => (Array.isArray(r) ? r : (r?.data?.data || r?.data || r || [])))
+
+const useOrgUsers = (taskId, search) => useQuery({
+  queryKey: ['assignable-for-task', taskId, search],
+  queryFn:  () => fetchAssignableForTask(taskId),
+  enabled:  !!taskId,
+  staleTime: 60_000,
+  select:   (users) => {
+    const q = (search || '').toLowerCase()
+    if (!q) return users
+    return users.filter(u =>
+      `${u.firstName || ''} ${u.lastName || ''} ${u.fullName || ''} ${u.email || ''}`
+        .toLowerCase().includes(q))
+  },
 })
 
 const useReportVersions = (assessmentId) => useQuery({
@@ -579,11 +601,11 @@ function FlagQuestionModal({ questionInstanceId, assessmentId, onClose }) {
 // questions, pick a person, one round trip. Unlike that one, already-assigned
 // questions stay selectable so reassignment works in bulk too.
 
-function BulkAssignAssistantsBar({ assessmentId, selectedIds, onClear }) {
+function BulkAssignAssistantsBar({ assessmentId, taskId, selectedIds, onClear }) {
   const [search, setSearch] = useState('')
   const [busy,   setBusy]   = useState(false)
-  const { data: usersData } = useOrgUsers(search)
-  const users = usersData?.items || usersData?.data || []
+  const { data: usersData } = useOrgUsers(taskId, search)
+  const users = Array.isArray(usersData) ? usersData : (usersData?.items || usersData?.data || [])
   const qc = useQueryClient()
 
   const assign = (u) => {
@@ -638,11 +660,11 @@ function BulkAssignAssistantsBar({ assessmentId, selectedIds, onClear }) {
 
 // ─── AssignToAssistantInline (updated: uses reviewer-assign-v2) ──────────────
 
-function AssignToAssistantInline({ question, assessmentId, onAssigned }) {
+function AssignToAssistantInline({ question, assessmentId, taskId, onAssigned }) {
   const [search, setSearch] = useState('')
   const [show,   setShow]   = useState(false)
-  const { data: usersData } = useOrgUsers(search)
-  const users = usersData?.items || usersData?.data || []
+  const { data: usersData } = useOrgUsers(taskId, search)
+  const users = Array.isArray(usersData) ? usersData : (usersData?.items || usersData?.data || [])
   const qc = useQueryClient()
 
   const { mutate: assign, isPending } = useMutation({
@@ -848,7 +870,7 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
           {canAct && !sectionSubmitted && (
             <div className="flex items-center gap-3 mt-2 flex-wrap">
               {/* Assign to assistant */}
-              <AssignToAssistantInline question={question} assessmentId={assessmentId}/>
+              <AssignToAssistantInline question={question} assessmentId={assessmentId} taskId={taskId}/>
               {/* Clarify with assistant — only if assistant assigned */}
               {question.reviewerAssignedUserId && (
                 <button onClick={() => setShowClarify(true)}
@@ -952,6 +974,7 @@ function ReviewerSectionAccordion({ section, assessmentId, taskId, evaluations, 
           {!isSubmitted && selectedIds.length > 0 && (
             <BulkAssignAssistantsBar
               assessmentId={assessmentId}
+              taskId={taskId}
               selectedIds={selectedIds}
               onClear={() => setSelectedIds([])}
             />
@@ -1039,8 +1062,8 @@ function AssignReviewersPanel({ assessment, taskId, onDone }) {
   const id = assessment?.assessmentId
   const [assignments, setAssignments] = useState({})
   const [search, setSearch] = useState('')
-  const { data: usersData } = useOrgUsers(search)
-  const users = usersData?.items || usersData?.data || []
+  const { data: usersData } = useOrgUsers(taskId, search)
+  const users = Array.isArray(usersData) ? usersData : (usersData?.items || usersData?.data || [])
   const qc = useQueryClient()
 
   // ── Bulk assignment state ─────────────────────────────────────────────────
@@ -1636,8 +1659,8 @@ function AssignOrgCisoPanel({ assessment, taskId, onDone }) {
   const id = assessment?.assessmentId
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(null)
-  const { data: usersData } = useOrgUsers(search)
-  const users = usersData?.items || usersData?.data || []
+  const { data: usersData } = useOrgUsers(taskId, search)
+  const users = Array.isArray(usersData) ? usersData : (usersData?.items || usersData?.data || [])
   const qc = useQueryClient()
   const { mutate: confirm, isPending } = useMutation({
     mutationFn: () => assessmentsApi.vendor.assignOrgCiso(id, parseInt(taskId)),

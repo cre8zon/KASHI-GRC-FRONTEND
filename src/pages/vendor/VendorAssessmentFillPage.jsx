@@ -35,7 +35,7 @@ import {
   AlertTriangle, Clock, MessageSquare, Paperclip, Shield,
   Edit3, CornerDownLeft} from 'lucide-react'
 import { assessmentsApi } from '../../api/assessments.api'
-import { usersApi }       from '../../api/users.api'
+import api               from '../../config/axios.config'
 import { workflowsApi }   from '../../api/workflows.api'
 import { Button }         from '../../components/ui/Button'
 import { Badge }          from '../../components/ui/Badge'
@@ -136,12 +136,38 @@ const useMyContributorQuestions = (assessmentId, enabled) => useQuery({
   select:   (data) => Array.isArray(data) ? data : (data?.data || []),
 })
 
-// Contributor users for the picker — VENDOR side, filtered by role name
-const useContributorUsers = (search) => useQuery({
-  queryKey: ['contributor-users', search],
-  queryFn:  () => usersApi.list({ take: 20, search: search || undefined, side: 'VENDOR' }),
-  enabled:  (search?.length ?? 0) >= 2,
-  staleTime: 30_000,
+// Assignable users, from the workflow's own answer.
+//
+// Was usersApi.list({ side: … }) — a side hardcoded here in the JSX, with no
+// role, so the picker listed everyone on a side regardless of what the step
+// declares. That is now a live problem rather than a cosmetic one:
+// assertAssignable enforces the same rule server-side, so a pick the workflow
+// does not permit is rejected AFTER the user has chosen it.
+//
+// eligible-users is the platform's own resolution and the one
+// components/vendor uses. It answers three ways: the step's assignable side
+// and role; failing that the NEXT step's actor roles; and with ?side= the step
+// in this workflow that actually assigns that side, wherever it currently sits.
+const fetchEligibleUsers = (stepInstanceId, side) =>
+  api.get(`/v1/workflow-instances/steps/${stepInstanceId}/eligible-users`,
+          side ? { params: { side } } : undefined)
+    .then(r => (Array.isArray(r) ? r : (r?.data?.data || r?.data || r || [])))
+
+// Contributors for the FILL step. Requires stepInstanceId rather than falling
+// back to an unfiltered list: a fallback would silently show everybody exactly
+// when the step could not be resolved, which is the bug being fixed.
+const useContributorUsers = (stepInstanceId, search) => useQuery({
+  queryKey: ['contributor-eligible', stepInstanceId, search],
+  queryFn:  () => fetchEligibleUsers(stepInstanceId, 'VENDOR'),
+  enabled:  !!stepInstanceId,
+  staleTime: 60_000,
+  select:   (users) => {
+    const q = (search || '').toLowerCase()
+    if (!q) return users
+    return users.filter(u =>
+      `${u.firstName || ''} ${u.lastName || ''} ${u.fullName || ''} ${u.email || ''}`
+        .toLowerCase().includes(q))
+  },
 })
 
 function useAssignQuestion(assessmentId) {
@@ -280,10 +306,10 @@ function useSubmitAssessment(assessmentId) {
 // Inline search-and-select for VENDOR_CONTRIBUTOR users.
 // Shows a compact chip when assigned, search box when not.
 
-function ContributorPicker({ value, onChange }) {
+function ContributorPicker({ value, onChange, stepInstanceId }) {
   const [search, setSearch]   = useState('')
   const [open,   setOpen]     = useState(false)
-  const { data: usersData }   = useContributorUsers(search)
+  const { data: usersData }   = useContributorUsers(stepInstanceId, search)
   const users = Array.isArray(usersData) ? usersData : (usersData?.items || [])
 
   if (value) {
@@ -1463,6 +1489,7 @@ export default function VendorAssessmentFillPage() {
                         {batchSet.size} question{batchSet.size > 1 ? 's' : ''} selected
                       </span>
                       <ContributorPicker
+                        stepInstanceId={stepInstanceId}
                         value={null}
                         onChange={(user) => {
                           if (!user) return
@@ -1596,6 +1623,7 @@ export default function VendorAssessmentFillPage() {
                             {/* Individual assign — hidden when section submitted */}
                             {editable && !section.submittedAt && !q.assignedUserId && batchSet.size === 0 ? (
                               <ContributorPicker
+                                stepInstanceId={stepInstanceId}
                                 value={null}
                                 onChange={(user) => user && handleAssignQuestion({
                                   questionInstanceId: q.questionInstanceId,

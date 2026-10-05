@@ -27,6 +27,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { useOpenEntityDrawer } from '../../hooks/useEntityDrawer'
 import { useSelector } from 'react-redux'
 import { selectRoleSides } from '../../store/slices/authSlice'
 import {
@@ -36,6 +37,11 @@ import {
 } from 'lucide-react'
 import api              from '../../config/axios.config'
 import EvidenceUploader from '../ui/EvidenceUploader'
+// The same result / review editors the test and policy screens use — one
+// component, one endpoint, one cache refresh, so Fieldwork and the detail
+// screens always show the same record.
+import { TestResultEditor, invalidateFieldwork } from './TestResultEditor'
+import { PolicyReviewEditor, policyResultCfg }   from './PolicyReviewEditor'
 import { cn }           from '../../lib/cn'
 import toast            from 'react-hot-toast'
 
@@ -259,6 +265,9 @@ function ExpandSkeleton() {
 function TestRow({ row, controlInstanceId, open, onToggle, onSaveNext, canRecord, isLast }) {
   const qc = useQueryClient()
   const navigate = useNavigate()
+  // Opens the record in a drawer over this page (same screen as its full
+  // page, embedded) instead of navigating away from the work in progress.
+  const openDrawer = useOpenEntityDrawer()
   const testInstanceId = row.testInstanceId
 
   // /control-instances/{id}/tests now carries the procedure, guidance, notes and
@@ -267,47 +276,8 @@ function TestRow({ row, controlInstanceId, open, onToggle, onSaveNext, canRecord
   const detail = row
   const isLoading = false
 
-  const [result,    setResult]    = useState(null)
-  const [notes,     setNotes]     = useState(null)
-  const [failure,   setFailure]   = useState(null)
-  const [exception, setException] = useState(null)
-
-  // Seed local draft from the server once the detail lands, without clobbering
-  // edits the user has already made in this session.
-  useEffect(() => {
-    if (!open || isLoading) return
-    setResult(p    => p ?? (detail.testResult || 'NOT_RUN'))
-    setNotes(p     => p ?? (detail.testerNotes ?? ''))
-    setFailure(p   => p ?? (detail.failureDetail ?? ''))
-    setException(p => p ?? (detail.exceptionReason ?? ''))
-  }, [open, isLoading, detail.testResult, detail.testerNotes, detail.failureDetail, detail.exceptionReason])
-
-  const affected = row.affectedControlCount ?? null
-  const cfg      = TR[row.testResult] || TR.NOT_RUN
+  const cfg       = TR[row.testResult] || TR.NOT_RUN
   const automated = row.automationTypeSnapshot === 'AUTOMATED'
-
-  const dirty =
-    result    !== (detail.testResult     || 'NOT_RUN') ||
-    notes     !== (detail.testerNotes    ?? '')        ||
-    failure   !== (detail.failureDetail  ?? '')        ||
-    exception !== (detail.exceptionReason?? '')
-
-  const { mutate: save, isPending } = useMutation({
-    mutationFn: () => api.put(`/v1/audit/test-instances/${testInstanceId}/result`, {
-      testResult:      result,
-      testerNotes:     notes ?? '',
-      failureDetail:   result === 'FAIL'      ? (failure   ?? '') : '',
-      exceptionReason: result === 'EXCEPTION' ? (exception ?? '') : '',
-    }),
-    onSuccess: (res) => {
-      const n = res?.data?.data?.affectedControls ?? res?.data?.affectedControls ?? affected
-      toast.success(n > 1 ? `Result saved — ${n} controls updated` : 'Result saved')
-      qc.invalidateQueries({ queryKey: ['ctrl-inst-tests', controlInstanceId] })
-      qc.invalidateQueries({ queryKey: ['fieldwork-tests', controlInstanceId] })
-      qc.invalidateQueries({ queryKey: ['module-entity'] })
-    },
-    onError: e => toast.error(e?.response?.data?.message || 'Could not save the result'),
-  })
 
   const header = (
     <>
@@ -356,74 +326,14 @@ function TestRow({ row, controlInstanceId, open, onToggle, onSaveNext, canRecord
             />
           </Field>
 
-          {/* Evidence gate: the server refuses a PASS with nothing attached, so
-              say it here rather than letting the auditor find out via a 400. */}
-          {canRecord && row?.hasEvidence === false && (
-            <div className="rounded-card border border-amber-500/30 bg-amber-500/5 px-3 py-2 flex items-start gap-2">
-              <Info size={12} className="shrink-0 mt-0.5 text-amber-500" />
-              <p className="text-[11px] leading-relaxed text-text-secondary">
-                <span className="font-medium text-text-primary">No evidence attached.</span>{' '}
-                Upload a work paper above, or attach evidence on the control, before
-                recording a pass.
-              </p>
-            </div>
-          )}
-
-          {canRecord ? (
-            <>
-              <Field label="Result">
-                <ResultSegmented
-                  options={TEST_RESULTS}
-                  value={result}
-                  onChange={setResult}
-                  disabled={isPending}
-                  hint={affected > 1
-                    ? `Applies to ${affected} controls covered by this test.`
-                    : undefined}
-                />
-              </Field>
-
-              <Field
-                label="Tester notes"
-                hint="Recorded on the test — shared across every control it covers."
-              >
-                <Notes
-                  value={notes}
-                  onChange={setNotes}
-                  disabled={isPending}
-                  placeholder="What you tested, sample size, how you concluded…"
-                />
-              </Field>
-
-              {result === 'FAIL' && (
-                <Field label="Failure detail">
-                  <Notes value={failure} onChange={setFailure} rows={2} disabled={isPending}
-                    placeholder="What failed, and on which items…" />
-                </Field>
-              )}
-              {result === 'EXCEPTION' && (
-                <Field label="Exception reason">
-                  <Notes value={exception} onChange={setException} rows={2} disabled={isPending}
-                    placeholder="Why this is an exception rather than a failure…" />
-                </Field>
-              )}
-
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  disabled={isPending || !dirty}
-                  onClick={() => save()}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1.5 rounded-ctl',
-                    'bg-brand-500/15 text-brand-ink border border-brand-500/30 hover:bg-brand-500/25',
-                    'focus:outline-none focus-visible:ring-1 focus-visible:ring-brand-500',
-                    'disabled:opacity-40 disabled:cursor-not-allowed'
-                  )}
-                >
-                  {isPending ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
-                  Save
-                </button>
-
+          {/* Result, tester notes, failure detail, exception reason — the SAME
+              editor the test's own screen shows (TestResultEditor). */}
+          <TestResultEditor
+            testInstanceId={testInstanceId}
+            test={detail}
+            canRecord={canRecord}
+            renderExtraActions={({ save, dirty, isPending }) => (
+              <>
                 {!isLast && (
                   <button
                     type="button"
@@ -439,24 +349,16 @@ function TestRow({ row, controlInstanceId, open, onToggle, onSaveNext, canRecord
                     <CornerDownRight size={10} />Save and next test
                   </button>
                 )}
-
                 <button
                   type="button"
-                  onClick={() => navigate(`/module/audit_test_instance/${testInstanceId}`)}
+                  onClick={() => openDrawer('AUDIT_TEST_INSTANCE', testInstanceId)}
                   className="ml-auto inline-flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-ink"
                 >
                   Open test<ExternalLink size={9} />
                 </button>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <Field label="Result"><ResultBadge cfg={cfg} /></Field>
-              {detail.testerNotes && (
-                <SnapshotBlock icon={Info} label="Tester notes" body={detail.testerNotes} />
-              )}
-            </div>
-          )}
+              </>
+            )}
+          />
         </div>
       )}
     </RowShell>
@@ -467,55 +369,34 @@ function TestRow({ row, controlInstanceId, open, onToggle, onSaveNext, canRecord
 function PolicyRow({ row, controlInstanceId, open, onToggle, onSaveNext, canReview, isLast }) {
   const qc = useQueryClient()
   const navigate = useNavigate()
+  // Opens the record in a drawer over this page (same screen as its full
+  // page, embedded) instead of navigating away from the work in progress.
+  const openDrawer = useOpenEntityDrawer()
   const policyInstanceId = row.policyInstanceId
 
   // Served entirely from /control-instances/{id}/policies — no detail fetch.
   const detail = row
   const isLoading = false
 
-  const [review,       setReview]       = useState(null)
-  const [auditorNotes, setAuditorNotes] = useState(null)
   const [contribution, setContribution] = useState(null)
 
   useEffect(() => {
     if (!open || isLoading) return
-    setReview(p       => p ?? (detail.reviewResult || 'NOT_APPLICABLE'))
-    setAuditorNotes(p => p ?? (detail.auditorNotes ?? ''))
     setContribution(p => p ?? (row.reviewContribution || 'PENDING'))
-  }, [open, isLoading, detail.reviewResult, detail.auditorNotes, row.reviewContribution])
+  }, [open, isLoading, row.reviewContribution])
 
-  const cfg = PR[row.reviewResult] || PR_FALLBACK
-
-  const { mutate: saveReview, isPending: savingReview } = useMutation({
-    mutationFn: () => api.put(`/v1/audit/policy-instances/${policyInstanceId}/review`, {
-      reviewResult: review,
-      auditorNotes: auditorNotes ?? '',
-    }),
-    onSuccess: () => {
-      toast.success(review === 'INADEQUATE'
-        ? 'Review saved — a policy finding was raised'
-        : 'Review saved')
-      qc.invalidateQueries({ queryKey: ['ctrl-inst-policies', controlInstanceId] })
-      qc.invalidateQueries({ queryKey: ['fieldwork-policies', controlInstanceId] })
-    },
-    onError: e => toast.error(e?.response?.data?.message || 'Could not save the review'),
-  })
+  // Shared config: covers every ReviewResult, including NOT_REVIEWED.
+  const cfg = policyResultCfg(row.reviewResult)
 
   const { mutate: saveContribution, isPending: savingContribution } = useMutation({
     mutationFn: (c) => api.put(
       `/v1/audit/policy-instances/${policyInstanceId}/controls/${controlInstanceId}/contribution`,
       { contribution: c }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['ctrl-inst-policies', controlInstanceId] })
-      qc.invalidateQueries({ queryKey: ['fieldwork-policies', controlInstanceId] })
-    },
+    onSuccess: () => invalidateFieldwork(qc),
     onError: e => toast.error(e?.response?.data?.message || 'Could not save the contribution'),
   })
 
-  const busy = savingReview || savingContribution
-  const reviewDirty =
-    review       !== (detail.reviewResult || 'NOT_APPLICABLE') ||
-    auditorNotes !== (detail.auditorNotes ?? '')
+  const busy = savingContribution
 
   const header = (
     <>
@@ -553,7 +434,7 @@ function PolicyRow({ row, controlInstanceId, open, onToggle, onSaveNext, canRevi
             </a>
           )}
 
-          {canReview ? (
+          {canReview && (
             <>
               <Field
                 label="Contribution to this control"
@@ -580,48 +461,22 @@ function PolicyRow({ row, controlInstanceId, open, onToggle, onSaveNext, canRevi
                 </div>
               </Field>
 
-              <Field
-                label="Policy review result"
-                hint="Recorded on the policy — applies to every control it covers. Inadequate raises a policy finding."
-              >
-                <ResultSegmented
-                  options={POLICY_RESULTS}
-                  value={review}
-                  onChange={setReview}
-                  disabled={busy}
-                />
-              </Field>
+            </>
+          )}
 
-              <Field label="Auditor notes">
-                <Notes
-                  value={auditorNotes}
-                  onChange={setAuditorNotes}
-                  disabled={busy}
-                  placeholder="Whether the policy is current and satisfies the requirement…"
-                />
-              </Field>
-
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  disabled={busy || !reviewDirty}
-                  onClick={() => saveReview()}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1.5 rounded-ctl',
-                    'bg-brand-500/15 text-brand-ink border border-brand-500/30 hover:bg-brand-500/25',
-                    'focus:outline-none focus-visible:ring-1 focus-visible:ring-brand-500',
-                    'disabled:opacity-40 disabled:cursor-not-allowed'
-                  )}
-                >
-                  {savingReview ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
-                  Save review
-                </button>
-
+          {/* Review result + auditor notes — the SAME editor the policy's own
+              screen shows (PolicyReviewEditor). */}
+          <PolicyReviewEditor
+            policyInstanceId={policyInstanceId}
+            policy={detail}
+            canReview={canReview}
+            renderExtraActions={({ save, dirty, isPending }) => (
+              <>
                 {!isLast && (
                   <button
                     type="button"
-                    disabled={busy}
-                    onClick={() => { if (reviewDirty) saveReview(); onSaveNext() }}
+                    disabled={isPending || busy}
+                    onClick={() => { if (dirty) save(); onSaveNext() }}
                     className={cn(
                       'inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1.5 rounded-ctl',
                       'bg-surface border border-border text-text-secondary hover:bg-surface-overlay',
@@ -631,24 +486,16 @@ function PolicyRow({ row, controlInstanceId, open, onToggle, onSaveNext, canRevi
                     <CornerDownRight size={10} />Save and next policy
                   </button>
                 )}
-
                 <button
                   type="button"
-                  onClick={() => navigate(`/module/audit_policy_instance/${policyInstanceId}`)}
+                  onClick={() => openDrawer('AUDIT_POLICY_INSTANCE', policyInstanceId, { tab: 'policy-content' })}
                   className="ml-auto inline-flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-ink"
                 >
                   Open policy<ExternalLink size={9} />
                 </button>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <Field label="Review result"><ResultBadge cfg={cfg} /></Field>
-              {detail.auditorNotes && (
-                <SnapshotBlock icon={Info} label="Auditor notes" body={detail.auditorNotes} />
-              )}
-            </div>
-          )}
+              </>
+            )}
+          />
         </div>
       )}
     </RowShell>
@@ -703,8 +550,9 @@ function ConclusionBar({ controlInstanceId, control, tests, canRecord }) {
     },
     onSuccess: () => {
       toast.success('Control conclusion recorded')
-      qc.invalidateQueries({ queryKey: ['module-entity'] })
-      qc.invalidateQueries({ queryKey: ['fieldwork-tests', controlInstanceId] })
+      // 'module-entity' is not a key anything reads — the control header and
+      // the engagement list never refreshed. Same shared refresh as the rows.
+      invalidateFieldwork(qc)
     },
     onError: e => toast.error(e?.response?.data?.message || 'Could not record the conclusion'),
   })
@@ -909,15 +757,18 @@ export function ControlFieldworkTab({ controlInstanceId, entity, vc = {} }) {
   return (
     <div ref={containerRef} tabIndex={-1} className="flex flex-col gap-3 pb-6 max-w-3xl focus:outline-none">
 
-      {/* canRecordResult is control-level, so every row carries the same value -
-          .every() also yields true for a control with no tests, keeping the old
-          behaviour there. Without this the conclusion bar (Override, Add a note)
-          stayed visible to unassigned auditors whose writes the server rejects. */}
+      {/* The conclusion bar writes the CONTROL's result (PUT
+          /control-instances/{id}/test-result), so it is gated on the control's
+          own server flag. Row canRecordResult is now per TEST — a test mapped to
+          another control you own is yours even when this control is not — so
+          .every() over rows no longer answers the control-level question.
+          Undefined (an older payload) keeps the previous behaviour. */}
       <ConclusionBar
         controlInstanceId={controlInstanceId}
         control={entity}
         tests={tests}
-        canRecord={canRecord && tests.every(t => t.canRecordResult !== false)}
+        canRecord={canRecord && entity?.canRecordResult !== false
+          && (entity?.canRecordResult === true || tests.every(t => t.canRecordResult !== false))}
       />
 
       {/* Tests */}
@@ -967,7 +818,10 @@ export function ControlFieldworkTab({ controlInstanceId, entity, vc = {} }) {
                 key={p.policyInstanceId}
                 row={p}
                 controlInstanceId={controlInstanceId}
-                canReview={canReview}
+                // Same rule as reviewPolicy on the server: a policy is reviewed
+                // by whoever may act on a control it covers, a delegate, or an
+                // override holder — not by anyone holding the permission.
+                canReview={canReview && p.canReviewPolicy !== false}
                 open={openKey === `policy:${p.policyInstanceId}`}
                 onToggle={() => toggle(`policy:${p.policyInstanceId}`)}
                 onSaveNext={() => advance(`policy:${p.policyInstanceId}`)}

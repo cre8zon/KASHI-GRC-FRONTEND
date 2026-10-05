@@ -111,6 +111,9 @@ export function ScrollRestore() {
   const location = useLocation()
   const navType = useNavigationType()      // 'POP' | 'PUSH' | 'REPLACE'
   const frame = useRef(0)
+  // The pathname of the previous entry — to tell a real page change from a
+  // query-string change on the same page (see below).
+  const lastPath = useRef(null)   // null: the first run (load / refresh) still restores
 
   // Save on scroll. One capture-phase listener on document rather than one per
   // element: scroll does not bubble but it does capture, and this way a
@@ -158,6 +161,16 @@ export function ScrollRestore() {
     // REPLACE keeps the same history entry, so there is nothing to restore or
     // reset - and re-running here is what used to cancel an in-flight restore.
     if (navType === 'REPLACE') return
+
+    // Same page, only the query string changed — opening or closing a drawer
+    // (?drawerType=&drawerId=), a list filter, an inline tab. That is not
+    // "arriving somewhere new": leave every container exactly where it is. It
+    // used to reset them all to the top, so opening a control from the middle
+    // of a long list threw the list back to its first row, and closing the
+    // drawer left you there.
+    const samePage = lastPath.current === location.pathname
+    lastPath.current = location.pathname
+    if (samePage) return
 
     if (navType === 'PUSH') {
       containers().forEach(([, el]) => { el.scrollTop = 0 })

@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import { assessmentsApi } from '../../api/assessments.api'
 import { workflowsApi }   from '../../api/workflows.api'
-import { usersApi }       from '../../api/users.api'
+import api               from '../../config/axios.config'
 import { Button }         from '../../components/ui/Button'
 import { Badge }          from '../../components/ui/Badge'
 import { Input }          from '../../components/ui/Input'
@@ -43,11 +43,35 @@ const useAssessment = (id, enabled) => useQuery({
   enabled:  !!id && enabled,
 })
 
-const useVendorUsers = (search) => useQuery({
-  queryKey: ['vendor-users-search', search],
-  queryFn:  () => usersApi.list({ take: 20, search: search || undefined, side: 'VENDOR' }),
-  enabled:  search?.length >= 2,
-  staleTime: 30 * 1000,
+// Assignable users, from the workflow's own answer.
+//
+// Was usersApi.list({ side: … }) — a side hardcoded here in the JSX, with no
+// role, so the picker listed everyone on a side regardless of what the step
+// declares. That is now a live problem rather than a cosmetic one:
+// assertAssignable enforces the same rule server-side, so a pick the workflow
+// does not permit is rejected AFTER the user has chosen it.
+//
+// eligible-users is the platform's own resolution and the one
+// components/vendor uses. It answers three ways: the step's assignable side
+// and role; failing that the NEXT step's actor roles; and with ?side= the step
+// in this workflow that actually assigns that side, wherever it currently sits.
+const fetchEligibleUsers = (stepInstanceId, side) =>
+  api.get(`/v1/workflow-instances/steps/${stepInstanceId}/eligible-users`,
+          side ? { params: { side } } : undefined)
+    .then(r => (Array.isArray(r) ? r : (r?.data?.data || r?.data || r || [])))
+
+const useVendorUsers = (stepInstanceId, search) => useQuery({
+  queryKey: ['vendor-eligible', stepInstanceId, search],
+  queryFn:  () => fetchEligibleUsers(stepInstanceId, 'VENDOR'),
+  enabled:  !!stepInstanceId,
+  staleTime: 60 * 1000,
+  select:   (users) => {
+    const q = (search || '').toLowerCase()
+    if (!q) return users
+    return users.filter(u =>
+      `${u.firstName || ''} ${u.lastName || ''} ${u.fullName || ''} ${u.email || ''}`
+        .toLowerCase().includes(q))
+  },
 })
 
 function useAssignTask() {
@@ -77,11 +101,12 @@ function usePerformAction() {
 
 // ─── User Search Picker ───────────────────────────────────────────────────────
 
-function UserPicker({ label, value, onChange, filterRole }) {
+function UserPicker({ label, value, onChange, filterRole, stepInstanceId }) {
   const [search, setSearch] = useState('')
   const [open, setOpen]     = useState(false)
-  const { data: usersData } = useVendorUsers(search)
-  const users = usersData?.items || []
+  const { data: usersData } = useVendorUsers(stepInstanceId, search)
+  // eligible-users returns a plain array, not a paginated envelope.
+  const users = Array.isArray(usersData) ? usersData : (usersData?.items || [])
 
   const select = (user) => {
     onChange(user)
@@ -186,7 +211,7 @@ function VRMAssignView({ taskId, stepInstanceId, onDone }) {
       <p className="text-sm text-text-secondary">
         Select a CISO or Assessment Manager to handle this vendor assessment.
       </p>
-      <UserPicker label="Assign to" value={selectedUser} onChange={setSelectedUser} />
+      <UserPicker label="Assign to" value={selectedUser} onChange={setSelectedUser} stepInstanceId={stepInstanceId} />
       <div className="flex items-center gap-2">
         <Button variant="primary" onClick={handleDelegate} loading={isPending} disabled={!selectedUser}>
           Delegate
@@ -356,7 +381,7 @@ function CISOAssignView({ assessment, taskId, stepInstanceId, onDone }) {
         {selectedIds.length > 0 && (
           <div className="flex items-end gap-2">
             <div className="flex-1">
-              <UserPicker label="Assign selected to" value={bulkUser} onChange={setBulkUser} />
+              <UserPicker label="Assign selected to" value={bulkUser} onChange={setBulkUser} stepInstanceId={stepInstanceId} />
             </div>
             <Button size="sm" variant="primary"
               onClick={handleBulkAssign}
@@ -406,6 +431,7 @@ function CISOAssignView({ assessment, taskId, stepInstanceId, onDone }) {
                 <div className="flex-1">
                   <UserPicker
                     label=""
+                    stepInstanceId={stepInstanceId}
                     value={assignments[sid] || null}
                     onChange={user => setAssignments(a => ({ ...a, [sid]: user }))}
                   />
@@ -484,6 +510,7 @@ function ResponderAssignView({ assessment, taskId, stepInstanceId, onDone }) {
                 <div className="flex-1">
                   <UserPicker
                     label=""
+                    stepInstanceId={stepInstanceId}
                     value={assignments[q.questionInstanceId] || null}
                     onChange={user => setAssignments(a => ({ ...a, [q.questionInstanceId]: user }))}
                   />

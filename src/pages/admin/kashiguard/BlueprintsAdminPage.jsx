@@ -5,6 +5,7 @@
  * Global blueprints (tenantId=null) shown as read-only for tenant admins.
  * Platform admins can create/edit/delete global ones.
  */
+import { uiAdminApi } from '../../../api/uiConfig.api'
 import { useState }                         from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Pencil, Trash2, Globe, Lock,
@@ -63,6 +64,54 @@ function useDeleteBlueprint() {
 
 // ── Blueprint Form Modal ──────────────────────────────────────────────────────
 
+
+/**
+ * ui_navigation, as a picker.
+ *
+ * The same list the Workflow Blueprint Designer's step form chooses from, and
+ * deliberately the same source: if a task and an action item are going to share
+ * a resolver, they have to share the table they resolve against. Shows the
+ * route under each key, because "org_assessment_review" does not tell you where
+ * somebody lands and "/module/vendor_assessment/:id?tab=review" does.
+ */
+function useNavKeyOptions() {
+  return useQuery({
+    queryKey: ['nav-items-all'],
+    queryFn:  () => uiAdminApi.navigation.list({ skip: 0, take: 500 }),
+    staleTime: 5 * 60 * 1000,
+    select: (data) => {
+      const items = Array.isArray(data) ? data : (data?.items || data?.data || [])
+      return items.filter(n => n.navKey && n.route)
+                  .sort((a, b) => a.navKey.localeCompare(b.navKey))
+    },
+  })
+}
+
+function NavKeySelect({ label, value, onChange }) {
+  const { data: options = [], isLoading } = useNavKeyOptions()
+  const selected = options.find(o => o.navKey === value)
+  return (
+    <div>
+      <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">
+        {label}
+      </label>
+      <select
+        value={value || ''}
+        onChange={e => onChange(e.target.value || null)}
+        className="h-9 w-full appearance-none pl-3 pr-8 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+      >
+        <option value="">{isLoading ? 'Loading…' : 'None — use the module\u2019s own route'}</option>
+        {options.map(o => (
+          <option key={o.navKey} value={o.navKey}>{o.label || o.navKey}</option>
+        ))}
+      </select>
+      <p className="text-[10px] font-mono text-text-muted mt-1 truncate">
+        {selected?.route || '\u2014'}
+      </p>
+    </div>
+  )
+}
+
 function BlueprintModal({ blueprint, onClose }) {
   const isEdit = !!blueprint?.id
   const { mutate: save, isPending } = useSaveBlueprint(blueprint?.id)
@@ -75,6 +124,8 @@ function BlueprintModal({ blueprint, onClose }) {
     defaultPriority:     blueprint?.defaultPriority     || 'MEDIUM',
     standardRef:         blueprint?.standardRef         || '',
     blueprintCode:       blueprint?.blueprintCode       || '',
+    navKey:              blueprint?.navKey              || '',
+    assignerNavKey:      blueprint?.assignerNavKey      || '',
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -149,6 +200,32 @@ function BlueprintModal({ blueprint, onClose }) {
         <Input label="Standard Reference" value={form.standardRef}
           onChange={e => set('standardRef', e.target.value)}
           placeholder="e.g. ISO27001-A.9.4.2, SOC2-CC6.1, GDPR-Art28" />
+
+        {/* ── WHERE AN ITEM FROM THIS BLUEPRINT OPENS ──────────────────────
+            A workflow task gets its destination from the step, set in the
+            Workflow Blueprint Designer. An item raised from this blueprint has
+            no step — so this is where its destination is set, and it is the
+            same ui_navigation table the steps choose from.
+
+            Leave both empty and items fall back to the nav_context the raising
+            code writes, which is how everything behaved before these existed.
+            That is the right setting while a module is mid-migration, not a
+            missing value. */}
+        <div className="pt-3 mt-1 border-t border-border">
+          <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
+            Where it opens
+          </p>
+          <p className="text-[11px] text-text-muted mt-0.5 mb-2">
+            Optional. The screen someone lands on from their inbox. Without it,
+            items fall back to the route the raising module writes.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <NavKeySelect label="Assignee's screen" value={form.navKey}
+              onChange={v => set('navKey', v)} />
+            <NavKeySelect label="Reviewer's screen" value={form.assignerNavKey}
+              onChange={v => set('assignerNavKey', v)} />
+          </div>
+        </div>
       </div>
     </Modal>
   )

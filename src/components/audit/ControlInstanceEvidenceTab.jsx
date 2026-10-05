@@ -61,8 +61,14 @@ const STATUS_CFG = {
   EXPIRED:             { icon: RefreshCw,    color: 'text-text-muted',  bg: 'bg-surface-overlay', label: 'Expired'         },
 }
 
-function StatusBadge({ status }) {
-  const cfg = STATUS_CFG[status] || STATUS_CFG.PENDING_REVIEW
+// A later run of the same integration check replaced this one (EXPIRED with the
+// note EvidenceReuseEngine.SUPERSEDED_NOTE).
+const isSuperseded = (link) => link?.status === 'EXPIRED' && (link.reviewerNote || '').startsWith('Superseded')
+
+function StatusBadge({ status, superseded }) {
+  const cfg = superseded
+    ? { icon: RefreshCw, color: 'text-text-muted', bg: 'bg-surface-overlay', label: 'Superseded' }
+    : STATUS_CFG[status] || STATUS_CFG.PENDING_REVIEW
   const Icon = cfg.icon
   return (
     <span className={cn(
@@ -135,7 +141,10 @@ function AutomatedRow({ link, onAccept, onReject, canReview }) {
           <p className="text-[10px] text-text-muted mt-0.5">{link.automationMessage}</p>
         )}
         <div className="flex items-center gap-2 mt-1.5">
-          <StatusBadge status={link.status} />
+          <StatusBadge status={link.status} superseded={isSuperseded(link)} />
+          {link.status === 'PENDING_REVIEW' && (
+            <span className="text-[9px] text-status-warn-fg">Check failed</span>
+          )}
           {link.collectedAt && (
             <span className="text-[9px] text-text-muted">
               {new Date(link.collectedAt).toLocaleDateString('en-GB', {
@@ -167,10 +176,12 @@ function AutomatedRow({ link, onAccept, onReject, canReview }) {
       {canReview && link.status === 'PENDING_REVIEW' && (
         <div className="flex items-center gap-1 shrink-0 mt-0.5">
           <button onClick={() => onAccept(link.id)}
+            title="Accept this result as evidence for the control (an exception you are documenting) — the control counts as having evidence"
             className="text-[9px] px-2 py-0.5 rounded-ctl bg-status-pass-bg text-status-pass-fg hover:bg-status-pass-bg font-medium">
-            Accept
+            Accept as exception
           </button>
           <button onClick={() => onReject(link.id)}
+            title="Reject: this failed result is not evidence for the control"
             className="text-[9px] px-2 py-0.5 rounded-ctl bg-status-fail-bg text-status-fail-fg hover:bg-status-fail-bg font-medium">
             Reject
           </button>
@@ -419,6 +430,20 @@ export function ControlInstanceEvidenceTab({ controlInstanceId, entity, vc = {} 
   // Without this branch both guides were skipped and the tab rendered bare.
   const isViewer    = !canSubmit && !isAuditor
 
+  // The permission says which SIDE someone is on; it does not say this control
+  // is theirs. entity.canSubmitEvidence / canRecordResult come from the same
+  // server guard that refuses the write (assignee, section owner, delegate,
+  // override). An auditee looking at a colleague's control sees it read-only
+  // instead of an uploader whose submit then fails. Undefined (an older
+  // payload) keeps the previous permission-only behaviour.
+  const auditeeCanWork  = isAuditee && entity?.canSubmitEvidence !== false
+  const auditeeReadOnly = isAuditee && !auditeeCanWork
+  // Accepting or rejecting evidence is the auditor's judgement on THIS control.
+  // Same rule as the server (EvidenceTargetAccess.requireCanReview): whoever may
+  // record this control's result. audit:evidence:review is kept as an extra
+  // grant, but on its own it was never given to anyone, so nobody saw the buttons.
+  const canReviewHere   = (canReview || isAuditor) && entity?.canRecordResult !== false
+
   // Reused-evidence preview — same drawer EvidenceUploader uses for manual
   // uploads, so a reused link opens identically to a manually attached file
   // instead of being plain unclickable text.
@@ -457,7 +482,7 @@ export function ControlInstanceEvidenceTab({ controlInstanceId, entity, vc = {} 
     <div className="flex flex-col gap-3 pb-6 max-w-2xl">
 
       {/* ── Role-specific guide ── */}
-      {isAuditee  && <AuditeeGuide controlInstanceId={controlInstanceId} control={entity} />}
+      {auditeeCanWork && <AuditeeGuide controlInstanceId={controlInstanceId} control={entity} />}
       {isAuditor  && <AuditorGuide />}
 
       {/* ── What was asked for ──
@@ -470,19 +495,26 @@ export function ControlInstanceEvidenceTab({ controlInstanceId, entity, vc = {} 
 
           Same component, same server precedence (control guidance wins, else the
           rolled-up test guidance), so both roles read identical text. */}
-      {(isAuditor || isViewer) && <AuditeeGuide controlInstanceId={controlInstanceId} control={entity} auditorView />}
+      {(isAuditor || isViewer || auditeeReadOnly) && <AuditeeGuide controlInstanceId={controlInstanceId} control={entity} auditorView />}
+
+      {auditeeReadOnly && (
+        <div className="rounded-card border border-border bg-surface-overlay/40 px-3 py-2 text-[10px] text-text-muted leading-relaxed">
+          This control's evidence is assigned to someone else. You can see it here; to
+          work on it, ask its owner to delegate it to you from the Action items tab.
+        </div>
+      )}
 
       {/* ── Auditee evidence ── */}
       <Section
         icon={Paperclip}
-        label={isAuditor || isViewer ? 'Auditee evidence' : 'Your evidence'}
-        locked={isAuditor || isViewer}   // auditors and viewers see it read-only
+        label={isAuditor || isViewer || auditeeReadOnly ? 'Auditee evidence' : 'Your evidence'}
+        locked={isAuditor || isViewer || auditeeReadOnly}   // auditors and viewers see it read-only
       >
         <EvidenceUploader
           entityType="AUDIT_CONTROL_INSTANCE"
           entityId={controlInstanceId}
-          canUpload={isAuditee}   // auditors and viewers can't upload here
-          canRemove={isAuditee}
+          canUpload={auditeeCanWork}   // auditors, viewers and non-owners can't upload here
+          canRemove={auditeeCanWork}
         />
       </Section>
 
@@ -492,6 +524,9 @@ export function ControlInstanceEvidenceTab({ controlInstanceId, entity, vc = {} 
       {/* ── Reused evidence (KashiLink) ── */}
       {reused.length > 0 && (
         <Section icon={Link2} label="Reused evidence" badge={reused.length}>
+          <p className="text-[10px] text-text-muted -mt-1 mb-2">
+            From controls mapped to the same requirement — counts as this control's evidence, no review needed.
+          </p>
           <div className="divide-y divide-border/20 -mx-3 -mb-3">
             {reused.map(l => (
               <div key={l.id}
@@ -506,7 +541,14 @@ export function ControlInstanceEvidenceTab({ controlInstanceId, entity, vc = {} 
                     {l.evidenceTitle || `Evidence #${l.evidenceRecordId}`}
                   </p>
                   <div className="flex items-center gap-2 mt-1.5">
-                    <StatusBadge status={l.status} />
+                    {/* Reuse needs no review: the UCF links these controls because
+                        they need the same evidence. Only a removed or expired link
+                        shows its status. */}
+                    {l.status === 'REJECTED' || l.status === 'EXPIRED'
+                      ? <StatusBadge status={l.status} />
+                      : <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-status-tag-bg text-status-tag-fg">
+                          <RefreshCw size={9} /> Reused
+                        </span>}
                     {l.matchedTagSnapshot && (
                       <span className="font-mono text-[9px] px-1 py-0.5 rounded bg-status-tag-bg text-status-tag-fg">
                         {l.matchedTagSnapshot}
@@ -514,18 +556,6 @@ export function ControlInstanceEvidenceTab({ controlInstanceId, entity, vc = {} 
                     )}
                   </div>
                 </div>
-                {canReview && l.status === 'PENDING_REVIEW' && (
-                  <div className="flex items-center gap-1 shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
-                    <button onClick={() => review({ linkId: l.id, action: 'ACCEPT' })}
-                      className="text-[9px] px-2 py-0.5 rounded-ctl bg-status-pass-bg text-status-pass-fg hover:bg-status-pass-bg font-medium">
-                      Accept
-                    </button>
-                    <button onClick={() => review({ linkId: l.id, action: 'REJECT' })}
-                      className="text-[9px] px-2 py-0.5 rounded-ctl bg-status-fail-bg text-status-fail-fg hover:bg-status-fail-bg font-medium">
-                      Reject
-                    </button>
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -542,7 +572,7 @@ export function ControlInstanceEvidenceTab({ controlInstanceId, entity, vc = {} 
                 link={l}
                 onAccept={() => review({ linkId: l.id, action: 'ACCEPT' })}
                 onReject={() => review({ linkId: l.id, action: 'REJECT' })}
-                canReview={canReview}
+                canReview={canReviewHere}
               />
             ))}
           </div>

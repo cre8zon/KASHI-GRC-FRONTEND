@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Search, RefreshCw, Upload, Download, BookOpen,
   CheckCircle2, XCircle, AlertCircle, ChevronDown,
-  Loader2, Tag, Pencil, Trash2, Layers, FileText
+  Loader2, Tag, Pencil, Trash2, Layers, FileText, Check, Paperclip
 } from 'lucide-react'
 import { assessmentsApi } from '../../../api/assessments.api'
 import { PageLayout } from '../../../components/layout/PageLayout'
@@ -267,6 +267,13 @@ export default function QuestionLibraryPage() {
           colorTag={TYPE_COLOR[row.responseType] || 'gray'} />
       ),
     },
+    { key: 'requiresEvidence', label: 'Evidence', sortable: false, width: 80, type: 'custom',
+      render: (row) => row.requiresEvidence
+        ? <span title="A document must be attached before the section can be submitted"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-status-warn-bg text-status-warn-fg border border-status-warn-bd">
+            <Paperclip size={9} /> Required
+          </span>
+        : <span className="text-text-muted text-[10px]">—</span> },
     { key: 'questionTag',   label: 'Guard Tag', sortable: true, width: 110, type: 'custom',
       render: (row) => row.questionTag
         ? <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[10px] bg-brand-500/10 text-brand-ink">{row.questionTag}</span>
@@ -625,7 +632,7 @@ export default function QuestionLibraryPage() {
 function CreateQuestionModal({ open, onClose }) {
   const { mutate: create, isPending } = useCreateQuestion()
   const { data: oData }               = useAllOptions()
-  const [form, setForm]               = useState({ questionText: '', responseType: '', questionTag: '' })
+  const [form, setForm]               = useState({ questionText: '', responseType: '', questionTag: '', requiresEvidence: false })
   const [selectedOpts, setSelectedOpts] = useState([])
   const [errors, setErrors]           = useState({})
   const allOptions   = oData?.items || []
@@ -641,7 +648,7 @@ function CreateQuestionModal({ open, onClose }) {
   const handleSubmit = () => {
     if (!validate()) return
     create(
-      { questionText: form.questionText, responseType: form.responseType, questionTag: form.questionTag.trim().toUpperCase() || null, optionIds: selectedOpts },
+      { questionText: form.questionText, responseType: form.responseType, questionTag: form.questionTag.trim().toUpperCase() || null, requiresEvidence: !!form.requiresEvidence, optionIds: selectedOpts },
       { onSuccess: () => { onClose(); setForm({ questionText: '', responseType: '' }); setSelectedOpts([]) } }
     )
   }
@@ -663,7 +670,7 @@ function EditQuestionModal({ question, onClose }) {
   const { mutate: update, isPending } = useUpdateQuestion()
   const { data: oData }               = useAllOptions()
   const { data: linkedOpts }          = useQuestionLinkedOptions(question?.questionId)
-  const [form, setForm]               = useState({ questionText: '', responseType: '', questionTag: '' })
+  const [form, setForm]               = useState({ questionText: '', responseType: '', questionTag: '', requiresEvidence: false })
   const [selectedOpts, setSelectedOpts] = useState([])
   const [errors, setErrors]           = useState({})
 
@@ -680,6 +687,7 @@ function EditQuestionModal({ question, onClose }) {
       questionText: question.questionText || '',
       responseType: question.responseType || '',
       questionTag:  question.questionTag  || '',
+      requiresEvidence: !!question.requiresEvidence,
     })
     setSelectedOpts([])
     setErrors({})
@@ -703,7 +711,7 @@ function EditQuestionModal({ question, onClose }) {
   const handleSubmit = () => {
     if (!validate()) return
     update(
-      { id: question.questionId, data: { questionText: form.questionText, responseType: form.responseType, questionTag: form.questionTag.trim().toUpperCase() || null, optionIds: selectedOpts } },
+      { id: question.questionId, data: { questionText: form.questionText, responseType: form.responseType, questionTag: form.questionTag.trim().toUpperCase() || null, requiresEvidence: !!form.requiresEvidence, optionIds: selectedOpts } },
       { onSuccess: () => { onClose(); setSelectedOpts([]) } }
     )
   }
@@ -760,6 +768,47 @@ function QuestionForm({ form, setForm, errors, allOptions, selectedOpts, setSele
           Tag links this question to KashiGuard rules. Leave blank to exclude from guard evaluation.
           Changing the tag on an existing question does not affect running assessment instances.
         </p>
+      </div>
+
+      {/* ── EVIDENCE REQUIREMENT ────────────────────────────────────────────
+          Separate from the template's "mandatory" flag, which means the ANSWER
+          is required. This one says a document must be attached, and the two
+          are independent: a question can be optional and still need the
+          certificate when it IS answered. */}
+      <div>
+        <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">
+          Evidence
+        </label>
+        <button
+          type="button"
+          onClick={() => setForm(f => ({ ...f, requiresEvidence: !f.requiresEvidence }))}
+          className={cn(
+            'w-full flex items-start gap-2.5 rounded-ctl border px-3 py-2.5 text-left transition-colors',
+            form.requiresEvidence
+              ? 'border-status-warn-bd bg-status-warn-bg/40'
+              : 'border-border bg-surface-raised hover:border-border-strong'
+          )}
+        >
+          <span className={cn(
+            'mt-0.5 h-4 w-4 shrink-0 rounded-[4px] border flex items-center justify-center',
+            form.requiresEvidence
+              ? 'border-status-warn-bd bg-status-warn-bg text-status-warn-fg'
+              : 'border-border text-transparent'
+          )}>
+            <Check size={11} strokeWidth={3} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm text-text-primary">
+              Require an attached document
+            </span>
+            <span className="block text-[10px] text-text-muted mt-0.5 leading-relaxed">
+              The vendor cannot submit the section until a file is attached to this
+              question. Not the same as making the question mandatory — that is set
+              per template and governs the answer, not the attachment. Like the guard
+              tag, changing this does not affect assessments already in flight.
+            </span>
+          </span>
+        </button>
       </div>
       <Select label="Response Type" value={form.responseType}
         onChange={e => setForm(f => ({ ...f, responseType: e.target.value }))}

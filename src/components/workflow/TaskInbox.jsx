@@ -1,3 +1,4 @@
+import { resolveTaskRoute as resolveTaskRouteShared } from '../../lib/inboxRoute'
 import React from 'react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -38,21 +39,6 @@ const WORK_STEP_ACTIONS = new Set(['FILL', 'REVIEW', 'EVALUATE', 'GENERATE', 'AC
  * Null → inline buttons shown (safe only for APPROVE/ASSIGN steps).
  */
 /**
- * TPRM vendor-assessment routing.
- *
- * entityType is VENDOR for the WHOLE TPRM workflow — both the vendor-side steps
- * and the org-side review steps — so entityType alone cannot pick a page. The
- * side + step action pair does.
- *
- * These pages are the hardcoded pre-module implementation and are the correct
- * destination today. Until the Universal Module Page covers vendor assessments,
- * /module/vendor_assessment/:id does not render, so falling through to it gives
- * "Could not load this page" on a perfectly valid task.
- *
- * navKey still wins when the nav table has a row for it — this only runs when
- * the lookup found nothing.
- */
-/**
  * Appends the task's owning tenant to a route.
  *
  * The inbox is cross-tenant — TaskInstance has no tenant column and my-tasks
@@ -71,62 +57,39 @@ function withTenant(route, task, activeTenantId) {
   return route + (route.includes('?') ? '&' : '?') + 't=' + task.tenantId
 }
 
-function resolveVendorAssessmentRoute(task) {
-  const side   = (task.resolvedStepSide   || '').toUpperCase()
-  const action = (task.resolvedStepAction || '').toUpperCase()
+/**
+ * Route resolution now lives in lib/inboxRoute — the SAME function the action
+ * items page and the combined inbox call.
+ *
+ * What was here: navKey lookup, a bare `+ qp` concatenation that swallowed
+ * taskId whenever a nav row carried its own query string, and a table of
+ * entityType fallbacks. The first two moved; the third stayed, because it is
+ * genuinely this component's knowledge — a table of modules whose steps were
+ * saved before nav_key existed — and pushing it into a shared resolver would
+ * make that resolver know about every module's entity types.
+ *
+ * So the shared function takes it as a callback instead.
+ */
+const ENTITY_ROUTES = {
+  AUDIT_PROJECT:    '/module/audit_project/:id',
+  AUDIT_ENGAGEMENT: '/module/audit_engagement/:id',
+  AUDIT_POLICY:     '/module/audit_policy/:id',
+  ISSUE:            '/module/issue/:id',
+  RISK:             '/module/risk/:id',
+}
 
-  if (side === 'ORGANIZATION') {
-    // Org CISO assigns reviewers, reviewers evaluate, CISO approves — every
-    // org-side panel lives inside AssessmentReviewPage and is picked there.
-    if (['ASSIGN', 'REVIEW', 'EVALUATE', 'APPROVE'].includes(action))
-      return '/assessments/:id/review'
-    return null
-  }
-
-  // Vendor side (side is VENDOR, or blank on older step instances)
-  switch (action) {
-    case 'ACKNOWLEDGE': return '/vendor/assessments/:id/acknowledge'
-    case 'ASSIGN':      return '/vendor/assessments/:id/assign'
-    case 'FILL':        return '/vendor/assessments/:id/fill'
-    case 'REVIEW':      return '/vendor/assessments/:id/responder-review'
-    default:            return null
-  }
+function taskFallbackRoute(task) {
+  // TPRM vendor assessments used to need a special case here, pointing at the
+  // hardcoded pages because /module/vendor_assessment/:id "isn't implemented
+  // yet". It is now, and ui_navigation routes there (sql/84), so the special
+  // case is gone rather than left to shadow the nav row.
+  return ENTITY_ROUTES[task.entityType] || null
 }
 
 function resolveTaskRoute(task, navItems) {
-  if (!task.artifactId) return null
-  const qp = `?taskId=${task.id}&stepInstanceId=${task.stepInstanceId}`
-
-  // ── Primary: navKey lookup ────────────────────────────────────────────────
-  if (task.navKey) {
-    const nav = (navItems || []).find(n => n.navKey === task.navKey)
-    if (nav?.route) return nav.route.replace(':id', task.artifactId) + qp
-  }
-
-  // ── Fallback 1: TPRM vendor assessments → the existing hardcoded pages ────
-  // Must come BEFORE the module fallback below: VENDOR maps to
-  // /module/vendor_assessment/:id there, which isn't implemented yet.
-  if (task.entityType === 'VENDOR') {
-    const vendorRoute = resolveVendorAssessmentRoute(task)
-    if (vendorRoute) return vendorRoute.replace(':id', task.artifactId) + qp
-  }
-
-  // ── Fallback 2: entityType-based routing ─────────────────────────────────
-  // Handles step instances created before nav_key was set on the blueprint,
-  // or before the ui_navigation row existed. Prevents "contact admin" errors
-  // for known entity types.
-  const ENTITY_ROUTES = {
-    AUDIT_PROJECT:    '/module/audit_project/:id',
-    AUDIT_ENGAGEMENT: '/module/audit_engagement/:id',
-    AUDIT_POLICY:     '/module/audit_policy/:id',
-    ISSUE:            '/module/issue/:id',
-  }
-  const fallbackRoute = ENTITY_ROUTES[task.entityType]
-  if (fallbackRoute) return fallbackRoute.replace(':id', task.artifactId) + qp
-
-  // No navKey and no known entityType — blueprint misconfigured.
-  return null
+  return resolveTaskRouteShared(task, navItems, taskFallbackRoute)
 }
+
 
 /**
  * Returns true when this task requires the user to open the work page
