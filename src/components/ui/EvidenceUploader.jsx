@@ -125,6 +125,7 @@ function DocumentRow({ doc, entityType, entityId, linkType, canRemove, compact, 
         <div className="flex items-center gap-2 mt-0.5 flex-wrap text-[10px] text-text-muted">
           {doc.contentLength > 0 && <span>{formatBytes(doc.contentLength)}</span>}
           {doc.createdAt && <span>{formatDate(doc.createdAt)}</span>}
+          {doc.uploadedByName && !doc.generatedByName && <span>by {doc.uploadedByName}</span>}
           {doc.generatedByName && <span>by {doc.generatedByName}</span>}
           {isReport && reportData.triggerEvent && (
             <span className="capitalize">{reportData.triggerEvent.toLowerCase().replace(/_/g, ' ')}</span>

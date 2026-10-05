@@ -11,6 +11,7 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { useOpenEntityDrawer } from '../../hooks/useEntityDrawer'
 import {
   CheckCircle2, XCircle, AlertTriangle, MinusCircle, Minus,
   Zap, User, ChevronRight, ChevronDown, ChevronUp,
@@ -18,6 +19,7 @@ import {
 import api  from '../../config/axios.config'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
+import { invalidateFieldwork } from './TestResultEditor'
 
 const RESULTS = [
   { value:'PASS',      label:'Pass',      icon:CheckCircle2, color:'text-status-pass-fg', bg:'bg-status-pass-bg',   border:'border-status-pass-bd' },
@@ -90,6 +92,9 @@ function ResultPicker({ current, onSelect, saving }) {
 
 export function ControlInstanceTestsTab({ controlInstanceId, vc = {} }) {
   const navigate = useNavigate()
+  // Opens the record in a drawer over this page (same screen as its full
+  // page, embedded) instead of navigating away from the work in progress.
+  const openDrawer = useOpenEntityDrawer()
   const qc = useQueryClient()
   // Permission AND standing on this step: either you hold the task, or you are
   // on the right side with override rights.
@@ -112,6 +117,14 @@ export function ControlInstanceTestsTab({ controlInstanceId, vc = {} }) {
   const canRecord = (vc.permissions||[]).includes('audit:control:record-test-result')
     && (vc.canAct === true || vc.canOverride === true)
 
+  // Per row, the server's own answer for THAT test (the guard setTestResult
+  // runs) must also allow it — the step gate above says "it is fieldwork time",
+  // not "this test is yours". A delegate holds no workflow task, so a live
+  // delegation on the test or its control stands in for the step gate.
+  const hasPerm = (vc.permissions||[]).includes('audit:control:record-test-result')
+  const rowCanRecord = (t) => t.canRecordResult !== false
+    && (canRecord || (hasPerm && t.hasMyObligation === true))
+
   const { data, isLoading } = useQuery({
     queryKey: ['ctrl-inst-tests', controlInstanceId],
     queryFn: () => api.get(`/v1/audit/control-instances/${controlInstanceId}/tests`),
@@ -123,7 +136,9 @@ export function ControlInstanceTestsTab({ controlInstanceId, vc = {} }) {
   const { mutate: setResult, isPending } = useMutation({
     mutationFn: ({ testInstanceId, result }) =>
       api.put(`/v1/audit/test-instances/${testInstanceId}/result`, { testResult: result }),
-    onSuccess: () => { toast.success('Result saved'); qc.invalidateQueries({queryKey:['ctrl-inst-tests',controlInstanceId]}) },
+    // Shared refresh: the result also shows in Fieldwork and on the test's own
+    // screen (and cascades to every control the test covers).
+    onSuccess: () => { toast.success('Result saved'); invalidateFieldwork(qc) },
     onError: e => toast.error(e?.response?.data?.message || 'Failed'),
   })
 
@@ -147,7 +162,7 @@ export function ControlInstanceTestsTab({ controlInstanceId, vc = {} }) {
         {tests.map(t => (
           <div key={t.testInstanceId}
             className="flex items-center gap-2 px-3 py-2.5 border-b border-border/20 hover:bg-surface-overlay/40 group cursor-pointer"
-            onClick={() => navigate(`/module/audit_test_instance/${t.testInstanceId}`)}>
+            onClick={() => openDrawer('AUDIT_TEST_INSTANCE', t.testInstanceId)}>
             {/* Automation badge */}
             {t.automationTypeSnapshot === 'AUTOMATED' && (
               <Zap size={10} className="text-brand-ink shrink-0" title="Automated test"/>
@@ -167,7 +182,7 @@ export function ControlInstanceTestsTab({ controlInstanceId, vc = {} }) {
               )}
             </div>
             <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 shrink-0" onClick={e=>e.stopPropagation()}>
-              {canRecord && <ResultPicker current={t.testResult} onSelect={r => setResult({testInstanceId:t.testInstanceId, result:r})} saving={isPending}/>}
+              {rowCanRecord(t) && <ResultPicker current={t.testResult} onSelect={r => setResult({testInstanceId:t.testInstanceId, result:r})} saving={isPending}/>}
             </div>
             <ResultBadge result={t.testResult}/>
             <ChevronRight size={10} className="text-text-muted opacity-0 group-hover:opacity-100 shrink-0"/>

@@ -5,6 +5,9 @@
  * Shows all open action items assigned to the current user.
  * Filterable by source type. Real-time via WebSocket.
  */
+import { useQuery } from '@tanstack/react-query'
+import { uiConfigApi } from '../../api/uiConfig.api'
+import { resolveActionItemRoute } from '../../lib/inboxRoute'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useSearchParams }  from 'react-router-dom'
 import { useSelector }                   from 'react-redux'
@@ -57,79 +60,41 @@ const STATUS_FILTERS = [
 function ActionItemCard({ item, onUpdateStatus, highlighted }) {
   const navigate           = useNavigate()
   const { userId }         = useSelector(selectAuth)
+  // The nav table, for items that carry a navKey. Cached by react-query and
+  // shared with every other consumer of it on the page, so this is one request
+  // however many cards render.
+  const { data: navItems = [] } = useQuery({
+    queryKey: ['ui-navigation'],
+    queryFn:  () => uiConfigApi.navigation(),
+    staleTime: 5 * 60 * 1000,
+    select: (d) => {
+      const body = d?.data ?? d
+      const list = body?.data ?? body
+      return Array.isArray(list) ? list : []
+    },
+  })
   const sc = STATUS_CONFIG[item.status]   || STATUS_CONFIG.OPEN
   const pc = PRIORITY_CONFIG[item.priority] || PRIORITY_CONFIG.MEDIUM
   const [expanding, setExpanding] = useState(false)
 
+  // ── ONE RESOLVER, SHARED WITH THE TASK INBOX ─────────────────────────────
+  //
+  // What was here: sixty lines parsing navContext, picking between
+  // assigneeRoute and reviewerRoute, deciding when to add openWork, and
+  // stitching questionInstanceId on by hand. All of it now lives in
+  // lib/inboxRoute alongside the workflow-task equivalent, because an action
+  // item and a task are the same shape to whoever is looking at an inbox and
+  // keeping two rules meant every routing change had to be made twice.
+  //
+  // The behaviour is preserved exactly, including the part that was learned the
+  // hard way: the screen is chosen by WHO THE VIEWER IS, never by canResolve.
+  // canResolve is also true for someone doing group-assigned work, because
+  // KashiGuard writes a resolutionRole on everything it raises — using it to
+  // pick the page sent vendor contributors to the organisation's review screen
+  // and a dead end reading "Assessment not found".
   const handleNavigate = () => {
-    try {
-      const ctx = item.navContext ? JSON.parse(item.navContext) : null
-      if (!ctx) return
-
-      // navContext routing contract:
-      //   assigneeRoute  → where the person doing the work goes (vendor, assistant)
-      //   reviewerRoute  → where the reviewer/validator goes (org reviewer, CISO)
-      //   route          → legacy single-route (backward compat)
-      //   questionInstanceId → scroll to specific question on the destination page
-      //
-      // Routing decision — based on WHO the viewer is, not on canResolve.
-      //
-      // canResolve answers "may you mark this closed". That is ALSO true for the
-      // person doing the work on group-assigned items (KashiGuard writes a
-      // resolutionRole on every item it raises, and assignedTo is null when the
-      // item goes to a role rather than a person). Using it to pick the page sent
-      // vendor contributors to the responder-review screen, where they have no
-      // task and no access — the "Assessment not found" dead end.
-      //
-      // Correct order:
-      //   1. Viewer is the assignee (or a member of the assigned group) → assigneeRoute
-      //   2. Otherwise, viewer may resolve → reviewerRoute
-      //   3. Fall back to whichever route exists
-
-      const qParam = ctx.questionInstanceId ? `questionInstanceId=${ctx.questionInstanceId}` : ''
-      const addParam = (url) => {
-        if (!qParam) return url
-        // Don't add questionInstanceId if it's already baked into the navContext URL
-        if (url.includes('questionInstanceId=')) return url
-        return url + (url.includes('?') ? '&' : '?') + qParam
-      }
-
-      const assigneeRoute = ctx.assigneeRoute || ctx.route
-
-      // Directly assigned to me, or assigned to a role I'm in (assignedTo null +
-      // assignedGroupRole set — the list only returns group items I qualify for).
-      const isMine = item.assignedTo != null
-        ? String(item.assignedTo) === String(userId)
-        : !!item.assignedGroupRole
-
-      // CONTRIBUTOR_ASSIGNMENT and REVIEWER_ASSIGNMENT: no openWork bypass.
-      // Section lock must still apply for assignment entries.
-      // openWork=1 is only added for REVISION_REQUEST and REMEDIATION_REQUEST.
-      const goAssignee = () => {
-        const isAssignment = ['CONTRIBUTOR_ASSIGNMENT', 'REVIEWER_ASSIGNMENT']
-          .includes(item.remediationType)
-        const hasOpenWork = assigneeRoute.includes('openWork')
-        const sep = assigneeRoute.includes('?') ? '&' : '?'
-        const withWork = (isAssignment || hasOpenWork)
-          ? assigneeRoute
-          : assigneeRoute + `${sep}openWork=1`
-        navigate(addParam(withWork))
-      }
-
-      if (isMine && assigneeRoute) { goAssignee(); return }
-
-      if (item.canResolve && ctx.reviewerRoute) {
-        navigate(addParam(ctx.reviewerRoute))
-        return
-      }
-
-      if (assigneeRoute) { goAssignee(); return }
-
-      // Last resort: if only reviewerRoute exists (legacy clarification items), use it
-      if (ctx.reviewerRoute) {
-        navigate(addParam(ctx.reviewerRoute))
-      }
-    } catch (e) { /* invalid json */ }
+    const route = resolveActionItemRoute(item, navItems, userId)
+    if (route) navigate(route)
   }
 
   const isOpen = ['OPEN','IN_PROGRESS','PENDING_REVIEW'].includes(item.status)

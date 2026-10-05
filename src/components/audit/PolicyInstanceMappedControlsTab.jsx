@@ -11,6 +11,7 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { useOpenEntityDrawer } from '../../hooks/useEntityDrawer'
 import {
   CheckSquare, CheckCircle2, XCircle, AlertTriangle, MinusCircle,
   ChevronRight, ChevronDown, ChevronUp, Info,
@@ -93,6 +94,9 @@ function ContributionPicker({ policyInstanceId, controlInstanceId, current, canE
 
 export function PolicyInstanceMappedControlsTab({ policyInstanceId, vc = {} }) {
   const navigate = useNavigate()
+  // Opens the record in a drawer over this page (same screen as its full
+  // page, embedded) instead of navigating away from the work in progress.
+  const openDrawer = useOpenEntityDrawer()
   const canEdit  = (vc.permissions||[]).includes('audit:policy:review') || (vc.permissions||[]).includes('audit:policy:read')
 
   const { data, isLoading } = useQuery({
@@ -129,7 +133,7 @@ export function PolicyInstanceMappedControlsTab({ policyInstanceId, vc = {} }) {
           return (
             <div key={c.controlInstanceId}
               className="flex items-center gap-2 px-3 py-2.5 border-b border-border/20 hover:bg-surface-overlay/40 group cursor-pointer"
-              onClick={() => navigate(`/module/audit_control_instance/${c.controlInstanceId}`)}>
+              onClick={() => openDrawer('AUDIT_CONTROL_INSTANCE', c.controlInstanceId)}>
               <CheckSquare size={10} className="text-text-muted shrink-0"/>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-0.5">
@@ -146,7 +150,9 @@ export function PolicyInstanceMappedControlsTab({ policyInstanceId, vc = {} }) {
                 policyInstanceId={policyInstanceId}
                 controlInstanceId={c.controlInstanceId}
                 current={c.reviewContribution || 'PENDING'}
-                canEdit={canEdit}
+                // The server's per-row answer (same check as the contribution
+                // endpoint): the policy's reviewer or the control's auditor.
+                canEdit={canEdit && c.canSetContribution !== false}
               />
               <ChevronRight size={10} className="text-text-muted opacity-0 group-hover:opacity-100 shrink-0"/>
             </div>

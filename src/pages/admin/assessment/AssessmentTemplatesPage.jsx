@@ -814,6 +814,12 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
   const [libText, setLibText]     = useState('')
   const [libType, setLibType]     = useState('')
   const [libTag, setLibTag]       = useState('')
+  // Library-level, deliberately — NOT a mapping field like weight and mandatory.
+  // "Do you have an approved ISMS policy?" needs the policy attached wherever it
+  // is asked; making it per-template would mean the same question demanding
+  // evidence in one questionnaire and accepting a bare radio button in another,
+  // which is how two assessments of the same vendor end up incomparable.
+  const [libEvidence, setLibEvidence] = useState(false)
   const [libOpts, setLibOpts]     = useState([])    // selected optionIds
   const [optsReady, setOptsReady] = useState(false) // true once linkedOpts query resolved
   const [libErrors, setLibErrors] = useState({})
@@ -847,6 +853,7 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
     setLibText(question.questionText || '')
     setLibType(question.responseType || '')
     setLibTag(question.questionTag  || '')
+    setLibEvidence(!!question.requiresEvidence)
     setLibOpts([])
     setOptsReady(false)
     setLibErrors({})
@@ -906,6 +913,7 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
         questionText: libText,
         responseType: libType,
         questionTag:  libTag.trim().toUpperCase() || null,
+        requiresEvidence: libEvidence,
         ...(optsReady ? { optionIds: libOpts } : {}),
       }
     }, { onSuccess: () => setShowEdit(false) })
@@ -1028,6 +1036,37 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
                 </datalist>
               </div>
             </div>
+
+            {/* ── Evidence requirement ──────────────────────────────────────
+                Sits with the library fields, not with Mandatory below, because
+                the two mean different things and were being confused:
+
+                  Mandatory        — the ANSWER is required (mapping-level)
+                  Evidence required — a DOCUMENT must be attached as well
+
+                A question can be optional to answer and still demand a policy
+                when it IS answered, and before this there was no way to say so.
+                A FILE_UPLOAD question is already evidence-only, so the toggle
+                is redundant there and says so rather than disappearing. */}
+            <label className="flex items-start gap-3 cursor-pointer">
+              <button type="button"
+                onClick={() => setLibEvidence(v => !v)}
+                disabled={libType === 'FILE_UPLOAD'}
+                className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 mt-0.5',
+                  (libEvidence || libType === 'FILE_UPLOAD') ? 'bg-brand-500' : 'bg-surface-raised border border-border',
+                  libType === 'FILE_UPLOAD' && 'opacity-60 cursor-not-allowed')}>
+                <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-surface-raised transition-transform',
+                  (libEvidence || libType === 'FILE_UPLOAD') ? 'translate-x-4' : 'translate-x-0.5')} />
+              </button>
+              <span className="flex flex-col">
+                <span className="text-sm text-text-primary">Evidence required</span>
+                <span className="text-xs text-text-muted">
+                  {libType === 'FILE_UPLOAD'
+                    ? 'Always on for a file upload question — the file is the answer.'
+                    : 'The section cannot be submitted until a document is attached to this answer.'}
+                </span>
+              </span>
+            </label>
 
             {needsOptions && (
               <div className="flex flex-col gap-2">

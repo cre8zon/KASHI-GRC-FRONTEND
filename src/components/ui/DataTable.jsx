@@ -16,6 +16,7 @@ const SEMANTIC_COLORS = {
 import { cn } from '../../lib/cn'
 import { formatDate, truncate } from '../../utils/format'
 import api from '../../config/axios.config'
+import { getUserLabel } from '../../lib/userLookup'
 
 /**
  * DataTable — fully DB-driven.
@@ -23,22 +24,22 @@ import api from '../../config/axios.config'
  * Supports: text, badge, date, mono, number column types.
  */
 // LookupCell — resolves a numeric user ID to a display name.
-// Used by the 'lookup' column type in DataTable. Fetches once per unique id value,
-// shows initials avatar + name, falls back to the raw id while loading.
+// Used by the 'lookup' column type in DataTable. Ids from every cell on the page
+// are resolved together in ONE batched call (lib/userLookup) instead of one full
+// GET /v1/users/{id} per cell; shows initials avatar + name, falls back to the
+// raw id while loading.
 const lookupCache = {}  // module-level cache — survives re-renders, cleared on page refresh
 function LookupCell({ id }) {
   const [label, setLabel] = useState(() => lookupCache[id] || null)
   useEffect(() => {
     if (!id || label) return
     if (lookupCache[id]) { setLabel(lookupCache[id]); return }
-    api.get(`/v1/users/${id}`)
-      .then(r => {
-        const u = r?.data?.data || r?.data || r
-        const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email || String(id)
-        lookupCache[id] = name
-        setLabel(name)
-      })
-      .catch(() => { lookupCache[id] = ''; setLabel('') })
+    let cancelled = false
+    getUserLabel(id).then(name => {
+      lookupCache[id] = name
+      if (!cancelled) setLabel(name)
+    })
+    return () => { cancelled = true }
   }, [id]) // eslint-disable-line
 
   if (!id) return <span className="text-text-muted">—</span>
@@ -120,6 +121,39 @@ export function DataTable({
       }
       case 'date':
         return <span className="font-mono text-xs text-text-secondary">{formatDate(val)}</span>
+      /**
+       * A completion bar. Reads the percent from col.key and, if the row
+       * supplies one, a companion `{key}Label` for the count behind it — so a
+       * training row can read "3/8" rather than "38%", which is the number a
+       * learner actually wants.
+       *
+       * Added because `render` is a function and cannot survive a trip through
+       * columns_json, so a bar could not be expressed in config at all. It has
+       * to be a type the renderer knows.
+       *
+       * A null percent renders an em dash, not a 0% bar: "not started" and
+       * "started and got nowhere" are different facts, and an empty bar states
+       * the second when it means the first.
+       */
+      case 'progress': {
+        if (val === null || val === undefined) return <span className="text-text-muted">—</span>
+        const pct = Math.max(0, Math.min(100, Number(val) || 0))
+        const label = row[`${col.key}Label`] ?? `${pct}%`
+        const done = pct >= 100
+        return (
+          <div className="flex items-center gap-2 min-w-[90px]">
+            <div className="flex-1 h-1.5 rounded-full bg-surface-overlay overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${done ? 'bg-status-pass-fg' : 'bg-brand-500'}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="font-mono text-[10px] tabular-nums text-text-muted whitespace-nowrap">
+              {label}
+            </span>
+          </div>
+        )
+      }
       case 'mono':
         return <span className="font-mono text-xs">{val ?? '—'}</span>
       case 'number':

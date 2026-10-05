@@ -61,6 +61,22 @@ myReviewerSections: (assessmentId, taskId) =>
       null, { params: taskId ? { taskId } : {} })
        .then(r => r.data?.data ?? r.data),
 
+  /**
+   * Reviewer submits a whole section — the org-side mirror of the responder's
+   * submitSection, stamping reviewerSubmittedAt and firing the step gate when
+   * every section they own is in.
+   *
+   * The endpoint has existed since the review step was built
+   * (ReviewController.reviewerSubmitSection). This method did not, and neither
+   * did any control that called it, so the reviewer's own completion gesture
+   * was unreachable — the Review tab carried a comment saying it was "the
+   * equivalent gesture" while rendering nothing for it.
+   */
+  reviewerSubmitSection: (assessmentId, sectionInstanceId, taskId) =>
+    api.post(`/v1/assessments/${assessmentId}/sections/${sectionInstanceId}/reviewer-submit`,
+      null, { params: taskId ? { taskId } : {} })
+       .then(r => r.data?.data ?? r.data),
+
   /** Review assistant's section submission status */
   assistantSectionStatus: (assessmentId) =>
     api.get(`/v1/assessments/${assessmentId}/assistant-section-status`)

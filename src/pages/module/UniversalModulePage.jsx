@@ -34,14 +34,28 @@ import { PolicyDocumentTab }             from '../../components/audit/PolicyDocu
 import { PolicyVersionsTab }             from '../../components/audit/PolicyVersionsTab'
 import { EngagementFindingsTab }         from '../../components/audit/EngagementFindingsTab'
 import { EngagementIntegrationTab }      from '../../components/audit/EngagementIntegrationTab'
+import { EngagementTimelineTab }         from '../../components/collab/EngagementTimelineTab'
 import { ProjectFindingsTab }            from '../../components/audit/ProjectFindingsTab'
 import ProjectEngagementsTab             from '../../components/audit/ProjectEngagementsTab'
+import { RiskControlsTab }               from '../../components/risk/RiskControlsTab'
+import { RiskIssuesTab }                 from '../../components/risk/RiskIssuesTab'
+import AssessmentSectionsTab from '../../components/vendor/AssessmentSectionsTab'
+import AssessmentFillTab     from '../../components/vendor/AssessmentFillTab'
+import AssessmentReviewTab   from '../../components/vendor/AssessmentReviewTab'
+import AssessmentFindingsTab from '../../components/vendor/AssessmentFindingsTab'
+import AssessmentReportsTab  from '../../components/vendor/AssessmentReportsTab'
+import RestartWorkflowWizard from '../../components/vendor/RestartWorkflowWizard'
+import VendorAssessmentsTab  from '../../components/vendor/VendorAssessmentsTab'
+import VendorTeamTab         from '../../components/vendor/VendorTeamTab'
+import VendorContractsTab    from '../../components/vendor/VendorContractsTab'
 import { TestPolicyCsvImportModal }  from '../../components/audit/TestPolicyCsvImportModal'
+import { AuditInstanceActionItemsTab } from '../../components/audit/AuditInstanceActionItemsTab'
 import AiPolicyCreateModal          from '../../components/ai/AiPolicyCreateModal'
 import { WorkflowTimeline }       from '../../components/workflow/WorkflowTimeline'
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useUrlState, useUrlNumber, useUrlWriter } from '../../hooks/useUrlState'
+import { EntityDrawerLevelContext, readDrawerLevels, closeDrawerLevel } from '../../hooks/useEntityDrawer'
 import { useSwitchTenant } from '../../hooks/useAuth'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as LucideIcons from 'lucide-react'
@@ -67,6 +81,25 @@ const resolveIcon = (name) => {
   if (!name) return null
   return LucideIcons[name] || LucideIcons[name + 'Icon'] || null
 }
+
+/**
+ * Components a row action may open instead of a form or a navigation.
+ *
+ * __formKey covers "collect these fields and POST them once". Some actions are
+ * not that shape: restarting a vendor's workflow is TWO requests, because the
+ * template choices in the second do not exist until the first has run and the
+ * engine has scored the vendor. A DynamicForm cannot express that, and the
+ * earlier attempt to make it one form left the workflow parked on a paused
+ * step with nothing on screen saying so.
+ *
+ * So `{"__component": "RestartWorkflowWizard"}` on a ui_actions row opens the
+ * component instead. Keyed by name rather than imported dynamically, so an
+ * unknown or misspelled key fails visibly at the click instead of breaking the
+ * bundle.
+ */
+const ROW_ACTION_COMPONENTS = {
+  RestartWorkflowWizard,
+}
 import { Badge, DynamicBadge } from '../../components/ui/Badge'
 import { COLOR_MAP } from '../../config/constants'
 import { Modal, ConfirmDialog } from '../../components/ui/Modal'
@@ -89,9 +122,15 @@ import { previousEntry } from '../../components/layout/navTrail'
 import { parseRoleAccessJson, isTabAllowed, isActionAllowed } from '../../components/screen-designer/roleAccessJson'
 // ── v2 additions ─────────────────────────────────────────────────────────────
 import EntityTreeView          from '../../components/module/EntityTreeView'
+import LinkedEntitiesTab      from '../../components/module/LinkedEntitiesTab'
+import { DynamicState }       from '../../components/ui/DynamicState'
+import { useScreenStates }    from '../../hooks/useUiStates'
+import TrainingPlayerTab      from '../../components/training/TrainingPlayerTab'
+import TrainingContentTab     from '../../components/training/TrainingContentTab'
 import { useModuleSocket,
          useModuleListSocket } from '../../hooks/useModuleSocket'
 import { useUserTaskSocket } from '../../hooks/useWorkflowSocket'
+import { getUserLabel } from '../../lib/userLookup'
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 
@@ -238,9 +277,28 @@ export default function UniversalModulePage() {
   // unscoped engagement list before navigation completes).
   if (_isBareEngagementList) return null
 
-  return id
-    ? <ModuleDetailView bp={resolvedBp} id={id} />
-    : <ModuleListView   bp={resolvedBp} />
+  // entityType is passed explicitly because ModuleDetailView's view-context call
+  // reads `bp.entityType || entityType` and the second operand was never in
+  // scope there — an undeclared identifier, which only throws when it is
+  // actually evaluated, so `||` short-circuiting on a truthy bp.entityType hid
+  // it. The first blueprint served without that field would have turned a
+  // missing value into ReferenceError on the whole detail page.
+  //
+  // Passed down rather than re-derived from useParams() inside the child: the
+  // uppercase normalisation above is the one that matters and a second copy of
+  // it would be free to drift.
+  //
+  // UrlEntityDrawerHost renders the drawer stack (?drawerType=&drawerId= and
+  // ?drawerStack=) over either view — see its definition. It renders nothing when those are absent, so
+  // every existing page is unchanged until something opens one.
+  return (
+    <>
+      {id
+        ? <ModuleDetailView bp={resolvedBp} id={id} entityType={entityType} />
+        : <ModuleListView   bp={resolvedBp} />}
+      <UrlEntityDrawerHost />
+    </>
+  )
 }
 
 // ─── List View ────────────────────────────────────────────────────────────────
@@ -273,6 +331,19 @@ function ModuleListView({ bp }) {
   const [search, setSearch] = useState(urlSearch)
   const [page, setPage] = useUrlNumber('page', 0)
   const [createOpen, setCreateOpen] = useState(false)
+  // Set when Add-under-this-one is used on a tree node, so the create form
+  // opens with the parent already chosen.
+  const [createParent, setCreateParent] = useState(null)
+
+  // Which form field holds the parent, per module. Read from the blueprint's
+  // fields_schema_json treeConfig so a third tree module needs no code change.
+  const treeParentField = useMemo(() => {
+    try {
+      const cfg = JSON.parse(bp.fieldsSchemaJson || '{}')?.treeConfig
+      if (cfg?.parentField) return cfg.parentField
+    } catch {}
+    return bp.entityType === 'ASSET' ? 'parentAssetId' : 'managerPersonnelId'
+  }, [bp.fieldsSchemaJson, bp.entityType])
   const [importOpen,  setImportOpen]  = useState(false)
   const [aiDraftOpen, setAiDraftOpen] = useState(false)
   // Origin filter — GLOBAL | ORG | '' (both). In the URL with the other list
@@ -361,15 +432,84 @@ function ModuleListView({ bp }) {
   // A bare "0 records" is the wrong answer for a tenant who simply has not
   // adopted anything yet — nothing is missing, they have not started. Say which
   // of the two situations it is, and name the way out.
-  const emptyMessage = (bp.entityType === 'AUDIT_POLICY' && origin === 'ORG' && !search)
+  const emptyFallback = (bp.entityType === 'AUDIT_POLICY' && origin === 'ORG' && !search)
     ? "You have not created or adopted any policies yet. Switch to Platform to browse the "
       + "library, or use Adopt all platform policies to copy it into your organisation."
     : `No ${entityPlural.toLowerCase()} found`
 
+  // ui_states rows for list screens were being seeded and never read: this
+  // computed the message itself and DataTable rendered a bare string.
+  // DynamicState has existed all along — DB-driven, with fallbacks — but only
+  // TenantListPage used it. Routing the message through it makes every module's
+  // empty state configurable from ui_states with no per-module code, the same
+  // way the linked-* tab key works.
+  //
+  // Same react-query key as DynamicState uses internally, so this is a cache
+  // read rather than a second request. It exists only to learn ctaAction:
+  // DynamicState resolves that from the DB but does not hand it to onCta, and
+  // its own handler navigates only for a value starting with "/". An action key
+  // like CREATE_ASSET would otherwise render a button that does nothing.
+  const { data: listStates } = useScreenStates(bp.listScreenKey)
+  const emptyCtaKey = listStates?.EMPTY?.ctaAction
+
+  // The AUDIT_POLICY sentence above is KEPT as the fallback, not retired. It is
+  // live behaviour today, and deleting it on the assumption that someone will
+  // seed an equivalent ui_states row would break the policy list the moment
+  // this shipped. A DB row now wins over it; absent one, nothing changes.
+  //
+  // emptyMessage is a NODE, not a string. Both consumers already render it as
+  // one — DataTable does {emptyMessage} inside a <td>, EntityTreeView does
+  // {emptyMessage || fallback} — so neither call site needs touching.
+  const emptyMessage = (
+    <DynamicState
+      screenKey={bp.listScreenKey}
+      stateType="EMPTY"
+      fallbackTitle={emptyFallback}
+      fallbackIcon={bp.icon || 'Inbox'}
+      onCta={() => {
+        const target = emptyCtaKey
+          ? listScreenActions.find(a => a.actionKey === emptyCtaKey)
+          : null
+        if (target) return handleListAction(target)
+        // No matching action — fall back to the create drawer, which is what an
+        // empty list's CTA almost always means. Silently doing nothing would be
+        // worse than doing the obvious thing.
+        if (canCreate) setCreateOpen(true)
+      }}
+    />
+  )
+
+  // ── ONE DEFINITION OF "ROW-SCOPED" ────────────────────────────────────────
+  //
+  // There were two, and they disagreed. The toolbar filter tested only
+  // `apiEndpoint.includes('{id}')`; the row column also accepts an action
+  // whose {id} lives in payload __navRoute.
+  //
+  // So a navigate-style row action — no endpoint, {id} in the route — passed
+  // the toolbar's test and rendered in the LIST HEADER as well as on each row.
+  // In the header there is no row, so {id} never substitutes and the button
+  // does nothing at all. That is the dead "Edit" on the vendor list.
+  //
+  // Shared here so the two can never drift again. An action is row-scoped if
+  // it needs a record id from somewhere, whichever field carries it.
+  const isRowScopedAction = useCallback((a) => {
+    if ((a.apiEndpoint || '').includes('{id}')) return true
+    try {
+      const meta = JSON.parse(a.payloadTemplateJson || '{}')
+      // A __component action always operates on one row — the component takes
+      // the row as its subject. It carries no {id} anywhere, because the
+      // component owns its own requests, so without this clause it would look
+      // unscoped and render in the TOOLBAR, where there is no row to act on.
+      // Exactly the leak that produced the dead header "Edit".
+      if (meta.__component) return true
+      return typeof meta.__navRoute === 'string' && meta.__navRoute.includes('{id}')
+    } catch { return false }
+  }, [])
+
   const toolbarActions = useMemo(
     () => listScreenActions.filter(a => {
       // Row-scoped: needs an entity, rendered per row instead.
-      if ((a.apiEndpoint || '').includes('{id}')) return false
+      if (isRowScopedAction(a)) return false
 
       // Bulk-scoped: needs a SELECTION, rendered in the selection bar instead.
       //
@@ -383,7 +523,7 @@ function ModuleListView({ bp }) {
 
       return true
     }),
-    [listScreenActions])
+    [listScreenActions, isRowScopedAction])
 
   const { data: screenRes } = useScreenConfig(bp.listScreenKey)
   const screenConfig = screenRes?.data || screenRes
@@ -587,6 +727,81 @@ function ModuleListView({ bp }) {
     }
   }, [bp.apiBasePath, bp.entityType, qc, adoptingId, navigate])
 
+  // ── GENERIC PER-ROW ACTIONS ───────────────────────────────────────────────
+  //
+  // Until now the only action a LIST row could carry was the adopt one, found
+  // by a hardcoded key regex and taken with .find() — so exactly one, and only
+  // if it was called CUSTOMISE / ADOPT / COPY_TO. Everything else configured on
+  // a list screen rendered on the header and nowhere else, which is why a
+  // vendor row could not offer Restart workflow or Suspend without a code
+  // change.
+  //
+  // Any list action that is row-scoped now gets a per-row button: row-scoped
+  // meaning its endpoint contains {id}, or its payload carries a __navRoute
+  // that does. The adopt action is excluded because it already has its own
+  // button with its own copy-and-navigate behaviour.
+  //
+  // Nothing changes for an existing module: no list screen has such a row
+  // seeded today, so this is an empty array everywhere until sql/75 adds them.
+  const rowMenuActions = useMemo(() =>
+    listScreenActions.filter(a =>
+      a.isActive !== false
+      && isRowScopedAction(a)
+      && !/^(CUSTOMISE|CUSTOMIZE|ADOPT|COPY_TO)/i.test(a.actionKey || '')),
+    [listScreenActions, isRowScopedAction])
+
+  const [rowActing, setRowActing] = useState(null)
+  const [rowComponent, setRowComponent] = useState(null)
+
+  const runRowMenuAction = useCallback(async (action, row) => {
+    let meta = {}
+    try { meta = JSON.parse(action.payloadTemplateJson || '{}') } catch {}
+
+    const sub = (str) => String(str || '')
+      .replace(/\{id\}/g, row.id)
+      .replace(/\{entityId\}/g, row.id)
+
+    if (action.requiresConfirmation && action.confirmationMessage
+        && !window.confirm(sub(action.confirmationMessage))) return
+
+    // A component action owns its own flow — several steps, several requests.
+    if (meta.__component) {
+      const Comp = ROW_ACTION_COMPONENTS[meta.__component]
+      if (!Comp) { toast.error(`Unknown action component: ${meta.__component}`); return }
+      setRowComponent({ name: meta.__component, row })
+      return
+    }
+
+    // Navigation next: a __navRoute action has no endpoint to call.
+    if (meta.__navRoute) { navigate(sub(meta.__navRoute)); return }
+
+    // A form action on a row opens the same modal the header uses, with the
+    // row id carried in so the form submits against the right record.
+    if (meta.__formKey) { setListFormAction({ ...action, __rowId: row.id, __rowData: row }); return }
+
+    if (!action.apiEndpoint) {
+      toast.error(`${action.label} has no endpoint configured`)
+      return
+    }
+
+    const body = Object.fromEntries(
+      Object.entries(meta)
+        .filter(([k]) => !k.startsWith('__'))
+        .map(([k, v]) => [k, typeof v === 'string' ? sub(v) : v]))
+
+    setRowActing(`${row.id}:${action.actionKey}`)
+    try {
+      await api({ method: action.httpMethod || 'POST', url: sub(action.apiEndpoint), data: body })
+      qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+      toast.success(`${action.label} done`)
+    } catch (e) {
+      toast.error(e?.response?.data?.error?.message
+               || e?.response?.data?.message || `${action.label} failed`)
+    } finally {
+      setRowActing(null)
+    }
+  }, [bp.apiBasePath, qc, navigate])
+
   const columns = useMemo(() => {
     let base = null
     if (screenConfig?.layout?.columnsJson) {
@@ -604,14 +819,19 @@ function ModuleListView({ bp }) {
       // no adopt action, and Edit and Delete disappeared with it. `editable` is
       // the honest signal that a module has per-row actions at all.
       const rowsReportEditable = items.some(r => r?.editable !== undefined)
-      if (!rowAdoptAction && !rowsReportEditable) return base
+      if (!rowAdoptAction && !rowsReportEditable && rowMenuActions.length === 0) return base
       // Appended here rather than stored in columns_json because `render` is a
       // function and cannot survive a trip through JSON config.
       return [...base, {
         // type MUST be 'custom' — DataTable.renderCell only consults col.render
         // under that case; anything else falls through to the default cell and
         // prints an em dash, which is exactly what a column of empty rows was.
-        key: '__adopt', label: 'Actions', type: 'custom', width: 130, sortable: false,
+        key: '__adopt', label: 'Actions', type: 'custom',
+        // Wider when configured actions share the column, or four buttons wrap
+        // onto three lines and the row height doubles.
+        // 28px per icon button plus the built-in Edit/Delete pair.
+        width: rowMenuActions.length > 0 ? 120 + rowMenuActions.length * 28 : 130,
+        sortable: false,
         // Platform rows offer Customise; the tenant's own rows offer Edit. An
         // empty cell on half the table read as "nothing you can do here", which
         // is the opposite of true for the records they actually own.
@@ -633,6 +853,22 @@ function ModuleListView({ bp }) {
               <Trash2 size={11} />
             </button>
           ) : null
+
+          // ── ONE EDIT PER ROW ──────────────────────────────────────
+          //
+          // The built-in Edit below navigates to the detail page. It exists
+          // because, until row actions could be configured, there was no other
+          // way to reach a record.
+          //
+          // Now there is: a module that seeds its own EDIT row action gets
+          // that one instead, and the built-in stands down. Without this the
+          // vendor list showed two pencils doing different things, which is
+          // the state you were looking at.
+          //
+          // Matched on the action KEY rather than the label, because a label
+          // is translated and a key is not.
+          const hasConfiguredEdit = rowMenuActions.some(
+            a => /EDIT/i.test(a.actionKey || ''))
 
           // Platform admins have no adopt action, so there is no primary button
           // on a global row — only Delete. Guarded rather than assumed.
@@ -662,7 +898,7 @@ function ModuleListView({ bp }) {
               <Archive size={11} />
               Deprecate
             </button>
-          ) : (
+          ) : hasConfiguredEdit ? null : (
             <button
               onClick={(e) => { e.stopPropagation()
                 navigate(`/module/${bp.entityType.toLowerCase()}/${row.id}`) }}
@@ -674,9 +910,48 @@ function ModuleListView({ bp }) {
             </button>
           )
 
+          // Configured actions, filtered per row by allowed_statuses_json so a
+          // Suspend button does not appear on an already-suspended vendor.
+          const configured = rowMenuActions.filter(a => {
+            if (!a.allowedStatusesJson) return true
+            try {
+              const allowed = JSON.parse(a.allowedStatusesJson)
+              return !Array.isArray(allowed) || allowed.length === 0
+                  || (row.status && allowed.includes(row.status))
+            } catch { return true }
+          })
+
           return (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               {primary}
+              {/* ── ICON ONLY, LABEL IN THE TOOLTIP ─────────────────────
+                  Five labelled buttons do not fit a table cell, so they wrapped
+                  onto five lines and tripled the row height. The label is not
+                  lost — it is the title, and every icon here is a conventional
+                  one (pause, exit, pencil, branch). A configured action with NO
+                  icon still falls back to its text, because an unlabelled blank
+                  square is worse than a wide cell. */}
+              {configured.map(a => {
+                const RowIcon = resolveIcon(a.icon)
+                const busyKey = `${row.id}:${a.actionKey}`
+                return (
+                  <button
+                    key={a.id ?? a.actionKey}
+                    onClick={(e) => { e.stopPropagation(); runRowMenuAction(a, row) }}
+                    disabled={rowActing === busyKey}
+                    title={a.label}
+                    aria-label={a.label}
+                    className={cn(
+                      'inline-flex items-center justify-center rounded-ctl',
+                      'transition-colors disabled:opacity-50 disabled:cursor-wait',
+                      RowIcon ? 'h-6 w-6' : 'h-6 px-2 text-[11px] font-medium',
+                      a.variant === 'danger'
+                        ? 'border border-status-fail-bd text-status-fail-fg hover:bg-status-fail-bg'
+                        : 'border border-border text-text-muted hover:bg-surface-overlay hover:text-text-primary')}>
+                    {RowIcon ? <RowIcon size={12} /> : a.label}
+                  </button>
+                )
+              })}
               {deleteBtn}
             </div>
           )
@@ -697,6 +972,7 @@ function ModuleListView({ bp }) {
   // column, and never recomputed when the rows arrived — which is why the
   // platform side had no Actions column even after the gating was fixed.
   }, [screenConfig, bp.fieldsSchemaJson, rowAdoptAction, runRowAction, adoptingId,
+      rowMenuActions, runRowMenuAction, rowActing,
       items, canDeleteRow, deprecateRow])
 
   // FIX: canCreate flashed because `vc.permissions?.includes() !== false` is `true`
@@ -839,7 +1115,14 @@ function ModuleListView({ bp }) {
           {/* Rendered from the MODULE, not from the rows. Deriving it from
               items meant the control vanished exactly when the list was
               empty — the one moment a user needs it. */}
-          {bp.entityType === 'AUDIT_POLICY' && (
+          {/* Generalised: any module that seeds a row-adopt action gets the
+              toggle, so no module needs naming here again. rowAdoptAction is
+              derived from ui_actions, which is config, and it is module-level
+              rather than row-level so it survives an empty list.
+              AUDIT_POLICY stays as an explicit clause: CUSTOMISE_POLICY is
+              ORGANIZATION-only, so a platform admin has no rowAdoptAction and
+              would otherwise lose the toggle on the policy list. */}
+          {(bp.entityType === 'AUDIT_POLICY' || Boolean(rowAdoptAction)) && (
             <div className="inline-flex items-center rounded-ctl border border-border overflow-hidden">
               {[{ v: '',       l: 'All'      },
                 { v: 'GLOBAL', l: 'Platform' },
@@ -916,6 +1199,23 @@ function ModuleListView({ bp }) {
               loading={isLoading}
               onRowClick={handleRowClick}
               emptyMessage={emptyMessage}
+              /* The tree renders the SAME columns as the table, so a module
+                 does not describe itself twice. `columns` is already built
+                 above from screenConfig.layout.columnsJson. */
+              columns={columns}
+              /* The header already has a search box. The tree previously drew
+                 its own underneath, which duplicated the control and looked
+                 bolted on. It filters against this one instead. */
+              search={urlSearch}
+              canEdit={vc?.canEdit !== false}
+              onAddChild={(parent) => {
+                // Pre-seeds the parent so creating from a node actually nests.
+                // Before, creating from a tree always produced a root and the
+                // parent had to be set afterwards from a lookup.
+                setCreateParent(parent)
+                setCreateOpen(true)
+              }}
+              onEdit={handleRowClick}
             />
           ) : (
             <>
@@ -1063,12 +1363,22 @@ function ModuleListView({ bp }) {
 
       {/* Create modal — fallback when no screen actions are configured */}
       {bp.createFormKey && (
-        <Modal open={createOpen} onClose={() => setCreateOpen(false)}
-          title={`New ${entitySingular}`}
+        <Modal open={createOpen} onClose={() => { setCreateOpen(false); setCreateParent(null) }}
+          title={createParent
+            ? `New ${entitySingular} under ${createParent.fullName || createParent.name || ''}`.trim()
+            : `New ${entitySingular}`}
           size="lg"
         >
           <DynamicForm
             formKey={bp.createFormKey}
+            // Pre-seeds the parent when Add-under-this-one was used on a tree
+            // node. The field name differs per module — managerPersonnelId for
+            // Personnel, parentAssetId for Assets — so it is taken from the
+            // blueprint's tree config rather than hardcoded. Without this,
+            // creating from a tree always produced a root and the parent had to
+            // be set afterwards from a lookup, which is the single biggest
+            // reason the hierarchy drifted out of date.
+            defaultValues={createParent ? { [treeParentField]: createParent.id } : {}}
             // frameworkRef flows into framework-scoped lookups (e.g. the template
             // picker fetches only this framework's templates) and is stamped on submit.
             contextParams={frameworkRef ? { frameworkref: frameworkRef } : undefined}
@@ -1078,12 +1388,34 @@ function ModuleListView({ bp }) {
             onSubmit={async (data) => {
               await createMut.mutateAsync(data)
               setCreateOpen(false)  // close only after success
+              setCreateParent(null)
             }}
             loading={createMut.isPending}
             submitLabel={`Create ${entitySingular}`}
           />
         </Modal>
       )}
+
+      {/* Row action components — see ROW_ACTION_COMPONENTS. Rendered at the
+          page level rather than inside the cell so the modal is not unmounted
+          by a table re-render mid-flow, which on a two-request wizard would
+          abandon it between the two. */}
+      {rowComponent && (() => {
+        const Comp = ROW_ACTION_COMPONENTS[rowComponent.name]
+        if (!Comp) return null
+        return (
+          <Comp
+            vendorId={rowComponent.row?.id}
+            vendorName={rowComponent.row?.name}
+            entityId={rowComponent.row?.id}
+            row={rowComponent.row}
+            onClose={() => setRowComponent(null)}
+            onDone={() => {
+              qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+            }}
+          />
+        )
+      })()}
 
       {/* FIX: Modal for screen designer actions that set __formKey.
           The form submits to the action's apiEndpoint if set, otherwise
@@ -1099,14 +1431,33 @@ function ModuleListView({ bp }) {
           >
             <DynamicForm
               formKey={formKey}
-              // Same framework wiring as the fallback create modal: filter framework-
-              // scoped lookups (template picker) AND stamp frameworkRef on submit.
-              // This is the screen-action create path (New engagement button), which
-              // was previously missing both — so engagements saved with framework_ref
-              // NULL and the template dropdown showed every framework.
+              // ── AN EDIT FORM MUST OPEN WITH THE RECORD IN IT ──────────────
+              //
+              // This modal was written for CREATE actions, so it passed no
+              // defaultValues and every field opened blank. Used as an EDIT
+              // action that is actively dangerous, not merely unhelpful:
+              // updateVendor treats a blank string as "not supplied" and leaves
+              // the column alone, but the person is looking at an empty form
+              // with no way to tell what the current values are, and a required
+              // field they cannot see reads as a form that will not submit.
+              //
+              // __rowId is set only when the modal was opened from a ROW, and
+              // the row object is the record — the list already fetched it, so
+              // seeding from it costs nothing and needs no second request.
+              defaultValues={listFormAction.__rowData || undefined}
               contextParams={frameworkRef ? { frameworkref: frameworkRef } : undefined}
               onSubmit={async (data) => {
-                const endpoint = listFormAction.apiEndpoint || bp.apiBasePath
+                // __rowId is set when this modal was opened from a ROW action
+                // rather than the header. Substituting it here means one
+                // ui_actions row and one form serve both places — the vendor
+                // Restart workflow action is identical whether it is pressed on
+                // the list row or on the detail header.
+                const rawEndpoint = listFormAction.apiEndpoint || bp.apiBasePath
+                const endpoint = listFormAction.__rowId != null
+                  ? String(rawEndpoint)
+                      .replace(/\{id\}/g, listFormAction.__rowId)
+                      .replace(/\{entityId\}/g, listFormAction.__rowId)
+                  : rawEndpoint
                 const payload = frameworkRef ? { frameworkRef, ...data } : data
                 const res = await api({ method: listFormAction.httpMethod || 'POST', url: endpoint, data: payload })
                 qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
@@ -1121,7 +1472,10 @@ function ModuleListView({ bp }) {
               // action name. Approving 38 documents and drafting 38 documents
               // are different acts, and the toggle that decides which is easy to
               // skim past.
-              submitLabel={(values) =>
+              // "Edit details" on the button of an edit form describes the
+              // screen, not what pressing it does. On a row edit the verb is
+              // Save.
+              submitLabel={listFormAction.__rowId != null ? 'Save changes' : (values) =>
                 listFormAction.actionKey === 'CUSTOMISE_ALL_POLICIES'
                   ? (values?.approve ? 'Adopt and approve all' : 'Adopt as drafts')
                   : listFormAction.label}
@@ -1161,18 +1515,30 @@ const CAPABILITY_TAB_KEYS = new Set(['overview','workflow','actions','evidence',
 // so they render identical, working tabs (evidence buckets, comments feed,
 // workflow timeline, history). entity may be null in the drawer before load;
 // id is the entity id in either mode.
-function CapabilityTabBody({ tab, bp, id, entity, vc }) {
+// Audit engagement instances get their own Action items panel: delegation,
+// revoke and the send-back reopen, gated on the entity's server-computed flags.
+// ItemActionItems is the vendor-assessment remediation panel (validate / accept
+// risk on QUESTION_RESPONSE) and is deliberately not bent to serve them.
+const AUDIT_INSTANCE_ACTION_ITEM_TYPES = new Set([
+  'AUDIT_CONTROL_INSTANCE', 'AUDIT_TEST_INSTANCE', 'AUDIT_POLICY_INSTANCE',
+])
+
+function CapabilityTabBody({ tab, bp, id, entity, vc, focusActionItemId }) {
   if (tab === 'workflow' && bp.supportsWorkflow)
     return <WorkflowTab entityType={bp.entityType} entityId={id} vc={vc} bp={bp} entity={entity} />
 
-  if (tab === 'actions' && bp.supportsActionItems)
+  if (tab === 'actions' && bp.supportsActionItems) {
+    if (AUDIT_INSTANCE_ACTION_ITEM_TYPES.has(bp.entityType))
+      return <AuditInstanceActionItemsTab entityType={bp.entityType} entityId={Number(id)}
+               entity={entity} vc={vc} focusActionItemId={focusActionItemId} />
     return <ItemActionItems entityType={bp.entityType} entityId={Number(id)} />
+  }
 
   if (tab === 'evidence' && bp.supportsDocuments) {
     if (bp.entityType === 'AUDIT_CONTROL_INSTANCE')
       return <ControlInstanceEvidenceTab controlInstanceId={entity?.id ?? Number(id)} entity={entity} vc={vc} />
     if (bp.entityType === 'AUDIT_TEST_INSTANCE')
-      return <TestInstanceEvidenceTab testInstanceId={entity?.id ?? Number(id)} vc={vc} />
+      return <TestInstanceEvidenceTab testInstanceId={entity?.id ?? Number(id)} entity={entity} vc={vc} />
     if (bp.entityType === 'AUDIT_FINDING')
       return <FindingEvidenceTab entityId={Number(id)} vc={vc} />
     if (bp.entityType === 'ISSUE')
@@ -1189,7 +1555,303 @@ function CapabilityTabBody({ tab, bp, id, entity, vc }) {
   return null
 }
 
-function ModuleDetailView({ bp, id }) {
+// ─── Shared header-action filter ─────────────────────────────────────────────
+// ONE filter for the full detail page AND the drawer.
+//
+// The drawer used to carry its own copy, and it had drifted: it checked status,
+// permission, roleAccess and ownership, but none of requiresAssignment,
+// requiresSectionGate, the workflow-transition gate (vc.canAct / canOverride),
+// allowedStepActions or completesSectionKey. So a requires_assignment button on
+// an audit control was correctly hidden on this page and SHOWN in the drawer.
+// Two copies of a security filter is how that happened; there is one now.
+//
+// taskId is the task context the caller is acting under — the URL's on the
+// detail page, the resolved vc.taskId in the drawer.
+function filterScreenActions({ actions, entity, vc = {}, bp = {}, taskId, roleAccess, currentSide, currentRoleIds }) {
+  if (!Array.isArray(actions)) return []
+  const seen = new Set()
+  return actions.filter(action => {
+    if (action.isActive === false) return false
+    // Deduplicate by actionKey — same action may appear multiple times if
+    // inserted multiple times in DB (e.g. ISSUE_REOPEN inserted per-role)
+    if (seen.has(action.actionKey)) return false
+    seen.add(action.actionKey)
+
+    // ── Gate 0: platform-owned records are read-only here ────────────────
+    // `editable` comes from the API and is false for global library rows a
+    // tenant may not modify. Without this, a client opening a global policy
+    // was offered Deprecate and New version, both of which the server refuses
+    // with POLICY_ACCESS_DENIED — an action that exists only to fail.
+    //
+    // Runs before every other gate because it is a property of the record,
+    // not of the user's role, status or assignment: no permission makes a
+    // global policy writable by a tenant.
+    //
+    // Only mutating actions are hidden. Read-only ones (export, print, view)
+    // stay, and entities that do not report `editable` are unaffected.
+    //
+    // CUSTOMISE/ADOPT is the deliberate exception: it does write, but it writes
+    // a NEW record into the caller's own tenant rather than touching the global
+    // one, and it is the only route out of a read-only record. Hiding it would
+    // leave a client staring at a policy they want with no way to take it.
+    const isAdopt = /^(CUSTOMISE|CUSTOMIZE|ADOPT|COPY_TO)/i.test(action.actionKey || '')
+
+    // Writes a new record ELSEWHERE, and is valid on owned and unowned records
+    // alike — which is what separates it from isAdopt.
+    //
+    // COURSE_REQUIRE and COURSE_UNREQUIRE belong here for the same reason as
+    // ASSIGN: they write tenant_course_requirements, a row scoped to the
+    // CALLER'S tenant, and never touch the course. Marking a platform course
+    // required is the single most important thing a tenant does with the
+    // library, and it was hidden by the same gate for the same reason.
+    //
+    // isAdopt is a MIRROR: line below hides those actions on records the
+    // caller DOES own, because there is nothing to adopt from yourself.
+    // Assign is not like that. A tenant must be able to assign a PLATFORM
+    // course they cannot edit, AND their own course, and a SYSTEM user must be
+    // able to assign the library course they just wrote. Folding it into
+    // isAdopt would have fixed the first case and broken the other two.
+    const writesElsewhere = /^(ASSIGN|COURSE_ASSIGN|COURSE_REQUIRE|COURSE_UNREQUIRE)/i.test(action.actionKey || '')
+
+    // An adopt action is the MIRROR of every other gate here: it belongs only
+    // on records the caller does NOT own. On their own record there is nothing
+    // to adopt — the server refuses with POLICY_ALREADY_OWNED — so it showed a
+    // button beside Edit content that could only ever error.
+    //
+    // Checked separately rather than folded into the condition below, because
+    // that one only runs when editable === false; an owned record never
+    // reached it, which is exactly how this slipped through.
+    if (isAdopt && entity?.editable !== false) return false
+
+    if (entity?.editable === false && action.actionType !== 'READ' && !isAdopt && !writesElsewhere
+        && !/^(EXPORT|PRINT|VIEW|DOWNLOAD)/i.test(action.actionKey || '')) {
+      return false
+    }
+    if (action.allowedStatusesJson) {
+      try {
+        const allowed = JSON.parse(action.allowedStatusesJson)
+        if (entity?.status && !allowed.includes(entity.status)) return false
+      } catch {}
+    }
+    // __hideIfField: hide action when entity field is truthy (set in payloadTemplateJson)
+    // e.g. { "__hideIfField": "ownerId" } hides action when entity.ownerId is set
+    // __showIfFieldNull: show action only when entity field is null/empty
+    try {
+      const meta = JSON.parse(action.payloadTemplateJson || '{}')
+      if (meta.__hideIfField && entity?.[meta.__hideIfField]) return false
+      if (meta.__showIfFieldNull && entity?.[meta.__showIfFieldNull] != null
+          && entity?.[meta.__showIfFieldNull] !== '') return false
+      // __requiresField: show only when the field IS set — the mirror of
+      // __showIfFieldNull, and what an action whose ENDPOINT contains that
+      // field needs. Cancel workflow is the case: with no instance the token
+      // resolved to empty and the request went to
+      // /v1/workflow-instances//cancel.
+      // A boolean flag the server sends as false is NOT set: "Ask to resubmit"
+      // (canReopenEvidence) showed on every control, to everyone, because
+      // false passed the null/empty check.
+      if (meta.__requiresField) {
+        const v = entity?.[meta.__requiresField]
+        if (v == null || v === '' || v === false) return false
+      }
+    } catch {}
+    // requiredPermission gate
+    if (action.requiredPermission && vc.permissions?.length > 0) {
+      // Override is exempt on workflow transitions, and only there.
+      //
+      // COMPLETE_STEP requires workflow:task:act — "act on your task". Someone
+      // overriding has NO task by definition, so requiring it contradicts the
+      // thing they are doing: the backend says canOverride=true and this gate
+      // hides the button anyway. Granting task:act to the lead instead would
+      // hand them every task-acting action across every module, which is a far
+      // wider change than intended.
+      //
+      // Deliberately narrow: only for the four workflow transition keys, only
+      // when the backend has already confirmed override authority for this
+      // step (permission held AND same side, checked server-side too).
+      const isTransition = ['APPROVE', 'REJECT', 'SEND_BACK', 'COMPLETE_STEP']
+            .includes(action.actionKey)
+      const overrideExempt = isTransition && vc.canOverride === true
+      if (!overrideExempt && !vc.permissions.includes(action.requiredPermission)) return false
+    }
+    // Workflow-advancing actions: derived from blueprint statusFlowJson transitions.
+    // Each transition has an actionKey — if the current action matches one,
+    // hide it when the user has no active task (vc.canAct === false).
+    // This is zero-code: adding a transition in Module Blueprints automatically
+    // gates the button by task ownership. No hardcoding needed.
+    try {
+      const sf = JSON.parse(bp.statusFlowJson || '{}')
+      const transitionKeys = new Set(
+        (sf.transitions || []).map(t => t.actionKey).filter(Boolean)
+      )
+      // COMPLETE_STEP is a universal workflow action used across all modules
+      transitionKeys.add('COMPLETE_STEP')
+      // Workflow-advancing actions require an active task context.
+      // canAct is now set by backend in resolveForModule even without URL taskId:
+      //   - Path A: user has a pending task at this step (vc.taskId populated)
+      //   - Path B: user has workflow:step:override permission (vc.taskId null, vc.stepInstanceId set)
+      // Hide action if backend says canAct=false (wrong role, wrong step, no task, no override)
+      // canOverride is a SEPARATE authority: the user holds
+      // workflow:step:override and the step is on their side, but has no task
+      // here. It gates transition buttons only — never canEdit below, which
+      // stays tied to canAct so override authority does not put every tab form
+      // into edit mode.
+      const effectiveCanAct = vc.canAct === true || vc.canOverride === true
+
+      // Only gate on a task once a workflow ACTUALLY EXISTS.
+      //
+      // The first transition is the one that STARTS the workflow —
+      // SEND_FOR_REVIEW on a policy, and the equivalent on every other module.
+      // Requiring an active task to reach it is circular: there is no task
+      // because there is no workflow, and there is no workflow because the
+      // action that creates it is hidden. A saved draft had Edit content and
+      // Delete and no way forward.
+      //
+      // Once workflowInstanceId is set the gate applies as before, so approvals
+      // mid-flow still require the task or an override. The server re-checks
+      // regardless; this only decides whether the button is offered.
+      const workflowStarted = entity?.workflowInstanceId != null
+      if (transitionKeys.has(action.actionKey) && !effectiveCanAct && workflowStarted) return false
+      // When a step uses compound-task section gates (hasSections=true), completion
+      // happens automatically when all section items are done — hide the manual button
+      // to prevent premature APPROVE calls that would fail the gate check.
+      // This is fully generic — works for any module, not just AUDIT_PROJECT.
+      // ...unless the user can override. A section-gated step completes
+      // itself when every item is done, so the manual button is noise for
+      // normal users — but override exists precisely for the gated step that
+      // will NEVER complete, because some controls have no evidence and never
+      // will. Hiding it from overriders too leaves them no route at all.
+      // ── A SECTION-GATED STEP COMPLETES ITSELF ──────────────────────
+      //
+      // APPROVE joins COMPLETE_STEP here. On a step with compound-task
+      // sections, the gate is what advances it: performAction calls
+      // validateReadyForApproval and throws TASK_SECTIONS_INCOMPLETE while
+      // any required section is outstanding, and the last section to
+      // complete auto-approves the task.
+      //
+      // So on TPRM step 5 and step 10 — both of which have two required
+      // sections — an Approve button can only do one of two things: fail
+      // with a gate error while work is outstanding, or fire after the gate
+      // has already advanced the step. Neither is useful, and the first
+      // reads as a broken button.
+      //
+      // The control that DOES advance those steps is "Confirm assignments",
+      // which fires the section events. See sql/82.
+      //
+      // Override still gets both: a gated step that will never complete —
+      // a section nobody can finish — is precisely what override exists for,
+      // and hiding it from overriders leaves no route at all.
+      if (['COMPLETE_STEP', 'APPROVE'].includes(action.actionKey)
+            && vc.hasSections === true
+            && vc.canOverride !== true) return false
+
+      // ── AND THE MIRROR OF IT ───────────────────────────────────────
+      //
+      // An action that FIRES a section-completion event only means anything
+      // on a step that HAS section gates. "Confirm assignments" was showing
+      // on every step where the user held a task — including "Responders Fill
+      // Questionnaires", where there is no gate to close and the step
+      // completes itself on submit. The button could only fail there, and it
+      // made the whole control look decorative: assign a question, nothing
+      // needs confirming, assign another, still nothing.
+      //
+      // Data, not a name list: ui_actions.requires_section_gate. The two
+      // confirm actions carry it; nothing else does, so nothing else moves.
+      if (action.requiresSectionGate && vc.hasSections !== true) return false
+
+      // ── AND WHICH STEP IT BELONGS TO ───────────────────────────────
+      //
+      // requires_section_gate above asks "does this step have sections?".
+      // That is not the same question as "is this the step this action is
+      // for", and on the vendor assessment both the assign step and the fill
+      // step have sections — so "Confirm assignments" went on showing on
+      // "Responders Fill Questionnaires", where there is no gate to close
+      // and the responder's completion gesture is submitting their sections.
+      //
+      // allowed_step_actions is the question that was meant. Comma-separated
+      // with OR semantics, the same shape as allowed_sides and
+      // required_permission, so a screen designer learns one convention.
+      //
+      // Null or blank is "any step", which is what every row that predates
+      // the column means — so this filter is additive and nothing else moves.
+      //
+      // Deliberately NOT applied when there is no step in play: a header
+      // action opened from the record itself rather than from a task has no
+      // step action to match, and hiding it there would make the record page
+      // poorer than the inbox for no reason.
+      if (action.allowedStepActions && String(action.allowedStepActions).trim() && vc.stepAction) {
+        const allowed = String(action.allowedStepActions)
+          .split(',').map(s => s.trim().toUpperCase()).filter(Boolean)
+        if (allowed.length && !allowed.includes(String(vc.stepAction).toUpperCase())) return false
+      }
+
+      // ── AND WHICH GATE IT CLOSES ───────────────────────────────────
+      //
+      // The most precise of the three scopes. requires_section_gate asks
+      // "does this step have an open gate", allowed_step_actions asks "is
+      // this the kind of step", and neither separates workflow 12's THREE
+      // REVIEW steps from each other — a button scoped to REVIEW appears on
+      // all of them, and for an action like "Assign risk rating" that is not
+      // cosmetic, because its endpoint would set a rating from the wrong
+      // step.
+      //
+      // completes_section_key names the gate itself, and openSectionKeys is
+      // the list of gates this task still owes. So the button appears only
+      // where it can do something and vanishes the moment it has, with no
+      // step ids or workflow numbers written into the page.
+      //
+      // Hidden when openSectionKeys is absent AND the action declares a key:
+      // no task, no step, no gate to close — a gate-firing action opened from
+      // the record itself has nothing to fire. That is the opposite of the
+      // allowed_step_actions rule above, deliberately: a header action with
+      // no step is still a useful header action, while a gate-firing one
+      // without a gate can only fail.
+      if (action.completesSectionKey && String(action.completesSectionKey).trim()) {
+        const open = Array.isArray(vc.openSectionKeys) ? vc.openSectionKeys : []
+        const wanted = String(action.completesSectionKey).trim().toUpperCase()
+        if (!open.some(k => String(k).trim().toUpperCase() === wanted)) return false
+      }
+
+      // Assignment-scoped actions: flagged in ui_actions.requires_assignment = true.
+      // When set, the action is only visible if the entity reports the current user
+      // is assigned (entity.isAssignedToCurrentUser returned by the GET endpoint).
+      // No task context needed — the entity-level assignment IS the scope gate.
+      //
+      // ── PER-SIDE ANSWER WHEN THE ENTITY GIVES ONE ─────────────────────
+      // isAssignedToCurrentUser is one boolean for the whole record, so on an
+      // audit control a user holding both evidence and result permissions saw
+      // BOTH buttons when only one side was theirs. An entity may now send
+      // assignmentByPermission: { '<permission code>': true|false }, computed
+      // by the same server guard that refuses the write. When the action's
+      // requiredPermission is a key there, that answer decides — and it applies
+      // with or without a task, because the server refuses a step actor too.
+      // Entities that do not send the map behave exactly as before.
+      const byPerm = entity?.assignmentByPermission
+      const permScoped = !!(action.requiresAssignment && byPerm && action.requiredPermission
+        && Object.prototype.hasOwnProperty.call(byPerm, action.requiredPermission))
+      if (permScoped) {
+        if (byPerm[action.requiredPermission] === false) return false
+      } else if (action.requiresAssignment && !taskId) {
+        if (entity?.isAssignedToCurrentUser === false) return false
+      }
+    } catch { /* statusFlowJson parse error — skip transition gate */ }
+    // Screen Designer's per-role action visibility (roleAccessJson.actions)
+    if (!isActionAllowed(roleAccess, currentSide, currentRoleIds, action.actionKey)) return false
+    return true
+  })
+}
+
+// embedded: rendered INSIDE a drawer (EntityDrawer) rather than as the page.
+// The drawer used to be a second, hand-maintained implementation of this
+// screen, and every gate, tab and action that was added here had to be ported
+// there by hand — which is how they drifted (requires_assignment, section
+// gates, task context, custom-tab props). Now the drawer renders THIS
+// component, so whatever the full page shows, the drawer shows, through the
+// same hooks. Embedded mode changes only what must not leak into the HOST
+// page: the tab lives in ?drawerTab= instead of ?tab=, task context is kept in
+// component state instead of the host's URL, nothing navigates the host away
+// on its own, and the page chrome (breadcrumb, back button) is replaced by the
+// drawer's own header.
+function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawerLevel = 0 }) {
   const navigate = useNavigate()
   const qc = useQueryClient()
   // Smart default tab — driven by snap_step_action from ViewContext.
@@ -1224,9 +1886,36 @@ function ModuleDetailView({ bp, id }) {
   }
 
   // ── Workflow task context ──────────────────────────────────────────────────
-  const [searchParams, setSearchParams] = useSearchParams()
-  const stepInstanceId = searchParams.get('stepInstanceId') || undefined
-  const taskId         = searchParams.get('taskId') || undefined
+  const [searchParams, setUrlSearchParams] = useSearchParams()
+  // Task context (?taskId / ?stepInstanceId) is per RECORD. On the full page it
+  // lives in the URL, exactly as before. In a drawer the URL belongs to the
+  // host page — writing a control's task into an engagement page's URL would
+  // hand the engagement the control's task — so the same reads and writes go to
+  // local state instead. Every call site below is unchanged; only the target
+  // of setSearchParams moves.
+  const [embeddedParams, setEmbeddedParams] = useState(() => new URLSearchParams())
+  const embeddedParamsRef = useRef(embeddedParams)
+  embeddedParamsRef.current = embeddedParams
+  const setSearchParams = useCallback((updater) => {
+    if (!embedded) return setUrlSearchParams(updater)
+    setEmbeddedParams(prev => (typeof updater === 'function'
+      ? updater(new URLSearchParams(prev))
+      : new URLSearchParams(updater)))
+  }, [embedded, setUrlSearchParams])
+  const taskParams     = embedded ? embeddedParams : searchParams
+  const stepInstanceId = taskParams.get('stepInstanceId') || undefined
+  const taskId         = taskParams.get('taskId') || undefined
+  // An inbox row for an action item lands here with ?actionItemId= (and the
+  // entityType/entityId lib/inboxRoute.js appends). Generic: any module whose
+  // blueprint supports action items opens on that tab with the item focused,
+  // unless the route already names a tab (a nav row may send the assignee to
+  // the tab where the work is done).
+  //
+  // In a drawer stacked ABOVE the first one, the inbox params still describe
+  // the first drawer's record, not this one.
+  const actionItemId   = (embedded && drawerLevel > 0)
+    ? undefined
+    : (searchParams.get('actionItemId') || undefined)
 
   // Tab state lives in the URL, with the Redux app-tab store kept in sync.
   //
@@ -1245,13 +1934,21 @@ function ModuleDetailView({ bp, id }) {
   const savedSubTab    = useSelector(selectActiveSubTab)
   // Priority: explicit ?tab= (deep link, e.g. a comment notification) → the
   // app tab's remembered sub-tab → overview.
-  const [urlTab, setUrlTab] = useUrlState('tab', '')
-  const tab = urlTab || savedSubTab || 'overview'
+  // In a drawer the tab is ?drawerTab= — the host page keeps its own ?tab=,
+  // and the list view's drawer has always used drawerTab too. Drawers stacked
+  // above the first use ?drawerTab1=, ?drawerTab2=, … so each keeps its own.
+  const [urlTab, setUrlTab] = useUrlState(
+    embedded ? (drawerLevel > 0 ? `drawerTab${drawerLevel}` : 'drawerTab') : 'tab', '')
+  const tab = urlTab
+    || (actionItemId && bp?.supportsActionItems ? 'actions' : '')
+    || (embedded ? '' : savedSubTab) || 'overview'
   const setTab = (key) => {
     // replace, not push: one history entry per record, so Back leaves the
     // record instead of walking backwards through every tab the user clicked.
     setUrlTab(key)
-    dispatch(saveSubTab({ tabId: activeAppTabId, subTab: key }))
+    // The app-tab store remembers the PAGE's sub-tab; a drawer must not
+    // overwrite it.
+    if (!embedded) dispatch(saveSubTab({ tabId: activeAppTabId, subTab: key }))
   }
 
   // ── Seamless task transition via WebSocket ─────────────────────────────────
@@ -1336,7 +2033,9 @@ function ModuleDetailView({ bp, id }) {
     await new Promise(resolve => setTimeout(resolve, 2000))
 
     // Check if a new taskId arrived via WS during the wait
-    const currentParams = new URLSearchParams(window.location.search)
+    const currentParams = embedded
+      ? embeddedParamsRef.current
+      : new URLSearchParams(window.location.search)
     const currentTaskId = currentParams.get('taskId')
 
     if (currentTaskId && currentTaskId !== String(taskId)) {
@@ -1352,7 +2051,7 @@ function ModuleDetailView({ bp, id }) {
       return p
     })
     return false
-  }, [taskId, setSearchParams])
+  }, [taskId, setSearchParams, embedded])
 
   // ── Parallel fetch optimisation ───────────────────────────────────────────
   // Blueprint, entity, and view-context are independent — start all three
@@ -1495,7 +2194,9 @@ function ModuleDetailView({ bp, id }) {
         : _detailBasePlural)
     : null
 
-  useUserTaskSocket(currentUserId, {
+  // The host page already listens. A second listener here would navigate the
+  // host away when a task arrives for the record inside the drawer.
+  useUserTaskSocket(embedded ? null : currentUserId, {
     watchEntityType:      bp?.entityType,
     watchEntityId:        id,
     watchParentProjectId: parentProjectInstanceId, // for engagement pages — catch project-level tasks
@@ -1508,6 +2209,7 @@ function ModuleDetailView({ bp, id }) {
   // Reset to overview whenever the entity ID changes (navigating between records).
   // Clear saved sub-tab in Redux so the new entity starts on its default tab.
   useEffect(() => {
+    if (embedded) return   // the page's remembered sub-tab is not the drawer's
     dispatch(saveSubTab({ tabId: activeAppTabId, subTab: null }))
   }, [id]) // eslint-disable-line
 
@@ -1516,6 +2218,13 @@ function ModuleDetailView({ bp, id }) {
   // user's manual tab clicks (useEffect dep is stepAction string, not vc object).
   useEffect(() => {
     if (!stepInstanceId || !vc.stepAction) return
+    // A drawer opened on a named tab (an inbox route, a row's "open evidence")
+    // stays on it.
+    if (embedded && urlTab) return
+    // Opened from an action item: that item is what the user came for. The
+    // self-correct effect above can inject a task's stepInstanceId afterwards,
+    // and without this the step's tab would replace the one the inbox chose.
+    if (actionItemId) return
 
     // Default tab map — works for most entity types
     const tabMap = {
@@ -1528,6 +2237,20 @@ function ModuleDetailView({ bp, id }) {
     }
 
     // Entity-type-specific overrides — where the module's tab keys differ
+    //
+    // ── VENDOR_ASSESSMENT NEEDS THE SIDE, NOT JUST THE ACTION ────────────
+    // The TPRM workflow alternates sides and reuses the same step actions on
+    // both. ASSIGN is the vendor CISO handing sections to responders at step 5
+    // AND the org CISO handing questions to reviewers at step 10; REVIEW is a
+    // vendor responder publishing answers AND an org reviewer consolidating.
+    // Landing all four on one tab would put half of them on a screen with
+    // nothing for them to do.
+    //
+    // vc carries stepAction but not the step's side — WorkflowAccessService
+    // computes activeStepSide and does not return it. The logged-in user's own
+    // side answers the same question here, because the only people who get a
+    // task on a VENDOR step are vendor-side and the reverse holds too.
+    const isVendor = currentSide === 'VENDOR'
     const entityTabOverrides = {
       AUDIT_PROJECT: {
         ASSIGN:      'engagements',  // Lead auditor assignment in Engagements tab
@@ -1536,20 +2259,48 @@ function ModuleDetailView({ bp, id }) {
         APPROVE:     'engagements',
         ACKNOWLEDGE: 'engagements',
       },
+      VENDOR_ASSESSMENT: {
+        // Step 5 vendor CISO → Sections (the responder picker and Confirm).
+        // Step 10 org CISO → Review (the reviewer picker lives per question).
+        ASSIGN:   isVendor ? 'sections' : 'review',
+        // Step 6 responders and contributors answer on the Questionnaire.
+        // The one org-side FILL is step 2, template selection, which is a
+        // header action and belongs on Overview.
+        FILL:     isVendor ? 'fill'     : 'overview',
+        // Steps 7 and 8 — "responders review and publish" and "CISO final
+        // review". Sections rather than Questionnaire for both: it is the
+        // screen with per-section progress and the Submit control, which is
+        // what reviewing-then-publishing actually needs, and the questionnaire
+        // is one click away. Org-side REVIEW is step 12, consolidating
+        // findings, which is the Review tab.
+        REVIEW:   isVendor ? 'sections' : 'review',
+        // Steps 11 and 13, both org-side.
+        EVALUATE: 'review',
+        // Steps 4 and 15 are acknowledgements with no per-question work —
+        // the action is in the header and Overview is the right context.
+        ACKNOWLEDGE: 'overview',
+        APPROVE:     'overview',
+      },
     }
 
     const overrides = entityTabOverrides[bp?.entityType] || {}
     const target = overrides[vc.stepAction] ?? tabMap[vc.stepAction]
     if (target) setTab(target)
-  }, [vc.stepAction, stepInstanceId, bp?.entityType])
+  }, [vc.stepAction, stepInstanceId, bp?.entityType, currentSide])
 
   // When opened from a task with no resolved stepAction yet, set a sensible
   // default tab so the page isn't blank while vc loads
   useEffect(() => {
     if (!stepInstanceId) return
+    if (actionItemId) return   // see the effect above
+    if (embedded && urlTab) return
     const entityDefaultTabs = {
       AUDIT_PROJECT:    'engagements',
       AUDIT_ENGAGEMENT: 'sections',
+      // Sections is the safe landing for either side: it is the only tab that
+      // renders something useful on every step of the workflow. The effect
+      // above corrects it the moment vc.stepAction resolves.
+      VENDOR_ASSESSMENT: 'sections',
     }
     const defaultForEntity = entityDefaultTabs[bp?.entityType]
     if (defaultForEntity) setTab(defaultForEntity)
@@ -1588,155 +2339,12 @@ function ModuleDetailView({ bp, id }) {
 
   // FIX: Use screen designer actions (with labels, variants, status guards, endpoints)
   // filtered to only those valid for the current entity status and user's side.
-  const screenActions = useMemo(() => {
-    if (!Array.isArray(screenConfig?.actions)) return []
-    const seen = new Set()
-    return screenConfig.actions.filter(action => {
-      if (action.isActive === false) return false
-      // Deduplicate by actionKey — same action may appear multiple times if
-      // inserted multiple times in DB (e.g. ISSUE_REOPEN inserted per-role)
-      if (seen.has(action.actionKey)) return false
-      seen.add(action.actionKey)
-
-      // ── Gate 0: platform-owned records are read-only here ────────────────
-      // `editable` comes from the API and is false for global library rows a
-      // tenant may not modify. Without this, a client opening a global policy
-      // was offered Deprecate and New version, both of which the server refuses
-      // with POLICY_ACCESS_DENIED — an action that exists only to fail.
-      //
-      // Runs before every other gate because it is a property of the record,
-      // not of the user's role, status or assignment: no permission makes a
-      // global policy writable by a tenant.
-      //
-      // Only mutating actions are hidden. Read-only ones (export, print, view)
-      // stay, and entities that do not report `editable` are unaffected.
-      //
-      // CUSTOMISE/ADOPT is the deliberate exception: it does write, but it writes
-      // a NEW record into the caller's own tenant rather than touching the global
-      // one, and it is the only route out of a read-only record. Hiding it would
-      // leave a client staring at a policy they want with no way to take it.
-      const isAdopt = /^(CUSTOMISE|CUSTOMIZE|ADOPT|COPY_TO)/i.test(action.actionKey || '')
-
-      // An adopt action is the MIRROR of every other gate here: it belongs only
-      // on records the caller does NOT own. On their own record there is nothing
-      // to adopt — the server refuses with POLICY_ALREADY_OWNED — so it showed a
-      // button beside Edit content that could only ever error.
-      //
-      // Checked separately rather than folded into the condition below, because
-      // that one only runs when editable === false; an owned record never
-      // reached it, which is exactly how this slipped through.
-      if (isAdopt && entity?.editable !== false) return false
-
-      if (entity?.editable === false && action.actionType !== 'READ' && !isAdopt
-          && !/^(EXPORT|PRINT|VIEW|DOWNLOAD)/i.test(action.actionKey || '')) {
-        return false
-      }
-      if (action.allowedStatusesJson) {
-        try {
-          const allowed = JSON.parse(action.allowedStatusesJson)
-          if (entity?.status && !allowed.includes(entity.status)) return false
-        } catch {}
-      }
-      // __hideIfField: hide action when entity field is truthy (set in payloadTemplateJson)
-      // e.g. { "__hideIfField": "ownerId" } hides action when entity.ownerId is set
-      // __showIfFieldNull: show action only when entity field is null/empty
-      try {
-        const meta = JSON.parse(action.payloadTemplateJson || '{}')
-        if (meta.__hideIfField && entity?.[meta.__hideIfField]) return false
-        if (meta.__showIfFieldNull && entity?.[meta.__showIfFieldNull] != null
-            && entity?.[meta.__showIfFieldNull] !== '') return false
-        // __requiresField: show only when the field IS set — the mirror of
-        // __showIfFieldNull, and what an action whose ENDPOINT contains that
-        // field needs. Cancel workflow is the case: with no instance the token
-        // resolved to empty and the request went to
-        // /v1/workflow-instances//cancel.
-        if (meta.__requiresField) {
-          const v = entity?.[meta.__requiresField]
-          if (v == null || v === '') return false
-        }
-      } catch {}
-      // requiredPermission gate
-      if (action.requiredPermission && vc.permissions?.length > 0) {
-        // Override is exempt on workflow transitions, and only there.
-        //
-        // COMPLETE_STEP requires workflow:task:act — "act on your task". Someone
-        // overriding has NO task by definition, so requiring it contradicts the
-        // thing they are doing: the backend says canOverride=true and this gate
-        // hides the button anyway. Granting task:act to the lead instead would
-        // hand them every task-acting action across every module, which is a far
-        // wider change than intended.
-        //
-        // Deliberately narrow: only for the four workflow transition keys, only
-        // when the backend has already confirmed override authority for this
-        // step (permission held AND same side, checked server-side too).
-        const isTransition = ['APPROVE', 'REJECT', 'SEND_BACK', 'COMPLETE_STEP']
-              .includes(action.actionKey)
-        const overrideExempt = isTransition && vc.canOverride === true
-        if (!overrideExempt && !vc.permissions.includes(action.requiredPermission)) return false
-      }
-      // Workflow-advancing actions: derived from blueprint statusFlowJson transitions.
-      // Each transition has an actionKey — if the current action matches one,
-      // hide it when the user has no active task (vc.canAct === false).
-      // This is zero-code: adding a transition in Module Blueprints automatically
-      // gates the button by task ownership. No hardcoding needed.
-      try {
-        const sf = JSON.parse(bp.statusFlowJson || '{}')
-        const transitionKeys = new Set(
-          (sf.transitions || []).map(t => t.actionKey).filter(Boolean)
-        )
-        // COMPLETE_STEP is a universal workflow action used across all modules
-        transitionKeys.add('COMPLETE_STEP')
-        // Workflow-advancing actions require an active task context.
-        // canAct is now set by backend in resolveForModule even without URL taskId:
-        //   - Path A: user has a pending task at this step (vc.taskId populated)
-        //   - Path B: user has workflow:step:override permission (vc.taskId null, vc.stepInstanceId set)
-        // Hide action if backend says canAct=false (wrong role, wrong step, no task, no override)
-        // canOverride is a SEPARATE authority: the user holds
-        // workflow:step:override and the step is on their side, but has no task
-        // here. It gates transition buttons only — never canEdit below, which
-        // stays tied to canAct so override authority does not put every tab form
-        // into edit mode.
-        const effectiveCanAct = vc.canAct === true || vc.canOverride === true
-
-        // Only gate on a task once a workflow ACTUALLY EXISTS.
-        //
-        // The first transition is the one that STARTS the workflow —
-        // SEND_FOR_REVIEW on a policy, and the equivalent on every other module.
-        // Requiring an active task to reach it is circular: there is no task
-        // because there is no workflow, and there is no workflow because the
-        // action that creates it is hidden. A saved draft had Edit content and
-        // Delete and no way forward.
-        //
-        // Once workflowInstanceId is set the gate applies as before, so approvals
-        // mid-flow still require the task or an override. The server re-checks
-        // regardless; this only decides whether the button is offered.
-        const workflowStarted = entity?.workflowInstanceId != null
-        if (transitionKeys.has(action.actionKey) && !effectiveCanAct && workflowStarted) return false
-        // When a step uses compound-task section gates (hasSections=true), completion
-        // happens automatically when all section items are done — hide the manual button
-        // to prevent premature APPROVE calls that would fail the gate check.
-        // This is fully generic — works for any module, not just AUDIT_PROJECT.
-        // ...unless the user can override. A section-gated step completes
-        // itself when every item is done, so the manual button is noise for
-        // normal users — but override exists precisely for the gated step that
-        // will NEVER complete, because some controls have no evidence and never
-        // will. Hiding it from overriders too leaves them no route at all.
-        if (action.actionKey === 'COMPLETE_STEP' && vc.hasSections === true
-              && vc.canOverride !== true) return false
-
-        // Assignment-scoped actions: flagged in ui_actions.requires_assignment = true.
-        // When set, the action is only visible if the entity reports the current user
-        // is assigned (entity.isAssignedToCurrentUser returned by the GET endpoint).
-        // No task context needed — the entity-level assignment IS the scope gate.
-        if (action.requiresAssignment && !taskId) {
-          if (entity?.isAssignedToCurrentUser === false) return false
-        }
-      } catch { /* statusFlowJson parse error — skip transition gate */ }
-      // Screen Designer's per-role action visibility (roleAccessJson.actions)
-      if (!isActionAllowed(roleAccess, currentSide, currentRoleIds, action.actionKey)) return false
-      return true
-    })
-  }, [screenConfig?.actions, entity?.status, vc.permissions, vc.canAct, vc.canOverride, entity, roleAccess, currentSide, currentRoleIds])
+  // The filter itself is filterScreenActions — shared with EntityDrawer, so the
+  // drawer and this page can no longer drift apart on a security gate.
+  const screenActions = useMemo(() => filterScreenActions({
+    actions: screenConfig?.actions, entity, vc, bp, taskId,
+    roleAccess, currentSide, currentRoleIds,
+  }), [screenConfig?.actions, entity, vc, bp, taskId, roleAccess, currentSide, currentRoleIds])
 
   // Execute a screen action — resolves path params, handles confirmation + remarks.
   // Three action types via payloadTemplateJson convention:
@@ -1887,8 +2495,17 @@ function ModuleDetailView({ bp, id }) {
         ...(_sf1.transitions || []).map(t => t.actionKey).filter(Boolean)
       ])
       if (STATUS_CHANGING_ACTIONS.has(action.actionKey)) {
+        if (embedded) {
+          // Same effect without leaving the host page: refetch instead of remount.
+          await Promise.all([
+            qcDetail.refetchQueries({ queryKey: ['module-detail', bp.apiBasePath, id] }),
+            qcDetail.refetchQueries({ queryKey: ['view-context', bp.entityType, id] }),
+          ])
+          qcDetail.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+        } else {
         const base = bp.listScreenKey?.replace('_list','') || bp.entityType.toLowerCase().replace('_','')
         navigate(`/module/${base}/${id}`)
+        }
       }
     } catch (e) {
       toast.error(e?.response?.data?.message || action.label + ' failed')
@@ -1989,7 +2606,12 @@ function ModuleDetailView({ bp, id }) {
     mutationFn: () => moduleApi.delete(bp.apiBasePath, id),
     onSuccess: () => {
       toast.success('Deleted')
+      if (embedded) {
+        qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+        onClose?.()
+      } else {
       navigate(`/module/${bp.entityType.toLowerCase()}`)
+      }
     },
     onError: (e) => toast.error(e?.response?.data?.message || 'Failed'),
   })
@@ -2133,9 +2755,7 @@ function ModuleDetailView({ bp, id }) {
     || entity?.controlCode || entity?.testCode || entity?.policyName
     || `${bp.displayName} #${id}`
 
-  return (
-    <PageLayout
-      title={
+  const detailTitle = (
         <div className="flex items-center gap-2 min-w-0">
           <button onClick={handleBack}
             className="text-text-muted hover:text-text-primary transition-colors shrink-0">
@@ -2167,9 +2787,9 @@ function ModuleDetailView({ bp, id }) {
           <span className="truncate font-medium">{entityLabel}</span>
           {entity?.status && <EntityStatusBadge status={entity.status} />}
         </div>
-      }
-      actions={
-        <div className="flex items-center gap-2">
+  )
+  const detailActions = (
+        <div className="flex items-center gap-2 flex-wrap">
           {vc.sodViolations?.filter(v => v.conflictType === 'HARD').length > 0 && (
             <div className="flex items-center gap-1.5 text-xs text-status-fail-fg bg-status-fail-bg border border-status-fail-bd rounded-ctl px-2 py-1">
               <AlertTriangle size={12} /> SoD conflict
@@ -2212,8 +2832,9 @@ function ModuleDetailView({ bp, id }) {
             <Button variant="danger" size="sm" icon={Trash2} onClick={() => setDeleteTarget(entity)} />
           )}
         </div>
-      }
-    >
+  )
+  const detailBody = (
+    <>
       {/* Task context banner — shown when opened from a workflow task (stepInstanceId in URL).
           Reminds the user which task they're working on and which step action is expected.
           The back-to-inbox button clears the task context. */}
@@ -2379,7 +3000,8 @@ function ModuleDetailView({ bp, id }) {
         )}
 
         {['workflow','actions','evidence','comments','history'].includes(tab) && (
-          <CapabilityTabBody tab={tab} bp={bp} id={id} entity={entity} vc={vc} />
+          <CapabilityTabBody tab={tab} bp={bp} id={id} entity={entity} vc={vc}
+            focusActionItemId={actionItemId} />
         )}
 
         {/* ── Custom tabs from Screen Designer tabsJson ──────────────────── */}
@@ -2391,6 +3013,14 @@ function ModuleDetailView({ bp, id }) {
             entityType={bp.entityType}
             apiBasePath={bp.apiBasePath}
             vc={vc}
+            // Side and role decide what a vendor-assessment tab shows. Option
+            // scores and reviewer verdicts are org-side, and QuestionDrawer
+            // chooses between its "Vendor notes" and "Org notes" channels — and
+            // whether evidence is uploadable — from userSide. Undefined reads as
+            // org, so a vendor was getting the org channel and a read-only
+            // uploader. Both are already in scope here (lines 1527, 1605).
+            userSide={currentSide}
+            userRole={auth?.roles?.[0]?.name || auth?.roles?.[0]?.roleName}
             stepInstanceId={stepInstanceId}
             taskId={taskId}
             onTaskComplete={() => transitionToNextTask(bp?.entityType, id)}
@@ -2466,12 +3096,34 @@ function ModuleDetailView({ bp, id }) {
         let meta = {}
         try { meta = JSON.parse(detailFormAction.payloadTemplateJson || '{}') } catch {}
         const formKey = meta.__formKey
+        // {taskId} and {stepInstanceId} too, not just {id}.
+        //
+        // The non-form action path at executeAction has interpolated all four
+        // since it was written; this one substituted two and shipped the other
+        // two to the server as the literal text "{taskId}". Nothing noticed
+        // because no seeded form action had ever needed a task — and every
+        // section-gate action does, since taskId is how the server knows which
+        // task's gate to close.
         const submitUrl = (detailFormAction.apiEndpoint || '')
-          .replace('{id}', id).replace('{entityId}', id)
+          .replace('{id}', id)
+          .replace('{entityId}', id)
+          .replace('{taskId}', taskId || '')
+          .replace('{stepInstanceId}', stepInstanceId || '')
         return (
           <Modal open onClose={() => setDetailFormAction(null)}
             title={detailFormAction.label}
-            size="lg"
+            /*
+              __modalSize lets a seeded action choose its own width, which
+              matters for a form whose only field is a lookup: the results panel
+              needs room, and a two-field form in a max-w-2xl box reads as an
+              empty dialog with a dropdown stuck to the bottom of it.
+
+              Accepted values are Modal's own: sm | md | lg | xl | full.
+              Anything else, or nothing at all, keeps the previous default of
+              'lg' — so every action seeded before this change renders
+              identically.
+            */
+            size={['sm','md','lg','xl','full'].includes(meta.__modalSize) ? meta.__modalSize : 'lg'}
           >
             <DynamicForm
               formKey={formKey}
@@ -2499,6 +3151,40 @@ function ModuleDetailView({ bp, id }) {
           </Modal>
         )
       })()}
+    </>
+  )
+
+  // ── Drawer shell: same actions, same body, compact header ─────────────────
+  // No breadcrumb or back button — those navigate the HOST page. The drawer's
+  // own frame (EntityDrawer) carries Close and Open full page.
+  if (embedded) return (
+    <div className="flex flex-col h-full min-h-0">
+      <div className="px-5 pt-3 pb-3 border-b border-border shrink-0 flex flex-col gap-2.5">
+        <div className="flex items-center gap-2 min-w-0">
+          {breadcrumbParentLabel && (
+            <>
+              <span className="text-[11px] text-text-muted truncate max-w-[200px]" title={breadcrumbParentLabel}>
+                {breadcrumbParentLabel}
+              </span>
+              <span className="text-text-muted/40 shrink-0">/</span>
+            </>
+          )}
+          <span className="text-sm font-semibold text-text-primary truncate">{entityLabel}</span>
+          {entity?.status && <EntityStatusBadge status={entity.status} />}
+        </div>
+        {detailActions}
+      </div>
+      {/* The scroll container — the tab strip inside detailBody is sticky
+          against this, exactly as it is against the page on the full view. */}
+      <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">
+        {detailBody}
+      </div>
+    </div>
+  )
+
+  return (
+    <PageLayout title={detailTitle} actions={detailActions}>
+      {detailBody}
     </PageLayout>
   )
 }
@@ -2632,7 +3318,7 @@ function EvidenceTab({ entityId, entityType, vc }) {
 //   "policies"  → LibraryMappingTab (shows policies linked to this control)
 // All other keys → renders fields from {detailScreenKey}_tab_{tabKey} form key.
 
-function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBasePath, vc, stepInstanceId, taskId, onTaskComplete }) {
+function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBasePath, vc, userSide, userRole, stepInstanceId, taskId, onTaskComplete }) {
   // ── ALL HOOKS MUST BE AT TOP — Rules of Hooks ────────────────────────────
   const qc = useQueryClient()
   const [saving,   setSaving]   = useState(false)
@@ -2648,6 +3334,19 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
     'sections', 'controls', 'findings', 'engagements', 'integrations',
     'tests', 'policies', 'evidence', 'workflow', 'comments', 'history',
     'fieldwork',
+    // 'fill' and 'review' render from components/vendor, so their form key does
+    // not exist. This Set gates `enabled` on the form query below, and that hook
+    // runs BEFORE the dispatch returns because hooks sit at the top of the
+    // component — so without them both tabs fire
+    // uiConfigApi.form('vendor_assessment_detail_tab_fill') and take a 404 every
+    // time they open. Invisible on screen, noisy in the log.
+    'fill', 'review', 'my-review', 'my_review',
+    // VENDOR detail tabs — same reason: they render from components/vendor, so
+    // their form key does not exist and the query would 404 on every open.
+    'assessments', 'team', 'contracts',
+    // Report VERSIONS, rendered by AssessmentReportsTab. Same reason again:
+    // there is no vendor_assessment_detail_tab_reports form to fetch.
+    'reports',
   ])
   const { data: formRes, isLoading } = useQuery({
     queryKey: ['module-tab-form', formKey],
@@ -2698,6 +3397,48 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
     setEditMode(!tabHasValues)
   }, [tabKey, fields.length, canEdit, vcLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
   // ─────────────────────────────────────────────────────────────────────────
+ 
+  // ── VENDOR — the three bespoke detail tabs ──────────────────────────────
+  // Overview stays generic (it renders from the vendor_detail_tab_overview
+  // form), and Workflow, Action items, Evidence, Comments and History are
+  // capability tabs from the blueprint's supports_* flags. These three are the
+  // ones with no generic equivalent.
+  if (entityType === 'VENDOR') {
+    if (tabKey === 'assessments') return <VendorAssessmentsTab entity={entity} vc={vc} />
+    if (tabKey === 'team')        return <VendorTeamTab        entity={entity} vc={vc} />
+    if (tabKey === 'contracts')   return <VendorContractsTab   entity={entity} vc={vc} />
+  }
+
+  // VENDOR_ASSESSMENT — the v2 assessment tabs
+  //
+  // Three additions to what was here:
+  //
+  //   entity    — the Sections tab reads entity.sections. GET /v1/assessments/{id}
+  //               already returns the whole tree (buildSectionInstances), so with
+  //               it the tab makes no request of its own; without it, it falls
+  //               back to fetching the same data, one extra round trip.
+  //   userSide  — see the note at the CustomTabContent call site.
+  //   findings  — the fourth tab.
+  if (entityType === 'VENDOR_ASSESSMENT') {
+    const props = {
+      assessmentId: entity?.id,
+      entity,
+      vc, userSide, userRole,
+      stepInstanceId, taskId, onTaskComplete,
+    }
+    if (tabKey === 'sections') return <AssessmentSectionsTab {...props} />
+    if (tabKey === 'fill')     return <AssessmentFillTab     {...props} />
+    if (tabKey === 'review')   return <AssessmentReviewTab   {...props} />
+    // Same component, scoped to the viewer's own reviewer-assigned questions.
+    // The org side had one evaluation surface — the whole assessment — so a
+    // review assistant with three questions out of forty had to hunt for them.
+    // The vendor side has had the equivalent all along: Sections is everything,
+    // Questionnaire is what is yours. This is that pair, completed.
+    if (tabKey === 'my-review' || tabKey === 'my_review')
+      return <AssessmentReviewTab {...props} scope="mine" />
+    if (tabKey === 'findings') return <AssessmentFindingsTab {...props} />
+    if (tabKey === 'reports')  return <AssessmentReportsTab  {...props} />
+  }
 
   // ── Library mapping tabs — rendered by dedicated component ───────────────
   // AUDIT_ENGAGEMENT — sections tree with controls nested + both clickable
@@ -2723,6 +3464,11 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
   // AUDIT_ENGAGEMENT — automated integration check status (EngagementIntegrationSnapshot rows)
   if (tabKey === 'integrations' && entityType === 'AUDIT_ENGAGEMENT') {
     return <EngagementIntegrationTab engagementId={entity?.id} />
+  }
+  // AUDIT_ENGAGEMENT — this engagement's part of the Collaboration plan
+  // (items linked to it in a workspace plan, and everything under them).
+  if (tabKey === 'timeline' && entityType === 'AUDIT_ENGAGEMENT') {
+    return <EngagementTimelineTab engagementId={entity?.id} />
   }
 
   // AUDIT_CONTROL_INSTANCE — combined auditor work surface (tests + policies).
@@ -2830,11 +3576,55 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
     )
   }
 
+  // TRAINING — course content, with upload. This was linked-items through the
+  // generic tab plus a form whose s3Key field was a text box, and nothing in
+  // the browser could produce an S3 key. Uploading needs a file picker,
+  // progress, and the duration read off the video element, so it is a
+  // component rather than a form.
+  if (tabKey === 'items' && entityType === 'TRAINING_COURSE') {
+    return <TrainingContentTab entity={entity} canEdit={vc?.canEdit !== false} />
+  }
+
+  // TRAINING — the player is the one tab in that module that cannot be a form:
+  // a video with progress heartbeats, a graded quiz and an attestation. Its
+  // sibling tabs (linked-items, linked-questions, linked-assignments) all go
+  // through the generic branch below, so this is the module's only exception.
+  if (tabKey === 'player' && entityType === 'TRAINING_ASSIGNMENT') {
+    return <TrainingPlayerTab entity={entity} />
+  }
+
+  // GENERIC — any tab key of the form `linked-<suffix>` renders the related
+  // records from {apiBasePath}/{id}/<tabKey>. One branch serves every module:
+  // adding a "Linked assets" tab becomes a seed row plus a backend endpoint,
+  // with no frontend change at all.
+  //
+  // apiBasePath, not bp — CustomTabContent is passed apiBasePath and
+  // entityType, never the blueprint itself. linked-findings is excluded so the
+  // older ISSUE branch below keeps its behaviour unchanged.
+  if (typeof tabKey === 'string' && tabKey.startsWith('linked-') && tabKey !== 'linked-findings') {
+    return <LinkedEntitiesTab apiBasePath={apiBasePath} entity={entity} tabKey={tabKey} />
+  }
+
   // ISSUE — linked findings tab (audit findings linked to this issue)
   if ((tabKey === 'linked-findings' || tabKey === 'linked_findings') && entityType === 'ISSUE') {
     return <IssueFindingsTab issueId={entity?.id} />
   }
 
+    // RISK — controls that treat this risk, with observed effectiveness.
+  // 'controls' is in CUSTOM_RENDERED_TABS, so the generic form fetch is
+  // already suppressed for this key; without this branch the tab renders
+  // "No fields configured for this tab".
+  if (tabKey === 'controls' && entityType === 'RISK') {
+    return <RiskControlsTab riskId={entity?.id} entity={entity} canEdit={vc?.canEdit !== false} />
+  }
+
+  // RISK — issues raised against this risk. 'issues' is NOT in
+  // CUSTOM_RENDERED_TABS, so without this branch the generic path fetches
+  // risk_detail_tab_issues, 404s, and falls through to the same dead panel.
+  if (tabKey === 'issues' && entityType === 'RISK') {
+    return <RiskIssuesTab riskId={entity?.id} />
+  }
+  
   // eslint-disable-next-line no-unused-vars
   void entityType  // used above only; generic path below is form-key-driven
 
@@ -3144,8 +3934,14 @@ function EntityDisplay({ value, lookupEntityType, lookupApiPath }) {
     // Strip any query params from the path before appending the ID.
     // e.g. '/v1/workflows?entityType=AUDIT_PROJECT' → '/v1/workflows/16' (not malformed URL).
     const basePath = rawPath.includes('?') ? rawPath.slice(0, rawPath.indexOf('?')) : rawPath
-    const resolvedPath = `${basePath}/${valueStr}`
     let cancelled = false
+    // Users: batched with every other user field/cell on the page into one
+    // GET /v1/users/lookup call (lib/userLookup) instead of a full user load each.
+    if (basePath === '/v1/users') {
+      getUserLabel(valueStr).then(l => { if (!cancelled) setLabel(l || null) })
+      return () => { cancelled = true }
+    }
+    const resolvedPath = `${basePath}/${valueStr}`
     api.get(resolvedPath)
       .then(r => {
         if (cancelled) return
@@ -3490,654 +4286,218 @@ function ServerErrorState({ error }) {
 }
 
 // ─── EntityDrawer ─────────────────────────────────────────────────────────────
-// Fully interactive slide-over — Wrike-style property grid + full tab set.
-// Driven by detailScreenKey (Screen Designer config). Configure once → works
-// in both this drawer and the full detail page.
+// The drawer is the detail page, embedded.
 //
-// Tabs match module capabilities:
-//   Overview   — inline-editable property grid (Wrike style)
-//   Comments   — threaded comment feed + quick-add
-//   Evidence   — file upload / link management (EvidenceUploader)
-//   Actions    — linked action items (ItemActionItems)
-//   Workflow   — status timeline (nudge to full page — needs workflowInstanceId)
-//   History    — audit log (full page only)
+// It used to be an independent implementation of the same screen (own entity
+// query, own view-context query without task context, own action filter, own
+// tab set, custom tabs with taskId/stepInstanceId hard-wired to undefined), and
+// every fix made to the detail page had to be remembered here too. It was not,
+// which is how a requires_assignment button came to be hidden on the page and
+// shown in the drawer.
+//
+// So this is now only a frame — overlay, slide-in panel, Close, Open full page,
+// Escape — around ModuleDetailView in embedded mode. Same hooks, same cache
+// keys, same tabs, same header actions, same guards: what a user can see and do
+// on the full page is what they can see and do here.
+//
+// Wider than the old 520px property grid (the full screen's tabs need room),
+// but narrow enough that the list it was opened from stays visible beside it —
+// 1040px covered most of the engagement's Controls tab, which is the point of
+// opening a drawer instead of the page. Full page is one click away.
+const ENTITY_DRAWER_MAX_WIDTH = 'min(800px, 92vw)'
 
-function EntityDrawer({ entityId, bp, onClose, onOpenFull }) {
-  const qc = useQueryClient()
-  const navigate = useNavigate()
+// ── Stacking and motion ──────────────────────────────────────────────────────
+// A drawer opened from inside another drawer stacks ON TOP of it (see
+// hooks/useEntityDrawer.js). Each level above the first is a little narrower,
+// so the edge of the drawer underneath stays visible on the left — the user
+// can see that closing this one returns them there — and sits one step higher.
+// z-index stays below 70: DynamicForm's portalled dropdowns use z-[70].
+//
+// Motion is a transform transition driven from state, not a CSS keyframe
+// class: it slides in when the drawer MOUNTS and slides out before an
+// explicit close (button, overlay, Escape). Switching the record inside a
+// level, or a drawer opening above, never re-runs it — the panel underneath
+// stays put instead of blinking out and back.
+const DRAWER_ANIM_MS = 220
+const drawerMaxWidth = (level) => level > 0
+  ? `min(${800 - 48 * level}px, ${92 - 4 * level}vw)`
+  : ENTITY_DRAWER_MAX_WIDTH
+const prefersReducedMotion = () => {
+  try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches } catch { return false }
+}
 
-  // ── 1. Full entity data ───────────────────────────────────────────────────
-  const { data: entityRes, isLoading: loadingEntity } = useQuery({
-    queryKey: ['drawer-entity', bp.apiBasePath, entityId],
-    staleTime: 30 * 1000,
-    queryFn:  () => moduleApi.get(bp.apiBasePath, entityId), enabled: !!entityId,
-  })
-  const entity = entityRes?.data?.data || entityRes?.data || entityRes
+// Escape closes the TOPMOST open drawer only. Every drawer registers itself in
+// mount order (lower drawers — and the list view's own drawer — mount first).
+const openDrawerTokens = []
 
-  // ── 2. Detail screen config (same as full page) ───────────────────────────
-  const { data: screenRes, isLoading: screenLoading } = useQuery({
-    queryKey: ['screen-config', bp.detailScreenKey],
-    queryFn:  () => moduleApi.screenConfig(bp.detailScreenKey),
-    staleTime: 5 * 60_000, enabled: !!bp.detailScreenKey,
-  })
-  const screenConfig = screenRes?.data?.data || screenRes?.data || screenRes
-  const isLoading = loadingEntity || screenLoading
+function EntityDrawer({ entityId, bp, onClose, onOpenFull, level = 0, entityType, bpError = false }) {
+  const [shown,   setShown]   = useState(false)
+  const [leaving, setLeaving] = useState(false)
+  const leaveTimer = useRef(null)
 
-  // ── Role-based action visibility — Screen Designer's roleAccessJson ────────
-  const sdLayout        = screenRes?.layout
-  const roleAccess       = useMemo(() => parseRoleAccessJson(sdLayout?.roleAccessJson), [sdLayout?.roleAccessJson])
-  const auth             = useSelector(selectAuth)
-  const userSides         = useSelector(selectRoleSides)
-  const currentSide        = userSides?.[0] || null
-  const currentRoleIds     = (auth?.roles || []).map(r => r.id ?? r.roleId).filter(Boolean)
-
-  // ── 2b. View context — field-level access + permission-gated actions ──────
-  // Gap 2: needed so DrawerProperty can block click-to-edit on read-only fields.
-  // Gap 4: needed so screenActions can filter by requiredPermission vs vc.permissions.
-  const { data: vcRes } = useQuery({
-    queryKey: ['view-context', bp.entityType, entityId],
-    queryFn:  () => moduleApi.viewContext(bp.entityType, entityId),
-    staleTime: 30 * 1000, enabled: !!entityId,
-  })
-  const vc = vcRes?.data || vcRes || {}
-
-  // ── 3. Actions filtered by entity status and vc.permissions ───────────────
-  const screenActions = useMemo(() => {
-    if (!Array.isArray(screenConfig?.actions)) return []
-    const seen = new Set()
-    return screenConfig.actions.filter(action => {
-      if (action.isActive === false) return false
-      // Deduplicate by actionKey — prevents duplicate buttons if same action
-      // inserted multiple times in DB
-      if (seen.has(action.actionKey)) return false
-      seen.add(action.actionKey)
-      if (action.allowedStatusesJson) {
-        try {
-          const allowed = JSON.parse(action.allowedStatusesJson)
-          if (entity?.status && !allowed.includes(entity.status)) return false
-        } catch {}
-      }
-      // Gap 4: hide action if requiredPermission is set and user lacks it
-      if (action.requiredPermission && vc.permissions?.length > 0) {
-        if (!vc.permissions.includes(action.requiredPermission)) return false
-      }
-      // Screen Designer's per-role action visibility (roleAccessJson.actions)
-      if (!isActionAllowed(roleAccess, currentSide, currentRoleIds, action.actionKey)) return false
-      return true
-    })
-  }, [screenConfig?.actions, entity?.status, vc.permissions, roleAccess, currentSide, currentRoleIds])
-
-  // ── 4. Form fields for Overview ─────────────────────────────────────────────
-  // Same three-level priority as full-page detail (see above):
-  //   {detailScreenKey}_tab_overview → createFormKey → fieldsSchemaJson
-  const drawerOverviewKey  = bp.detailScreenKey ? `${bp.detailScreenKey}_tab_overview` : null
-  const drawerLegacyKey    = bp.editFormKey || bp.createFormKey
-  const { data: drawerOverviewRes } = useQuery({
-    queryKey: ['drawer-overview-form', drawerOverviewKey],
-    queryFn:  () => uiConfigApi.form(drawerOverviewKey),
-    staleTime: 5 * 60_000, enabled: !!drawerOverviewKey,
-  })
-  const detailFormKey = drawerLegacyKey
-  const { data: formRes } = useQuery({
-    queryKey: ['drawer-form', detailFormKey],
-    queryFn:  () => uiConfigApi.form(detailFormKey),
-    staleTime: 5 * 60_000, enabled: !!detailFormKey,
-  })
-  const activeFormRes = (drawerOverviewRes?.fields?.length > 0) ? drawerOverviewRes : formRes
-  const fieldSections = useMemo(() => {
-    const raw = activeFormRes?.fields || []
-    if (!raw.length) return []
-    const sections = []
-    let cur = { label: null, fields: [] }
-    raw.forEach(f => {
-      if (f.fieldType === 'SECTION_HEADER') {
-        if (cur.fields.length) sections.push(cur)
-        cur = { label: f.label, fields: [] }
-      } else if (f.fieldType !== 'DIVIDER') {
-        cur.fields.push(f)
-      }
-    })
-    if (cur.fields.length) sections.push(cur)
-    return sections
-  }, [activeFormRes])
-
-  // ── 4b. Header zone fields (from {detailScreenKey}_header form) ─────────
-  const drawerHeaderFormKey = bp.detailScreenKey ? `${bp.detailScreenKey}_header` : null
-  const { data: drawerHeaderFormRes } = useQuery({
-    queryKey: ['drawer-header-form', drawerHeaderFormKey],
-    queryFn:  () => uiConfigApi.form(drawerHeaderFormKey),
-    staleTime: 5 * 60_000, enabled: !!drawerHeaderFormKey,
-  })
-  const headerFields = useMemo(() => drawerHeaderFormRes?.fields || [], [drawerHeaderFormRes])
-
-  // ── 5. Comments ───────────────────────────────────────────────────────────
-  // Read the SAME capability booleans the full detail page uses (bp.supportsXxx).
-  // The old bp.capabilities?.includes?.(...) array never exists on the blueprint
-  // response, so every flag fell through to the `?? true` default and the drawer
-  // showed all tabs regardless of the toggles.
-  const hasComments  = !!bp.supportsComments
-  const hasEvidence  = !!bp.supportsDocuments
-  const hasActions   = !!bp.supportsActionItems
-  const hasWorkflow  = !!bp.supportsWorkflow
-  const hasHistory   = !!bp.supportsHistory
-
-  const { data: commentsRes, refetch: refetchComments } = useQuery({
-    queryKey: ['drawer-comments', bp.entityType, entityId],
-    queryFn:  () => commentsApi.list(bp.entityType, entityId),
-    staleTime: 30_000, enabled: hasComments && !!entityId,
-  })
-  const comments = useMemo(() => {
-    const raw = commentsRes?.data?.data || commentsRes?.data || commentsRes
-    return Array.isArray(raw) ? raw : []
-  }, [commentsRes])
-
-  const addCommentMut = useMutation({
-    mutationFn: (text) => commentsApi.add({
-      entityType: bp.entityType, entityId, commentText: text, visibility: 'ALL',
-    }),
-    onSuccess: () => { refetchComments(); toast.success('Comment added') },
-    onError:   () => toast.error('Failed to add comment'),
-  })
-
-  // ── 6. Inline field editing (Wrike pattern: click value → edit inline) ────
-  const [editingKey, setEditingKey] = useState(null)
-  const [editValue,  setEditValue]  = useState('')
-  const [saving,     setSaving]     = useState(false)
-
-  const startEdit = (field) => {
-    setEditingKey(field.fieldKey)
-    setEditValue(entity?.[field.fieldKey] ?? '')
-  }
-  const cancelEdit = () => { setEditingKey(null); setEditValue('') }
-
-  const saveField = async (fieldKey) => {
-    setSaving(true)
-    try {
-      await moduleApi.patch(bp.apiBasePath, entityId, { [fieldKey]: editValue || null })
-      qc.invalidateQueries({ queryKey: ['drawer-entity', bp.apiBasePath, entityId] })
-      qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
-      toast.success('Saved')
-      setEditingKey(null)
-    } catch (e) {
-      toast.error(e?.response?.data?.message || 'Save failed')
-    } finally { setSaving(false) }
-  }
-
-  // ── 7. Actions ────────────────────────────────────────────────────────────
-  const [actingId,      setActingId]      = useState(null)
-  const [confirmAction, setConfirmAction] = useState(null)
-  const [formAction,    setFormAction]    = useState(null)
-
-  const executeAction = async (action, remarks = '') => {
-    let meta = {}
-    try { meta = JSON.parse(action.payloadTemplateJson || '{}') } catch {}
-    if (meta.__formKey) { setFormAction(action); return }
-    if (meta.__navRoute) { navigate(meta.__navRoute.replace('{id}', entityId)); return }
-    const url = (action.apiEndpoint || '').replace('{id}', entityId).replace('{entityId}', entityId)
-    try {
-      setActingId(action.id)
-      const payload = Object.fromEntries(Object.entries(meta).filter(([k]) => !k.startsWith('__')))
-      if (remarks) payload.remarks = remarks
-      const res = await api({ method: action.httpMethod || 'POST', url, data: payload })
-      qc.invalidateQueries({ queryKey: ['drawer-entity', bp.apiBasePath, entityId] })
-      qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
-      qc.invalidateQueries({ queryKey: ['view-context', bp.entityType, entityId] })
-      qc.invalidateQueries({ queryKey: ['module-workflow', bp.entityType, entityId] })
-      toast.success(action.label + ' successful')
-      // For status-changing actions in drawer: re-fetch entity immediately
-      // so action buttons re-filter with new status (no stale cache)
-      const _sf2 = (() => { try { return JSON.parse(bp.statusFlowJson || '{}') } catch { return {} } })()
-      const DRAWER_STATUS_ACTIONS = new Set(
-        (_sf2.transitions || []).map(t => t.actionKey).filter(Boolean)
-      )
-      if (DRAWER_STATUS_ACTIONS.has(action.actionKey)) {
-        // Force immediate refetch — don't wait for background revalidation
-        await qc.refetchQueries({ queryKey: ['drawer-entity', bp.apiBasePath, entityId] })
-        await qc.refetchQueries({ queryKey: ['view-context', bp.entityType, entityId] })
-      }
-      // __redirectToCreated: navigate to a route substituting the newly created entity's id.
-      // Used for "New version" — the API returns { id, version } of the new draft.
-      if (meta.__redirectToCreated) {
-        const created = res?.data?.data || res?.data || res
-        const newId = created?.id
-        if (newId) navigate(meta.__redirectToCreated.replace('{id}', newId))
-      }
-    } catch (e) {
-      toast.error(e?.response?.data?.message || action.label + ' failed')
-    } finally { setActingId(null) }
-  }
-
-  const handleAction = (action) => {
-    let meta = {}
-    try { meta = JSON.parse(action.payloadTemplateJson || '{}') } catch {}
-    if (meta.__formKey) { setFormAction(action); return }
-    if (action.requiresConfirmation || action.requiresRemarks) setConfirmAction({ action, remarks: '' })
-    else executeAction(action)
-  }
-
-  // ── 8. Tabs — read from Screen Designer tabs_json, fall back to defaults ───
-  const drawerSdTabs = useMemo(() => {
-    try {
-      const layout = screenConfig?.layout
-      if (!layout?.tabsJson) return []
-      const parsed = JSON.parse(layout.tabsJson)
-      return Array.isArray(parsed) ? parsed.map(t =>
-        typeof t === 'string' ? { key: t.toLowerCase().replace(/\s+/g,'_'), label: t }
-        : { key: t.key, label: t.label || t.key }
-      ) : []
-    } catch { return [] }
-  }, [screenConfig])
-
-  const CAPABILITY_TAB_KEYS = new Set(['overview','comments','evidence','actions','workflow','history'])
-  const drawerCustomTabs = drawerSdTabs.filter(t => !CAPABILITY_TAB_KEYS.has(t.key))
-
-  const TABS = [
-    { id: 'overview',  label: 'Overview' },
-    // Custom SD tabs injected after overview (tests, policies, controls, sections, etc.)
-    ...drawerCustomTabs.map(t => ({ id: t.key, label: t.label })),
-    { id: 'comments',  label: 'Comments', hidden: !hasComments,
-      badge: comments.length || null },
-    { id: 'evidence',  label: 'Evidence',  hidden: !hasEvidence },
-    { id: 'actions',   label: 'Action items', hidden: !hasActions },
-    { id: 'workflow',  label: 'Workflow',  hidden: !hasWorkflow },
-    { id: 'history',   label: 'History',   hidden: !hasHistory },
-  ].filter(t => !t.hidden)
-
-  // Namespaced as drawerTab so it cannot collide with the full-page detail's
-  // ?tab= when a drawer is opened from a screen that has its own tabs.
-  const [activeTab, setActiveTab] = useUrlState('drawerTab', 'overview')
-  const [commentText, setCommentText] = useState('')
-
-  // Escape to close
+  // Slide in on mount: render off-screen first, then transition in.
   useEffect(() => {
-    const h = (e) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', h)
-    return () => window.removeEventListener('keydown', h)
+    let inner = 0
+    const outer = requestAnimationFrame(() => { inner = requestAnimationFrame(() => setShown(true)) })
+    return () => { cancelAnimationFrame(outer); cancelAnimationFrame(inner) }
+  }, [])
+  useEffect(() => () => clearTimeout(leaveTimer.current), [])
+
+  // Slide out, then close (the close removes this drawer from the URL).
+  const requestClose = useCallback(() => {
+    if (leaveTimer.current) return
+    if (prefersReducedMotion()) { onClose(); return }
+    setLeaving(true)
+    leaveTimer.current = setTimeout(() => { onClose() }, DRAWER_ANIM_MS)
   }, [onClose])
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // Escape to close — topmost drawer only
+  useEffect(() => {
+    const token = {}
+    openDrawerTokens.push(token)
+    const h = (e) => {
+      if (e.key === 'Escape' && openDrawerTokens[openDrawerTokens.length - 1] === token) requestClose()
+    }
+    window.addEventListener('keydown', h)
+    return () => {
+      window.removeEventListener('keydown', h)
+      const i = openDrawerTokens.indexOf(token)
+      if (i >= 0) openDrawerTokens.splice(i, 1)
+    }
+  }, [requestClose])
+
+  const visible = shown && !leaving
+  const motion  = `${DRAWER_ANIM_MS}ms cubic-bezier(0.2, 0.8, 0.2, 1)`
+  const label   = bp?.displayName
+    || String(entityType || '').toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-on-dark-inv/20 backdrop-blur-[1px]"
-        onClick={onClose} aria-hidden="true" />
+      <div className={cn('fixed inset-0 bg-on-dark-inv/20', level === 0 && 'backdrop-blur-[1px]')}
+        style={{ zIndex: level === 0 ? 40 : 49 + 2 * level, opacity: visible ? 1 : 0, transition: `opacity ${motion}` }}
+        onClick={requestClose} aria-hidden="true" />
 
-      <div className="fixed right-0 top-0 z-50 h-full w-[520px] bg-surface border-l border-border
-                      flex flex-col shadow-2xl animate-slide-in-right">
+      <div className="fixed right-0 top-0 h-full w-full bg-surface border-l border-border
+                      flex flex-col shadow-2xl"
+        style={{
+          maxWidth:   drawerMaxWidth(level),
+          zIndex:     50 + 2 * level,
+          transform:  visible ? 'translateX(0)' : 'translateX(100%)',
+          transition: `transform ${motion}`,
+          willChange: 'transform',
+        }}>
 
-        {/* ── Header ── */}
-        <div className="px-5 pt-4 pb-3 border-b border-border shrink-0">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                <span className="text-[10px] font-mono text-text-muted">
-                  {bp.displayName} #{entity?.id || entityId}
-                </span>
-                {entity?.status && (
-                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide
-                                   bg-status-info-bg border border-status-info-bd text-status-info-fg">
-                    {entity.status.replace(/_/g,' ')}
-                  </span>
-                )}
-                {entity?.severity && (
-                  <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold border',
-                    entity.severity === 'CRITICAL' ? 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg' :
-                    entity.severity === 'HIGH'     ? 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg' :
-                    entity.severity === 'MEDIUM'   ? 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg' :
-                    'bg-status-pass-bg border-status-pass-bd text-status-pass-fg')}>
-                    {entity.severity}
-                  </span>
-                )}
-              </div>
-              {loadingEntity
-                ? <div className="h-5 w-64 bg-surface-overlay rounded animate-pulse" />
-                : <h2 className="text-sm font-semibold text-text-primary leading-snug">
-                    {entity?.title || entity?.name || `${bp.displayName} ${entityId}`}
-                  </h2>
-              }
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
+        {/* Frame bar — always present, so the drawer can be closed while the
+            record is still loading or failed to load. */}
+        <div className="flex items-center justify-between gap-3 px-5 py-2 border-b border-border shrink-0 bg-surface-secondary/40">
+          <span className="text-[10px] font-mono text-text-muted truncate">
+            {label} #{entityId}
+          </span>
+          <div className="flex items-center gap-1 shrink-0">
+            {bp && (
               <button onClick={onOpenFull}
                 className="flex items-center gap-1.5 text-[11px] text-brand-ink hover:text-brand-ink
                            border border-brand-500/25 hover:border-brand-500/50 rounded-ctl
                            px-2.5 py-1.5 transition-colors font-medium">
                 <ExternalLink size={11} /> Full page
               </button>
-              <button onClick={onClose}
-                className="p-1.5 rounded-ctl text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
-                <X size={15} />
-              </button>
-            </div>
-          </div>
-
-          {/* Action buttons — below title, above tabs */}
-          {isLoading ? (
-            /* Skeleton action buttons while entity/screen loads */
-            <div className="flex items-center gap-2 flex-wrap mt-3">
-              {[64, 80, 72].map((w, i) => (
-                <div key={i} className="h-7 rounded-ctl animate-pulse bg-surface-overlay"
-                  style={{ width: w }} />
-              ))}
-            </div>
-          ) : screenActions.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap mt-3">
-              {screenActions.map(action => {
-                const DrawerIcon = resolveIcon(action.icon)
-                return (
-                <Button key={action.id} size="sm"
-                  variant={action.variant || 'secondary'}
-                  icon={DrawerIcon || undefined}
-                  loading={actingId === action.id}
-                  onClick={() => handleAction(action)}>
-                  {action.label}
-                </Button>
-              )
-            })}
-            </div>
-          )}
-        </div>
-
-        {/* ── Tab bar ── */}
-        <div className="flex items-center border-b border-border shrink-0 px-5 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          {isLoading ? (
-            // Skeleton tabs while loading
-            <div className="flex items-center gap-1 py-2">
-              {[80, 60, 70, 55].map((w, i) => (
-                <div key={i} className="h-6 rounded animate-pulse bg-surface-overlay"
-                  style={{ width: w }} />
-              ))}
-            </div>
-          ) : TABS.map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium whitespace-nowrap',
-                'border-b-2 -mb-px transition-colors shrink-0',
-                activeTab === tab.id
-                  ? 'border-brand-400 text-brand-ink'
-                  : 'border-transparent text-text-muted hover:text-text-secondary'
-              )}>
-              {tab.label}
-              {tab.badge > 0 && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-surface-overlay text-text-muted tabular-nums">
-                  {tab.badge}
-                </span>
-              )}
+            )}
+            <button onClick={requestClose} aria-label="Close"
+              className="p-1.5 rounded-ctl text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
+              <X size={15} />
             </button>
-          ))}
+          </div>
         </div>
 
-        {/* ── Scrollable tab content ── */}
-        <div className="flex-1 overflow-y-auto min-h-0">
-
-          {/* Loading skeleton */}
-          {isLoading && (
-            <div className="px-5 py-4 flex flex-col gap-3">
-              <div className="h-4 w-3/4 rounded animate-pulse bg-surface-overlay" />
-              <div className="h-3 w-full rounded animate-pulse bg-surface-overlay" />
-              <div className="h-3 w-5/6 rounded animate-pulse bg-surface-overlay" />
-              <div className="h-3 w-2/3 rounded animate-pulse bg-surface-overlay" />
-              <div className="h-20 w-full rounded animate-pulse bg-surface-overlay mt-2" />
-              <div className="h-3 w-4/5 rounded animate-pulse bg-surface-overlay" />
-            </div>
-          )}
-
-          {/* ── OVERVIEW — Wrike-style: key props strip + description + activity ── */}
-          {!isLoading && activeTab === 'overview' && (
-            <div className="divide-y divide-border/40">
-
-              {/* Key properties bar — Status, Assignee, Date in prominent tiles */}
-              {!loadingEntity && (
-                <>
-                {/* ── SD header zone fields ── */}
-                {headerFields.length > 0 && (
-                  <div className="px-5 pt-4 grid grid-cols-12 gap-3">
-                    {headerFields.map((field, fi) => {
-                      const value = entity?.[field.fieldKey]
-                      return (
-                        <div key={fi} className={`col-span-${field.gridCols || 6}`}>
-                          <FieldDisplay
-                            label={field.label} value={value} type={field.fieldType}
-                            editable={vc?.canEdit && !vc?.readOnlyFields?.includes(field.fieldKey)}
-                            field={field}
-                          />
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-                <div className="px-5 py-4 grid grid-cols-3 gap-3">
-                  {/* Always show these key fields prominently if they exist on the entity */}
-                  {[
-                    { key: 'status',    label: 'Status' },
-                    { key: 'ownerId',   label: 'Owner',   nameKey: 'ownerName' },
-                    { key: 'dueAt',     label: 'Due date', isDate: true },
-                  ].map(({ key, label, nameKey, isDate }) => {
-                    const val = entity?.[nameKey || key]
-                    const statusColor = key === 'status' && val
-                      ? (SEMANTIC_COLORS[String(val).toUpperCase()] || 'gray')
-                      : null
-                    const cls = statusColor ? COLOR_MAP[statusColor] : null
-                    return (
-                      <div key={key}
-                        className="flex flex-col gap-1 p-2.5 rounded-card border border-border bg-surface-secondary hover:border-border-strong transition-colors cursor-pointer"
-                        onClick={() => {
-                          const field = fieldSections.flatMap(s=>s.fields).find(f=>f.fieldKey===key)
-                          if (field) startEdit(field)
-                        }}>
-                        <span className="text-[9px] font-semibold text-text-muted uppercase tracking-wider">{label}</span>
-                        {val
-                          ? statusColor
-                            ? <span className={cn('inline-flex items-center self-start px-2 py-0.5 rounded text-[11px] font-semibold font-mono', cls)}>
-                                {String(val).replace(/_/g,' ')}
-                              </span>
-                            : isDate
-                            ? <span className="text-xs font-medium text-text-primary">
-                                {new Date(val).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}
-                              </span>
-                            : <span className="text-xs font-medium text-text-primary truncate">{String(val)}</span>
-                          : <span className="text-[11px] text-text-muted/50 italic">Empty</span>
-                        }
-                      </div>
-                    )
-                  })}
-                </div>
-                </>
-              )}
-
-              {/* Other properties — 2-col grid */}
-              {loadingEntity ? (
-                <div className="px-5 py-4 grid grid-cols-2 gap-3">
-                  {[1,2,3,4,5,6].map(i => (
-                    <div key={i} className="space-y-1">
-                      <div className="h-2.5 w-16 bg-surface-overlay rounded animate-pulse" />
-                      <div className="h-7 bg-surface-overlay rounded animate-pulse" />
-                    </div>
-                  ))}
-                </div>
-              ) : fieldSections.length > 0 ? (
-                <>
-                  {fieldSections.map((section, si) => {
-                    const TOP_BAR_KEYS = ['status','ownerId','dueAt']
-                    const fields = section.fields.filter(f => !TOP_BAR_KEYS.includes(f.fieldKey))
-                    if (!fields.length) return null
-                    return (
-                      <div key={si} className="px-5 py-4">
-                        {section.label && (
-                          <p className="text-[9px] font-semibold text-text-muted uppercase tracking-widest mb-3 flex items-center gap-2">
-                            {section.label} <span className="flex-1 h-px bg-border/60" />
-                          </p>
-                        )}
-                        <div className="grid grid-cols-2 gap-x-5 gap-y-0">
-                          {fields.map(field => {
-                            const isWide = ['TEXTAREA','RICH_TEXT'].includes(field.fieldType) || field.gridCols >= 12
-                            return (
-                              <div key={field.fieldKey} className={isWide ? 'col-span-2' : ''}>
-                                <DrawerProperty
-                                  field={field}
-                                  entity={entity}
-                                  screenConfig={screenConfig}
-                                  editingKey={editingKey}
-                                  editValue={editValue}
-                                  saving={saving}
-                                  onStartEdit={startEdit}
-                                  onChangeValue={setEditValue}
-                                  onSave={saveField}
-                                  onCancel={cancelEdit}
-                                  vc={vc}
-                                />
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </>
-              ) : (
-                <div className="px-5 py-4 grid grid-cols-2 gap-x-5 gap-y-0">
-                  {entity && Object.entries(entity)
-                    .filter(([k]) => !['id','createdAt','updatedAt','tenantId','createdBy','rcaJson','linkedControlIds','linkedRiskIds','status','ownerId','dueAt'].includes(k))
-                    .map(([k, v]) => (
-                      <div key={k} className="py-1.5">
-                        <p className="text-[9px] font-semibold text-text-muted uppercase tracking-wider mb-1">
-                          {k.replace(/([A-Z])/g,' $1').trim()}
-                        </p>
-                        <p className="text-xs text-text-primary font-medium">{String(v ?? '—')}</p>
-                      </div>
-                    ))}
-                </div>
-              )}
-
-              {/* Activity feed — inline in overview like Wrike */}
-              {hasComments && (
-                <div className="px-5 py-4">
-                  <p className="text-[9px] font-semibold text-text-muted uppercase tracking-widest mb-3 flex items-center gap-2">
-                    Activity <span className="flex-1 h-px bg-border/60" />
-                  </p>
-                  <CommentFeed
-                    comments={comments}
-                    isLoading={false}
-                    addComment={(data) => addCommentMut.mutate(data.commentText || data)}
-                    adding={addCommentMut.isPending}
-                    canEdit
-                    emptyMessage="No activity yet."
-                  />
-                  {/* Quick comment input inline */}
-                  <div className="flex items-end gap-2 mt-3">
-                    <textarea value={commentText} onChange={e => setCommentText(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault()
-                          if (commentText.trim()) { addCommentMut.mutate(commentText.trim()); setCommentText('') }
-                        }
-                      }}
-                      placeholder="Add a comment… (Enter to send)"
-                      rows={2}
-                      className="flex-1 px-3 py-2 text-xs bg-surface-secondary border border-border rounded-card
-                                 text-text-primary placeholder:text-text-muted focus:outline-none
-                                 focus:ring-1 focus:ring-brand-500 resize-none" />
-                    <Button size="sm" loading={addCommentMut.isPending}
-                      disabled={!commentText.trim()}
-                      onClick={() => { if (commentText.trim()) { addCommentMut.mutate(commentText.trim()); setCommentText('') } }}>
-                      Send
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── COMMENTS ── */}
-          {/* ── CAPABILITY TABS — same components as the full detail page ── */}
-          {!isLoading && ['comments','evidence','actions'].includes(activeTab) && (
-            <div className="px-5 py-4">
-              <CapabilityTabBody tab={activeTab} bp={bp} id={entityId} entity={entity} vc={vc} />
-            </div>
-          )}
-
-          {/* ── CUSTOM SD TABS (tests, policies, controls, sections etc.) ── */}
-          {!isLoading && drawerCustomTabs.some(t => t.key === activeTab) && (
-            <div className="px-5 py-4">
-              <CustomTabContent
-                tabKey={activeTab}
-                detailScreenKey={bp.detailScreenKey}
-                entity={entity}
-                entityType={bp.entityType}
-                apiBasePath={bp.apiBasePath}
-                vc={vc}
-                stepInstanceId={undefined}
-                taskId={undefined}
-              />
-            </div>
-          )}
-
-          {/* ── WORKFLOW + HISTORY — same components as the full detail page ── */}
-          {!isLoading && ['workflow','history'].includes(activeTab) && (
-            <div className="px-5 py-4">
-              <CapabilityTabBody tab={activeTab} bp={bp} id={entityId} entity={entity} vc={vc} />
+        <div className="flex-1 min-h-0">
+          {bp ? (
+            /* key: switching the drawer from one record to another must not
+               carry the previous record's local task context across. */
+            <ModuleDetailView key={`${bp.entityType}:${entityId}`}
+              bp={bp} id={entityId != null ? String(entityId) : entityId}
+              entityType={bp.entityType} embedded onClose={requestClose} drawerLevel={level} />
+          ) : (
+            // The record type's blueprint is still loading (first open of that
+            // type) — show the frame with a spinner rather than nothing.
+            <div className="h-full flex items-center justify-center gap-2 text-xs text-text-muted">
+              {bpError
+                ? 'This record could not be opened.'
+                : <><RefreshCw size={16} className="animate-spin" /> Loading…</>}
             </div>
           )}
         </div>
       </div>
-
-      {/* ── Confirmation dialog ── */}
-      {confirmAction && (
-        <Modal open onClose={() => setConfirmAction(null)}
-          title={confirmAction.action.label}
-          subtitle={confirmAction.action.confirmationMessage || 'Confirm this action.'}
-          footer={
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={() => setConfirmAction(null)}>Cancel</Button>
-              <Button size="sm" variant={confirmAction.action.variant || 'primary'}
-                loading={actingId === confirmAction.action.id}
-                onClick={() => { executeAction(confirmAction.action, confirmAction.remarks); setConfirmAction(null) }}>
-                {confirmAction.action.label}
-              </Button>
-            </div>
-          }>
-          {confirmAction.action.requiresRemarks && (
-            <div>
-              <label className="text-xs font-medium text-text-secondary block mb-1">
-                Remarks <span className="text-status-fail-fg">*</span>
-              </label>
-              <textarea value={confirmAction.remarks}
-                onChange={e => setConfirmAction(p => ({ ...p, remarks: e.target.value }))}
-                rows={3} placeholder="Reason for this action…"
-                className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-card
-                           text-text-primary placeholder:text-text-muted focus:outline-none
-                           focus:ring-1 focus:ring-brand-500 resize-none" />
-            </div>
-          )}
-        </Modal>
-      )}
-
-      {/* ── Form-opening action modal (RCA, remediation, etc.) ── */}
-      {formAction && (() => {
-        let meta = {}
-        try { meta = JSON.parse(formAction.payloadTemplateJson || '{}') } catch {}
-        const submitUrl = (formAction.apiEndpoint || '').replace('{id}', entityId)
-        return (
-          <Modal open onClose={() => setFormAction(null)} title={formAction.label} size="lg">
-            <DynamicForm
-              formKey={meta.__formKey}
-              defaultValues={{ entityId, entityType: bp.entityType }}
-              onSubmit={async (data) => {
-                try {
-                  setActingId(formAction.id)
-                  await api({ method: formAction.httpMethod || 'POST', url: submitUrl, data })
-                  qc.invalidateQueries({ queryKey: ['drawer-entity', bp.apiBasePath, entityId] })
-                  toast.success(formAction.label + ' saved')
-                  setFormAction(null)
-                } catch (e) {
-                  toast.error(e?.response?.data?.message || 'Failed')
-                } finally { setActingId(null) }
-              }}
-              loading={actingId === formAction.id}
-              submitLabel={formAction.label}
-            />
-          </Modal>
-        )
-      })()}
     </>
+  )
+}
+
+// ─── URL-driven drawers for ANY entity type ───────────────────────────────────
+// A tab on one record can open another record's drawer without leaving the page
+// — an engagement's Controls tab opens a control; a control's Tests tab opens a
+// test — through hooks/useEntityDrawer.js. Drawers opened from inside a drawer
+// STACK: the test opens over the control, and closing the test leaves the
+// control's drawer where it was. Being in the URL, the stack is deep-linkable:
+// an inbox row for a delegated control lands on the engagement's Controls tab
+// with that control's drawer open on the right tab, and Back closes the top
+// drawer.
+//
+// The URL shape, the ?entityId= fallback for inbox routes and the close rules
+// live in hooks/useEntityDrawer.js, next to the hook that writes them.
+//
+// Each level is keyed by its POSITION, not its record: a drawer that opens
+// above leaves the ones underneath mounted (no blank, no re-animation), and a
+// level whose record changes (Back from one record to another) swaps its
+// content in place.
+function UrlEntityDrawerHost() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const levels = readDrawerLevels(searchParams)
+
+  const closeLevel = useCallback((level) => {
+    setSearchParams(prev => closeDrawerLevel(prev, level), { replace: false })
+  }, [setSearchParams])
+
+  if (levels.length === 0) return null
+
+  return levels.map(lv => (
+    <UrlEntityDrawerLevel key={lv.level} {...lv} onCloseLevel={closeLevel} />
+  ))
+}
+
+function UrlEntityDrawerLevel({ type, id, level, tabKey, onCloseLevel }) {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  // Every level loads its own type's blueprint. A level that is already open
+  // keeps rendering from its cached one while a new level above loads — the
+  // old single drawer returned null here, which is what blanked the screen.
+  const { data: bpRes, isError } = useBlueprint(type)
+  const res = bpRes?.data || bpRes
+  const drawerBp = res?.entityType ? res : null
+
+  const onClose = useCallback(() => onCloseLevel(level), [onCloseLevel, level])
+
+  return (
+    <EntityDrawerLevelContext.Provider value={level}>
+      <EntityDrawer
+        entityId={id}
+        bp={drawerBp}
+        entityType={type}
+        bpError={isError}
+        level={level}
+        onClose={onClose}
+        onOpenFull={() => {
+          if (!drawerBp) return
+          const tab = searchParams.get(tabKey)
+          const qp = new URLSearchParams()
+          if (tab) qp.set('tab', tab)
+          // The inbox focus params belong to the first drawer only.
+          const actionItemId = level === 0 ? searchParams.get('actionItemId') : null
+          if (actionItemId) qp.set('actionItemId', actionItemId)
+          const q = qp.toString()
+          navigate(`/module/${drawerBp.entityType.toLowerCase()}/${id}${q ? `?${q}` : ''}`)
+        }}
+      />
+    </EntityDrawerLevelContext.Provider>
   )
 }
 

@@ -18,6 +18,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { useOpenEntityDrawer } from '../../hooks/useEntityDrawer'
 import {
   CheckCircle2, XCircle, AlertTriangle, MinusCircle,
   Zap, RefreshCw, Clock, ChevronRight, Play,
@@ -192,6 +193,9 @@ function RunAllButton({ integrationKeys, engagementId }) {
 
 function SnapshotRow({ snap, engagementId }) {
   const navigate = useNavigate()
+  // Opens the record in a drawer over this page (same screen as its full
+  // page, embedded) instead of navigating away from the work in progress.
+  const openDrawer = useOpenEntityDrawer()
   const [open, setOpen] = useState(false)
 
   // Payload lives on the IntegrationRun, not the snapshot — fetched only when
@@ -207,7 +211,7 @@ function SnapshotRow({ snap, engagementId }) {
     <div className="border-b border-border/20">
     <div
       className="flex items-center gap-2 px-3 py-2.5 hover:bg-surface-overlay/40 transition-colors group cursor-pointer"
-      onClick={() => navigate(`/module/audit_test_instance/${snap.testInstanceId}`)}
+      onClick={() => openDrawer('AUDIT_TEST_INSTANCE', snap.testInstanceId)}
     >
       {/* Integration key label */}
       <div className="shrink-0 w-16 text-right">

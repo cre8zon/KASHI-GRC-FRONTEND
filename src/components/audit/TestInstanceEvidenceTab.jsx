@@ -5,17 +5,24 @@
  * screenshots) BEFORE or WHILE recording the test result. The test result
  * then cascades to all controls mapped to this test.
  *
+ * Below the work papers sits the test RESULT — TestResultEditor, the very
+ * editor each row of a control's Fieldwork tab uses (result, tester notes,
+ * failure detail, exception reason; same endpoint, same refresh). Work papers
+ * + result here is exactly one Fieldwork row, so whichever screen the auditor
+ * works on, the other shows the same record.
+ *
  * Permissions:
- *   audit:control:record-test-result → can upload work papers
+ *   audit:control:record-test-result → can upload work papers, record the result
  *   audit:evidence:review            → can accept/reject automated checks
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Zap, CheckCircle2, Clock, XCircle, RefreshCw,
-  FlaskConical, Info, Link2,
+  FlaskConical, Info, Link2, ClipboardCheck,
 } from 'lucide-react'
 import api            from '../../config/axios.config'
 import EvidenceUploader from '../ui/EvidenceUploader'
+import { TestResultEditor } from './TestResultEditor'
 import { cn }         from '../../lib/cn'
 import toast          from 'react-hot-toast'
 
@@ -28,8 +35,14 @@ const STATUS_CFG = {
   EXPIRED:             { icon: RefreshCw,    color: 'text-text-muted',  bg: 'bg-surface-overlay', label: 'Expired'        },
 }
 
-function StatusBadge({ status }) {
-  const cfg = STATUS_CFG[status] || STATUS_CFG.PENDING_REVIEW
+// A later run of the same integration check replaced this one (EXPIRED with the
+// note EvidenceReuseEngine.SUPERSEDED_NOTE).
+const isSuperseded = (link) => link?.status === 'EXPIRED' && (link.reviewerNote || '').startsWith('Superseded')
+
+function StatusBadge({ status, superseded }) {
+  const cfg = superseded
+    ? { icon: RefreshCw, color: 'text-text-muted', bg: 'bg-surface-overlay', label: 'Superseded' }
+    : STATUS_CFG[status] || STATUS_CFG.PENDING_REVIEW
   const Icon = cfg.icon
   return (
     <span className={cn(
@@ -91,7 +104,10 @@ function AutomatedRow({ link, onAccept, onReject, canReview }) {
           <p className="text-[10px] text-text-muted mt-0.5">{link.automationMessage}</p>
         )}
         <div className="flex items-center gap-2 mt-1.5">
-          <StatusBadge status={link.status} />
+          <StatusBadge status={link.status} superseded={isSuperseded(link)} />
+          {link.status === 'PENDING_REVIEW' && (
+            <span className="text-[9px] text-status-warn-fg">Check failed</span>
+          )}
           {link.collectedAt && (
             <span className="text-[9px] text-text-muted">
               {new Date(link.collectedAt).toLocaleDateString('en-GB', {
@@ -104,10 +120,12 @@ function AutomatedRow({ link, onAccept, onReject, canReview }) {
       {canReview && link.status === 'PENDING_REVIEW' && (
         <div className="flex items-center gap-1 shrink-0 mt-0.5">
           <button onClick={() => onAccept(link.id)}
+            title="Accept this result as evidence for the control (an exception you are documenting) — the control counts as having evidence"
             className="text-[9px] px-2 py-0.5 rounded-ctl bg-status-pass-bg text-status-pass-fg hover:bg-status-pass-bg font-medium">
-            Accept
+            Accept as exception
           </button>
           <button onClick={() => onReject(link.id)}
+            title="Reject: this failed result is not evidence for the control"
             className="text-[9px] px-2 py-0.5 rounded-ctl bg-status-fail-bg text-status-fail-fg hover:bg-status-fail-bg font-medium">
             Reject
           </button>
@@ -117,12 +135,18 @@ function AutomatedRow({ link, onAccept, onReject, canReview }) {
   )
 }
 
-export function TestInstanceEvidenceTab({ testInstanceId, vc = {} }) {
+export function TestInstanceEvidenceTab({ testInstanceId, entity, vc = {} }) {
   const qc = useQueryClient()
   const perms     = vc.permissions || []
   const canUpload = perms.includes('audit:control:record-test-result')
-  const canReview = perms.includes('audit:evidence:review')
+  // Server rule: whoever may record this test's result (gated with mayWorkHere
+  // below). audit:evidence:review alone was never granted to anyone.
+  const canReview = perms.includes('audit:evidence:review') || canUpload
   const isAuditee = !canUpload && perms.includes('audit:control:submit-evidence')
+  // Work papers belong to whoever may record this test's result — the server's
+  // own answer (entity.canRecordResult, same guard as setTestResult), not the
+  // permission alone. Undefined (an older payload) keeps the old behaviour.
+  const mayWorkHere = entity?.canRecordResult !== false
 
   // Auditees should not see test work papers — these are auditor-internal documents.
   // Show a clear message explaining this is auditor-side content.
@@ -204,8 +228,17 @@ export function TestInstanceEvidenceTab({ testInstanceId, vc = {} }) {
         <EvidenceUploader
           entityType="AUDIT_TEST_INSTANCE"
           entityId={testInstanceId}
-          canUpload={canUpload}
-          canRemove={canUpload}
+          canUpload={canUpload && mayWorkHere}
+          canRemove={canUpload && mayWorkHere}
+        />
+      </Section>
+
+      {/* Result — the same editor as the control's Fieldwork row for this test */}
+      <Section icon={ClipboardCheck} label="Result">
+        <TestResultEditor
+          testInstanceId={testInstanceId}
+          test={entity || {}}
+          canRecord={canUpload && mayWorkHere}
         />
       </Section>
 
@@ -229,7 +262,7 @@ export function TestInstanceEvidenceTab({ testInstanceId, vc = {} }) {
                     )}
                   </div>
                 </div>
-                {canReview && l.status === 'PENDING_REVIEW' && (
+                {canReview && mayWorkHere && l.status === 'PENDING_REVIEW' && (
                   <div className="flex items-center gap-1 shrink-0 mt-0.5">
                     <button onClick={() => review({ linkId: l.id, action: 'ACCEPT' })}
                       className="text-[9px] px-2 py-0.5 rounded-ctl bg-status-pass-bg text-status-pass-fg hover:bg-status-pass-bg font-medium">
@@ -257,7 +290,7 @@ export function TestInstanceEvidenceTab({ testInstanceId, vc = {} }) {
                 link={l}
                 onAccept={() => review({ linkId: l.id, action: 'ACCEPT' })}
                 onReject={() => review({ linkId: l.id, action: 'REJECT' })}
-                canReview={canReview}
+                canReview={canReview && mayWorkHere}
               />
             ))}
           </div>

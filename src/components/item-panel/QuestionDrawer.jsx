@@ -39,18 +39,21 @@
 
 import { useState, useEffect }      from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSelector }           from 'react-redux'
 import {
-  X, MessageSquare, Flag, Activity, Paperclip,
-  CheckCircle2, Lock, Shield, Save, Loader2,
+  X, MessageSquare, Flag, Activity, Paperclip, Lock,
 } from 'lucide-react'
 import { cn }                    from '../../lib/cn'
 import { formatDate }            from '../../utils/format'
+import { selectAuth }            from '../../store/slices/authSlice'
 import { useQuestionComments }   from '../../hooks/useComments'
 import { useEntityActionItems }  from '../../hooks/useActionItems'
 import { CommentFeed }           from '../comments/CommentFeed'
 import EvidenceUploader          from '../ui/EvidenceUploader'
 import { ItemActionItems }       from './ItemActionItems'
 import { ResponderActions }      from './ResponderActions'
+import { QuestionItemCard }      from '../vendor/QuestionItemCard'
+import { invalidateAssessment }  from '../vendor/vendorShared'
 import { assessmentsApi }        from '../../api/assessments.api'
 import toast                     from 'react-hot-toast'
 
@@ -66,251 +69,6 @@ const VERDICT_CFG = {
   // PENDING is the default server value before any verdict action — never show it as a badge
 }
 
-// ── DrawerAnswerInput — interactive answer for contributor/responder ────────────
-// Shows answerable inputs (text, single choice, multi choice) inside the drawer.
-// FILE_UPLOAD is excluded — user uploads evidence via the Evidence tab instead.
-
-function DrawerAnswerInput({ question, assessmentId }) {
-  const qc = useQueryClient()
-  const { mutate: submitAnswer, isPending } = useMutation({
-    mutationFn: (data) => assessmentsApi.vendor.respond(assessmentId, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['my-sections-fill', assessmentId] })
-      qc.invalidateQueries({ queryKey: ['my-contributor-questions', assessmentId] })
-      qc.invalidateQueries({ queryKey: ['assessment-fill', assessmentId] })
-    },
-    onError: (e) => toast.error(e?.message || 'Failed to save'),
-  })
-
-  const resp = question.currentResponse
-
-  // ── TEXT state ──────────────────────────────────────────────────────────
-  const [localText, setLocalText] = useState(resp?.responseText || '')
-  const [dirty, setDirty]         = useState(false)
-  const [justSaved, setJustSaved] = useState(false)
-
-  // ── SINGLE_CHOICE: optimistic selection — mirrors VendorAssessmentFillPage ─
-  const [selectedOption, setSelectedOption] = useState(
-    resp?.selectedOptionInstanceId != null ? Number(resp.selectedOptionInstanceId) : null
-  )
-
-  // ── MULTI_CHOICE: optimistic set + per-option pending dedup guard ──────
-  const multiIdsKey = JSON.stringify(resp?.selectedOptionInstanceIds ?? [])
-  const [selectedMulti, setMulti] = useState(() => new Set(
-    resp?.selectedOptionInstanceIds?.map(Number) ??
-    (resp?.selectedOptionInstanceId != null ? [Number(resp.selectedOptionInstanceId)] : [])
-  ))
-  const [pendingOptionIds, setPendingOptionIds] = useState(new Set())
-
-  // Sync all local state when server data refreshes after cache invalidation
-  useEffect(() => {
-    if (!dirty) setLocalText(resp?.responseText || '')
-    setSelectedOption(resp?.selectedOptionInstanceId != null ? Number(resp.selectedOptionInstanceId) : null)
-    setMulti(new Set(
-      resp?.selectedOptionInstanceIds?.map(Number) ??
-      (resp?.selectedOptionInstanceId != null ? [Number(resp.selectedOptionInstanceId)] : [])
-    ))
-    setPendingOptionIds(new Set())
-  }, [resp?.responseId, multiIdsKey])
-
-  // ── TEXT ──────────────────────────────────────────────────────────────────
-  if (question.responseType === 'TEXT') {
-    const hasSaved = !!resp?.responseText
-    const saveText = () => {
-      if (!localText.trim()) return
-      submitAnswer(
-        { questionInstanceId: question.questionInstanceId, responseText: localText },
-        { onSuccess: () => { setDirty(false); setJustSaved(true); setTimeout(() => setJustSaved(false), 2000) } }
-      )
-    }
-    return (
-      <div className="space-y-2">
-        {hasSaved && !dirty ? (
-          <div className="group relative px-3 py-2.5 rounded-card bg-status-pass-bg border border-status-pass-bd">
-            <p className="text-xs text-text-secondary leading-relaxed pr-12 whitespace-pre-wrap">{resp.responseText}</p>
-            <button
-              onClick={() => { setLocalText(resp.responseText); setDirty(true) }}
-              className="absolute right-2 top-2 text-[10px] text-text-muted hover:text-brand-ink border border-border rounded px-1.5 py-0.5 transition-colors">
-              Edit
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-1.5">
-            <textarea
-              value={localText}
-              onChange={e => { setLocalText(e.target.value); setDirty(true) }}
-              rows={3}
-              autoFocus={dirty}
-              placeholder="Type your answer…"
-              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
-            />
-            <div className="flex items-center gap-2">
-              <button
-                disabled={!localText.trim() || isPending}
-                onClick={saveText}
-                className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded bg-brand-500/20 text-brand-ink border border-brand-500/30 hover:bg-brand-500/30 disabled:opacity-40 transition-colors">
-                {isPending ? <Loader2 size={10} className="animate-spin"/> : <Save size={10}/>}
-                {hasSaved ? 'Update' : 'Save'}
-              </button>
-              {hasSaved && dirty && (
-                <button onClick={() => { setDirty(false); setLocalText(resp.responseText) }}
-                  className="text-xs text-text-muted hover:text-text-secondary transition-colors">
-                  Cancel
-                </button>
-              )}
-              {justSaved && (
-                <span className="text-xs text-status-pass-fg flex items-center gap-1">
-                  <CheckCircle2 size={10}/> Saved
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  // ── SINGLE CHOICE ─────────────────────────────────────────────────────────
-  if (question.responseType === 'SINGLE_CHOICE') {
-    const saveOption = (optionInstanceId) => {
-      const id = Number(optionInstanceId)
-      if (selectedOption === id) return // already selected — no-op
-      setSelectedOption(id) // optimistic
-      submitAnswer(
-        { questionInstanceId: question.questionInstanceId, selectedOptionInstanceId: id },
-        {
-          onSuccess: () => { setJustSaved(true); setTimeout(() => setJustSaved(false), 1500) },
-          onError:   () => setSelectedOption(resp?.selectedOptionInstanceId != null ? Number(resp.selectedOptionInstanceId) : null),
-        }
-      )
-    }
-    return (
-      <div className="space-y-1.5">
-        <div className="flex flex-wrap gap-1.5">
-          {question.options?.map(opt => {
-            const id       = Number(opt.optionInstanceId)
-            const selected = selectedOption === id
-            return (
-              <button key={opt.optionInstanceId}
-                onClick={() => saveOption(opt.optionInstanceId)}
-                className={cn(
-                  'text-xs px-2.5 py-1.5 rounded border transition-all flex items-center gap-1',
-                  selected
-                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-ink font-medium'
-                    : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary'
-                )}>
-                {opt.optionValue}
-                {opt.score != null && (
-                  <span className={cn('text-[10px]', selected ? 'text-brand-ink/70' : 'opacity-40')}>
-                    {opt.score}pts
-                  </span>
-                )}
-                {selected && <CheckCircle2 size={10} className="text-brand-ink"/>}
-              </button>
-            )
-          })}
-        </div>
-        {justSaved && (
-          <span className="text-xs text-status-pass-fg flex items-center gap-1">
-            <CheckCircle2 size={10}/> Saved
-          </span>
-        )}
-      </div>
-    )
-  }
-
-  // ── MULTI CHOICE ──────────────────────────────────────────────────────────
-  if (question.responseType === 'MULTI_CHOICE') {
-    const toggleMulti = (optionInstanceId) => {
-      const id = Number(optionInstanceId)
-      // Dedup guard: ignore double-click while this option's mutation is in-flight
-      if (pendingOptionIds.has(id)) return
-
-      const next = new Set(selectedMulti)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      setMulti(next) // optimistic
-      setPendingOptionIds(p => new Set([...p, id]))
-
-      submitAnswer(
-        { questionInstanceId: question.questionInstanceId, selectedOptionInstanceIds: [id] },
-        {
-          onSuccess: () => {
-            setPendingOptionIds(p => { const s = new Set(p); s.delete(id); return s })
-            setJustSaved(true); setTimeout(() => setJustSaved(false), 1500)
-          },
-          onError: () => {
-            setMulti(selectedMulti) // rollback
-            setPendingOptionIds(p => { const s = new Set(p); s.delete(id); return s })
-          },
-        }
-      )
-    }
-    return (
-      <div className="space-y-1.5">
-        <div className="flex flex-wrap gap-1.5">
-          {question.options?.map(opt => {
-            const id               = Number(opt.optionInstanceId)
-            const selected         = selectedMulti.has(id)
-            const thisOptPending   = pendingOptionIds.has(id)
-            return (
-              <button key={opt.optionInstanceId}
-                onClick={() => toggleMulti(opt.optionInstanceId)}
-                disabled={thisOptPending}
-                className={cn(
-                  'text-xs px-2.5 py-1.5 rounded border transition-all flex items-center gap-1.5',
-                  selected
-                    ? 'bg-brand-500/20 border-brand-500/50 text-brand-ink font-medium'
-                    : 'bg-surface-overlay border-border text-text-secondary hover:border-brand-500/30 hover:text-text-primary',
-                  thisOptPending && 'opacity-60'
-                )}>
-                <span className={cn(
-                  'w-3 h-3 rounded-ctl border flex-shrink-0 flex items-center justify-center',
-                  selected ? 'bg-brand-500 border-brand-500' : 'border-current opacity-50'
-                )}>
-                  {selected && <CheckCircle2 size={9} className="text-on-dark"/>}
-                </span>
-                {opt.optionValue}
-                {opt.score != null && (
-                  <span className={cn('text-[10px]', selected ? 'text-brand-ink/70' : 'opacity-40')}>
-                    {opt.score}pts
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-        {selectedMulti.size > 0 && (
-          <p className="text-[10px] text-text-muted">
-            {selectedMulti.size} option{selectedMulti.size > 1 ? 's' : ''} selected
-          </p>
-        )}
-        {justSaved && (
-          <span className="text-xs text-status-pass-fg flex items-center gap-1">
-            <CheckCircle2 size={10}/> Saved
-          </span>
-        )}
-      </div>
-    )
-  }
-
-  // ── FILE_UPLOAD — redirect to Evidence tab ────────────────────────────────
-  if (question.responseType === 'FILE_UPLOAD') {
-    return (
-      <div className="flex items-center gap-2 px-3 py-2 rounded-card bg-status-warn-bg border border-status-warn-bd">
-        <Paperclip size={12} className="text-status-warn-fg shrink-0" />
-        <p className="text-xs text-status-warn-fg">
-          Upload evidence in the <span className="font-medium">Evidence tab</span> below.
-        </p>
-      </div>
-    )
-  }
-
-  // Fallback for other types — show read-only if answered
-  if (resp) return <AnswerPreview question={question} resp={resp} />
-  return <p className="text-xs text-text-muted italic">Use the question card below to answer.</p>
-}
-
 // ── Main drawer ────────────────────────────────────────────────────────────────
 
 export function QuestionDrawer({
@@ -319,11 +77,32 @@ export function QuestionDrawer({
   userSide,     // 'VENDOR' | 'ORGANIZATION'
   userRole,     // e.g. 'VENDOR_RESPONDER', 'VENDOR_CISO', 'ORG_REVIEWER'
   mode,         // 'responder' | 'contributor' | 'reviewer' | 'readonly'
+  // Which tab to land on, from the caller. The question card's Discuss and
+  // Evidence buttons now open this drawer instead of expanding panels of their
+  // own, so they need to say where they are going. Null means the default,
+  // which is still Actions.
+  initialTab,
+  // ── WHETHER THE SECTION IS OPEN FOR EDITS, FROM THE CALLER ──────────────
+  //
+  // This drawer has never known about section locks. It decided answerability
+  // from `mode` alone, so a contributor who had locked their answers — or whose
+  // responder had submitted the whole section — could still edit every question
+  // from here, with no revision having been requested. The list behind it was
+  // read-only at the same moment.
+  //
+  // The lock is per section and this component is handed one question, so it
+  // cannot work it out; the caller can and now does.
+  //
+  // undefined keeps the old mode-only behaviour, deliberately: the hardcoded
+  // pages still mount this drawer and have not been taught to pass it, and
+  // changing them is not part of this.
+  canAnswer,
   onClose,
 }) {
   const open = !!question
   const qiId = question?.questionInstanceId
   const resp = question?.currentResponse
+  const { userId: viewerId } = useSelector(selectAuth)
 
   // Close on Escape
   useEffect(() => {
@@ -365,36 +144,108 @@ export function QuestionDrawer({
       && !ASSIGNMENT_TYPES.includes(i.remediationType)
   ).length
 
+  // ── ACTIONS FIRST, AND THE DEFAULT ──────────────────────────────────────
+  //
+  // Shared was first and default, which put a conversation ahead of the state
+  // of the work. Actions is what HAPPENED on this question — assigned to whom,
+  // answered, locked, revision requested, finding raised, remediation
+  // validated — and that is what somebody opening a question needs before they
+  // need anybody's remarks.
+  //
+  // It is also the tab that is now never empty on a question that has been
+  // assigned, because the assignment item itself renders there. Before that it
+  // was often blank, which is the usual reason a panel like this does not get
+  // promoted.
+  //
+  // An empty Actions tab still beats landing on Shared: "No action items" says
+  // nothing has happened here, which is information. A fixed default is also
+  // predictable in a way that "whichever tab has content" is not.
   const tabs = [
+    { id: 'actions',  label: 'Actions',  Icon: Flag,         badge: openActionCount || null },
     { id: 'shared',   label: 'Shared',   Icon: MessageSquare, badge: null },
     isVendorSide
       ? { id: 'internal', label: 'Vendor notes', Icon: Lock, badge: null }
       : { id: 'internal', label: 'Org notes',    Icon: Lock, badge: null },
-    { id: 'actions',  label: 'Actions',  Icon: Flag,         badge: openActionCount || null },
     { id: 'evidence', label: 'Evidence', Icon: Paperclip,    badge: null },
     { id: 'activity', label: 'Activity', Icon: Activity,     badge: null },
   ]
 
-  const [activeTab, setActiveTab] = useState('shared')
+  const [activeTab, setActiveTab] = useState(initialTab || 'actions')
 
-  // Auto-switch to Evidence tab for FILE_UPLOAD questions opened by vendor-side users
-  // so they land directly on the upload interface instead of having to discover it
+  // Which tab to land on, in priority order:
+  //
+  //   1. initialTab — the caller asked. Discuss and Evidence on the question
+  //      card are now this drawer opening on a tab rather than panels of their
+  //      own, and ignoring what they asked for would send somebody who pressed
+  //      Evidence to Actions.
+  //   2. Evidence for a FILE_UPLOAD question on the vendor side, because the
+  //      attachment IS the answer and landing anywhere else is a detour.
+  //   3. Actions.
+  //
+  // Keyed on qiId AND initialTab so pressing Evidence and then Discuss on the
+  // same question moves the tab the second time too — qiId alone would make
+  // the second press do nothing.
   useEffect(() => {
     if (!open || !question) return
-    if (question.responseType === 'FILE_UPLOAD' && (mode === 'contributor' || mode === 'responder')) {
+    if (initialTab) {
+      setActiveTab(initialTab)
+    } else if (question.responseType === 'FILE_UPLOAD'
+               && (mode === 'contributor' || mode === 'responder')) {
       setActiveTab('evidence')
     } else {
-      setActiveTab('shared')
+      setActiveTab('actions')
     }
-  }, [qiId]) // only when the question changes, not on mode changes
+  }, [qiId, initialTab]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Determine if user can answer from drawer
-  // Contributor: always can answer their assigned questions
-  // Responder: can answer only questions NOT assigned to a contributor
-  const canAnswerInDrawer = (
+  // ── MAY THIS VIEWER ANSWER ──────────────────────────────────────────────
+  //
+  // Contributor: their assigned questions. Responder: only questions NOT
+  // delegated to a contributor.
+  //
+  // FILE_UPLOAD is no longer excluded here. It used to be, because the drawer's
+  // own input could not render an uploader — the card can, and it sends the
+  // viewer to the Evidence tab, which is the same answer arrived at through one
+  // path instead of three special cases.
+  //
+  // Two gates, and they are not the same question.
+  //
+  //   modeAllowsAnswer  is this viewer on the side that answers this question.
+  //                     Never lifted by anything — an organisation reviewer
+  //                     does not get to edit the vendor's answer because they
+  //                     hold a clarification.
+  //   editableNow       is it open for editing right now, lock included. An
+  //                     open obligation on the question lifts THIS one, inside
+  //                     QuestionItemCard, exactly as the list row does — which
+  //                     is new behaviour here and the bug the refactor was
+  //                     worth doing for: a contributor sent a revision on a
+  //                     locked section could previously read the request in
+  //                     this drawer and had no way to answer it.
+  const modeAllowsAnswer =
     mode === 'contributor' ||
     (mode === 'responder' && !question?.assignedUserId)
-  ) && question?.responseType !== 'FILE_UPLOAD'
+
+  const editableNow = canAnswer === undefined
+    ? modeAllowsAnswer
+    : (canAnswer && modeAllowsAnswer)
+
+  // The answer save, lifted out of the deleted DrawerAnswerInput so the card
+  // stays presentational and every surface keeps its own invalidation list.
+  //
+  // Both sets of keys, not a swap: the hardcoded pages are still deployed and a
+  // stale key invalidates nothing, so carrying all six costs nothing and loses
+  // nobody.
+  const qc = useQueryClient()
+  // One list, in vendorShared. It used to be written out here, in
+  // ResponderActions and in the fill tab's save, and the three had already
+  // drifted — which is how two different "the button does nothing" reports
+  // turned out to be the same missing key.
+  const invalidateAssessmentLists = () => invalidateAssessment(qc, assessmentId, qiId)
+
+  const { mutate: saveAnswer, isPending: savingAnswer } = useMutation({
+    mutationFn: (data) => assessmentsApi.vendor.respond(assessmentId, data),
+    onSuccess: invalidateAssessmentLists,
+    onError: (e) => toast.error(e?.message || 'Failed to save'),
+  })
 
   return (
     <>
@@ -456,51 +307,50 @@ export function QuestionDrawer({
               </button>
             </div>
 
-            {/* ── Answer section ──────────────────────────────────────── */}
-            <div className="px-5 py-3 border-b border-border bg-surface-overlay/30 flex-shrink-0">
-              {/* FILE_UPLOAD: always redirect to Evidence tab for vendor-side modes */}
-              {question.responseType === 'FILE_UPLOAD' && (mode === 'contributor' || mode === 'responder') && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-card bg-status-warn-bg border border-status-warn-bd">
-                  <Paperclip size={12} className="text-status-warn-fg shrink-0" />
-                  <span className="text-xs text-status-warn-fg">
-                    Use the{' '}
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('evidence')}
-                      className="font-semibold underline underline-offset-2 hover:text-status-warn-fg transition-colors"
-                    >Evidence tab</button>
-                    {' '}below to upload your file.
-                  </span>
-                </div>
-              )}
+            {/* ── Answer section ──────────────────────────────────────────
+                One component, the same one the list rows use. It was three
+                branches and two bespoke components here — an interactive
+                input, a read-only preview, and two FILE_UPLOAD notices —
+                which is how the drawer and the list drifted into disagreeing
+                about what "answered" meant and which is why the obligation
+                unlock only ever worked in one of them.
 
-              {/* FILE_UPLOAD read-only (reviewer or readonly mode) */}
-              {question.responseType === 'FILE_UPLOAD' && (mode === 'reviewer' || mode === 'readonly') && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-card bg-surface-overlay/50 border border-border">
-                  <Paperclip size={12} className="text-text-muted shrink-0" />
-                  <p className="text-xs text-text-muted">See the <span className="font-medium">Evidence tab</span> for uploaded files.</p>
-                </div>
-              )}
-
-              {/* Interactive answer input for contributor or responder (non-FILE_UPLOAD unassigned questions) */}
-              {canAnswerInDrawer && (
-                <DrawerAnswerInput question={question} assessmentId={assessmentId} />
-              )}
-
-              {/* Read-only answer preview for reviewer/readonly or responder when assigned to contributor */}
-              {!canAnswerInDrawer && question.responseType !== 'FILE_UPLOAD' && resp && (
-                <AnswerPreview question={question} resp={resp} />
-              )}
-
-              {/* Nothing answered yet — read-only viewers, non-FILE_UPLOAD */}
-              {!canAnswerInDrawer && question.responseType !== 'FILE_UPLOAD' && !resp && (
+                onOpenDrawer is the drawer switching its OWN tab. The card
+                calls it to send someone to Evidence; out in a list the same
+                call opens this drawer. Same prop, same meaning — "take me to
+                that tab" — implemented by whoever owns the tabs. */}
+            {/* max-h + overflow: this block is flex-shrink-0 inside a column
+                whose only scrolling child is the tab content below. A question
+                with a dozen options, or an override panel expanded under it,
+                grew past the drawer's height and was CLIPPED — no scrollbar,
+                no indication, and the controls at the bottom of it simply did
+                not exist on screen. That is what "I selected an option and
+                nothing happened" was: the Override answer button was below the
+                cut. Bounded and scrollable, so whatever is in here is always
+                reachable. */}
+            <div className="px-5 py-3 border-b border-border bg-surface-overlay/30 flex-shrink-0 max-h-[45vh] overflow-y-auto">
+              {!resp && !editableNow && question.responseType !== 'FILE_UPLOAD' ? (
                 <p className="text-xs text-text-muted italic">Not answered yet.</p>
+              ) : (
+                <QuestionItemCard
+                  variant="panel"
+                  question={question}
+                  assessmentId={assessmentId}
+                  editable={editableNow}
+                  answerable={modeAllowsAnswer}
+                  viewerId={viewerId}
+                  saving={savingAnswer ? qiId : null}
+                  onSave={(payload) => saveAnswer(payload)}
+                  onOpenDrawer={(_q, tab) => setActiveTab(tab)}
+                />
               )}
             </div>
 
             {/* ── Responder command actions (vendor side only) ─────────── */}
             {mode === 'responder' && question.assignedUserId && resp && (
-              <div className="px-5 py-3 border-b border-border flex-shrink-0">
+              // Same bound as the answer block above, and for the same reason:
+              // the revision and override panels expand inside here.
+              <div className="px-5 py-3 border-b border-border flex-shrink-0 max-h-[55vh] overflow-y-auto">
                 <p className="text-[10px] text-text-muted mb-2 font-medium uppercase tracking-wide">
                   Responder actions
                 </p>
@@ -574,6 +424,17 @@ export function QuestionDrawer({
                     canUpload={isVendorSide && mode !== 'readonly'}
                     canRemove={isVendorSide && (mode === 'responder' || mode === 'contributor')}
                     emptyLabel="No evidence attached yet."
+                    // ── THE LISTS BEHIND THE DRAWER HAVE TO MOVE TOO ────────
+                    // useUploadDocument invalidates the DOCUMENT keys only, so
+                    // without this an upload here left the section payload
+                    // stale — and that payload is where evidenceCount comes
+                    // from, which decides whether a FILE_UPLOAD question reads
+                    // as answered and whether the evidence-required badge turns
+                    // green. The row's old inline evidence panel passed the
+                    // same callback; this drawer never did, which did not show
+                    // while the row had its own uploader and would have started
+                    // showing the moment it lost it.
+                    onUploadSuccess={invalidateAssessmentLists}
                   />
                 )}
                 {activeTab === 'activity' && (
@@ -585,76 +446,6 @@ export function QuestionDrawer({
         )}
       </div>
     </>
-  )
-}
-
-// ── Answer preview (read-only) ─────────────────────────────────────────────────
-
-function AnswerPreview({ question, resp }) {
-  const isMulti  = question.responseType === 'MULTI_CHOICE'
-  const isSingle = question.responseType === 'SINGLE_CHOICE'
-  const isFile   = question.responseType === 'FILE_UPLOAD'
-  const isText   = !isMulti && !isSingle && !isFile
-
-  const multiIds = (() => {
-    if (resp?.selectedOptionInstanceIds?.length) return resp.selectedOptionInstanceIds.map(Number)
-    if (resp?.responseText?.startsWith('[')) {
-      try { return JSON.parse(resp.responseText).map(Number) } catch { return [] }
-    }
-    return []
-  })()
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <CheckCircle2 size={12} className="text-status-pass-fg shrink-0" />
-        <span className="text-[10px] text-text-muted">
-          {resp.answeredByName ? `Answered by ${resp.answeredByName}` : 'Answered'}
-          {resp.submittedAt && ` · ${formatDate(resp.submittedAt)}`}
-        </span>
-        {resp.scoreEarned != null && question.weight > 0 && (
-          <span className="text-[10px] font-mono text-status-pass-fg ml-auto">
-            {resp.scoreEarned}/{question.weight} pts
-          </span>
-        )}
-      </div>
-
-      {isFile && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-card bg-status-warn-bg border border-status-warn-bd">
-          <Paperclip size={12} className="text-status-warn-fg shrink-0" />
-          <p className="text-xs text-status-warn-fg">See the <span className="font-medium">Evidence tab</span> for uploaded files.</p>
-        </div>
-      )}
-
-      {isText && resp.responseText && (
-        <div className="px-3 py-2 rounded-card bg-surface border border-border">
-          <p className="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap">
-            {resp.responseText}
-          </p>
-        </div>
-      )}
-
-      {(isSingle || isMulti) && question.options?.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {question.options.map(opt => {
-            const sel = isSingle
-              ? Number(opt.optionInstanceId) === Number(resp.selectedOptionInstanceId)
-              : multiIds.includes(Number(opt.optionInstanceId))
-            return (
-              <span key={opt.optionInstanceId}
-                className={cn(
-                  'text-xs px-2 py-0.5 rounded border',
-                  sel
-                    ? 'bg-brand-500/10 border-brand-500/30 text-brand-ink font-medium'
-                    : 'border-border text-text-muted opacity-40'
-                )}>
-                {opt.optionValue}
-              </span>
-            )
-          })}
-        </div>
-      )}
-    </div>
   )
 }
 

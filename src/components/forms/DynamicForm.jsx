@@ -2,13 +2,14 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMemo, useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useFormConfig } from '../../hooks/useUIConfig'
 import { DynamicSelect, Select } from '../ui/Select'
 import { useScreenConfig } from '../../hooks/useUIConfig'
 import { Button } from '../ui/Button'
 import { cn } from '../../lib/cn'
 import { Skeleton } from '../ui/EmptyState'
-import { AlertTriangle, Search, X } from 'lucide-react'
+import { AlertTriangle, Check, Search, X } from 'lucide-react'
 import api from '../../config/axios.config'
 import { BRAND_PRESETS } from '../../config/brandPresets'
 
@@ -41,18 +42,68 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
   const formComponents = formConfig?.components ?? formConfig?.data?.components
   const config = extraConfig || (formComponents ? { components: formComponents } : null)
 
+  // ── DOTTED FIELD KEYS ─────────────────────────────────────────────────────
+  //
+  // A field_key may contain dots — vendor_onboard_form has four of them:
+  // primaryContact.firstName, .lastName, .email, .jobTitle, because
+  // VendorOnboardRequest.primaryContact is a NESTED object and the payload has
+  // to be nested to deserialise.
+  //
+  // react-hook-form honours that: register('primaryContact.firstName') writes
+  // into { primaryContact: { firstName: … } }. Good — that is exactly the
+  // payload the backend wants.
+  //
+  // The zod schema did not. It keyed the shape on the literal string
+  // 'primaryContact.firstName', so the resolver validated the NESTED values
+  // against a FLAT schema and every one of those fields came back
+  //
+  //     Invalid input: expected string, received undefined
+  //
+  // On a single-page form that meant submit silently refused. On the wizard it
+  // meant the Next button on step 3 did nothing at all — trigger() returned
+  // false and there was nothing to show for it, because the error landed at
+  // errors.primaryContact.firstName while the renderer looked in
+  // errors['primaryContact.firstName']. A dead button and no message.
+  //
+  // So: build the shape NESTED when a key contains dots, and look errors up by
+  // path. A key with no dots behaves exactly as before.
   const schema = useMemo(() => {
     if (!formConfig?.fields) return z.object({})
-    const shape = {}
+    const root = {}
     for (const field of formConfig.fields) {
-      if (!field.isRequired && !field.validationRulesJson) {
-        shape[field.fieldKey] = z.any().optional()
-        continue
+      const leaf = (!field.isRequired && !field.validationRulesJson)
+        ? z.any().optional()
+        : buildZodField(field)
+      const parts = String(field.fieldKey).split('.')
+      if (parts.length === 1) { root[parts[0]] = leaf; continue }
+      // Walk/create the intermediate shapes, then place the leaf.
+      let cursor = root
+      for (let i = 0; i < parts.length - 1; i++) {
+        const p = parts[i]
+        // A plain object here, converted to z.object() on the way out, so two
+        // sibling keys under the same parent share one shape rather than the
+        // second overwriting the first.
+        if (!cursor[p] || typeof cursor[p] !== 'object' || cursor[p]._zod || cursor[p]._def) {
+          cursor[p] = {}
+        }
+        cursor = cursor[p]
       }
-      shape[field.fieldKey] = buildZodField(field)
+      cursor[parts[parts.length - 1]] = leaf
     }
-    return z.object(shape)
+    // A nested parent must be optional, or a form where every child is
+    // optional still fails on the missing parent object.
+    const toZod = (node) => {
+      const shape = {}
+      for (const [k, v] of Object.entries(node)) {
+        shape[k] = (v && typeof v === 'object' && !v._zod && !v._def && !v.safeParse)
+          ? toZod(v).optional()
+          : v
+      }
+      return z.object(shape)
+    }
+    return toZod(root)
   }, [formConfig])
+
 
   // Seed form state from each field's default_value.
   //
@@ -78,12 +129,21 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
     return { ...fromFields, ...defaultValues }
   }, [formConfig, defaultValues])
 
-  const { register, control, handleSubmit, setError, watch, formState: { errors, isSubmitting } } = useForm({
+  const { register, control, handleSubmit, setError, watch, trigger, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: seededDefaults,
     mode: 'onTouched',
   })
   const watchedValues = watch()
+
+  /**
+   * errors.a.b.c for a field_key of "a.b.c"; errors.x for "x".
+   * react-hook-form nests errors the same way it nests values, so a dotted key
+   * cannot be looked up with errors[key] — that returns undefined and the field
+   * renders as valid while the form refuses to advance.
+   */
+  const errorFor = (fieldKey) =>
+    String(fieldKey).split('.').reduce((acc, p) => (acc == null ? acc : acc[p]), errors)
   const [serverError, setServerError] = useState(null)
 
   const handleFormSubmit = async (data) => {
@@ -117,10 +177,60 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
     }
   }
 
+  // ── Wizard steps ──────────────────────────────────────────────────────────
+  //
+  // ui_form_fields.step_number has existed since the schema was written,
+  // defaults to 1, and flows all the way out to the client
+  // (UiConfigServiceImpl → UiFormFieldResponse.stepNumber). Nothing has ever
+  // read it, so every DB-driven form is a single flat page while the hardcoded
+  // pages it replaces — vendor onboarding above all — are wizards.
+  //
+  // The rule here is deliberately conservative: a form whose fields all share
+  // one step (which is every form seeded to date, since the column defaults to
+  // 1) renders EXACTLY as before — same markup, same single submit button, no
+  // stepper. The wizard only appears when a form actually declares more than
+  // one step. That way this cannot change any existing screen.
+  //
+  // Validation is per step rather than all-at-once: `trigger` is run over the
+  // current step's field keys before advancing, so a user is told about a
+  // missing field on the step they are looking at rather than on submit.
+  const [stepIdx, setStepIdx] = useState(0)
+  useEffect(() => { setStepIdx(0) }, [formKey])
+
   if (loadingForm) return <div className="flex flex-col gap-3">{[1,2,3].map(i => <Skeleton key={i} className="h-8" />)}</div>
   if (!formConfig) return <p className="text-sm text-text-muted">Form not found: {formKey}</p>
 
   const fields = formConfig.fields || []
+
+  const stepNumbers = [...new Set(fields.map(f => f.stepNumber ?? 1))].sort((a, b) => a - b)
+  const isWizard    = stepNumbers.length > 1
+  const currentStep = stepNumbers[Math.min(stepIdx, stepNumbers.length - 1)]
+  const isLastStep  = !isWizard || stepIdx >= stepNumbers.length - 1
+
+  // Step titles come from the SECTION_HEADER field on each step, when there is
+  // one. It is the label the designer already wrote for that group of fields,
+  // so the stepper never needs a second source of truth.
+  const stepTitles = stepNumbers.map(n => {
+    const header = fields.find(f => (f.stepNumber ?? 1) === n && f.fieldType === 'SECTION_HEADER')
+    return header?.label || `Step ${n}`
+  })
+
+  // A field on another step still has to be REGISTERED, or react-hook-form
+  // drops its value from the payload the moment the user moves on. So fields
+  // outside the current step render as hidden inputs rather than being
+  // returned as null — the same trick the is_visible=0 branch below uses.
+  const onCurrentStep = (f) => !isWizard || (f.stepNumber ?? 1) === currentStep
+
+  const goNext = async () => {
+    const keys = fields
+      .filter(f => onCurrentStep(f)
+                && f.fieldType !== 'SECTION_HEADER'
+                && f.fieldType !== 'DIVIDER'
+                && f.fieldType !== 'REVIEW_SUMMARY')
+      .map(f => f.fieldKey)
+    const ok = keys.length === 0 ? true : await trigger(keys)
+    if (ok) setStepIdx(i => Math.min(i + 1, stepNumbers.length - 1))
+  }
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="flex flex-col gap-4">
@@ -130,8 +240,49 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
           <span>{serverError}</span>
         </div>
       )}
+      {isWizard && (
+        <div className="flex items-center gap-0 pb-1">
+          {stepTitles.map((title, i) => {
+            const done   = i < stepIdx
+            const active = i === stepIdx
+            return (
+              <div key={stepNumbers[i]} className="flex items-center flex-1 last:flex-none min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={cn(
+                    'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 border',
+                    done   && 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg',
+                    active && 'bg-brand-500 border-brand-500 text-white',
+                    !done && !active && 'bg-surface-raised border-border text-text-muted'
+                  )}>
+                    {done ? <Check size={12} /> : i + 1}
+                  </span>
+                  <span className={cn(
+                    'text-[11px] font-medium truncate',
+                    active ? 'text-text-primary' : 'text-text-muted'
+                  )}>{title}</span>
+                </div>
+                {i < stepTitles.length - 1 && (
+                  <div className={cn('h-px flex-1 mx-2', done ? 'bg-status-pass-bd' : 'bg-border')} />
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
       <div className="grid grid-cols-12 gap-3">
         {fields.map(field => {
+          // Wizard: a field belonging to another step is registered as a hidden
+          // input rather than dropped, so its value survives the step change and
+          // reaches the payload on submit.
+          if (!onCurrentStep(field)) {
+            if (field.fieldType === 'SECTION_HEADER'
+             || field.fieldType === 'DIVIDER'
+             || field.fieldType === 'REVIEW_SUMMARY') return null
+            return (
+              <input key={`off-${field.id ?? field.fieldKey}`} type="hidden"
+                     {...register(field.fieldKey)} />
+            )
+          }
           // is_visible=0 — render as hidden input so value is still in the payload
           // but the user never sees it (e.g. workflowId defaulting to 15)
           if (field.isVisible === false || field.isVisible === 0) {
@@ -170,18 +321,42 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
                 field={field}
                 register={register}
                 control={control}
-                error={errors[field.fieldKey]?.message}
+                error={errorFor(field.fieldKey)?.message}
                 config={config}
                 isEditable={isEditable}
                 contextParams={contextParams}
                 formValues={watchedValues}
+                allFields={fields}
               />
             </div>
           )
         })}
       </div>
-      <div className="flex justify-end pt-2">
-        <Button type="submit" loading={loading || isSubmitting} loadingText="Saving…" disabled={loading || isSubmitting}>{typeof submitLabel === 'function' ? submitLabel(watchedValues) : submitLabel}</Button>
+      <div className="flex items-center justify-between pt-2">
+        {isWizard && stepIdx > 0 ? (
+          <Button type="button" variant="secondary"
+                  onClick={() => setStepIdx(i => Math.max(0, i - 1))}>
+            Back
+          </Button>
+        ) : <span />}
+        <div className="flex items-center gap-3">
+          {isWizard && (
+            <span className="text-[11px] text-text-muted">
+              Step {stepIdx + 1} of {stepNumbers.length}
+            </span>
+          )}
+          {/*
+            The submit button only exists on the last step. A wizard that keeps
+            a live submit alongside "Next" lets someone post a half-filled form
+            from step 1 — which is exactly the failure the per-step validation
+            is there to prevent.
+          */}
+          {isLastStep ? (
+            <Button type="submit" loading={loading || isSubmitting} loadingText="Saving…" disabled={loading || isSubmitting}>{typeof submitLabel === 'function' ? submitLabel(watchedValues) : submitLabel}</Button>
+          ) : (
+            <Button type="button" onClick={goNext}>Next</Button>
+          )}
+        </div>
       </div>
     </form>
   )
@@ -235,12 +410,12 @@ function resolveLookupPath(path, values) {
   return kept.length ? `${base}?${kept.join('&')}` : base
 }
 
-function FormField({ field, register, control, error, config, isEditable = true, contextParams = null, formValues = null }) {
+function FormField({ field, register, control, error, config, isEditable = true, contextParams = null, formValues = null, allFields = null }) {
   const { fieldKey: key, fieldType: type, label, placeholder, helperText, isRequired } = field
 
   // Gap 1: when read-only, render a plain text display instead of any interactive input.
   // Structural types (SECTION_HEADER, DIVIDER) are never interactive, skip them here.
-  if (!isEditable && type !== 'SECTION_HEADER' && type !== 'DIVIDER') {
+  if (!isEditable && type !== 'SECTION_HEADER' && type !== 'DIVIDER' && type !== 'REVIEW_SUMMARY') {
     return (
       <FieldWrapper label={label} isRequired={false} helperText={helperText} error={null} type={type}>
         <p className="text-sm text-text-primary px-3 py-1.5 rounded-ctl bg-surface-overlay/50 min-h-[36px] flex items-center">
@@ -336,6 +511,33 @@ function FormField({ field, register, control, error, config, isEditable = true,
         </FieldWrapper>
       )
 
+    // Several of one entity. Added because there was no way to pick more than
+    // one person, control or framework anywhere in this platform: MULTI_SELECT
+    // renders from config.components[optionsComponentKey] and ignores
+    // lookup_api_path entirely, so a MULTI_SELECT pointed at /v1/personnel
+    // showed "No options — add a UiComponent first".
+    //
+    // Value is an ARRAY of ids and is NOT joined, matching MULTI_SELECT's
+    // existing contract — its consumers expect arrays.
+    case 'MULTI_LOOKUP':
+      return (
+        <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
+          <Controller name={key} control={control} render={({ field: f }) =>
+            <MultiEntityLookupField
+              value={f.value}
+              onChange={f.onChange}
+              onBlur={f.onBlur}
+              placeholder={placeholder}
+              lookupEntityType={field.lookupEntityType}
+              lookupApiPath={resolveLookupPath(field.lookupApiPath, formValues)}
+              contextParams={FRAMEWORK_SCOPED_LOOKUPS.has(field.lookupEntityType?.toUpperCase?.())
+                ? contextParams : null}
+              error={!!error}
+            />
+          } />
+        </FieldWrapper>
+      )
+
     case 'DATE':
       return (
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
@@ -368,6 +570,65 @@ function FormField({ field, register, control, error, config, isEditable = true,
 
     case 'DIVIDER':
       return <div className="col-span-12 border-t border-border my-1" />
+
+    case 'REVIEW_SUMMARY':
+      // A read-back of everything answered on the earlier steps.
+      //
+      // This exists because the hardcoded VendorOnboardPage is a FOUR step
+      // wizard and the fourth step is a review — not a form. Without a way to
+      // express that, a DB-driven wizard either drops the review step (and is
+      // no longer same-to-same) or seeds an empty step that shows a heading
+      // over nothing.
+      //
+      // It is a structural field: never registered, never validated, carries no
+      // value of its own. It reads the live form state and the field list, so
+      // it needs no configuration beyond existing — put one on the last step
+      // and it summarises every step before it.
+      //
+      // Values are shown as the user entered them. A SELECT shows its stored
+      // value rather than its option label, because the labels live in
+      // ui_options and are fetched per component — resolving them here would
+      // mean a second lookup path with its own failure mode, and the stored
+      // value is what is about to be sent. LOOKUP fields are skipped entirely
+      // for the same reason: an id is worse than nothing to read back.
+      return (
+        <div className="col-span-12">
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wider pb-1 border-b border-border">
+            {label || 'Review'}
+          </p>
+          {helperText && (
+            <p className="mt-1.5 text-xs text-text-secondary">{helperText}</p>
+          )}
+          <dl className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+            {(allFields || [])
+              .filter(f =>
+                f.fieldKey !== key
+                && f.fieldType !== 'SECTION_HEADER'
+                && f.fieldType !== 'DIVIDER'
+                && f.fieldType !== 'REVIEW_SUMMARY'
+                && f.fieldType !== 'LOOKUP'
+                && f.isVisible !== false && f.isVisible !== 0
+                && (f.stepNumber ?? 1) < (field.stepNumber ?? 1))
+              .map(f => {
+                const raw = formValues?.[f.fieldKey]
+                const shown = Array.isArray(raw) ? raw.join(', ')
+                  : (raw === true ? 'Yes' : raw === false ? 'No' : raw)
+                return (
+                  <div key={f.id ?? f.fieldKey} className="flex items-baseline gap-2 min-w-0">
+                    <dt className="text-[10px] text-text-muted uppercase tracking-wide shrink-0">
+                      {f.label}
+                    </dt>
+                    <dd className="text-xs text-text-primary truncate flex-1 text-right">
+                      {shown === undefined || shown === null || shown === ''
+                        ? <span className="text-text-muted/60 italic">not set</span>
+                        : String(shown)}
+                    </dd>
+                  </div>
+                )
+              })}
+          </dl>
+        </div>
+      )
 
     case 'PHONE':
       return (
@@ -704,6 +965,110 @@ function isFieldVisible(field, values) {
   } catch { return true }
 }
 
+// ─── MultiEntityLookupField ──────────────────────────────────────────────────
+//
+// Several of one entity, for the MULTI_LOOKUP field type.
+//
+// Wraps EntityLookupField rather than reimplementing search, debouncing, id
+// resolution and the LOOKUP_CONFIG lookup: the single-select field already does
+// all of that and is proven. This adds the chip list and the array plumbing.
+//
+// The value is an ARRAY of ids and is deliberately NOT joined into a string,
+// matching MULTI_SELECT's existing contract — DynamicForm's own comment says
+// its consumers expect arrays. A TAG field is the one that joins.
+function MultiEntityLookupField({ value, onChange, onBlur, placeholder,
+                                  lookupEntityType, lookupApiPath, error, contextParams }) {
+  const cfg = LOOKUP_CONFIG[lookupEntityType?.toUpperCase?.()] || LOOKUP_CONFIG.USER
+  const selected = Array.isArray(value) ? value : (value == null ? [] : [value])
+  const selectedSet = useMemo(() => new Set(selected), [selected.join(',')])
+
+  // Labels for chips, resolved once per id and cached. Without this the chips
+  // would read as bare numbers, which is unusable for picking forty people.
+  const [labels, setLabels] = useState({})
+  const basePath = (lookupApiPath || cfg.path).split('?')[0]
+
+  useEffect(() => {
+    const missing = selected.filter(id => labels[id] === undefined)
+    if (!missing.length) return
+    let cancelled = false
+    // api.get already returns the unwrapped payload — the response interceptor
+    // does `response.data?.data ?? response.data`. Reaching for r.data.data on
+    // top of that yielded undefined, labelFn threw, the catch swallowed it, and
+    // every chip rendered as a bare id: "33" instead of a person's name.
+    Promise.all(missing.map(id =>
+      api.get(`${basePath}/${id}`)
+        .then(r => [id, cfg.labelFn(r) || String(id)])
+        .catch(() => [id, String(id)])
+    )).then(pairs => {
+      if (cancelled) return
+      setLabels(prev => ({ ...prev, ...Object.fromEntries(pairs) }))
+    })
+    return () => { cancelled = true }
+  }, [selected.join(','), basePath])
+
+  const add = (id) => {
+    if (id == null || selected.includes(id)) return
+    onChange([...selected, id])
+  }
+  const remove = (id) => onChange(selected.filter(x => x !== id))
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selected.map(id => (
+            <span key={id}
+              className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-ctl bg-brand-500/10 border border-brand-500/30 text-xs text-text-primary">
+              {labels[id] ?? 'Loading…'}
+              <button type="button" onClick={() => remove(id)}
+                className="text-text-muted hover:text-text-primary transition-colors">
+                <X size={11} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* No key, and no remount.
+          
+          The first version forced a fresh instance after every pick to clear
+          the query — which closed the panel each time and produced exactly the
+          open-pick-reopen loop this field exists to avoid. It now runs in multi
+          mode: the panel stays open, each row carries a tick, and toggling is
+          one click. */}
+      <EntityLookupField
+        value={null}
+        onChange={() => {}}
+        onBlur={onBlur}
+        placeholder={placeholder || (selected.length ? 'Add another…' : undefined)}
+        lookupEntityType={lookupEntityType}
+        lookupApiPath={lookupApiPath}
+        contextParams={contextParams}
+        error={error}
+        multi
+        selectedIds={selectedSet}
+        onToggle={(item) => {
+          const id = cfg.idFn ? cfg.idFn(item) : (item.id ?? item.userId)
+          if (id == null) return
+          // Cache the label as it is ticked, so the chip never has to fetch it
+          // back — the resolver below is only for ids that arrive prefilled.
+          setLabels(prev => ({ ...prev, [id]: cfg.labelFn(item) || String(id) }))
+          selected.includes(id) ? remove(id) : add(id)
+        }}
+      />
+
+      <span className="text-[11px] text-text-muted">
+        {selected.length > 0 && <>{selected.length} selected · </>}
+        {/* The dropdown shows the first ten before you type — loadInitial uses
+            take: 10. With forty-five people that looks like the whole list and
+            is not, so say so rather than letting someone conclude a colleague
+            is missing. */}
+        Type to search — the list opens with the first few only
+      </span>
+    </div>
+  )
+}
+
 // ─── EntityLookupField ────────────────────────────────────────────────────────
 // Generic search-as-you-type lookup for any entity type stored in our DB.
 // Routes to the correct endpoint based on lookupEntityType (set in Screen Designer).
@@ -740,6 +1105,15 @@ const LOOKUP_CONFIG = {
   WORKFLOW:       { path: '/v1/workflows',                 search: (q) => `name=${q}`, labelFn: (r) => r.name, subFn: (r) => r.entityType || '' },
   // VENDOR: GET /v1/vendors — supports search=name=X
   VENDOR:         { path: '/v1/vendors',                   search: (q) => `name=${q}`, labelFn: (r) => r.name, subFn: (r) => r.domain || '' },
+
+  // PERSONNEL and ASSET were resolving through the `|| LOOKUP_CONFIG.USER`
+  // fallback below. PERSONNEL happened to work — the personnel list emits
+  // firstName/lastName so USER's labelFn matched, and it emits no userId so
+  // `r.userId ?? r.id` fell through to the personnel id. Correct by luck. ASSET
+  // did not: USER's labelFn reads firstName/lastName, which an asset has none
+  // of, so every option rendered with an empty label.
+  PERSONNEL:      { path: '/v1/personnel?currentOnly=true', search: (q) => `firstname=${q};lastname=${q}`, labelFn: (r) => r.fullName || [r.firstName, r.lastName].filter(Boolean).join(' '), subFn: (r) => [r.jobTitle, r.department].filter(Boolean).join(' · '), idFn: (r) => r.id },
+  ASSET:          { path: '/v1/assets',                     search: (q) => `name=${q}`, labelFn: (r) => r.name, subFn: (r) => [r.assetRef, r.assetType].filter(Boolean).join(' · '), idFn: (r) => r.id },
   // AUDIT_CONTROL: GET /v1/audit/library/controls — supports search=name=X
   AUDIT_CONTROL:  { path: '/v1/audit/library/controls',   search: (q) => `name=${q}`, labelFn: (r) => r.name, subFn: (r) => r.controlTag || '' },
   // AUDIT_SECTION: GET /v1/audit/library/sections/roots — top-level sections only
@@ -750,7 +1124,16 @@ const LOOKUP_CONFIG = {
   AUDIT_POLICY:   { path: '/v1/audit/library/policies',   search: (q) => `title=${q}`, labelFn: (r) => r.title || r.name, subFn: (r) => r.policyRef || '' },
 }
 
-function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityType, lookupApiPath, error, contextParams }) {
+function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityType, lookupApiPath, error, contextParams,
+  // ── MULTI MODE ──────────────────────────────────────────────────────────
+  // When set, the panel STAYS OPEN and each row shows a tick, so choosing five
+  // people is five clicks rather than five rounds of open-pick-reopen. The
+  // first attempt wrapped this component and remounted it after every pick to
+  // clear the query, which is exactly the back-and-forth it was meant to avoid.
+  multi = false,
+  selectedIds = null,      // Set of ids already chosen, for the ticks
+  onToggle = null,         // (item) => void, replaces select() in multi mode
+}) {
   // Resolve config — explicit path overrides entity type config
   const cfg = LOOKUP_CONFIG[lookupEntityType?.toUpperCase?.()] || LOOKUP_CONFIG.USER
 
@@ -785,6 +1168,43 @@ function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityT
   const [display, setDisplay] = useState('')
   const debounce = useRef(null)
   const ref = useRef(null)
+  // The results panel is portalled to <body>; see the comment on <LookupPanel>.
+  // panelRef lets the outside-click handler treat the portalled panel as
+  // "inside" the field, which it no longer is in the DOM.
+  const panelRef = useRef(null)
+  const [anchor, setAnchor] = useState(null)
+
+  // Measure the input so the portalled panel can sit under it. Re-measured on
+  // scroll and resize because a portalled element does not move with its
+  // anchor — `capture: true` so an ancestor's scroll is caught too, which is
+  // exactly the modal-body case this whole change exists for.
+  useEffect(() => {
+    if (!open) { setAnchor(null); return }
+    const measure = () => {
+      const el = ref.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      const below = window.innerHeight - r.bottom
+      const above = r.top
+      // 264 = max-h-64 (256px) + the 8px offset. Flip up only when there is
+      // genuinely more room above, so the common case stays "opens downward".
+      const flip = below < 264 && above > below
+      setAnchor({
+        left:  r.left,
+        width: r.width,
+        top:   flip ? null : r.bottom + 4,
+        bottom: flip ? (window.innerHeight - r.top + 4) : null,
+        maxHeight: Math.max(120, Math.min(256, (flip ? above : below) - 12)),
+      })
+    }
+    measure()
+    window.addEventListener('scroll', measure, true)
+    window.addEventListener('resize', measure)
+    return () => {
+      window.removeEventListener('scroll', measure, true)
+      window.removeEventListener('resize', measure)
+    }
+  }, [open, results.length])
 
   // Resolve display label for an already-selected value.
   // Uses basePath so the ID fetch URL is clean: /v1/workflows/16 (not /v1/workflows?entityType=AUDIT_PROJECT/16).
@@ -792,8 +1212,15 @@ function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityT
     if (!value || display) return
     api.get(`${basePath}/${value}`)
       .then(r => {
-        const item = r.data?.data || r.data
-        setDisplay(getLabel(item) || String(value))
+        // PRE-EXISTING BUG, same root cause as the chip labels above.
+        //
+        // api's response interceptor already returns
+        // `response.data?.data ?? response.data`, so `r` IS the payload.
+        // Reaching for r.data.data on top of it gave undefined, getLabel
+        // returned nothing, and the field fell back to String(value) — every
+        // LOOKUP editing a record with a value already set displayed a bare id
+        // instead of the name. Every module's owner, manager and vendor field.
+        setDisplay(getLabel(r) || String(value))
       })
       .catch(() => setDisplay(String(value)))
   }, [value]) // eslint-disable-line
@@ -836,12 +1263,26 @@ function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityT
   }, [query]) // eslint-disable-line
 
   useEffect(() => {
-    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); onBlur?.() } }
+    const h = (e) => {
+      // panelRef is checked as well as ref: the results panel is portalled to
+      // <body>, so ref.current.contains() no longer covers it and a click on a
+      // result would otherwise close the panel before the option was chosen.
+      const inField = ref.current && ref.current.contains(e.target)
+      const inPanel = panelRef.current && panelRef.current.contains(e.target)
+      if (!inField && !inPanel) { setOpen(false); onBlur?.() }
+    }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [onBlur])
 
   const select = (item) => {
+    if (multi) {
+      // Keep the panel open and the results intact — the whole point of the
+      // mode. The query is left alone too, so ticking three people out of one
+      // search does not mean typing it three times.
+      onToggle?.(item)
+      return
+    }
     onChange(getId(item))
     setDisplay(getLabel(item))
     setQuery(''); setResults([]); setOpen(false)
@@ -862,31 +1303,74 @@ function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityT
           </button>
         </div>
       ) : (
+        // Chrome reads a bare text input sitting near a name or email label as
+        // an address field and renders its own autofill panel ON TOP of the
+        // results list, which is what made the Assign picker look empty.
+        // autoComplete="off" alone is ignored by Chrome for anything it
+        // recognises, so the field also carries a unique name it cannot match.
         <div className="relative">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
           <input type="text" value={query} onChange={e => setQuery(e.target.value)}
             onFocus={() => { if (query.length >= 2) setOpen(true); else loadInitial() }}
             onBlur={() => { if (!open) onBlur?.() }}
             placeholder={placeholder || defaultPlaceholder}
+            autoComplete="off" data-lpignore="true" name={`lookup-${cfg.path}`}
             className={cn('w-full h-9 rounded-ctl border bg-surface-raised pl-8 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1', error ? 'border-status-fail-bd focus:ring-status-fail-bd' : 'border-border focus:ring-brand-500')}
           />
         </div>
       )}
-      {open && results.length > 0 && (
-        <div className="absolute z-50 top-full mt-1 w-full bg-surface border border-border rounded-ctl shadow-lg max-h-64 overflow-y-auto">
-          {results.map(item => (
-            <button key={item.id} type="button" onMouseDown={() => select(item)}
-              className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-surface-overlay text-left transition-colors">
-              <div className="w-6 h-6 rounded-full bg-brand-500/20 text-brand-ink text-[9px] font-semibold flex items-center justify-center shrink-0">
-                {getLabel(item).split(' ').map(p => p[0]).filter(Boolean).join('').toUpperCase().slice(0,2) || '?'}
-              </div>
-              <div>
-                <p className="text-xs font-medium text-text-primary">{getLabel(item)}</p>
-                {getSub(item) && <p className="text-[10px] text-text-muted">{getSub(item)}</p>}
-              </div>
-            </button>
-          ))}
-        </div>
+      {/*
+        The results panel is rendered into <body> through a portal, positioned
+        from the input's measured rect.
+
+        Before this, it was `absolute top-full` inside the field. That works on
+        a full page and fails inside a modal: Modal's body is
+        `flex-1 overflow-y-auto`, which is a clipping context, so a 256px panel
+        hanging off a form only two fields tall was cut at the modal's bottom
+        edge — the workflow picker in "Restart workflow" showed one and a half
+        rows and no way to reach the rest. Widening the modal does not help; the
+        panel is clipped vertically, not horizontally.
+
+        A portal removes the field from that clipping context entirely, so this
+        fixes every lookup in every modal at once, not just the one that was
+        reported. The trade-off is that the panel no longer moves with its
+        anchor, which is what the scroll/resize listener above is for.
+      */}
+      {open && results.length > 0 && anchor && createPortal(
+        <div
+          ref={panelRef}
+          style={{
+            position: 'fixed',
+            left: anchor.left,
+            width: anchor.width,
+            ...(anchor.top != null ? { top: anchor.top } : { bottom: anchor.bottom }),
+            maxHeight: anchor.maxHeight,
+          }}
+          className="z-[70] bg-surface border border-border rounded-ctl shadow-lg overflow-y-auto">
+          {results.map(item => {
+            const chosen = multi && selectedIds?.has(getId(item))
+            return (
+              <button key={item.id} type="button" onMouseDown={(e) => { e.preventDefault(); select(item) }}
+                className={cn('w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors',
+                  chosen ? 'bg-brand-500/10 hover:bg-brand-500/15' : 'hover:bg-surface-overlay')}>
+                {multi && (
+                  <span className={cn('w-4 h-4 rounded border flex items-center justify-center shrink-0',
+                    chosen ? 'bg-brand-500 border-brand-500' : 'border-border')}>
+                    {chosen && <Check size={11} className="text-white" />}
+                  </span>
+                )}
+                <div className="w-6 h-6 rounded-full bg-brand-500/20 text-brand-ink text-[9px] font-semibold flex items-center justify-center shrink-0">
+                  {getLabel(item).split(' ').map(p => p[0]).filter(Boolean).join('').toUpperCase().slice(0,2) || '?'}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-text-primary truncate">{getLabel(item)}</p>
+                  {getSub(item) && <p className="text-[10px] text-text-muted truncate">{getSub(item)}</p>}
+                </div>
+              </button>
+            )
+          })}
+        </div>,
+        document.body
       )}
     </div>
   )

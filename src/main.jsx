@@ -8,6 +8,7 @@ import App from './App'
 import { store } from './store'
 import { queryClient } from './config/queryClient'
 import { applySavedBrandPreset } from './config/brandPresets'
+import AnalyticsBridge from './components/analytics/AnalyticsBridge'
 import './index.css'
 
 // Paint the saved pastel brand preset before first render.
@@ -18,6 +19,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
+          {/* Inside the Router and the Provider, because it reads both the
+              location and the auth state. Renders nothing. */}
+          <AnalyticsBridge />
           <App />
           <Toaster
             position="top-right"
