@@ -51,11 +51,21 @@ function useWidgetData(widget, userSides) {
     // Keyed on endpoint plus filters instead, those six become one shared
     // request. dataPath is deliberately NOT in the key: it selects a field out
     // of the response the widgets already share.
+    //
+    // ...so the CACHE must hold the whole response, and each widget picks its
+    // field in `select` (run per widget, on the shared data). The queryFn used
+    // to apply dataPath itself: whichever widget fetched first stored ITS field
+    // under the shared key, and every other widget on that endpoint rendered
+    // it — KPI cards showing a chart's array, charts left blank holding a
+    // number — until a refetch by another widget swapped which one was right.
     queryKey: ['widget-data', widget.dataEndpoint, widget.filtersJson || ''],
     queryFn: async () => {
       if (!widget.dataEndpoint) return null
       const data = await api.get(widget.dataEndpoint, filters ? { params: filters } : undefined)
-      if (!widget.dataPath) return data ?? null
+      return data ?? null
+    },
+    select: (data) => {
+      if (data == null || !widget.dataPath) return data ?? null
       const result = widget.dataPath.split('.').reduce((obj, key) => obj?.[key], data)
       return result ?? null
     },

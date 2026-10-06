@@ -287,8 +287,15 @@ function Conversation({ id, me, onGone }) {
           ) : messages.map((m, i) => {
             const prev = messages[i - 1]
             const newDay = !prev || dayKey(prev.createdAt) !== dayKey(m.createdAt)
-            const grouped = prev && !newDay && prev.senderId === m.senderId
-              && new Date(m.createdAt) - new Date(prev.createdAt) < 5 * 60e3 && m.id !== firstUnread
+            const next = messages[i + 1]
+            // One block per sender per burst: same person, same day, under 5
+            // minutes apart (and not split by the "New" line). The name and
+            // avatar show once per block; a longer gap starts a new block.
+            const sameBurst = (a, b) => !!a && !!b && a.senderId === b.senderId
+              && dayKey(a.createdAt) === dayKey(b.createdAt)
+              && Math.abs(new Date(b.createdAt) - new Date(a.createdAt)) < 5 * 60e3
+            const grouped = sameBurst(prev, m) && m.id !== firstUnread
+            const lastOfBlock = !(sameBurst(m, next) && next.id !== firstUnread)
             return (
               <div key={m.id}>
                 {newDay && (
@@ -304,7 +311,8 @@ function Conversation({ id, me, onGone }) {
                     <span className="text-[10px] font-medium text-status-fail-fg">New</span>
                   </div>
                 )}
-                <MessageRow m={m} grouped={grouped} members={conv.members || []} meId={me.userId}
+                <MessageRow m={m} grouped={grouped} lastOfBlock={lastOfBlock} showName={conv.kind !== 'DIRECT'}
+                  members={conv.members || []} meId={me.userId}
                   canDelete={(m.mine || owner) && !m.deleted && conv.member}
                   onEdit={() => setEditing(m)} onDelete={() => del.mutate(m.id)} />
               </div>
@@ -355,42 +363,68 @@ function HeaderBtn({ label, onClick, children }) {
   )
 }
 
-function MessageRow({ m, grouped, members, meId, canDelete, onEdit, onDelete }) {
+/**
+ * One message as a chat bubble. Your own: right-aligned, brand bubble, no
+ * avatar or name. Everyone else: left-aligned, neutral bubble, avatar and (in
+ * groups and channels) name on the first message of a block. Every bubble
+ * carries its time, so messages minutes apart are told apart; consecutive
+ * messages of one block sit tight together.
+ */
+function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canDelete, onEdit, onDelete }) {
   const time = new Date(m.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  const mine = !!m.mine
+  const actions = !m.deleted && (mine || canDelete) && (
+    <div className={cn('self-center hidden group-hover:flex items-center rounded-ctl border border-border bg-surface-raised shadow-elevated shrink-0',
+      mine ? 'order-first' : '')}>
+      {mine && <button type="button" onClick={onEdit} title="Edit" className="p-1 text-text-muted hover:text-text-primary"><Pencil size={12} /></button>}
+      {canDelete && <button type="button" onClick={onDelete} title="Delete" className="p-1 text-text-muted hover:text-status-fail-fg"><Trash2 size={12} /></button>}
+    </div>
+  )
   return (
-    <div className={cn('group relative flex gap-2.5 rounded px-1 -mx-1 hover:bg-surface-overlay/40', grouped ? 'mt-0.5' : 'mt-3')}>
-      <div className="w-8 shrink-0">
-        {!grouped && (
-          <span className="w-8 h-8 rounded-full bg-brand-500/20 text-brand-900 text-[11px] font-semibold flex items-center justify-center">{initials(m.senderName)}</span>
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        {!grouped && (
-          <p className="text-xs">
-            <span className="font-semibold text-text-primary">{m.senderName}</span>
-            <span className="ml-2 text-[10px] text-text-muted">{time}</span>
-          </p>
-        )}
-        {m.deleted
-          ? <p className="text-sm italic text-text-muted">Message deleted</p>
-          : <p className="text-sm text-text-primary whitespace-pre-wrap break-words">
-              {renderBody(m.body, m.mentions, members, meId)}
-              {m.editedAt && <span className="ml-1 text-[10px] text-text-muted">(edited)</span>}
-            </p>}
-      </div>
-      {!m.deleted && (m.mine || canDelete) && (
-        <div className="absolute right-1 -top-2 hidden group-hover:flex items-center rounded-ctl border border-border bg-surface-raised shadow-elevated">
-          {m.mine && <button type="button" onClick={onEdit} title="Edit" className="p-1 text-text-muted hover:text-text-primary"><Pencil size={12} /></button>}
-          {canDelete && <button type="button" onClick={onDelete} title="Delete" className="p-1 text-text-muted hover:text-status-fail-fg"><Trash2 size={12} /></button>}
+    <div className={cn('group flex gap-2', mine ? 'justify-end' : 'justify-start',
+      grouped ? 'mt-0.5' : 'mt-3', lastOfBlock ? 'mb-1' : '')}>
+      {!mine && (
+        <div className="w-8 shrink-0">
+          {!grouped && (
+            <span className="w-8 h-8 rounded-full bg-brand-500/20 text-brand-900 text-[11px] font-semibold flex items-center justify-center"
+              title={m.senderName}>{initials(m.senderName)}</span>
+          )}
         </div>
       )}
+      <div className={'flex items-end gap-1.5 min-w-0 max-w-[75%]'}>
+        <div className={cn('min-w-0 flex flex-col', mine ? 'items-end' : 'items-start')}>
+          {!mine && !grouped && showName && (
+            <span className="text-[11px] font-semibold text-text-secondary mb-0.5 px-1">{m.senderName}</span>
+          )}
+          <div className={cn('rounded-card px-3 py-1.5 min-w-0',
+            m.deleted ? 'bg-surface-overlay/60 border border-dashed border-border'
+              : mine ? 'bg-brand-500 text-brand-900'
+              : 'bg-surface-overlay border border-border-subtle text-text-primary')}>
+            {m.deleted
+              ? <p className="text-sm italic text-text-muted">Message deleted</p>
+              : <p className="text-sm whitespace-pre-wrap break-words">
+                  {renderBody(m.body, m.mentions, members, meId, mine)}
+                </p>}
+            <p className={cn('text-[10px] leading-none mt-1 text-right select-none',
+              mine && !m.deleted ? 'text-brand-900/70' : 'text-text-muted')}>
+              {m.editedAt && !m.deleted && <span className="mr-1">edited</span>}{time}
+            </p>
+          </div>
+        </div>
+        {!mine && actions}
+      </div>
+      {mine && actions}
     </div>
   )
 }
 
 /** Highlight "@Name" for people the message mentioned; you in a stronger colour. */
-function renderBody(body, mentions = [], members, meId) {
+function renderBody(body, mentions = [], members, meId, onBrand = false) {
   const names = members.filter(p => mentions.includes(p.userId)).map(p => ({ id: p.userId, token: '@' + p.name }))
+  // "@all" mentioned everyone: highlight it, as "you" when you were among them.
+  if (mentions.length && /(^|\s)@all\b/.test(body)) {
+    names.push({ id: mentions.includes(meId) ? meId : '__all__', token: '@all' })
+  }
   if (!names.length) return body
   const parts = []
   let rest = body
@@ -403,7 +437,10 @@ function renderBody(body, mentions = [], members, meId) {
     }
     if (!hit) { parts.push(rest); break }
     if (hit.i > 0) parts.push(rest.slice(0, hit.i))
-    parts.push(<span key={k++} className={cn('rounded px-0.5 font-medium', hit.n.id === meId ? 'bg-status-warn-bg text-status-warn-fg' : 'bg-brand-500/15 text-brand-900')}>{hit.n.token}</span>)
+    // On your own (brand) bubble a brand tint would vanish — use a light chip.
+    parts.push(<span key={k++} className={cn('rounded px-0.5 font-medium',
+      hit.n.id === meId ? 'bg-status-warn-bg text-status-warn-fg'
+        : onBrand ? 'bg-surface-raised/70 text-brand-900' : 'bg-brand-500/15 text-brand-900')}>{hit.n.token}</span>)
     rest = rest.slice(hit.i + hit.n.token.length)
   }
   return parts
@@ -418,13 +455,22 @@ function Composer({ id, members, onSent }) {
   const ta = useRef(null)
   const send = useMutation({
     mutationFn: () => {
-      const ids = mentions.filter(m => text.includes('@' + m.name)).map(m => m.userId)
+      // @all = everyone else in the conversation, sent as their ids — the
+      // server notifies mentions exactly as for single @Names (and, in a
+      // channel, a mention is what notifies at all).
+      const all = mentions.some(m => m.isAll) && /(^|\s)@all\b/.test(text)
+      const ids = all ? members.map(p => p.userId)
+        : mentions.filter(m => !m.isAll && text.includes('@' + m.name)).map(m => m.userId)
       return chatApi.send(id, text, ids)
     },
     onSuccess: (r) => { setText(''); setMentions([]); onSent(one(r)); ta.current?.focus() },
     onError: (e) => toast.error(errMsg(e, 'Could not send')),
   })
-  const options = picker ? members.filter(p => p.name.toLowerCase().includes(picker.query.toLowerCase())).slice(0, 6) : []
+  const ALL = { userId: '__all__', name: 'all', isAll: true }
+  const options = picker ? [
+    ...(members.length > 1 && 'all'.startsWith(picker.query.toLowerCase()) ? [ALL] : []),
+    ...members.filter(p => p.name.toLowerCase().includes(picker.query.toLowerCase())).slice(0, 6),
+  ] : []
 
   const onChange = (e) => {
     const v = e.target.value
@@ -453,8 +499,18 @@ function Composer({ id, members, onSent }) {
           {options.map((p, i) => (
             <button key={p.userId} type="button" onMouseDown={(e) => { e.preventDefault(); choose(p) }}
               className={cn('w-full text-left px-3 py-1.5 text-xs flex items-center gap-2', i === pick ? 'bg-surface-overlay' : 'hover:bg-surface-overlay')}>
-              <span className="w-5 h-5 rounded-full bg-brand-500/20 text-[9px] font-semibold flex items-center justify-center">{initials(p.name)}</span>
-              {p.name}
+              {p.isAll ? (
+                <>
+                  <span className="w-5 h-5 rounded-full bg-status-warn-bg text-status-warn-fg text-[9px] font-semibold flex items-center justify-center">@</span>
+                  <span className="font-medium">all</span>
+                  <span className="text-text-muted">· everyone here ({members.length})</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-5 h-5 rounded-full bg-brand-500/20 text-[9px] font-semibold flex items-center justify-center">{initials(p.name)}</span>
+                  {p.name}
+                </>
+              )}
             </button>
           ))}
         </div>
