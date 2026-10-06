@@ -1,12 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  MessageSquare, Hash, Lock, Search, Plus, Users, Bell, BellOff, Settings, LogOut, Pencil, Trash2, X,
-  UserPlus, Send, Globe, Archive,
+  MessageSquare, Hash, Lock, Search, Plus, Users, BellOff, Pencil, Trash2, X,
+  Send, Globe, Archive, Paperclip, Smile, SmilePlus, Reply, Pin, PinOff, Video, Loader2, CheckCheck,
+  Bold, Italic, Strikethrough, Code, List, FileText, Image as ImageIcon, Info,
 } from 'lucide-react'
 import { chatApi, one, list, errMsg } from '../../api/chat.api'
+import { collabApi, unwrapOne } from '../../api/collab.api'
 import { useChatSocket } from '../../hooks/useChatSocket'
+import { useDocumentUpload } from '../../hooks/useDocuments'
+import { EmojiPicker, QUICK_REACTIONS } from '../../components/chat/EmojiPicker'
+import { MessageText, Attachments, LinkCard, linkCards, stripCardLinks, fmtSize } from '../../components/chat/ChatMessageParts'
+import { DocumentPreviewDrawer } from '../../components/ui/DocumentPreviewDrawer'
+import { startCall } from '../../components/collab/call/callStore'
+import { useCallOptions } from '../../components/collab/Meetings'
+import { ChatDetailsPanel, PresenceDot } from '../../components/chat/ChatDetailsPanel'
+import { usePresence, presenceLabel } from '../../hooks/useChatPresence'
 import { PeopleMultiSelect } from '../../components/collab/PeopleMultiSelect'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Button } from '../../components/ui/Button'
@@ -21,9 +31,15 @@ import toast from 'react-hot-toast'
  * Left: my conversations by kind, unread counts, search, + to start one or
  * browse public channels. Right: the conversation — messages by day, edit
  * and delete your own, @mentions (the person is notified), mute, add people,
- * channel settings. Updates arrive live (useChatSocket); the page also polls,
+ * channel settings. Replies, reactions, files and images, pins, search,
+ * typing and "Seen", light formatting, cards for KashiGuard links, and a call
+ * button. Updates arrive live (useChatSocket); the page also polls,
  * so it keeps working if the socket is down.
  */
+// A KashiGuard record shared in chat opens in the same drawer as everywhere
+// else; the host lives with the module pages and loads only when needed.
+const UrlEntityDrawerHost = lazy(() => import('../module/UniversalModulePage').then(m => ({ default: m.UrlEntityDrawerHost })))
+
 const KEY_LIST = ['chat-conversations']
 const keyMsgs = (id) => ['chat-messages', String(id)]
 const BADGE = ['nav-badge', '/v1/chat/unread']
@@ -35,6 +51,7 @@ export default function ChatPage() {
   const [q, setQ] = useState('')
   const [starting, setStarting] = useState(null)    // 'DIRECT' | 'GROUP' | 'CHANNEL' | 'BROWSE'
   const [menu, setMenu] = useState(false)
+  const [searchParams] = useSearchParams()
 
   const { data: meRaw, isLoading: meLoading } = useQuery({ queryKey: ['chat-me'], queryFn: () => chatApi.me(), staleTime: 5 * 60e3 })
   const me = one(meRaw) || {}
@@ -50,6 +67,9 @@ export default function ChatPage() {
     if (ev.conversationId) {
       qc.invalidateQueries({ queryKey: keyMsgs(ev.conversationId) })
       qc.invalidateQueries({ queryKey: ['chat-conversation', String(ev.conversationId)] })
+      qc.invalidateQueries({ queryKey: ['chat-pins', String(ev.conversationId)] })
+      qc.invalidateQueries({ queryKey: ['chat-members', String(ev.conversationId)] })
+      qc.invalidateQueries({ queryKey: ['chat-shared', String(ev.conversationId)] })
     }
   })
 
@@ -151,18 +171,30 @@ export default function ChatPage() {
 
       <StartModal kind={starting} onClose={() => setStarting(null)} meId={me.userId}
         onDone={(c) => { qc.invalidateQueries({ queryKey: KEY_LIST }); setStarting(null); if (c?.id) open(c.id) }} />
+      {(searchParams.get('drawerType') || searchParams.get('drawerStack')) && (
+        <Suspense fallback={null}><UrlEntityDrawerHost /></Suspense>
+      )}
     </PageLayout>
   )
 }
 
 function ConvIcon({ c }) {
+  const presence = usePresence()
   const cls = 'mt-0.5 shrink-0 text-text-muted'
   if (c.kind === 'CHANNEL') return c.visibility === 'PRIVATE' ? <Lock size={13} className={cls} /> : <Hash size={13} className={cls} />
   if (c.kind === 'GROUP') return <Users size={13} className={cls} />
-  return <span className="mt-0.5 shrink-0 w-4 h-4 rounded-full bg-surface-overlay text-[8px] font-semibold text-text-secondary flex items-center justify-center">{initials(c.name)}</span>
+  return (
+    <span className="relative mt-0.5 shrink-0 w-4 h-4 rounded-full bg-surface-overlay text-[8px] font-semibold text-text-secondary flex items-center justify-center">
+      {initials(c.name)}
+      {presence.isOnline(c.otherUserId) && <PresenceDot className="w-2 h-2 ring-1" />}
+    </span>
+  )
 }
 
 // ── One conversation ─────────────────────────────────────────────────────────
+
+const MAX_FILES = 10
+const CALL_MAX_PEOPLE = 50
 
 function Conversation({ id, me, onGone }) {
   const qc = useQueryClient()
@@ -173,20 +205,64 @@ function Conversation({ id, me, onGone }) {
   const [settings, setSettings] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [firstUnread, setFirstUnread] = useState(undefined)
+  const [replyingTo, setReplyingTo] = useState(null)   // message
+  const [panel, setPanel] = useState(null)             // 'pins' | 'search'
+  const [highlight, setHighlight] = useState(null)     // message id
+  const [previewDoc, setPreviewDoc] = useState(null)
+  const [typing, setTyping] = useState({})             // userId -> until (ms)
+  const [dragging, setDragging] = useState(0)
+  const [pending, setPending] = useState([])           // my messages on their way to the server
   const bottom = useRef(null)
   const scroller = useRef(null)
+  const content = useRef(null)
+  // Stay pinned to the newest message unless the reader has scrolled up.
+  // Starts pinned, so opening a conversation lands at the bottom.
+  const stick = useRef(true)
+  const toBottom = () => {
+    stick.current = true
+    const el = scroller.current
+    if (el) el.scrollTop = el.scrollHeight     // only this panel — never the page around it
+  }
+  // Content grows after render (images, link cards, earlier pages, "Seen"):
+  // keep the bottom in view while pinned.
+  useEffect(() => {
+    const el = scroller.current, inner = content.current
+    if (!el || !inner || typeof ResizeObserver === 'undefined') return undefined
+    const ro = new ResizeObserver(() => { if (stick.current) el.scrollTop = el.scrollHeight })
+    ro.observe(inner)
+    return () => ro.disconnect()
+  })
+  const composer = useRef(null)                        // { addFiles, focus }
+  const calls = useCallOptions()
+  const presence = usePresence()
 
   const { data: convRaw, isError } = useQuery({ queryKey: ['chat-conversation', String(id)], queryFn: () => chatApi.conversation(id), retry: false })
   const conv = one(convRaw)
   const { data: msgRaw, isLoading } = useQuery({ queryKey: keyMsgs(id), queryFn: () => chatApi.messages(id), refetchInterval: 15_000 })
   const page = one(msgRaw) || {}
-  const latest = Array.isArray(page.messages) ? page.messages : []
+  const latest = useMemo(() => (Array.isArray(page.messages) ? page.messages : []), [page.messages])
   const messages = useMemo(() => {
     const seen = new Set(latest.map(m => m.id))
     return [...older.filter(m => !seen.has(m.id)), ...latest]
   }, [older, latest])
 
   useEffect(() => { if (isError) { toast.error('That conversation is not available'); onGone() } }, [isError, onGone])
+
+  // "Typing…" and "Seen by" arrive as their own lightweight pushes.
+  useChatSocket((ev) => {
+    if (String(ev?.conversationId) !== String(id)) return
+    if (ev.type === 'typing' && ev.userId !== me.userId) setTyping(t => ({ ...t, [ev.userId]: Date.now() + 5000 }))
+    else if (ev.type === 'read') qc.invalidateQueries({ queryKey: ['chat-conversation', String(id)] })
+  })
+  useEffect(() => {
+    if (!Object.keys(typing).length) return undefined
+    const t = setInterval(() => setTyping(cur => {
+      const now = Date.now()
+      const next = Object.fromEntries(Object.entries(cur).filter(([, until]) => until > now))
+      return Object.keys(next).length === Object.keys(cur).length ? cur : next
+    }), 1000)
+    return () => clearInterval(t)
+  }, [typing])
 
   // Where "New" goes: the first message after what I had read when I opened it.
   useEffect(() => {
@@ -197,12 +273,12 @@ function Conversation({ id, me, onGone }) {
   }, [msgRaw, firstUnread, page.lastReadMessageId, latest])
 
   // Mark read and keep the view at the bottom when new messages arrive.
-  const lastId = latest.length ? latest[latest.length - 1].id : null
+  const lastMsg = latest.length ? latest[latest.length - 1] : null
+  const lastId = lastMsg?.id ?? null
   useEffect(() => {
-    if (!lastId || !conv?.member) return
-    const el = scroller.current
-    const nearBottom = !el || el.scrollHeight - el.scrollTop - el.clientHeight < 160
-    if (nearBottom) bottom.current?.scrollIntoView({ block: 'end' })
+    if (!lastId) return
+    if (stick.current) requestAnimationFrame(toBottom)
+    if (!conv?.member) return
     if (document.visibilityState === 'visible') {
       chatApi.read(id, lastId).then(() => {
         qc.invalidateQueries({ queryKey: KEY_LIST })
@@ -210,6 +286,12 @@ function Conversation({ id, me, onGone }) {
       }).catch(() => {})
     }
   }, [lastId, conv?.member, id, qc])
+  // Someone's message arrived — they have stopped typing.
+  const lastSender = lastMsg?.senderId
+  useEffect(() => {
+    if (lastSender == null) return
+    setTyping(t => (t[lastSender] ? Object.fromEntries(Object.entries(t).filter(([k]) => String(k) !== String(lastSender))) : t))
+  }, [lastId, lastSender])
 
   const loadEarlier = async () => {
     const first = messages[0]?.id
@@ -222,10 +304,49 @@ function Conversation({ id, me, onGone }) {
   }
   const more = hasOlder ?? page.hasMore
 
+  /** Scroll to a message and flash it — loading earlier pages until it is there. */
+  const jumpTo = async (mid) => {
+    if (!mid) return
+    let have = messages
+    let hasMore = more
+    let first = have[0]?.id
+    let fetched = []
+    for (let pages = 0; !have.some(x => x.id === mid) && hasMore && first && pages < 20; pages++) {
+      let r
+      try { r = one(await chatApi.messages(id, first)) } catch { break }
+      const ms = r.messages || []
+      if (!ms.length) { hasMore = false; break }
+      fetched = [...ms, ...fetched]
+      have = [...ms, ...have]
+      first = ms[0].id
+      hasMore = !!r.hasMore
+    }
+    if (fetched.length) { setOlder(o => [...fetched, ...o]); setHasOlder(hasMore) }
+    if (!have.some(x => x.id === mid)) { toast('That message is too far back to show here'); return }
+    stick.current = false          // a jump is a deliberate look back — don't pull to the bottom
+    setHighlight(mid)
+    // Twice: the first frame renders the loaded page, the second can scroll to it.
+    requestAnimationFrame(() => requestAnimationFrame(() =>
+      document.getElementById(`chat-msg-${mid}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })))
+    setTimeout(() => setHighlight(h => (h === mid ? null : h)), 2500)
+  }
+
   const refresh = () => {
     qc.invalidateQueries({ queryKey: keyMsgs(id) })
     qc.invalidateQueries({ queryKey: ['chat-conversation', String(id)] })
+    qc.invalidateQueries({ queryKey: ['chat-pins', String(id)] })
     qc.invalidateQueries({ queryKey: KEY_LIST })
+  }
+  /** Put a changed message (reaction, pin) in place, wherever it is loaded. */
+  const replaceMessage = (msg) => {
+    if (!msg?.id) return
+    qc.setQueryData(keyMsgs(id), (old) => {
+      const p = one(old)
+      if (!p || !Array.isArray(p.messages)) return old
+      const next = { ...p, messages: p.messages.map(x => (x.id === msg.id ? msg : x)) }
+      return old?.data && old.data === p ? { ...old, data: next } : next
+    })
+    setOlder(o => (o.some(x => x.id === msg.id) ? o.map(x => (x.id === msg.id ? msg : x)) : o))
   }
   const update = useMutation({
     mutationFn: (body) => chatApi.update(id, body),
@@ -247,102 +368,226 @@ function Conversation({ id, me, onGone }) {
     onSuccess: refresh,
     onError: (e) => toast.error(errMsg(e, 'Could not delete the message')),
   })
+  const react = useMutation({
+    mutationFn: ({ mid, emoji }) => chatApi.react(mid, emoji),
+    onSuccess: (r) => replaceMessage(one(r)),
+    onError: (e) => toast.error(errMsg(e, 'Could not react')),
+  })
+  const pin = useMutation({
+    mutationFn: ({ mid, pinned }) => chatApi.pin(mid, pinned),
+    onSuccess: (r, v) => {
+      replaceMessage(one(r))
+      qc.invalidateQueries({ queryKey: ['chat-pins', String(id)] })
+      toast.success(v.pinned ? 'Pinned' : 'Unpinned')
+    },
+    onError: (e) => toast.error(errMsg(e, 'Could not pin')),
+  })
+
+  const appendMine = (msg) => {
+    qc.setQueryData(keyMsgs(id), (old) => {
+      const p = one(old) || {}
+      const ms = Array.isArray(p.messages) ? p.messages : []
+      return ms.some(x => x.id === msg.id) ? old : { ...p, messages: [...ms, msg] }
+    })
+    requestAnimationFrame(toBottom)
+    qc.invalidateQueries({ queryKey: KEY_LIST })
+  }
+
+  const members = conv?.members || []
+  const others = members.filter(p => p.userId !== me.userId)
+  const call = useMutation({
+    mutationFn: () => collabApi.callNow({
+      workspaceId: null, programmeId: null,
+      title: conv.kind === 'DIRECT' ? null : `Call · ${conv.name}`,
+      attendeeUserIds: others.map(p => p.userId),
+    }),
+    onSuccess: (r) => {
+      const x = unwrapOne(r)
+      startCall(x)
+      // Leave a "Join" card in the conversation for whoever comes in later.
+      if (x?.meetingId) {
+        chatApi.send(id, `🎥 Started a video call — ${window.location.origin}/collaboration/meetings/${x.meetingId}`, [])
+          .then(m => appendMine(one(m))).catch(() => {})
+      }
+    },
+    onError: (e) => toast.error(errMsg(e, 'Could not start the call')),
+  })
 
   if (!conv) return <div className="flex-1 flex items-center justify-center text-xs text-text-muted">Loading…</div>
   const owner = conv.kind === 'CHANNEL' && conv.myRole === 'OWNER'
+  const canWrite = conv.member && !conv.archived
+  const canCall = canWrite && calls.enabled && calls.canStart && others.length > 0 && others.length <= CALL_MAX_PEOPLE
+  const onlineHere = presence.onlineCount(others.map(p => p.userId))
+
+  // Messages still being sent show straight away, at the end, as "Sending…".
+  const shown = pending.length ? [...messages, ...pending] : messages
+
+  // "Seen": who has read up to my latest message, when it is the last one here.
+  const tail = shown[shown.length - 1]
+  const seenBy = tail?.mine && !tail.deleted && !tail.pending
+    ? others.filter(p => p.lastReadMessageId != null && p.lastReadMessageId >= tail.id) : []
+  const seenText = !seenBy.length ? null
+    : conv.kind === 'DIRECT' ? 'Seen' : `Seen by ${namesList(seenBy.map(p => p.name))}`
+  const typingNames = Object.keys(typing).map(uid => members.find(p => String(p.userId) === String(uid))?.name).filter(Boolean)
+
+  const dropOk = (e) => canWrite && Array.from(e.dataTransfer?.types || []).includes('Files')
 
   return (
     <>
       <header className="px-4 py-2.5 border-b border-border flex items-center gap-3">
-        <ConvIcon c={conv} />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-text-primary truncate">{conv.name}{conv.archived && <span className="ml-2 text-[11px] font-normal text-text-muted">archived</span>}</p>
-          <p className="text-[11px] text-text-muted truncate">
-            {conv.description ? `${conv.description} · ` : ''}{conv.memberCount} {conv.memberCount === 1 ? 'person' : 'people'}
-          </p>
-        </div>
-        {conv.member && (
-          <div className="flex items-center gap-1">
-            <HeaderBtn label={conv.muted ? 'Unmute' : 'Mute'} onClick={() => update.mutate({ muted: !conv.muted })}>
-              {conv.muted ? <BellOff size={14} /> : <Bell size={14} />}
-            </HeaderBtn>
-            {conv.canManage && !conv.archived && <HeaderBtn label="Add people" onClick={() => setAdding(true)}><UserPlus size={14} /></HeaderBtn>}
-            {conv.canManage && <HeaderBtn label="Settings" onClick={() => setSettings(true)}><Settings size={14} /></HeaderBtn>}
-            {conv.kind !== 'DIRECT' && <HeaderBtn label="Leave" onClick={() => setLeaving(true)}><LogOut size={14} /></HeaderBtn>}
+        {/* The title opens the details panel (people, media, files, links). */}
+        <button type="button" onClick={() => setPanel(p => (p === 'details' ? null : 'details'))} title="Details"
+          className="min-w-0 flex-1 flex items-center gap-3 text-left rounded-ctl -mx-1 px-1 py-0.5 hover:bg-surface-overlay/60">
+          <ConvIcon c={conv} />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-text-primary truncate">{conv.name}{conv.archived && <span className="ml-2 text-[11px] font-normal text-text-muted">archived</span>}</p>
+            {conv.kind === 'DIRECT' ? (
+              <p className={cn('text-[11px] truncate', presence.isOnline(conv.otherUserId) ? 'text-status-pass-fg' : 'text-text-muted')}>
+                {presenceLabel(presence.isOnline(conv.otherUserId), presence.lastSeen(conv.otherUserId))}
+              </p>
+            ) : (
+              <p className="text-[11px] text-text-muted truncate">
+                {conv.description ? `${conv.description} · ` : ''}{conv.memberCount} {conv.memberCount === 1 ? 'person' : 'people'}
+                {onlineHere > 0 ? ` · ${onlineHere} online` : ''}
+              </p>
+            )}
           </div>
-        )}
+        </button>
+        <div className="flex items-center gap-1">
+          {canCall && (
+            <HeaderBtn label={call.isPending ? 'Starting the video call…' : 'Start a video call'} onClick={() => !call.isPending && call.mutate()}>
+              {call.isPending ? <Loader2 size={14} className="animate-spin" /> : <Video size={14} />}
+            </HeaderBtn>
+          )}
+          <HeaderBtn label="Search in this conversation" active={panel === 'search'} onClick={() => setPanel(p => (p === 'search' ? null : 'search'))}><Search size={14} /></HeaderBtn>
+          <HeaderBtn label="Pinned messages" active={panel === 'pins'} onClick={() => setPanel(p => (p === 'pins' ? null : 'pins'))}><Pin size={14} /></HeaderBtn>
+          {conv.member && conv.muted && (
+            <HeaderBtn label="Muted — unmute" onClick={() => update.mutate({ muted: false })}><BellOff size={14} /></HeaderBtn>
+          )}
+          {/* Mute, add people, settings and leave live in the details panel. */}
+          <HeaderBtn label="Details" active={panel === 'details'} onClick={() => setPanel(p => (p === 'details' ? null : 'details'))}><Info size={14} /></HeaderBtn>
+        </div>
       </header>
 
-      <div ref={scroller} className="flex-1 overflow-y-auto px-4 py-3">
-        {more && (
-          <div className="text-center mb-3">
-            <Button variant="ghost" size="xs" onClick={loadEarlier}>Earlier messages</Button>
-          </div>
-        )}
-        {isLoading ? <p className="text-xs text-text-muted">Loading…</p>
-          : messages.length === 0 ? (
-            <p className="text-xs text-text-muted text-center py-10">
-              {conv.kind === 'CHANNEL' ? `This is the start of #${conv.name}.` : 'No messages yet — say hello.'}
-            </p>
-          ) : messages.map((m, i) => {
-            const prev = messages[i - 1]
-            const newDay = !prev || dayKey(prev.createdAt) !== dayKey(m.createdAt)
-            const next = messages[i + 1]
-            // One block per sender per burst: same person, same day, under 5
-            // minutes apart (and not split by the "New" line). The name and
-            // avatar show once per block; a longer gap starts a new block.
-            const sameBurst = (a, b) => !!a && !!b && a.senderId === b.senderId
-              && dayKey(a.createdAt) === dayKey(b.createdAt)
-              && Math.abs(new Date(b.createdAt) - new Date(a.createdAt)) < 5 * 60e3
-            const grouped = sameBurst(prev, m) && m.id !== firstUnread
-            const lastOfBlock = !(sameBurst(m, next) && next.id !== firstUnread)
-            return (
-              <div key={m.id}>
-                {newDay && (
-                  <div className="flex items-center gap-2 my-3">
-                    <span className="flex-1 border-t border-border-subtle" />
-                    <span className="text-[10px] text-text-muted">{dayLabel(m.createdAt)}</span>
-                    <span className="flex-1 border-t border-border-subtle" />
-                  </div>
-                )}
-                {m.id === firstUnread && (
-                  <div className="flex items-center gap-2 my-2">
-                    <span className="flex-1 border-t border-status-fail-fg/50" />
-                    <span className="text-[10px] font-medium text-status-fail-fg">New</span>
-                  </div>
-                )}
-                <MessageRow m={m} grouped={grouped} lastOfBlock={lastOfBlock} showName={conv.kind !== 'DIRECT'}
-                  members={conv.members || []} meId={me.userId}
-                  canDelete={(m.mine || owner) && !m.deleted && conv.member}
-                  onEdit={() => setEditing(m)} onDelete={() => del.mutate(m.id)} />
+      <div className="flex-1 min-h-0 flex">
+        <div className="relative flex-1 min-w-0 flex flex-col"
+          onDragEnter={(e) => { if (dropOk(e)) { e.preventDefault(); setDragging(n => n + 1) } }}
+          onDragOver={(e) => { if (dropOk(e)) e.preventDefault() }}
+          onDragLeave={(e) => { if (dropOk(e)) setDragging(n => Math.max(0, n - 1)) }}
+          onDrop={(e) => {
+            if (!dropOk(e)) return
+            e.preventDefault(); setDragging(0)
+            composer.current?.addFiles(Array.from(e.dataTransfer.files || []))
+          }}>
+          {dragging > 0 && (
+            <div className="absolute inset-2 z-20 rounded-card border-2 border-dashed border-brand-500 bg-surface-raised/90 flex flex-col items-center justify-center pointer-events-none">
+              <Paperclip size={22} className="text-brand-900" />
+              <p className="text-sm font-medium text-text-primary mt-1">Drop files to attach</p>
+              <p className="text-xs text-text-muted">Up to {MAX_FILES} per message</p>
+            </div>
+          )}
+
+          <div ref={scroller} className="flex-1 overflow-y-auto px-4 py-3"
+            onScroll={(e) => {
+              const el = e.currentTarget
+              stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+            }}>
+           <div ref={content}>
+            {more && (
+              <div className="text-center mb-3">
+                <Button variant="ghost" size="xs" onClick={loadEarlier}>Earlier messages</Button>
               </div>
-            )
-          })}
-        <div ref={bottom} />
+            )}
+            {isLoading ? <p className="text-xs text-text-muted">Loading…</p>
+              : shown.length === 0 ? (
+                <p className="text-xs text-text-muted text-center py-10">
+                  {conv.kind === 'CHANNEL' ? `This is the start of #${conv.name}.` : 'No messages yet — say hello.'}
+                </p>
+              ) : shown.map((m, i) => {
+                const prev = shown[i - 1]
+                const newDay = !prev || dayKey(prev.createdAt) !== dayKey(m.createdAt)
+                const next = shown[i + 1]
+                // One block per sender per burst: same person, same day, under 5
+                // minutes apart (and not split by the "New" line). The name and
+                // avatar show once per block; a longer gap starts a new block.
+                // A reply or a pinned message always starts its own block.
+                const sameBurst = (a, b) => !!a && !!b && a.senderId === b.senderId
+                  && dayKey(a.createdAt) === dayKey(b.createdAt)
+                  && Math.abs(new Date(b.createdAt) - new Date(a.createdAt)) < 5 * 60e3
+                  && !b.replyTo && !b.pinnedAt
+                const grouped = sameBurst(prev, m) && m.id !== firstUnread
+                const lastOfBlock = !(sameBurst(m, next) && next.id !== firstUnread)
+                return (
+                  <div key={m.id}>
+                    {newDay && (
+                      <div className="flex items-center gap-2 my-3">
+                        <span className="flex-1 border-t border-border-subtle" />
+                        <span className="text-[10px] text-text-muted">{dayLabel(m.createdAt)}</span>
+                        <span className="flex-1 border-t border-border-subtle" />
+                      </div>
+                    )}
+                    {m.id === firstUnread && (
+                      <div className="flex items-center gap-2 my-2">
+                        <span className="flex-1 border-t border-status-fail-fg/50" />
+                        <span className="text-[10px] font-medium text-status-fail-fg">New</span>
+                      </div>
+                    )}
+                    <MessageRow m={m} grouped={grouped} lastOfBlock={lastOfBlock} showName={conv.kind !== 'DIRECT'}
+                      members={members} meId={me.userId} highlight={highlight === m.id} online={!m.mine && presence.isOnline(m.senderId)}
+                      canAct={conv.member && !conv.archived && !m.pending}
+                      canDelete={(m.mine || owner) && !m.deleted && conv.member}
+                      seen={m === tail ? seenText : null}
+                      onEdit={() => setEditing(m)} onDelete={() => del.mutate(m.id)}
+                      onReply={() => { setReplyingTo(m); composer.current?.focus() }}
+                      onReact={(emoji) => react.mutate({ mid: m.id, emoji })}
+                      onPin={() => pin.mutate({ mid: m.id, pinned: !m.pinnedAt })}
+                      onJump={jumpTo} onPreview={setPreviewDoc} />
+                  </div>
+                )
+              })}
+            <div ref={bottom} />
+           </div>
+          </div>
+
+          <p className="px-4 h-4 text-[11px] italic text-text-muted truncate" aria-live="polite">
+            {typingNames.length === 0 ? '' : typingNames.length === 1 ? `${typingNames[0]} is typing…`
+              : typingNames.length === 2 ? `${typingNames[0]} and ${typingNames[1]} are typing…` : 'Several people are typing…'}
+          </p>
+
+          {conv.member ? (
+            conv.archived
+              ? <p className="px-4 py-3 border-t border-border text-xs text-text-muted">This conversation is archived — read only.</p>
+              : <Composer id={id} members={others} apiRef={composer} meId={me.userId}
+                  replyingTo={replyingTo} onCancelReply={() => setReplyingTo(null)}
+                  onSending={(temp) => {
+                    setReplyingTo(null)
+                    setPending(p => [...p, temp])
+                    requestAnimationFrame(toBottom)
+                  }}
+                  onSent={(msg, tempId) => { appendMine(msg); setPending(p => p.filter(x => x.id !== tempId)) }}
+                  onFailed={(tempId) => setPending(p => p.filter(x => x.id !== tempId))} />
+          ) : (
+            <div className="px-4 py-3 border-t border-border flex items-center justify-between gap-2">
+              <span className="text-xs text-text-muted">You are previewing #{conv.name}.</span>
+              <Button size="sm" onClick={() => join.mutate()} loading={join.isPending}>Join channel</Button>
+            </div>
+          )}
+        </div>
+
+        {panel === 'details' && (
+          <ChatDetailsPanel conv={conv} onClose={() => setPanel(null)} onJump={jumpTo} onPreview={setPreviewDoc}
+            onMute={() => update.mutate({ muted: !conv.muted })} onSettings={() => setSettings(true)} onLeave={() => setLeaving(true)}
+            onAddPeople={() => setAdding(true)}
+            onRemove={(uid) => chatApi.removeMember(id, uid).then(refresh).catch(e => toast.error(errMsg(e, 'Could not remove')))}
+            canCall={canCall} onCall={() => !call.isPending && call.mutate()} />
+        )}
+        {panel === 'pins' && <PinsPanel id={id} onClose={() => setPanel(null)} onJump={jumpTo} />}
+        {panel === 'search' && <SearchPanel id={id} onClose={() => setPanel(null)} onJump={jumpTo} />}
       </div>
 
-      {conv.member ? (
-        conv.archived
-          ? <p className="px-4 py-3 border-t border-border text-xs text-text-muted">This conversation is archived — read only.</p>
-          : <Composer id={id} members={(conv.members || []).filter(p => p.userId !== me.userId)}
-              onSent={(msg) => {
-                qc.setQueryData(keyMsgs(id), (old) => {
-                  const p = one(old) || {}
-                  const ms = Array.isArray(p.messages) ? p.messages : []
-                  return ms.some(x => x.id === msg.id) ? old : { ...p, messages: [...ms, msg] }
-                })
-                requestAnimationFrame(() => bottom.current?.scrollIntoView({ block: 'end' }))
-                qc.invalidateQueries({ queryKey: KEY_LIST })
-              }} />
-      ) : (
-        <div className="px-4 py-3 border-t border-border flex items-center justify-between gap-2">
-          <span className="text-xs text-text-muted">You are previewing #{conv.name}.</span>
-          <Button size="sm" onClick={() => join.mutate()} loading={join.isPending}>Join channel</Button>
-        </div>
-      )}
-
+      <DocumentPreviewDrawer document={previewDoc} open={!!previewDoc} onClose={() => setPreviewDoc(null)} />
       <EditMessageModal message={editing} onClose={() => setEditing(null)} onDone={refresh} />
-      <PeopleModal open={adding} onClose={() => setAdding(false)} title="Add people" exclude={(conv.members || []).map(p => p.userId)}
+      <PeopleModal open={adding} onClose={() => setAdding(false)} title="Add people" exclude={members.map(p => p.userId)}
         confirmLabel="Add" onConfirm={(ids) => chatApi.addMembers(id, ids).then(() => { toast.success('Added'); refresh(); setAdding(false) })
           .catch(e => toast.error(errMsg(e, 'Could not add')))} />
       <SettingsModal open={settings} conv={conv} onClose={() => setSettings(false)}
@@ -356,10 +601,90 @@ function Conversation({ id, me, onGone }) {
   )
 }
 
-function HeaderBtn({ label, onClick, children }) {
+function HeaderBtn({ label, onClick, children, active }) {
   return (
     <button type="button" onClick={onClick} title={label} aria-label={label}
-      className="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay">{children}</button>
+      className={cn('p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay',
+        active && 'bg-surface-overlay text-text-primary')}>{children}</button>
+  )
+}
+
+/** Side panel shell for pins and search. */
+function SidePanel({ title, onClose, children }) {
+  return (
+    <aside className="w-72 shrink-0 border-l border-border flex flex-col min-h-0">
+      <div className="px-3 py-2 border-b border-border-subtle flex items-center gap-2">
+        <p className="text-xs font-semibold text-text-primary flex-1">{title}</p>
+        <button type="button" onClick={onClose} title="Close" className="p-1 text-text-muted hover:text-text-primary"><X size={13} /></button>
+      </div>
+      {children}
+    </aside>
+  )
+}
+
+function ResultRow({ m, onClick, query }) {
+  return (
+    <button type="button" onClick={onClick} className="w-full text-left px-3 py-2 border-b border-border-subtle hover:bg-surface-overlay">
+      <div className="flex items-center gap-1.5">
+        <span className="text-[11px] font-semibold text-text-secondary truncate flex-1">{m.senderName}</span>
+        <span className="text-[10px] text-text-muted shrink-0">
+          {new Date(m.createdAt).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+        </span>
+      </div>
+      <p className="text-xs text-text-primary line-clamp-3 break-words mt-0.5">{highlightText(snippet(m), query)}</p>
+    </button>
+  )
+}
+
+function PinsPanel({ id, onClose, onJump }) {
+  const { data, isLoading } = useQuery({ queryKey: ['chat-pins', String(id)], queryFn: () => chatApi.pins(id) })
+  const pins = list(data)
+  return (
+    <SidePanel title="Pinned messages" onClose={onClose}>
+      <div className="flex-1 overflow-y-auto">
+        {isLoading ? <p className="p-3 text-xs text-text-muted">Loading…</p>
+          : pins.length === 0 ? (
+            <p className="p-4 text-xs text-text-muted text-center">Nothing pinned yet. Hover a message and choose the pin to keep it here.</p>
+          ) : pins.map(m => (
+            <div key={m.id}>
+              <ResultRow m={m} onClick={() => onJump(m.id)} />
+              {m.pinnedByName && <p className="px-3 -mt-1.5 pb-1.5 text-[10px] text-text-muted">Pinned by {m.pinnedByName}</p>}
+            </div>
+          ))}
+      </div>
+    </SidePanel>
+  )
+}
+
+function SearchPanel({ id, onClose, onJump }) {
+  const [q, setQ] = useState('')
+  const [term, setTerm] = useState('')
+  useEffect(() => { const t = setTimeout(() => setTerm(q.trim()), 300); return () => clearTimeout(t) }, [q])
+  const { data, isFetching } = useQuery({
+    queryKey: ['chat-search', String(id), term], queryFn: () => chatApi.search(id, term), enabled: term.length >= 2, staleTime: 30e3,
+  })
+  const hits = term.length >= 2 ? list(data) : []
+  return (
+    <SidePanel title="Search this conversation" onClose={onClose}>
+      <div className="p-2 border-b border-border-subtle">
+        <div className="relative">
+          <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Words in a message" autoFocus
+            className="w-full h-8 pl-7 pr-2 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary" />
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {term.length < 2 ? <p className="p-3 text-xs text-text-muted">Type at least 2 characters.</p>
+          : isFetching && !hits.length ? <p className="p-3 text-xs text-text-muted">Searching…</p>
+          : hits.length === 0 ? <p className="p-3 text-xs text-text-muted">No messages match.</p>
+          : (
+            <>
+              {hits.map(m => <ResultRow key={m.id} m={m} query={term} onClick={() => onJump(m.id)} />)}
+              {hits.length >= 30 && <p className="p-3 text-[11px] text-text-muted">Showing the 30 newest matches — add words to narrow it.</p>}
+            </>
+          )}
+      </div>
+    </SidePanel>
   )
 }
 
@@ -369,103 +694,194 @@ function HeaderBtn({ label, onClick, children }) {
  * groups and channels) name on the first message of a block. Every bubble
  * carries its time, so messages minutes apart are told apart; consecutive
  * messages of one block sit tight together.
+ *
+ * Hovering shows quick reactions, more emoji, reply, pin, and (your own)
+ * edit / delete. Under the bubble: link cards, reaction chips, "Seen".
  */
-function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canDelete, onEdit, onDelete }) {
+function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, canDelete, highlight, seen, online,
+  onEdit, onDelete, onReply, onReact, onPin, onJump, onPreview }) {
+  const [picking, setPicking] = useState(false)
   const time = new Date(m.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
   const mine = !!m.mine
-  const actions = !m.deleted && (mine || canDelete) && (
-    <div className={cn('self-center hidden group-hover:flex items-center rounded-ctl border border-border bg-surface-raised shadow-elevated shrink-0',
-      mine ? 'order-first' : '')}>
-      {mine && <button type="button" onClick={onEdit} title="Edit" className="p-1 text-text-muted hover:text-text-primary"><Pencil size={12} /></button>}
+  const cards = m.deleted ? [] : linkCards(m.body)
+  const text = cards.length ? stripCardLinks(m.body) : m.body
+  const reactions = m.reactions || []
+  const btn = 'p-1 text-text-muted hover:text-text-primary'
+  const bar = !m.deleted && canAct && (
+    <div className={cn('absolute -top-3 z-10 items-center rounded-ctl border border-border bg-surface-raised shadow-elevated',
+      picking ? 'flex' : 'hidden group-hover:flex', mine ? 'right-1' : 'left-11')}>
+      {QUICK_REACTIONS.map(e => (
+        <button key={e} type="button" onClick={() => onReact(e)} title={`React ${e}`}
+          className="w-7 h-7 text-base leading-none rounded-ctl hover:bg-surface-overlay">{e}</button>
+      ))}
+      <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={() => setPicking(p => !p)} title="More reactions" className={btn}><SmilePlus size={13} /></button>
+      <span className="w-px h-4 bg-border mx-0.5" />
+      <button type="button" onClick={onReply} title="Reply" className={btn}><Reply size={13} /></button>
+      <button type="button" onClick={onPin} title={m.pinnedAt ? 'Unpin' : 'Pin'} className={btn}>{m.pinnedAt ? <PinOff size={13} /> : <Pin size={13} />}</button>
+      {mine && <button type="button" onClick={onEdit} title="Edit" className={btn}><Pencil size={12} /></button>}
       {canDelete && <button type="button" onClick={onDelete} title="Delete" className="p-1 text-text-muted hover:text-status-fail-fg"><Trash2 size={12} /></button>}
+      {picking && (
+        <EmojiPicker className={cn('absolute top-full mt-1', mine ? 'right-0' : 'left-0')}
+          onPick={(e) => { onReact(e); setPicking(false) }} onClose={() => setPicking(false)} />
+      )}
     </div>
   )
   return (
-    <div className={cn('group flex gap-2', mine ? 'justify-end' : 'justify-start',
-      grouped ? 'mt-0.5' : 'mt-3', lastOfBlock ? 'mb-1' : '')}>
+    <div id={`chat-msg-${m.id}`}
+      className={cn('group relative flex gap-2 rounded-card transition-colors duration-700', mine ? 'justify-end' : 'justify-start',
+        grouped ? 'mt-0.5' : 'mt-3', lastOfBlock ? 'mb-1' : '', highlight && 'bg-status-warn-bg')}>
+      {bar}
       {!mine && (
         <div className="w-8 shrink-0">
           {!grouped && (
-            <span className="w-8 h-8 rounded-full bg-brand-500/20 text-brand-900 text-[11px] font-semibold flex items-center justify-center"
-              title={m.senderName}>{initials(m.senderName)}</span>
+            <span className="relative w-8 h-8 rounded-full bg-brand-500/20 text-brand-900 text-[11px] font-semibold flex items-center justify-center"
+              title={m.senderName}>
+              {initials(m.senderName)}
+              {online && <PresenceDot />}
+            </span>
           )}
         </div>
       )}
-      <div className={'flex items-end gap-1.5 min-w-0 max-w-[75%]'}>
+      <div className="min-w-0 max-w-[75%]">
         <div className={cn('min-w-0 flex flex-col', mine ? 'items-end' : 'items-start')}>
           {!mine && !grouped && showName && (
             <span className="text-[11px] font-semibold text-text-secondary mb-0.5 px-1">{m.senderName}</span>
           )}
-          <div className={cn('rounded-card px-3 py-1.5 min-w-0',
+          {m.pinnedAt && !m.deleted && (
+            <span className="text-[10px] text-text-muted mb-0.5 px-1 inline-flex items-center gap-1">
+              <Pin size={9} /> Pinned{m.pinnedByName ? ` by ${m.pinnedByName}` : ''}
+            </span>
+          )}
+          <div className={cn('rounded-card px-3 py-1.5 min-w-0 max-w-full', m.pending && 'opacity-70',
             m.deleted ? 'bg-surface-overlay/60 border border-dashed border-border'
               : mine ? 'bg-brand-500 text-brand-900'
               : 'bg-surface-overlay border border-border-subtle text-text-primary')}>
+            {m.replyTo && !m.deleted && (
+              <button type="button" onClick={() => onJump(m.replyTo.id)} title="Go to the message"
+                className={cn('block w-full text-left mb-1 rounded-ctl border-l-2 px-2 py-1',
+                  mine ? 'bg-surface-raised/60 border-brand-900/40' : 'bg-surface-raised border-brand-500')}>
+                <span className="block text-[11px] font-semibold text-text-secondary truncate">{m.replyTo.senderName}</span>
+                <span className={cn('block text-xs truncate', m.replyTo.deleted ? 'italic text-text-muted' : 'text-text-secondary')}>{m.replyTo.preview}</span>
+              </button>
+            )}
             {m.deleted
               ? <p className="text-sm italic text-text-muted">Message deleted</p>
-              : <p className="text-sm whitespace-pre-wrap break-words">
-                  {renderBody(m.body, m.mentions, members, meId, mine)}
-                </p>}
+              : (
+                <div className="space-y-1.5">
+                  {text && <MessageText body={text} ctx={{ members, mentions: m.mentions || [], meId, onBrand: mine }} />}
+                  <Attachments files={m.attachments} onPreview={onPreview} onBrand={mine} />
+                </div>
+              )}
             <p className={cn('text-[10px] leading-none mt-1 text-right select-none',
               mine && !m.deleted ? 'text-brand-900/70' : 'text-text-muted')}>
-              {m.editedAt && !m.deleted && <span className="mr-1">edited</span>}{time}
+              {m.pending ? 'Sending…' : <>{m.editedAt && !m.deleted && <span className="mr-1">edited</span>}{time}</>}
             </p>
           </div>
+          {cards.map(c => <LinkCard key={`${c.kind}:${c.type || ''}:${c.id}`} link={c} />)}
+          {reactions.length > 0 && !m.deleted && (
+            <div className={cn('flex flex-wrap gap-1 mt-1', mine ? 'justify-end' : 'justify-start')}>
+              {reactions.map(r => (
+                <button key={r.emoji} type="button" disabled={!canAct} onClick={() => onReact(r.emoji)}
+                  title={(r.names || []).join(', ')}
+                  className={cn('inline-flex items-center gap-1 h-6 px-1.5 rounded-badge border text-xs',
+                    r.mine ? 'border-brand-500 bg-brand-500/15 text-brand-900' : 'border-border bg-surface-raised text-text-secondary hover:bg-surface-overlay')}>
+                  <span className="text-sm leading-none">{r.emoji}</span>{r.count}
+                </button>
+              ))}
+            </div>
+          )}
+          {seen && <span className="text-[10px] text-text-muted mt-0.5 px-1 inline-flex items-center gap-1"><CheckCheck size={11} /> {seen}</span>}
         </div>
-        {!mine && actions}
       </div>
-      {mine && actions}
     </div>
   )
 }
 
-/** Highlight "@Name" for people the message mentioned; you in a stronger colour. */
-function renderBody(body, mentions = [], members, meId, onBrand = false) {
-  const names = members.filter(p => mentions.includes(p.userId)).map(p => ({ id: p.userId, token: '@' + p.name }))
-  // "@all" mentioned everyone: highlight it, as "you" when you were among them.
-  if (mentions.length && /(^|\s)@all\b/.test(body)) {
-    names.push({ id: mentions.includes(meId) ? meId : '__all__', token: '@all' })
-  }
-  if (!names.length) return body
-  const parts = []
-  let rest = body
-  let k = 0
-  while (rest.length) {
-    let hit = null
-    for (const n of names) {
-      const i = rest.indexOf(n.token)
-      if (i >= 0 && (hit === null || i < hit.i)) hit = { i, n }
-    }
-    if (!hit) { parts.push(rest); break }
-    if (hit.i > 0) parts.push(rest.slice(0, hit.i))
-    // On your own (brand) bubble a brand tint would vanish — use a light chip.
-    parts.push(<span key={k++} className={cn('rounded px-0.5 font-medium',
-      hit.n.id === meId ? 'bg-status-warn-bg text-status-warn-fg'
-        : onBrand ? 'bg-surface-raised/70 text-brand-900' : 'bg-brand-500/15 text-brand-900')}>{hit.n.token}</span>)
-    rest = rest.slice(hit.i + hit.n.token.length)
-  }
-  return parts
-}
-
-/** Enter sends, Shift+Enter is a new line, @ picks someone in the conversation. */
-function Composer({ id, members, onSent }) {
+/**
+ * Enter sends, Shift+Enter is a new line, @ picks someone in the conversation.
+ * Sending is instant: the box clears and the message shows as "Sending…" at
+ * once (onSending); the server's copy replaces it (onSent). Messages go out
+ * one after another, so a quick burst keeps its order. If one fails, it is
+ * taken away and its text (and files) come back into an empty box.
+ * Files: the paperclip, drag-and-drop onto the conversation, or paste an
+ * image. Each file uploads as soon as it is added (linked to this
+ * conversation, so only its members can open it); Send posts the text with them.
+ */
+function Composer({ id, members, meId, onSending, onSent, onFailed, replyingTo, onCancelReply, apiRef }) {
   const [text, setText] = useState('')
   const [mentions, setMentions] = useState([])     // { userId, name }
   const [picker, setPicker] = useState(null)       // { start, query }
   const [pick, setPick] = useState(0)
+  const [emoji, setEmoji] = useState(false)
+  const [files, setFiles] = useState([])           // { key, name, size, type, status: 'uploading'|'done'|'error', documentId }
   const ta = useRef(null)
-  const send = useMutation({
-    mutationFn: () => {
-      // @all = everyone else in the conversation, sent as their ids — the
-      // server notifies mentions exactly as for single @Names (and, in a
-      // channel, a mention is what notifies at all).
-      const all = mentions.some(m => m.isAll) && /(^|\s)@all\b/.test(text)
-      const ids = all ? members.map(p => p.userId)
-        : mentions.filter(m => !m.isAll && text.includes('@' + m.name)).map(m => m.userId)
-      return chatApi.send(id, text, ids)
-    },
-    onSuccess: (r) => { setText(''); setMentions([]); onSent(one(r)); ta.current?.focus() },
-    onError: (e) => toast.error(errMsg(e, 'Could not send')),
-  })
+  const fileInput = useRef(null)
+  const lastTyping = useRef(0)
+  const queue = useRef(Promise.resolve())
+  const { upload } = useDocumentUpload()
+
+  const addFiles = (list) => {
+    const room = MAX_FILES - files.length
+    if (!list?.length) return
+    if (room <= 0) { toast.error(`Up to ${MAX_FILES} files per message`); return }
+    if (list.length > room) toast.error(`Only ${room} more file${room === 1 ? '' : 's'} can go on this message`)
+    list.slice(0, room).forEach(file => {
+      const key = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      setFiles(fs => [...fs, { key, name: file.name || 'pasted-image.png', size: file.size, type: file.type, status: 'uploading' }])
+      upload(file, { entityType: 'CHAT_CONVERSATION', entityId: id, linkType: 'ATTACHMENT', documentType: 'CHAT_FILE', silent: true })
+        .then(({ documentId }) => setFiles(fs => fs.map(f => (f.key === key ? { ...f, status: 'done', documentId } : f))))
+        .catch((e) => {
+          setFiles(fs => fs.map(f => (f.key === key ? { ...f, status: 'error' } : f)))
+          toast.error(errMsg(e, `Could not upload ${file.name || 'the file'}`))
+        })
+    })
+    ta.current?.focus()
+  }
+  if (apiRef) apiRef.current = { addFiles, focus: () => ta.current?.focus() }
+
+  const ready = files.filter(f => f.status === 'done')
+  const uploading = files.some(f => f.status === 'uploading')
+  const canSend = (!!text.trim() || ready.length > 0) && !uploading
+
+  const submit = () => {
+    if (!canSend) return
+    const body = text
+    const tagged = mentions
+    const atts = ready
+    const reply = replyingTo
+    // @all = everyone else in the conversation, sent as their ids — the
+    // server notifies mentions exactly as for single @Names (and, in a
+    // channel, a mention is what notifies at all).
+    const all = tagged.some(m => m.isAll) && /(^|\s)@all\b/.test(body)
+    const ids = all ? members.map(p => p.userId)
+      : tagged.filter(m => !m.isAll && body.includes('@' + m.name)).map(m => m.userId)
+    const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+
+    setText(''); setMentions([]); setFiles([]); setPicker(null); setEmoji(false)
+    if (ta.current) { ta.current.style.height = 'auto'; ta.current.focus() }
+    onSending({
+      id: tempId, pending: true, mine: true, senderId: meId, body, mentions: ids, reactions: [],
+      createdAt: new Date().toISOString(),
+      attachments: atts.map(f => ({ documentId: f.documentId, fileName: f.name, mimeType: f.type, size: f.size })),
+      replyTo: reply ? { id: reply.id, senderName: reply.senderName, preview: snippet(reply) } : null,
+    })
+
+    queue.current = queue.current.then(() => chatApi.send(id, body, ids, {
+      replyToId: reply?.id ?? null,
+      attachmentIds: atts.map(f => f.documentId),
+    }).then(
+      (r) => onSent(one(r), tempId),
+      (e) => {
+        onFailed(tempId)
+        toast.error(errMsg(e, 'Could not send — your message is back in the box'))
+        // Nothing typed is lost; only into an empty box, never over new text.
+        setText(t => (t ? t : body))
+        setMentions(ms => (ms.length ? ms : tagged))
+        setFiles(fs => (fs.length ? fs : atts))
+      },
+    ))
+  }
+
   const ALL = { userId: '__all__', name: 'all', isAll: true }
   const options = picker ? [
     ...(members.length > 1 && 'all'.startsWith(picker.query.toLowerCase()) ? [ALL] : []),
@@ -482,6 +898,9 @@ function Composer({ id, members, onSent }) {
       setPicker({ start: at, query: before.slice(at + 1) }); setPick(0)
     } else setPicker(null)
     const el = e.target; el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 160) + 'px'
+    // "typing…" for the others — at most every 3 seconds.
+    const now = Date.now()
+    if (v.trim() && now - lastTyping.current > 3000) { lastTyping.current = now; chatApi.typing(id).catch(() => {}) }
   }
   const choose = (p) => {
     const caret = ta.current.selectionStart
@@ -491,9 +910,25 @@ function Composer({ id, members, onSent }) {
     setPicker(null)
     requestAnimationFrame(() => { const pos = picker.start + p.name.length + 2; ta.current.focus(); ta.current.setSelectionRange(pos, pos) })
   }
+  /** Wrap the selection (or put the markers at the caret) — bold, italic, code. */
+  const wrap = (left, right = left) => {
+    const el = ta.current
+    if (!el) return
+    const s = el.selectionStart, e = el.selectionEnd
+    const sel = text.slice(s, e)
+    setText(text.slice(0, s) + left + sel + right + text.slice(e))
+    requestAnimationFrame(() => { el.focus(); el.setSelectionRange(s + left.length, s + left.length + sel.length) })
+  }
+  const insert = (str) => {
+    const el = ta.current
+    const s = el ? el.selectionStart : text.length, e = el ? el.selectionEnd : text.length
+    setText(text.slice(0, s) + str + text.slice(e))
+    requestAnimationFrame(() => { if (el) { el.focus(); el.setSelectionRange(s + str.length, s + str.length) } })
+  }
 
+  const tool = 'p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay'
   return (
-    <div className="relative px-4 py-3 border-t border-border">
+    <div className="relative px-4 pt-1 pb-3 border-t border-border">
       {picker && options.length > 0 && (
         <div className="absolute left-4 bottom-full mb-1 w-64 rounded-ctl border border-border bg-surface-raised shadow-overlay py-1 z-10">
           {options.map((p, i) => (
@@ -515,8 +950,53 @@ function Composer({ id, members, onSent }) {
           ))}
         </div>
       )}
+
+      {replyingTo && (
+        <div className="mt-2 flex items-center gap-2 rounded-ctl border-l-2 border-brand-500 bg-surface-overlay px-2 py-1">
+          <Reply size={12} className="text-text-muted shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold text-text-secondary truncate">Replying to {replyingTo.mine ? 'yourself' : replyingTo.senderName}</p>
+            <p className="text-xs text-text-muted truncate">{snippet(replyingTo)}</p>
+          </div>
+          <button type="button" onClick={onCancelReply} title="Cancel reply" className="p-1 text-text-muted hover:text-text-primary"><X size={12} /></button>
+        </div>
+      )}
+
+      {files.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {files.map(f => (
+            <span key={f.key} className={cn('inline-flex items-center gap-1.5 max-w-[220px] rounded-ctl border px-2 py-1 text-xs',
+              f.status === 'error' ? 'border-status-fail-fg/40 bg-status-fail-bg text-status-fail-fg' : 'border-border bg-surface-raised text-text-primary')}>
+              {f.status === 'uploading' ? <Loader2 size={12} className="animate-spin shrink-0" />
+                : /^image\//.test(f.type || '') ? <ImageIcon size={12} className="shrink-0 text-text-muted" />
+                : <FileText size={12} className="shrink-0 text-text-muted" />}
+              <span className="truncate" title={f.name}>{f.name}</span>
+              <span className="text-[10px] text-text-muted shrink-0">{f.status === 'error' ? 'failed' : fmtSize(f.size)}</span>
+              <button type="button" title="Remove" onClick={() => setFiles(fs => fs.filter(x => x.key !== f.key))}
+                className="text-text-muted hover:text-text-primary"><X size={11} /></button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center gap-0.5 mt-1">
+        <input ref={fileInput} type="file" multiple className="hidden"
+          onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = '' }} />
+        <button type="button" className={tool} title="Attach files" onClick={() => fileInput.current?.click()}><Paperclip size={14} /></button>
+        <span className="w-px h-4 bg-border mx-1" />
+        <button type="button" className={tool} title="Bold (Ctrl+B)" onClick={() => wrap('**')}><Bold size={14} /></button>
+        <button type="button" className={tool} title="Italic (Ctrl+I)" onClick={() => wrap('_')}><Italic size={14} /></button>
+        <button type="button" className={tool} title="Strikethrough" onClick={() => wrap('~~')}><Strikethrough size={14} /></button>
+        <button type="button" className={tool} title="Code" onClick={() => wrap('`')}><Code size={14} /></button>
+        <button type="button" className={tool} title="Bulleted list" onClick={() => insert((text && !text.endsWith('\n') ? '\n' : '') + '- ')}><List size={14} /></button>
+      </div>
       <div className="flex items-end gap-2">
-        <textarea ref={ta} value={text} onChange={onChange} rows={1} placeholder="Write a message — @ to mention someone"
+        <textarea ref={ta} value={text} onChange={onChange} rows={1}
+          placeholder="Write a message — @ to mention, **bold**, _italic_, `code`"
+          onPaste={(e) => {
+            const pasted = Array.from(e.clipboardData?.files || [])
+            if (pasted.length) { e.preventDefault(); addFiles(pasted) }
+          }}
           onKeyDown={(e) => {
             if (picker && options.length) {
               if (e.key === 'ArrowDown') { e.preventDefault(); setPick(i => (i + 1) % options.length); return }
@@ -524,10 +1004,27 @@ function Composer({ id, members, onSent }) {
               if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); choose(options[pick]); return }
               if (e.key === 'Escape') { setPicker(null); return }
             }
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (text.trim() && !send.isPending) send.mutate() }
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+              const k = e.key.toLowerCase()
+              if (k === 'b') { e.preventDefault(); wrap('**'); return }
+              if (k === 'i') { e.preventDefault(); wrap('_'); return }
+            }
+            if (e.key === 'Escape' && replyingTo) { onCancelReply(); return }
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit() }
           }}
           className="flex-1 resize-none max-h-40 rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary" />
-        <Button size="sm" icon={Send} onClick={() => send.mutate()} disabled={!text.trim()} loading={send.isPending} aria-label="Send" />
+        {/* Emoji sits by Send; its picker opens directly above the button. */}
+        <div className="relative shrink-0">
+          <button type="button" title="Emoji" aria-label="Emoji"
+            className={cn('h-9 w-9 flex items-center justify-center rounded-ctl text-text-muted hover:text-text-primary hover:bg-surface-overlay',
+              emoji && 'bg-surface-overlay text-text-primary')}
+            onMouseDown={(e) => e.stopPropagation()} onClick={() => setEmoji(v => !v)}><Smile size={16} /></button>
+          {emoji && (
+            <EmojiPicker className="absolute right-0 bottom-full mb-2"
+              onPick={(e) => insert(e)} onClose={() => setEmoji(false)} />
+          )}
+        </div>
+        <Button size="sm" icon={Send} onClick={submit} disabled={!canSend} aria-label="Send" />
       </div>
     </div>
   )
@@ -546,7 +1043,7 @@ function EditMessageModal({ message, onClose, onDone }) {
     <Modal open={!!message} onClose={onClose} size="md" title="Edit message"
       footer={<div className="flex justify-end gap-2">
         <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-        <Button size="sm" onClick={() => save.mutate()} loading={save.isPending} disabled={!text.trim()}>Save</Button>
+        <Button size="sm" onClick={() => save.mutate()} loading={save.isPending} disabled={!text.trim() && !message?.attachments?.length}>Save</Button>
       </div>}>
       <textarea value={text} onChange={e => setText(e.target.value)} rows={5} autoFocus
         className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary" />
@@ -556,6 +1053,7 @@ function EditMessageModal({ message, onClose, onDone }) {
 
 /** Pick staff (excluding some). */
 function PeopleModal({ open, onClose, title, subtitle, exclude = [], single, confirmLabel, onConfirm, children, canConfirm = true, minPick = 1 }) {
+  const presence = usePresence()
   const [q, setQ] = useState('')
   const [picked, setPicked] = useState([])
   const [was, setWas] = useState(false)
@@ -590,7 +1088,10 @@ function PeopleModal({ open, onClose, title, subtitle, exclude = [], single, con
             <label key={p.userId} className="flex items-center gap-2 px-3 py-1.5 border-b border-border-subtle last:border-0 hover:bg-surface-overlay cursor-pointer"
               onClick={single ? () => toggle(p.userId) : undefined}>
               {!single && <input type="checkbox" checked={picked.includes(p.userId)} onChange={() => toggle(p.userId)} />}
-              <span className="w-6 h-6 rounded-full bg-brand-500/20 text-[10px] font-semibold flex items-center justify-center">{initials(p.name)}</span>
+              <span className="relative w-6 h-6 rounded-full bg-brand-500/20 text-[10px] font-semibold flex items-center justify-center">
+                {initials(p.name)}
+                {presence.isOnline(p.userId) && <PresenceDot />}
+              </span>
               <span className="text-sm text-text-primary flex-1 truncate">{p.name}</span>
               <span className="text-[11px] text-text-muted truncate">{p.email}</span>
             </label>
@@ -739,6 +1240,33 @@ function initials(name) {
   return ((parts[0]?.[0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase() || '?'
 }
 const dayKey = (s) => new Date(s).toDateString()
+/** "A, B and 3 others" */
+function namesList(names) {
+  if (names.length <= 3) return names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+  return `${names.slice(0, 3).join(', ')} and ${names.length - 3} other${names.length - 3 === 1 ? '' : 's'}`
+}
+/** One line for a message: its text, or its files. */
+function snippet(m) {
+  if (m.deleted) return 'Message deleted'
+  const t = String(m.body || '').replace(/\s+/g, ' ').trim()
+  if (t) return t
+  const n = m.attachments?.length || 0
+  return n === 1 ? `📎 ${m.attachments[0].fileName}` : n > 1 ? `📎 ${n} files` : ''
+}
+/** The search words marked in a result. */
+function highlightText(text, q) {
+  if (!q) return text
+  const i = text.toLowerCase().indexOf(q.toLowerCase())
+  if (i < 0) return text
+  const from = Math.max(0, i - 40)
+  return (
+    <>
+      {from > 0 && '…'}{text.slice(from, i)}
+      <mark className="bg-status-warn-bg text-status-warn-fg rounded px-0.5">{text.slice(i, i + q.length)}</mark>
+      {text.slice(i + q.length)}
+    </>
+  )
+}
 function dayLabel(s) {
   const d = new Date(s), t = new Date()
   const y = new Date(t); y.setDate(t.getDate() - 1)
