@@ -8,11 +8,13 @@ import { useBootstrap }       from '../../hooks/useUIConfig'
 import { PageSkeleton }       from '../ui/EmptyState'
 import { useServerStatus }    from '../../hooks/useServerStatus'
 import { ServerStatusBanner } from '../ui/ServerStatusBanner'
+import { useChatPresenceFeed } from '../../hooks/useChatPresence'
 
 export function AppShell() {
   const [collapsed, setCollapsed] = useState(false)
   const { isLoading } = useBootstrap()
   useNotificationToast()  // Show toast when new notifications arrive
+  useChatPresenceFeed()   // Chat socket on every page: who is online, live unread badge
   const { status, retryNow, nextRetryIn, retryCount } = useServerStatus()
 
   // No background here: the pastel wash lives on <body>. An opaque surface at

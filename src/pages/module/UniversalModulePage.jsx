@@ -4448,7 +4448,7 @@ function EntityDrawer({ entityId, bp, onClose, onOpenFull, level = 0, entityType
 // above leaves the ones underneath mounted (no blank, no re-animation), and a
 // level whose record changes (Back from one record to another) swaps its
 // content in place.
-function UrlEntityDrawerHost() {
+export function UrlEntityDrawerHost() {
   const [searchParams, setSearchParams] = useSearchParams()
   const levels = readDrawerLevels(searchParams)
 
