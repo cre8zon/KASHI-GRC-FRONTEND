@@ -20,7 +20,7 @@
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useOpenInTab } from '../../hooks/useOpenInTab'
 import { useSelector } from 'react-redux'
 import { Inbox as InboxIcon } from 'lucide-react'
 import api from '../../config/axios.config'
@@ -146,7 +146,10 @@ export function useInboxEntries({ overdueOnly = false, done = false, filterTask,
 }
 
 export function UnifiedInbox({ overdueOnly, done, filterTask, filterItem }) {
-  const navigate = useNavigate()
+  // useOpenInTab, not useNavigate: every row here is a link OUT of the inbox.
+  // When the entity is already open in another tab, go to that tab rather
+  // than pointing the inbox's own tab at a second copy of it.
+  const openInTab = useOpenInTab()
   const { isLoading, groups, entries } =
     useInboxEntries({ overdueOnly, done, filterTask, filterItem })
 
@@ -183,7 +186,7 @@ export function UnifiedInbox({ overdueOnly, done, filterTask, filterItem }) {
             <span className="text-[9px] text-text-muted ml-2">{g.items.length}</span>
           </div>
           {g.items.map(e => (
-            <InboxRow key={e.key} entry={e} onOpen={(x) => navigate(x.route)} />
+            <InboxRow key={e.key} entry={e} onOpen={(x) => openInTab(x.route)} />
           ))}
         </div>
       ))}

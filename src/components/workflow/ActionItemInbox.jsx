@@ -30,7 +30,7 @@
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useOpenInTab } from '../../hooks/useOpenInTab'
 import { useSelector } from 'react-redux'
 import { ClipboardCheck } from 'lucide-react'
 import api from '../../config/axios.config'
@@ -51,7 +51,10 @@ const unwrap = (d) => {
  *                  bar can narrow this list the same way it narrows tasks.
  */
 export function ActionItemInbox({ filterFn }) {
-  const navigate   = useNavigate()
+  // useOpenInTab, not useNavigate - see the note in useOpenInTab: an inbox
+  // row is a link out, so it should focus the tab that already holds the
+  // entity rather than open a second view of it.
+  const openInTab  = useOpenInTab()
   const { userId } = useSelector(selectAuth)
 
   const { data: items = [], isLoading } = useQuery({
@@ -92,7 +95,7 @@ export function ActionItemInbox({ filterFn }) {
   return (
     <div>
       {entries.map(e => (
-        <InboxRow key={e.key} entry={e} onOpen={(x) => navigate(x.route)} />
+        <InboxRow key={e.key} entry={e} onOpen={(x) => openInTab(x.route)} />
       ))}
     </div>
   )

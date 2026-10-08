@@ -294,6 +294,13 @@ export const assessmentsApi = {
       api.post(`/v1/assessments/${id}/ciso-review`, null, { params: { taskId } }),
     confirmReviewerAssignment: (id, taskId) =>
       api.post(`/v1/assessments/${id}/confirm-reviewer-assignment`, null, { params: { taskId } }),
+    /**
+     * Step 9: the Org Admin nominates the ONE Org CISO who leads this review.
+     * Sets review_lead_user_id and fires REVIEW_LEAD_ASSIGNED, which completes
+     * the step — so this both assigns and advances, with nothing else to press.
+     */
+    assignReviewLead: (id, taskId, userId) =>
+      api.post(`/v1/assessments/${id}/assign-review-lead`, null, { params: { taskId, userId } }),
     // Step 7: Org CISO confirms delegation → fires performAction(APPROVE) on task
     assignOrgCiso: (id, taskId) =>
       api.post(`/v1/assessments/${id}/assign-org-ciso`, null, { params: { taskId } }),

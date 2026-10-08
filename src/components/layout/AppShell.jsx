@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useNotificationToast } from '../../hooks/useNotifications'
+import { useNotificationSocket } from '../../hooks/useNotificationSocket'
+import { NotificationPermissionPrompt } from '../ui/NotificationPermissionPrompt'
 import { Sidebar }            from './Sidebar'
 import { TopNav }             from './TopNav'
 import { TabBar }             from './TabBar'
@@ -13,7 +15,11 @@ import { useChatPresenceFeed } from '../../hooks/useChatPresence'
 export function AppShell() {
   const [collapsed, setCollapsed] = useState(false)
   const { isLoading } = useBootstrap()
-  useNotificationToast()  // Show toast when new notifications arrive
+  // Order matters only for readability — the socket refetches, the toast
+  // watches the result. Both are app-wide because a notification must reach
+  // the person on whatever screen they are on.
+  useNotificationSocket()  // Push: refetch the instant the server saves one
+  useNotificationToast()   // Toast + chime + desktop banner on anything new
   useChatPresenceFeed()   // Chat socket on every page: who is online, live unread badge
   const { status, retryNow, nextRetryIn, retryCount } = useServerStatus()
 
@@ -32,6 +38,13 @@ export function AppShell() {
         nextRetryIn={nextRetryIn}
         retryCount={retryCount}
       />
+
+      {/* The soft ask for desktop notifications. Renders nothing at all unless
+          permission is still 'default' and the person has not dismissed it on
+          this browser — so it appears once, briefly, and never again. Below
+          the server banner because a server that is down is the more urgent
+          news. */}
+      <NotificationPermissionPrompt />
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(o => !o)} />

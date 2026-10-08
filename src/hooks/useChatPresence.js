@@ -39,17 +39,124 @@ async function load() {
 }
 
 const BADGE = ['nav-badge', '/v1/chat/unread']
+
+// Same keys ChatPage uses. Duplicated rather than imported because importing
+// from a page into an app-wide hook would pull the whole chat page — and
+// everything it imports — into the shell's bundle.
+const KEY_LIST = ['chat-conversations']
+const keyMsgs  = (id) => ['chat-messages', String(id)]
+
+/**
+ * A chat message arrived. Mark the chat caches stale, wherever the person is.
+ *
+ * ── WHY THIS IS MORE THAN THE BADGE ───────────────────────────────────────
+ *
+ * This used to invalidate BADGE alone, so the unread count was live
+ * everywhere and nothing else was. ChatPage has its own, fuller listener —
+ * but it only exists while ChatPage is MOUNTED. Off the chat page there was
+ * nobody to hear the event, so the conversation and its messages stayed as
+ * they were last fetched.
+ *
+ * The symptom: a notification toast arrives for a chat message, you click it,
+ * the chat opens — and the message that brought you there is not in it. It
+ * turns up on the next 15-second poll, or immediately on a hard refresh,
+ * which is what makes it look like the toast raced the page. It did not; the
+ * cache was simply never told.
+ *
+ * ── WHY INVALIDATING WHILE OFF-PAGE IS FREE ───────────────────────────────
+ *
+ * invalidateQueries marks a query stale; it only REFETCHES if something is
+ * observing it. With ChatPage unmounted nothing is, so this costs one cache
+ * flag and no request — and the fetch then happens on arrival, which is
+ * exactly when the data is wanted.
+ *
+ * Deliberately narrower than ChatPage's listener, which also invalidates
+ * pins, members and shared files. Those matter while reading a conversation
+ * and ChatPage refreshes them itself on mount; repeating them here would be
+ * flags nobody reads.
+ */
+function onChatEvent(qc, ev) {
+  qc.invalidateQueries({ queryKey: BADGE })        // live unread badge everywhere
+  qc.invalidateQueries({ queryKey: KEY_LIST })     // last message + unread per row
+  if (ev?.conversationId != null) {
+    qc.invalidateQueries({ queryKey: keyMsgs(ev.conversationId) })
+    qc.invalidateQueries({ queryKey: ['chat-conversation', String(ev.conversationId)] })
+  }
+}
+
+/**
+ * Report delivery — the second tick.
+ *
+ * ── WHY IT LIVES HERE AND NOT IN ChatPage ─────────────────────────────────
+ *
+ * This hook is mounted ONCE, app-wide, by the sidebar. That makes it the only
+ * thing in the product that hears a chat push on every page, which is exactly
+ * what "delivered" means: the message reached this person's browser, whether or
+ * not they are looking at chat. ChatPage's listener only exists while ChatPage
+ * is mounted, so putting it there would mean a message is only ever "delivered"
+ * to someone who already has the conversation open — at which point the read
+ * receipt is a moment away and the delivered tick tells nobody anything.
+ *
+ * ── WHY IT IS NOT A WRITE ON EVERY EVENT ──────────────────────────────────
+ *
+ * `send` is the only thing that pushes a messageId, so an edit, a reaction or a
+ * pin never reaches this. Within that:
+ *
+ *   - my own message is skipped; the server already marks the sender caught up
+ *   - an id at or behind what this tab has already reported is skipped, which
+ *     is what makes a socket reconnect replaying events free
+ *   - the server is advance-only too, so two tabs racing costs one UPDATE
+ *
+ * `_reported` is per tab and resets on reload. That is deliberate: a fresh tab
+ * reporting once per conversation is one request, and the alternative —
+ * persisting it — would let a stale entry suppress a report the server needs.
+ */
+const _reported = new Map()   // conversationId -> highest messageId reported from this tab
+
+function reportDelivered(ev, myUserId) {
+  const cid = ev?.conversationId
+  const mid = ev?.messageId
+  if (cid == null || mid == null) return
+  // My own message. The server marks the sender delivered+read on send, so
+  // reporting it back would be a write that changes nothing.
+  if (myUserId != null && String(ev.senderId) === String(myUserId)) return
+
+  const key = String(cid)
+  const seen = _reported.get(key)
+  if (seen != null && Number(mid) <= Number(seen)) return
+  _reported.set(key, mid)
+
+  // Fire and forget. A failed receipt must never surface to the person reading
+  // the message, and the next message — or opening the conversation, which
+  // advances the same watermark server-side — will carry it.
+  chatApi.delivered(cid, mid).catch(() => { _reported.delete(key) })
+}
+
 let mounts = 0
 let closeTimer = null
 
 export function useChatPresenceFeed() {
   const qc = useQueryClient()
-  const { token } = useSelector(selectAuth)
+  const { token, userId } = useSelector(selectAuth)
 
   useChatSocket((ev) => {
     if (ev?.type === '__connected') load()
     else if (ev?.type === 'presence') apply(ev)
-    else if (ev?.type === 'chat') qc.invalidateQueries({ queryKey: BADGE })   // live unread badge everywhere
+    else if (ev?.type === 'chat') { onChatEvent(qc, ev); reportDelivered(ev, userId) }
+    // A receipt moving is not new content, so it does not touch the message
+    // cache — only the conversation, which is where the watermarks live. On the
+    // chat page that repaints the ticks; off it, it costs one cache flag and no
+    // request, because nothing is observing that query.
+    else if (ev?.type === 'read' || ev?.type === 'delivered') {
+      if (ev.conversationId != null) {
+        qc.invalidateQueries({ queryKey: ['chat-conversation', String(ev.conversationId)] })
+      }
+      // An open info panel should move while you are looking at it. This is a
+      // prefix match over every message's receipts, but only a MOUNTED query
+      // refetches — and at most one panel is ever open — so in practice it is
+      // one request when a panel is open and none at all when it is not.
+      qc.invalidateQueries({ queryKey: ['chat-receipts'] })
+    }
   })
 
   useEffect(() => {

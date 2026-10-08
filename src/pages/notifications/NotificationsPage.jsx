@@ -5,7 +5,7 @@
  * Each notification row navigates to the relevant action item, task, or assessment.
  */
 import { useState }                          from 'react'
-import { useNavigate }                       from 'react-router-dom'
+import { useOpenInTab }                      from '../../hooks/useOpenInTab'
 import { useMutation, useQueryClient }       from '@tanstack/react-query'
 import { Bell, CheckCheck, Flag, ListTodo,
          Shield, ChevronRight, Clock }        from 'lucide-react'
@@ -147,7 +147,11 @@ const FILTERS = [
 
 // ── Notification Row ──────────────────────────────────────────────────────────
 function NotificationRow({ notification, onMarkRead }) {
-  const navigate  = useNavigate()
+  // useOpenInTab, not useNavigate: this row is a link OUT of the notifications
+  // page. If the entity it points at is already open in another tab, that tab
+  // is where the person should land - with the sub-tab and scroll position they
+  // left it at - instead of a second copy of it replacing this page's tab.
+  const openInTab = useOpenInTab()
   const tc        = TYPE_CONFIG[notification.type] || DEFAULT_TYPE
   const Icon      = tc.icon
   const isUnread  = !notification.readAt
@@ -155,7 +159,7 @@ function NotificationRow({ notification, onMarkRead }) {
 
   const handleClick = () => {
     if (isUnread) onMarkRead(notification.notificationId)
-    if (navUrl) navigate(navUrl)
+    if (navUrl) openInTab(navUrl)
   }
 
   return (
