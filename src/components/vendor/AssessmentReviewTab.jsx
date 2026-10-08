@@ -1011,6 +1011,42 @@ export default function AssessmentReviewTab({
   const { data: reviewers = [], isLoading: reviewersLoading } =
     useEligibleUsers(stepInstanceId, 'ORGANIZATION', canAssignReviewer)
 
+  // ── STEP 9: THE REVIEW LEAD ─────────────────────────────────────────────
+  //
+  // Gated on the SECTION KEY, not on stepAction. Steps 9 and 10 are both
+  // ASSIGN + ORGANIZATION; ASSIGN_REVIEW_LEAD exists only on step 9, and
+  // openSectionKeys drops it the moment it is assigned — so the control
+  // appears exactly once, to exactly the person holding that step.
+  const reviewLeadGateOpen = (vc?.openSectionKeys || [])
+    .some(k => String(k).trim().toUpperCase() === 'ASSIGN_REVIEW_LEAD')
+
+  // The SAME eligible-users endpoint the reviewer picker uses, on the same
+  // step instance. On a step with no assignable_side configured it returns the
+  // NEXT step's actor roles — which here is precisely the Org CISOs who would
+  // do step 10. No new endpoint, and no list of role names in this file.
+  const { data: reviewLeadCandidates = [], isLoading: reviewLeadCandidatesLoading } =
+    useEligibleUsers(stepInstanceId, 'ORGANIZATION', reviewLeadGateOpen)
+
+  const assignReviewLead = useMutation({
+    mutationFn: (userId) =>
+      assessmentsApi.vendor.assignReviewLead(assessmentId, taskId, userId),
+    onSuccess: () => {
+      toast.success('Review lead assigned — step complete')
+      // view-context too, not just the record: the gate has closed, the task has
+      // auto-approved and the workflow has moved on, so openSectionKeys and
+      // canAct are both stale. Without this the control stays on screen after
+      // it has done its job.
+      invalidateAssessment(qc, assessmentId)
+      qc.invalidateQueries({ queryKey: ['view-context'] })
+      qc.invalidateQueries({ queryKey: ['my-tasks'] })
+    },
+    // The server's own message first — INVALID_REVIEW_LEAD and ACCESS_DENIED
+    // both say something worth reading, and this file's other mutations fall
+    // back to e.message the same way.
+    onError: (e) => toast.error(
+      e?.response?.data?.message || e?.message || 'Could not assign the review lead'),
+  })
+
   // Locked sections are read-only to the assistant who locked them, the same
   // way a contributor's are. Computed per section in the loop below; this is
   // the tab-wide half.
@@ -1355,6 +1391,47 @@ export default function AssessmentReviewTab({
         </div>
       ) : (
       <>
+      {/* ── STEP 9: NOMINATE THE ORG CISO WHO LEADS THIS REVIEW ──────────
+          Shown only while that gate is open, which is what makes this one
+          control and not a permanent fixture: openSectionKeys carries
+          ASSIGN_REVIEW_LEAD only on step 9 and only until it is assigned.
+
+          Steps 9 and 10 are BOTH ASSIGN + ORGANIZATION, so stepAction cannot
+          separate them — the gate key is the only thing that can, the same
+          reason ui_actions grew completes_section_key.
+
+          Assigning completes the step: the endpoint fires REVIEW_LEAD_ASSIGNED,
+          the gate closes, the task auto-approves and the workflow moves to step
+          10 with exactly one CISO on it. There is no second button, which is
+          why the hint says so plainly. */}
+      {reviewLeadGateOpen && (
+        <div className="px-4 py-3 border-b border-border bg-brand-500/5 space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <UserCheck size={13} className="text-brand-ink shrink-0" />
+            <span className="text-[11px] font-medium text-text-primary">
+              Assign the review lead
+            </span>
+            <span className="flex-1" />
+            <UserPicker
+              users={reviewLeadCandidates}
+              value={entity?.reviewLeadUserId}
+              onChange={(uid) => assignReviewLead.mutate(uid)}
+              loading={reviewLeadCandidatesLoading}
+              saving={assignReviewLead.isPending}
+              savingLabel="Assigning…"
+              placeholder="Choose an Org CISO…"
+              emptyHint="No eligible CISO found for the next step."
+              disabled={assignReviewLead.isPending}
+            />
+          </div>
+          <p className="text-[10px] text-text-muted">
+            This CISO alone will assign reviewers and approve the risk rating for
+            this assessment. Choosing one completes your step — there is nothing
+            else to press.
+          </p>
+        </div>
+      )}
+
       {/* ── WHERE THIS REVIEW STANDS ─────────────────────────────────────
           Answers "what is done" before the list answers "what is next". The
           section line and the question line are separate on purpose: a section

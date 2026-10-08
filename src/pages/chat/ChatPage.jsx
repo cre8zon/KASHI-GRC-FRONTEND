@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   MessageSquare, Hash, Lock, Search, Plus, Users, BellOff, Pencil, Trash2, X,
-  Send, Globe, Archive, Paperclip, Smile, SmilePlus, Reply, Pin, PinOff, Video, Loader2, CheckCheck,
+  Send, Globe, Archive, Paperclip, Smile, SmilePlus, Reply, Pin, PinOff, Video, Loader2,
   Bold, Italic, Strikethrough, Code, List, FileText, Image as ImageIcon, Info,
 } from 'lucide-react'
 import { chatApi, one, list, errMsg } from '../../api/chat.api'
@@ -16,6 +16,7 @@ import { DocumentPreviewDrawer } from '../../components/ui/DocumentPreviewDrawer
 import { startCall } from '../../components/collab/call/callStore'
 import { useCallOptions } from '../../components/collab/Meetings'
 import { ChatDetailsPanel, PresenceDot } from '../../components/chat/ChatDetailsPanel'
+import { MessageReceipt, receiptFor } from '../../components/chat/MessageReceipt'
 import { usePresence, presenceLabel } from '../../hooks/useChatPresence'
 import { PeopleMultiSelect } from '../../components/collab/PeopleMultiSelect'
 import { PageLayout } from '../../components/layout/PageLayout'
@@ -72,6 +73,40 @@ export default function ChatPage() {
       qc.invalidateQueries({ queryKey: ['chat-shared', String(ev.conversationId)] })
     }
   })
+
+  // ── OPEN ON SOMETHING, NOT ON NOTHING ──────────────────────────────────────
+  //
+  // /chat with no id used to render "Pick a conversation" — a second click for
+  // something the page can decide, every single time, including when you got
+  // here from a notification about a message.
+  //
+  // The pick: the oldest-unread-first instinct is wrong here. What you want is
+  // the conversation that is live right now, and if any are unread, the most
+  // recent of THOSE. conversations() is already sorted by sortAt (last message,
+  // falling back to created) descending — server-side, in ChatService — so
+  // "first in the list" IS "most recently active", and no client sort is needed
+  // or wanted: re-sorting here would be a second opinion that drifts.
+  //
+  // Archived rows are excluded: archiving a channel is saying "not this one".
+  // DIRECT is never archived, so the unread branch still sees direct messages.
+  //
+  // replace: true — a blank /chat must not sit in history. Without it, Back out
+  // of a conversation lands on /chat, which redirects straight back in, and the
+  // back button stops working on this page.
+  //
+  // Search params are carried over because /chat is also a drawer host
+  // (?drawerType=/?drawerStack=), and dropping them would close the drawer the
+  // person just opened.
+  const dead = useRef(new Set())
+  useEffect(() => {
+    if (id || isLoading || !me.canUse) return
+    const pickable = convs.filter(c => !c.archived && !dead.current.has(String(c.id)))
+    if (pickable.length === 0) return
+    const target = pickable.find(c => c.unread > 0) || pickable[0]
+    navigate({ pathname: `/chat/${target.id}`, search: searchParams.toString() ? `?${searchParams}` : '' },
+      { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, isLoading, me.canUse, convs.length])
 
   const shown = convs.filter(c => !q.trim() || String(c.name).toLowerCase().includes(q.trim().toLowerCase()))
   const groups = [
@@ -157,7 +192,13 @@ export default function ChatPage() {
 
           {/* ── Conversation ── */}
           <section className="flex-1 min-w-0 flex flex-col min-h-0">
-            {id ? <Conversation key={id} id={id} me={me} onGone={() => navigate('/chat')} />
+            {/* onGone marks the id dead before leaving, so the auto-pick above
+                cannot choose it again. Without that, a conversation deleted or
+                revoked under you gives /chat → pick it → gone → /chat, forever.
+                Marking it also means the pick advances to the next conversation,
+                which is the right place to land after one disappears. */}
+            {id ? <Conversation key={id} id={id} me={me}
+                    onGone={() => { dead.current.add(String(id)); navigate('/chat', { replace: true }) }} />
               : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
                   <MessageSquare size={28} className="text-text-muted" />
@@ -252,7 +293,11 @@ function Conversation({ id, me, onGone }) {
   useChatSocket((ev) => {
     if (String(ev?.conversationId) !== String(id)) return
     if (ev.type === 'typing' && ev.userId !== me.userId) setTyping(t => ({ ...t, [ev.userId]: Date.now() + 5000 }))
-    else if (ev.type === 'read') qc.invalidateQueries({ queryKey: ['chat-conversation', String(id)] })
+    // 'delivered' alongside 'read': both move a watermark on conv.members,
+    // which is what the per-message ticks are computed from, so both have to
+    // refresh the conversation. Neither touches the message cache — a receipt
+    // moving is not new content.
+    else if (ev.type === 'read' || ev.type === 'delivered') qc.invalidateQueries({ queryKey: ['chat-conversation', String(id)] })
   })
   useEffect(() => {
     if (!Object.keys(typing).length) return undefined
@@ -279,12 +324,34 @@ function Conversation({ id, me, onGone }) {
     if (!lastId) return
     if (stick.current) requestAnimationFrame(toBottom)
     if (!conv?.member) return
-    if (document.visibilityState === 'visible') {
+
+    const markRead = () => {
       chatApi.read(id, lastId).then(() => {
         qc.invalidateQueries({ queryKey: KEY_LIST })
         qc.invalidateQueries({ queryKey: BADGE })
       }).catch(() => {})
     }
+
+    if (document.visibilityState === 'visible') { markRead(); return undefined }
+
+    // ── WHY THE LISTENER ──────────────────────────────────────────────────
+    //
+    // The visibility check was right — a message that arrives on a background
+    // tab has not been read — but there was nothing watching for the tab coming
+    // back. So a message that landed while you were elsewhere stayed unread
+    // until the NEXT message changed lastId, or the 15-second poll did. The
+    // badge kept its count and, now that it matters, the sender kept seeing one
+    // grey tick on something that was sitting open in front of the reader.
+    //
+    // Registered only in the hidden branch, and removed as soon as it fires, so
+    // a visible tab adds no listener at all.
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      document.removeEventListener('visibilitychange', onVisible)
+      markRead()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [lastId, conv?.member, id, qc])
   // Someone's message arrived — they have stopped typing.
   const lastSender = lastMsg?.senderId
@@ -422,12 +489,20 @@ function Conversation({ id, me, onGone }) {
   // Messages still being sent show straight away, at the end, as "Sending…".
   const shown = pending.length ? [...messages, ...pending] : messages
 
-  // "Seen": who has read up to my latest message, when it is the last one here.
-  const tail = shown[shown.length - 1]
-  const seenBy = tail?.mine && !tail.deleted && !tail.pending
-    ? others.filter(p => p.lastReadMessageId != null && p.lastReadMessageId >= tail.id) : []
-  const seenText = !seenBy.length ? null
-    : conv.kind === 'DIRECT' ? 'Seen' : `Seen by ${namesList(seenBy.map(p => p.name))}`
+  // ── RECEIPTS ────────────────────────────────────────────────────────────
+  //
+  // Every message of mine carries its own state now, not just the last one.
+  //
+  // Before this there was a single "Seen"/"Seen by A, B" under the tail, so you
+  // could tell whether your most recent line had been read and nothing else:
+  // scroll up and a read message, a delivered one and one still in flight all
+  // looked identical. See components/chat/MessageReceipt.
+  //
+  // The tick's STATE is computed here from conv.members — no request, so a page
+  // of 200 messages costs nothing. The TIMES live behind the info panel, which
+  // asks the server for that one message when somebody opens it: a watermark
+  // cannot say when message 137 was crossed, but the advance log behind
+  // /messages/{id}/receipts can.
   const typingNames = Object.keys(typing).map(uid => members.find(p => String(p.userId) === String(uid))?.name).filter(Boolean)
 
   const dropOk = (e) => canWrite && Array.from(e.dataTransfer?.types || []).includes('Files')
@@ -536,7 +611,8 @@ function Conversation({ id, me, onGone }) {
                       members={members} meId={me.userId} highlight={highlight === m.id} online={!m.mine && presence.isOnline(m.senderId)}
                       canAct={conv.member && !conv.archived && !m.pending}
                       canDelete={(m.mine || owner) && !m.deleted && conv.member}
-                      seen={m === tail ? seenText : null}
+                      receipt={m.mine && !m.deleted && !m.pending ? receiptFor(m.id, others) : null}
+                      direct={conv.kind === 'DIRECT'}
                       onEdit={() => setEditing(m)} onDelete={() => del.mutate(m.id)}
                       onReply={() => { setReplyingTo(m); composer.current?.focus() }}
                       onReact={(emoji) => react.mutate({ mid: m.id, emoji })}
@@ -698,7 +774,8 @@ function SearchPanel({ id, onClose, onJump }) {
  * Hovering shows quick reactions, more emoji, reply, pin, and (your own)
  * edit / delete. Under the bubble: link cards, reaction chips, "Seen".
  */
-function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, canDelete, highlight, seen, online,
+function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, canDelete, highlight, online,
+  receipt, direct,
   onEdit, onDelete, onReply, onReact, onPin, onJump, onPreview }) {
   const [picking, setPicking] = useState(false)
   const time = new Date(m.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
@@ -774,7 +851,10 @@ function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, 
               )}
             <p className={cn('text-[10px] leading-none mt-1 text-right select-none',
               mine && !m.deleted ? 'text-brand-900/70' : 'text-text-muted')}>
-              {m.pending ? 'Sending…' : <>{m.editedAt && !m.deleted && <span className="mr-1">edited</span>}{time}</>}
+              {/* The clock and "Sending…" moved into MessageReceipt, which owns
+                  every delivery state including that one — two places showing it
+                  meant the pending row said it twice. */}
+              {m.editedAt && !m.deleted && <span className="mr-1">edited</span>}{time}
             </p>
           </div>
           {cards.map(c => <LinkCard key={`${c.kind}:${c.type || ''}:${c.id}`} link={c} />)}
@@ -790,7 +870,9 @@ function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, 
               ))}
             </div>
           )}
-          {seen && <span className="text-[10px] text-text-muted mt-0.5 px-1 inline-flex items-center gap-1"><CheckCheck size={11} /> {seen}</span>}
+          {mine && !m.deleted && (
+            <MessageReceipt receipt={receipt} messageId={m.id} pending={!!m.pending} direct={direct} />
+          )}
         </div>
       </div>
     </div>

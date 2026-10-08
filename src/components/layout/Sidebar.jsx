@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useSyncExternalStore } from 'react'
+import { useState, useEffect, useRef, useMemo, useSyncExternalStore, createContext, useContext } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   ChevronDown, ChevronRight, PanelLeft, PanelRight,
@@ -8,6 +8,7 @@ import * as Icons from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { useNavigation } from '../../hooks/useUIConfig'
+import { resolveNav } from '../../lib/navRoute'
 import { useSelector } from 'react-redux'
 import { useDispatch } from 'react-redux'
 import { openTab } from '../../store/slices/tabsSlice'
@@ -219,62 +220,32 @@ function useNavOpen(navKey, forceOpen) {
  * and differ only by ?frameworkRef= — matching on pathname alone would reveal
  * whichever of them happened to come first.
  */
-function findActiveParentKey(groups, location) {
-  const matches = (route) => {
-    if (!route) return false
-    const [routePath, routeQuery] = route.split('?')
-    if (location.pathname !== routePath) return false
-    if (!routeQuery) return true
-    const want = new URLSearchParams(routeQuery)
-    const have = new URLSearchParams(location.search)
-    for (const [k, v] of want) if (have.get(k) !== v) return false
-    return true
-  }
-
-  for (const items of Object.values(groups)) {
-    for (const item of items) {
-      if (matches(item.route)) return null            // top level: nothing to open
-      for (const child of item.children || []) {
-        if (matches(child.route)) return item.navKey  // open the parent
-      }
-    }
-  }
-  return null
-}
+/**
+ * The ONE nav route that is active, and the group to open — both from
+ * lib/navRoute, which is shared with RouteSync so the highlight and the tab
+ * title can never disagree.
+ *
+ * What used to live here was a local copy of that logic, and before that a
+ * per-row EXACT pathname match. The exact match is why nothing highlighted the
+ * moment you opened anything: /module/vendor_assessment/74 and /chat/5 match no
+ * nav row. Prefix matching was deliberately rejected in the old comment,
+ * because /workflow would then light up next to /workflow/inbox — correct
+ * reasoning, wrong place for the fix. A row cannot tell on its own whether a
+ * longer row also matches; only something looking at the whole tree can, which
+ * is what the resolver does.
+ *
+ * It also reads the hidden (is_active = 0) detail rows the backend returns on
+ * purpose, so /audit/policies/7/edit finds "Policy Editor" and climbs its
+ * parent_key to the Policies row. See lib/navRoute for the whole rule set.
+ */
+const ActiveNavRouteContext = createContext(null)
 
 function NavItem({ item, depth = 0, collapsed = false, t, forceOpen = false }) {
-  const location = useLocation()
-  const routeMatches = (route) => {
-    if (!route) return false
-    // Routes may disambiguate by query string (e.g. two nav rows share
-    // /module/audit_engagement but differ by ?frameworkRef=). When the nav
-    // route carries a query, match the query too so only the right row is
-    // active; otherwise fall back to pathname matching.
-    const qIdx = route.indexOf('?')
-    if (qIdx !== -1) {
-      const routePath = route.slice(0, qIdx)
-      const routeQuery = route.slice(qIdx)   // includes leading '?'
-      if (location.pathname !== routePath) return false
-      const routeParams = new URLSearchParams(routeQuery)
-      const curParams = new URLSearchParams(location.search)
-      for (const [k, v] of routeParams) {
-        if (curParams.get(k) !== v) return false
-      }
-      return true
-    }
-    // No query on the nav route: EXACT pathname match (mirrors NavLink `end`).
-    // Prefix matching (startsWith route + '/') is deliberately NOT used — it made
-    // a parent-ish route like /workflow light up on /workflow/inbox, double-
-    // highlighting alongside the /workflow/inbox row. Each leaf owns exactly its
-    // own path.
-    if (location.pathname !== route) return false
-    // A framework-scoped URL (?frameworkRef=X) belongs to the framework-specific
-    // sibling row (handled by the query branch above), so a plain query-less
-    // route must NOT match a framework-scoped URL.
-    const curFrameworkRef = new URLSearchParams(location.search).get('frameworkRef')
-    if (curFrameworkRef) return false
-    return true
-  }
+  // One winner for the whole tree, resolved once in Sidebar and handed down. A
+  // row is active when it IS that winner — a string comparison, not a rule, so
+  // two rows can never both think they are selected.
+  const activeRoute = useContext(ActiveNavRouteContext)
+  const routeMatches = (route) => !!route && route === activeRoute
   const [open, setOpen] = useNavOpen(item.navKey, forceOpen)
   const hasChildren = item.children?.length > 0
 
@@ -339,6 +310,12 @@ function NavItem({ item, depth = 0, collapsed = false, t, forceOpen = false }) {
   return (
     <NavLink to={item.route} end title={collapsed ? item.label : undefined}
       onClick={handleClick}
+      // Our own marker for "this is the highlighted row". NavLink's
+      // aria-current is pathname-only and `end`-exact, so on a sub-route it
+      // lands on nothing and on two rows sharing a path it lands on both —
+      // neither matches what the person sees. The scroll-into-view below
+      // targets this instead.
+      data-nav-active={active ? 'true' : undefined}
       className={cn(
         'flex items-center rounded-card text-sm transition-all group relative',
         collapsed ? 'justify-center w-9 h-9 mx-auto p-0' : 'gap-2.5 px-3 py-2',
@@ -562,7 +539,13 @@ export function Sidebar({ collapsed, onToggle }) {
     : effectiveTheme === 'brand-dark' ? { backgroundColor: 'rgb(var(--color-brand-800))' }
     : undefined
   const t              = getSidebarTokens(effectiveTheme)
-  const grouped        = groupByModule(navItems)
+  // Memoised on navItems because three things now key off its identity: the
+  // `visible` memo, the group-open effect, and the active-route memo. Rebuilt
+  // every render it defeated all three — `visible` recomputed, and the effect
+  // (which has `grouped` in its deps) re-ran and queued a scrollIntoView on
+  // every single render of the sidebar. navItems is query data and stable
+  // between fetches, so this is the identity the dependents actually wanted.
+  const grouped        = useMemo(() => groupByModule(navItems), [navItems])
   const [navQuery, setNavQuery] = useState('')
   const visible        = useMemo(() => filterNav(grouped, navQuery), [grouped, navQuery])
   const searching      = navQuery.trim().length > 0
@@ -581,6 +564,24 @@ export function Sidebar({ collapsed, onToggle }) {
   const location = useLocation()
   const navRef = useRef(null)
 
+  // Resolved from navItems — the RAW tree — not from `grouped` or `visible`.
+  //
+  // That distinction is the whole point. groupByModule drops every is_active = 0
+  // row, and those hidden rows are exactly the detail-route registry the
+  // resolver needs: "Policy Editor" /audit/policies/:id/edit, "Vendor Detail"
+  // /tprm/vendors/:id, "Engagement Detail" /audit/engagements/:id. Resolving
+  // against the filtered tree would throw away the only data that maps a detail
+  // URL back to its sidebar row.
+  //
+  // Using navItems rather than `visible` also means filtering the sidebar with
+  // the search box cannot change which row is highlighted.
+  const nav = useMemo(
+    () => resolveNav(navItems, location),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [navItems, location.pathname, location.search],
+  )
+  const activeNavRoute = nav?.route || null
+
   useEffect(() => {
     // Open the group containing the route we just landed on, then scroll to it.
     //
@@ -590,21 +591,26 @@ export function Sidebar({ collapsed, onToggle }) {
     // genuinely opened (and remembered), not force-opened, because you are now
     // working inside it.
     //
-    // Keyed on the full location, not just pathname: two nav rows can share a
-    // path and differ only by ?frameworkRef=.
-    const parentKey = findActiveParentKey(grouped, location)
-    if (parentKey) writeNavOpen(parentKey, true)
+    // openKey comes from the resolver, so the group that opens is by
+    // construction the group holding the row that lit up — they cannot drift
+    // apart. It is also set when NOTHING is highlighted: on a scope-less URL
+    // like /module/audit_engagement/7, where two framework rows both match the
+    // path and neither can be proved right, the group opens so you can see the
+    // neighbourhood even though no single row is marked.
+    if (nav?.openKey) writeNavOpen(nav.openKey, true)
 
     // After the state write, so the row exists in the DOM before we scroll.
-    // NavLink sets aria-current="page" on the active link — use that instead of
-    // class-based selection, which also matches parent labels with font-medium.
+    // data-nav-active is the row we highlighted; aria-current is NavLink's own
+    // pathname-only guess and is kept only as a fallback for the group-header
+    // links, which are plain NavLinks.
     const raf = requestAnimationFrame(() => {
-      const active = navRef.current?.querySelector('a[aria-current="page"]')
+      const active = navRef.current?.querySelector('[data-nav-active="true"]')
+        || navRef.current?.querySelector('a[aria-current="page"]')
       active?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     })
     return () => cancelAnimationFrame(raf)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, location.search, grouped])
+  }, [nav, activeNavRoute])
 
   return (
     <aside
@@ -738,20 +744,24 @@ export function Sidebar({ collapsed, onToggle }) {
           />
         )}
 
-        {!isLoading && !isError && Object.entries(visible).map(([module, items]) => (
-          <div key={module}>
-            {!collapsed && module !== '_root' && (
-              <p className={cn('px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest', t.section)}>
-                {module}
-              </p>
-            )}
-            <div className="space-y-0.5">
-              {items.map(item => (
-                <NavItem key={item.navKey} item={item} collapsed={collapsed} t={t} forceOpen={searching} />
-              ))}
-            </div>
-          </div>
-        ))}
+        {!isLoading && !isError && (
+          <ActiveNavRouteContext.Provider value={activeNavRoute}>
+            {Object.entries(visible).map(([module, items]) => (
+              <div key={module}>
+                {!collapsed && module !== '_root' && (
+                  <p className={cn('px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest', t.section)}>
+                    {module}
+                  </p>
+                )}
+                <div className="space-y-0.5">
+                  {items.map(item => (
+                    <NavItem key={item.navKey} item={item} collapsed={collapsed} t={t} forceOpen={searching} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </ActiveNavRouteContext.Provider>
+        )}
 
         {!isLoading && !isError && searching && Object.keys(visible).length === 0 && (
           <p className={cn('px-3 py-6 text-center text-[12px]', t.subtext)}>

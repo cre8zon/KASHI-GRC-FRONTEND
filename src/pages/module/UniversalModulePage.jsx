@@ -181,6 +181,43 @@ const useScreenConfig = (screenKey) => useQuery({
 // Framework-ref display helpers ------------------------------------------------
 // Turn a stored frameworkRef into a readable label. Handles both the compact
 // form ('ISO27001') and spaced form ('ISO 27001'), plus common frameworks.
+// -- SCOPE PARAMS ----------------------------------------------------------
+//
+// Which query params survive a jump from a list into a detail page.
+//
+// -- WHY THIS IS NOT JUST COSMETIC ----------------------------------------
+//
+// Several nav rows differ ONLY by a query param: /module/audit_engagement is
+// listed twice, as ?frameworkRef=ISO27001 and ?frameworkRef=SOC2, and
+// /module/risk is listed as ?origin=GLOBAL (Risk Library) and ?origin=ORG
+// (Risk Register). The param is not a filter the user typed - it is which nav
+// entry they are inside.
+//
+// Opening a row used to navigate to a bare /module/<type>/<id>, dropping it. So
+// the URL stopped saying which of the two lists you came from, and nothing
+// downstream could know: the sidebar cannot prefer ISO 27001 Engagements over
+// SOC 2 Engagements without guessing, so it highlights neither and the nav goes
+// dark the moment you open an engagement. Carrying the scope forward is what
+// makes that answerable rather than a coin toss.
+//
+// It is also more correct for the detail page itself, which already reads
+// frameworkRef for its own scoped lookups (contextParams below).
+//
+// An allowlist, not the whole query string: a search term, a page number or a
+// sort order belongs to the list and would be noise on a detail URL.
+const SCOPE_PARAMS = ['frameworkRef', 'origin', 'mine']
+
+function withScope(path, searchParams) {
+  if (!searchParams) return path
+  const keep = new URLSearchParams()
+  for (const k of SCOPE_PARAMS) {
+    const v = searchParams.get(k)
+    if (v != null && v !== '') keep.set(k, v)
+  }
+  const q = keep.toString()
+  return q ? path + '?' + q : path
+}
+
 function formatFrameworkRef(ref) {
   if (!ref) return ''
   const known = {
@@ -618,7 +655,7 @@ function ModuleListView({ bp }) {
     if (layoutMode === 'FULL_PAGE') {
       // Navigate directly to full detail page — no drawer
       const base = bp.listScreenKey?.replace('_list', '') || bp.entityType.toLowerCase().replace('_', '')
-      navigate(`/module/${base}/${row.id}`)
+      navigate(withScope(`/module/${base}/${row.id}`, searchParams))
     } else {
       setDrawerId(row.id)
     }
@@ -716,7 +753,7 @@ function ModuleListView({ bp }) {
       const newId = res?.id ?? res?.data?.id
       if (newId) {
         toast.success('Your copy is ready — edit it, then send for review')
-        navigate(`/module/${bp.entityType.toLowerCase()}/${newId}`)
+        navigate(withScope(`/module/${bp.entityType.toLowerCase()}/${newId}`, searchParams))
       } else {
         toast.success('Copied to your organisation as a draft')
       }
@@ -901,7 +938,7 @@ function ModuleListView({ bp }) {
           ) : hasConfiguredEdit ? null : (
             <button
               onClick={(e) => { e.stopPropagation()
-                navigate(`/module/${bp.entityType.toLowerCase()}/${row.id}`) }}
+                navigate(withScope(`/module/${bp.entityType.toLowerCase()}/${row.id}`, searchParams)) }}
               title="Open to edit"
               className="inline-flex items-center gap-1.5 px-2 py-1 rounded-ctl text-[11px] font-medium
                          border border-border text-text-secondary hover:bg-surface-overlay transition-colors">
@@ -1291,7 +1328,7 @@ function ModuleListView({ bp }) {
             //
             // Leaving the list URL discards ?drawer= and ?drawerTab= anyway, so
             // there is nothing to clean up.
-            navigate(`/module/${bp.entityType.toLowerCase()}/${drawerId}`)
+            navigate(withScope(`/module/${bp.entityType.toLowerCase()}/${drawerId}`, searchParams))
           }}
         />
       )}
@@ -2504,7 +2541,7 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
           qcDetail.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
         } else {
         const base = bp.listScreenKey?.replace('_list','') || bp.entityType.toLowerCase().replace('_','')
-        navigate(`/module/${base}/${id}`)
+        navigate(withScope(`/module/${base}/${id}`, searchParams))
         }
       }
     } catch (e) {

@@ -1,7 +1,7 @@
 import { resolveTaskRoute as resolveTaskRouteShared } from '../../lib/inboxRoute'
 import React from 'react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useOpenInTab } from '../../hooks/useOpenInTab'
 import { CheckCircle, XCircle, CornerDownLeft, ArrowRight, Loader2, Users, UserCheck, AlertTriangle, Building2 } from 'lucide-react'
 import { useMyTasks, useTaskAction } from '../../hooks/useWorkflow'
 import { useNavigation } from '../../hooks/useUIConfig'
@@ -154,7 +154,10 @@ export function TaskInbox({ filterFn, scope } = {}) {
   // Only ORG_ADMIN / ORG_OWNER can use Send Back — it's a nuclear workflow rollback
   const canSendBack = roles?.some(r => ['ORG_ADMIN','ORG_OWNER'].includes(r.name || r.roleName || ''))
   const { data: navItems = [] } = useNavigation()
-  const navigate = useNavigate()
+  // useOpenInTab, not useNavigate - see the note in useOpenInTab: a task row
+  // is a link out of the inbox, so it should focus the tab that already holds
+  // the entity rather than point the inbox's own tab at a second copy of it.
+  const openInTab = useOpenInTab()
   const activeTenantId = useSelector(st => st.auth.tenantId)
   const [activeTask, setActiveTask] = useState(null)
   const [action, setAction]         = useState(null)
@@ -181,7 +184,7 @@ export function TaskInbox({ filterFn, scope } = {}) {
 
   const openTask = (task) => {
     const route = withTenant(resolveTaskRoute(task, navItems), task, activeTenantId)
-    if (route) navigate(route)
+    if (route) openInTab(route)
   }
 
   if (isLoading) return (
@@ -244,8 +247,8 @@ export function TaskInbox({ filterFn, scope } = {}) {
                 // The entity page (UniversalModulePage) reads stepInstanceId from the URL and
                 // passes it to useViewContext for step-aware field access resolution.
                 // If no route (APPROVE/ASSIGN inline task) → open task detail for metadata view.
-                if (route) navigate(withTenant(route, task, activeTenantId))
-                else navigate(withTenant(`/workflow/tasks/${tid}`, task, activeTenantId))
+                if (route) openInTab(withTenant(route, task, activeTenantId))
+                else openInTab(withTenant(`/workflow/tasks/${tid}`, task, activeTenantId))
               }}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">

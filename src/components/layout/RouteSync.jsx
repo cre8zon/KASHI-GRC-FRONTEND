@@ -10,6 +10,7 @@ import {
   navigateActiveTab, openTab,
 } from '../../store/slices/tabsSlice'
 import { useNavigation } from '../../hooks/useUIConfig'
+import { resolveNav } from '../../lib/navRoute'
 
 export function RouteSync() {
   const navigate    = useNavigate()
@@ -21,26 +22,33 @@ export function RouteSync() {
   const prevTabId   = useRef(activeTabId)
   const isSyncing   = useRef(false)
 
-  // Look up { title, icon } from the nav tree by best-match route.
-  // Uses the actual nav item label and icon — no guessing from path segments.
-  // Falls back to humanized path segment if nav not yet loaded.
-  const getNavInfo = (pathname) => {
-    if (navItems.length > 0) {
-      let best = null, bestLen = 0
-      const flat = (items) => {
-        for (const item of items) {
-          if (item.route && item.route !== '/' &&
-              pathname.startsWith(item.route) &&
-              item.route.length > bestLen) {
-            best = item
-            bestLen = item.route.length
-          }
-          if (item.children?.length) flat(item.children)
-        }
-      }
-      flat(navItems)
-      if (best) return { title: best.label, icon: best.icon || null }
-    }
+  /**
+   * The tab's title and icon, from the same resolver the sidebar highlights
+   * with — so a tab is never labelled something the sidebar disagrees with.
+   *
+   * ── WHY THE OLD ONE PRODUCED TABS CALLED "74" ─────────────────────────
+   *
+   * It was `pathname.startsWith(item.route)`, longest wins, and it had three
+   * faults the sidebar's copy did not:
+   *
+   *   1. It compared against item.route WITH its query string, so every
+   *      framework-scoped row — /module/audit_finding?frameworkRef=ISO27001 —
+   *      could never match any pathname at all.
+   *   2. No segment boundary, so /module/risk claimed /module/risk-register.
+   *   3. It ignored the hidden (is_active = 0) detail rows the backend returns
+   *      on purpose, which are the rows that know what a detail URL is.
+   *
+   * When nothing matched it humanised the last path segment — which on
+   * /module/vendor_assessment/74 or /collaboration/rooms/7 is the id. Hence
+   * tabs named "74" and "7".
+   *
+   * The humanising fallback is kept for the genuinely unknown route and for the
+   * moment before nav data has loaded, which is the only thing it was ever
+   * right about.
+   */
+  const getNavInfo = (pathname, search = '') => {
+    const hit = navItems.length > 0 ? resolveNav(navItems, { pathname, search }) : null
+    if (hit?.label) return { title: hit.label, icon: hit.icon || null }
     // Fallback — humanize last path segment
     const seg = pathname.split('/').filter(Boolean).pop() || 'Page'
     const title = seg.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -66,7 +74,7 @@ export function RouteSync() {
   useEffect(() => {
     if (isSyncing.current) return
     const route = location.pathname + location.search
-    const { title, icon } = getNavInfo(location.pathname)
+    const { title, icon } = getNavInfo(location.pathname, location.search)
     dispatch(navigateActiveTab({ route, title, icon }))
   }, [location.pathname, location.search]) // eslint-disable-line
 
@@ -76,7 +84,8 @@ export function RouteSync() {
   useEffect(() => {
     if (navItems.length === 0) return
     tabs.forEach(tab => {
-      const { title, icon } = getNavInfo(tab.route.split('?')[0])
+      const [tabPath, tabQuery = ''] = tab.route.split('?')
+      const { title, icon } = getNavInfo(tabPath, tabQuery ? `?${tabQuery}` : '')
       dispatch(navigateActiveTab({ route: tab.route, title, icon }))
     })
   }, [navItems]) // eslint-disable-line
@@ -85,7 +94,7 @@ export function RouteSync() {
   useEffect(() => {
     const route = location.pathname + location.search
     if (route === '/dashboard' || route === '/') return
-    const { title, icon } = getNavInfo(location.pathname)
+    const { title, icon } = getNavInfo(location.pathname, location.search)
     const exists = tabs.find(t => t.route.split('?')[0] === location.pathname)
     if (!exists) {
       dispatch(openTab({ route, title, icon }))

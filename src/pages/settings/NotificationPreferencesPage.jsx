@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { BellRing, Mail, RotateCcw, Info } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { BellRing, Mail, RotateCcw, Info, Volume2, Monitor } from 'lucide-react'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card, CardBody } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
@@ -12,6 +12,13 @@ import {
   useUpsertNotificationPreference,
   useResetNotificationPreference,
 } from '../../hooks/useNotificationPreferences'
+import {
+  isNotificationSoundOn,
+  setNotificationSound,
+  isDesktopNotificationOn,
+  enableDesktopNotifications,
+  disableDesktopNotifications,
+} from '../../hooks/useNotifications'
 
 /**
  * NotificationPreferencesPage — the user's email opt-out matrix.
@@ -38,6 +45,103 @@ function Toggle({ checked, onChange, disabled }) {
         checked ? 'translate-x-[18px]' : 'translate-x-[3px]',
       )} />
     </button>
+  )
+}
+
+/**
+ * DeviceNotificationSettings — sound and desktop alerts, for THIS browser.
+ *
+ * Not account settings, and deliberately not stored as any. Whether this
+ * laptop makes a noise is a property of the laptop: the same person in a
+ * meeting room, on a shared machine or on a second screen wants different
+ * answers, and a server-side value would follow them everywhere. The email
+ * matrix below is the opposite — "do I get emailed about remediations" is an
+ * account fact and belongs on the account.
+ *
+ * Desktop state has three values, not two, because the browser's permission is
+ * not ours to set:
+ *
+ *   default  — never asked. The toggle asks, through the real browser prompt,
+ *              which must happen inside a click. That is why this is a button
+ *              and not a checkbox bound to state.
+ *   granted  — ours to switch on and off freely.
+ *   denied   — the person told the BROWSER no. Nothing in this app can ask
+ *              again or override it, so the toggle disables itself and says
+ *              where the setting actually lives. Showing an enabled-looking
+ *              switch that silently does nothing would be worse than saying so.
+ */
+function DeviceNotificationSettings() {
+  const [sound, setSound]   = useState(isNotificationSoundOn)
+  const [perm, setPerm]     = useState(
+    typeof window !== 'undefined' && 'Notification' in window
+      ? Notification.permission
+      : 'unsupported')
+  const [desktop, setDesktop] = useState(isDesktopNotificationOn)
+  const [busy, setBusy]       = useState(false)
+
+  const toggleSound = (on) => { setSound(on); setNotificationSound(on) }
+
+  const toggleDesktop = async (on) => {
+    if (!on) { disableDesktopNotifications(); setDesktop(false); return }
+    setBusy(true)
+    const result = await enableDesktopNotifications()   // asks only if 'default'
+    setBusy(false)
+    setPerm(result)
+    setDesktop(result === 'granted')
+  }
+
+  const unsupported = perm === 'unsupported'
+  const blocked     = perm === 'denied'
+
+  return (
+    <Card>
+      <CardBody className="p-0">
+        <div className="px-4 py-2.5 border-b border-border flex items-center gap-2">
+          <Badge value="This device" colorTag="gray" />
+          <span className="text-[11px] text-text-muted">
+            Applies to this browser only — not to your account.
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-card bg-brand-500/10">
+              <Volume2 size={16} className="text-brand-500" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-text-primary">Notification sound</p>
+              <p className="text-xs text-text-muted">
+                A short chime when something new arrives while you are working.
+              </p>
+            </div>
+          </div>
+          <Toggle checked={sound} onChange={toggleSound} />
+        </div>
+
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-card bg-brand-500/10">
+              <Monitor size={16} className="text-brand-500" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-text-primary">Desktop alerts</p>
+              <p className="text-xs text-text-muted">
+                {unsupported
+                  ? 'This browser does not support desktop notifications.'
+                  : blocked
+                    ? 'Blocked in your browser settings. Allow notifications for this site there, then come back.'
+                    : 'Shown only when this tab is in the background — no duplicates while you are looking at the app.'}
+              </p>
+            </div>
+          </div>
+          <Toggle
+            checked={desktop && perm === 'granted'}
+            onChange={toggleDesktop}
+            disabled={busy || unsupported || blocked}
+          />
+        </div>
+      </CardBody>
+    </Card>
   )
 }
 
@@ -69,6 +173,19 @@ export function NotificationsTab() {
 
   return (
       <div className="space-y-4 max-w-3xl">
+        {/* ── THIS DEVICE ────────────────────────────────────────────────
+            Above the email matrix and outside the isLoading guard, because
+            these two read localStorage rather than the API — there is nothing
+            to wait for, and hiding them behind the email fetch would make them
+            flicker on every visit.
+
+            Separate card and separate heading on purpose: everything below is
+            an ACCOUNT setting that follows the person to any browser, and
+            these two are properties of THIS browser. Presenting them in one
+            list would promise that turning sound off here turns it off on
+            their other laptop, which it does not. */}
+        <DeviceNotificationSettings />
+
         {isLoading && <Skeleton rows={8} />}
 
         {!isLoading && (
