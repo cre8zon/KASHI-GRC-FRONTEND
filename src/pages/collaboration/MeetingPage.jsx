@@ -57,7 +57,13 @@ export default function MeetingPage() {
     if (autoJoined.current || !m?.id || search.get('join') !== '1') return
     autoJoined.current = true
     const next = new URLSearchParams(search); next.delete('join'); setSearch(next, { replace: true })
+    // Say something when it cannot be joined. This branch used to be silent:
+    // the ?join=1 was consumed, callOpen said no, and the page just sat there —
+    // which from the outside is a notification that leads nowhere.
     if (callOpen(m)) joinMeetingCall(m.id).then(() => qc.invalidateQueries({ queryKey: ['collab-meeting', id] }))
+    else if (m.status === 'CANCELLED') toast.error('This meeting was cancelled')
+    else if (!m.inApp) toast('This meeting uses an outside link — open it below')
+    else toast('This call has ended')
   }, [m, search, setSearch, id, qc])
 
   const back = () => m?.workspaceId

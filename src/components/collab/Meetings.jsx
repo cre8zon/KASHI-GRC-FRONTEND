@@ -22,9 +22,41 @@ export const KIND_LABEL = {
   CLOSING: 'Closing', INTERNAL: 'Internal', OTHER: 'Meeting',
 }
 export const PROVIDER_LABEL = { EMBEDDED: 'KashiGRC call', NONE: 'No link', TEAMS: 'Teams', ZOOM: 'Zoom', MEET: 'Google Meet', OTHER: 'Link' }
-/** An in-app call can be joined until two hours after its planned end. */
-export const callOpen = (m) => m.inApp && m.status === 'SCHEDULED'
-  && new Date(m.endsAt || m.startsAt).getTime() + 2 * 3600e3 >= Date.now()
+/**
+ * Can this call be joined right now? The SERVER decides; this just reads it.
+ *
+ * -- WHY THIS STOPPED BEING CLOCK ARITHMETIC -----------------------------
+ *
+ * It used to be:
+ *
+ *   m.inApp && m.status === 'SCHEDULED'
+ *     && new Date(m.endsAt || m.startsAt).getTime() + 2h >= Date.now()
+ *
+ * which compares a time the SERVER wrote against the BROWSER's clock, using a
+ * value that carries no timezone. startsAt/endsAt are LocalDateTime on the
+ * backend, so they arrive as a bare "2026-10-08T10:52:00" and new Date() reads
+ * that as browser-local.
+ *
+ * A meeting you scheduled yourself survives this, because your own browser
+ * wrote that wall-clock string and reads the same one back. An ad-hoc call does
+ * not: callNow stamps it with the server's clock. On a UTC server with IST
+ * users, endsAt looks 5h30m in the past, blows straight through the two-hour
+ * grace, and this returned false the instant the "join now" notification was
+ * clicked — no button, no error, nothing. Exactly the reported symptom, and
+ * exactly why scheduled meetings seemed fine.
+ *
+ * The server compares its own now against its own endsAt, which is arithmetic
+ * that cannot be wrong, and it applies the same rule it uses when actually
+ * issuing the LiveKit token — so the button and the endpoint can no longer
+ * disagree about whether you may join.
+ *
+ * The fallback keeps old cached payloads working until `joinable` is present,
+ * and is deliberately permissive: a wrongly shown Join button gets a clear
+ * error from the server, while a wrongly hidden one is a dead end.
+ */
+export const callOpen = (m) => (m?.joinable !== undefined
+  ? !!m.joinable
+  : !!m?.inApp && m?.status !== 'CANCELLED')
 /** Whether in-app calls are available here, and whether the caller may start one. */
 export function useCallOptions() {
   const { data } = useQuery({ queryKey: ['collab-call-options'], queryFn: () => collabApi.callOptions(), staleTime: 5 * 60e3 })
@@ -47,7 +79,42 @@ export const fmtTime = (s) => {
   const d = new Date(s)
   return isNaN(d) ? '' : d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
 }
-const toInput = (s) => (s ? String(s).slice(0, 16) : '')
+/** A Date as the "YYYY-MM-DDTHH:MM" a datetime-local input wants, in LOCAL time. */
+const pad2 = (n) => String(n).padStart(2, '0')
+export const toLocalInput = (d) =>
+  `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+
+/**
+ * Server timestamp -> the value a datetime-local input shows.
+ *
+ * It used to be String(s).slice(0, 16) — pure string truncation, which worked
+ * only because the server sent a bare wall clock and the browser posted one
+ * back. Now that timestamps carry their offset, slicing would show the SERVER's
+ * wall clock in the box: edit a 2pm meeting from Delhi and the field would read
+ * 08:30. Parse it to a real instant and render it where the viewer is.
+ *
+ * The slice is kept as the fallback for a value with no offset, so the form
+ * still behaves if it meets an older payload.
+ */
+const toInput = (s) => {
+  if (!s) return ''
+  const d = new Date(s)
+  return isNaN(d) ? String(s).slice(0, 16) : toLocalInput(d)
+}
+
+/**
+ * The value from a datetime-local input -> what we send.
+ *
+ * The input gives a bare wall clock with no zone. Sending it as-is meant the
+ * server read those digits in ITS zone, so "2pm" became 2pm UTC — 19:30 for an
+ * IST user. Converting to an ISO instant first states the moment the person
+ * actually picked, and the server converts it to its own clock on arrival.
+ */
+const fromInput = (v) => {
+  if (!v) return null
+  const d = new Date(v)        // a bare wall clock is parsed as LOCAL — what the person meant
+  return isNaN(d) ? v : d.toISOString()
+}
 const SIDE_LABEL = { CLIENT: 'Organisation', FIRM: 'Audit firm' }
 
 /** One meeting in a list. */
@@ -165,7 +232,7 @@ export function MeetingFormModal({ open, onClose, meeting, workspaceId, onSaved 
   const { mutate, isPending } = useMutation({
     mutationFn: () => {
       const body = {
-        title: f.title, kind: f.kind, startsAt: f.startsAt, endsAt: f.endsAt || null,
+        title: f.title, kind: f.kind, startsAt: fromInput(f.startsAt), endsAt: fromInput(f.endsAt),
         provider: f.provider, joinUrl: f.provider === 'NONE' || f.provider === 'EMBEDDED' ? null : (f.joinUrl || null),
         attendeeUserIds: f.attendeeUserIds,
       }

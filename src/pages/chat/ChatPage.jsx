@@ -17,6 +17,7 @@ import { startCall } from '../../components/collab/call/callStore'
 import { useCallOptions } from '../../components/collab/Meetings'
 import { ChatDetailsPanel, PresenceDot } from '../../components/chat/ChatDetailsPanel'
 import { MessageReceipt, receiptFor } from '../../components/chat/MessageReceipt'
+import { ReactionDetails } from '../../components/chat/ReactionDetails'
 import { usePresence, presenceLabel } from '../../hooks/useChatPresence'
 import { PeopleMultiSelect } from '../../components/collab/PeopleMultiSelect'
 import { PageLayout } from '../../components/layout/PageLayout'
@@ -473,7 +474,11 @@ function Conversation({ id, me, onGone }) {
       startCall(x)
       // Leave a "Join" card in the conversation for whoever comes in later.
       if (x?.meetingId) {
-        chatApi.send(id, `🎥 Started a video call — ${window.location.origin}/collaboration/meetings/${x.meetingId}`, [])
+        // ?join=1 so the link JOINS the call rather than just opening the
+        // meeting page — the same thing the notification's actionUrl does.
+        // Without it, whoever clicks the message in chat lands on a page and
+        // has to hunt for the Join button.
+        chatApi.send(id, `🎥 Started a video call — ${window.location.origin}/collaboration/meetings/${x.meetingId}?join=1`, [])
           .then(m => appendMine(one(m))).catch(() => {})
       }
     },
@@ -778,6 +783,7 @@ function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, 
   receipt, direct,
   onEdit, onDelete, onReply, onReact, onPin, onJump, onPreview }) {
   const [picking, setPicking] = useState(false)
+  const [showReactions, setShowReactions] = useState(false)
   const time = new Date(m.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
   const mine = !!m.mine
   const cards = m.deleted ? [] : linkCards(m.body)
@@ -859,7 +865,7 @@ function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, 
           </div>
           {cards.map(c => <LinkCard key={`${c.kind}:${c.type || ''}:${c.id}`} link={c} />)}
           {reactions.length > 0 && !m.deleted && (
-            <div className={cn('flex flex-wrap gap-1 mt-1', mine ? 'justify-end' : 'justify-start')}>
+            <div className={cn('relative flex flex-wrap items-center gap-1 mt-1', mine ? 'justify-end' : 'justify-start')}>
               {reactions.map(r => (
                 <button key={r.emoji} type="button" disabled={!canAct} onClick={() => onReact(r.emoji)}
                   title={(r.names || []).join(', ')}
@@ -868,6 +874,34 @@ function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, 
                   <span className="text-sm leading-none">{r.emoji}</span>{r.count}
                 </button>
               ))}
+
+              {/* The opener for "who reacted". Its own control rather than the
+                  chips', because clicking a chip toggles your reaction and that
+                  is the action people reach for constantly — stealing it for a
+                  panel would have them un-reacting by accident every time they
+                  wanted to read a name.
+
+                  The native title tooltip stays on the chips: it is still the
+                  fastest way to see two names, and this is for the case it
+                  handles badly — fifteen people, several emoji, or a touch
+                  screen where a tooltip never appears at all. */}
+              <button type="button" onClick={() => setShowReactions(v => !v)}
+                aria-label="Who reacted"
+                aria-expanded={showReactions}
+                className="inline-flex items-center justify-center h-6 w-6 rounded-badge text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors">
+                <Users size={11} />
+              </button>
+
+              {showReactions && (
+                <ReactionDetails
+                  reactions={reactions}
+                  canAct={canAct}
+                  onToggle={onReact}
+                  // Received messages sit on the left, so the panel has to open
+                  // rightwards or it runs off the pane and clips to a sliver.
+                  align={mine ? 'right' : 'left'}
+                  onClose={() => setShowReactions(false)} />
+              )}
             </div>
           )}
           {mine && !m.deleted && (
