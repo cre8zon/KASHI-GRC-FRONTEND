@@ -1296,7 +1296,21 @@ function ModuleListView({ bp }) {
                 sortBy={sortBy}
                 sortDir={sortDir}
                 onSort={handleSort}
-                pagination={listRes?.pagination || listRes?.data?.pagination}
+                // Same shapes the row extraction above already tolerates.
+                // It accepted four for `items` and four for `total`, but only
+                // two here — so an endpoint returning a Spring Page rendered its
+                // rows and its count perfectly well while the pager silently
+                // vanished, leaving page 1 of N with no way to reach page 2.
+                pagination={listRes?.pagination
+                  || listRes?.data?.pagination
+                  || (listRes?.totalElements != null ? {
+                        currentPage:  (listRes.number ?? 0) + 1,
+                        pageSize:     listRes.size ?? items.length,
+                        totalItems:   listRes.totalElements,
+                        totalPages:   listRes.totalPages ?? 1,
+                        hasNext:      !(listRes.last ?? true),
+                        hasPrevious:  !(listRes.first ?? true),
+                     } : undefined)}
                 onPageChange={(p) => setPage(p - 1)}
                 selectable={!!screenConfig?.layout?.selectable && listScreenActions.some(a => { try { return JSON.parse(a.payloadTemplateJson || '{}')['__bulk'] === true } catch { return false } })}
                 // Only meaningful where rows carry an `editable` flag — i.e. the
@@ -2391,12 +2405,29 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
   const [actingId,   setActingId]   = useState(null)
   const [confirmAction, setConfirmAction] = useState(null) // { action, remarks }
   const [detailFormAction, setDetailFormAction] = useState(null) // action that opens form modal
+  // An action whose payload names a __component instead of an endpoint. Same
+  // registry the list's row menu uses — see ROW_ACTION_COMPONENTS.
+  const [detailComponent, setDetailComponent] = useState(null)
   const qcDetail = useQueryClient()
 
   const executeAction = async (action, remarks = '') => {
     let meta = {}
     try { meta = JSON.parse(action.payloadTemplateJson || '{}') } catch {}
 
+    // A component action owns its own flow — several steps, several requests.
+    //
+    // Mirrors runRowMenuAction, deliberately: ONE ui_actions row drives both the
+    // list's row menu and this screen's header button, so an action that works
+    // from the list has to work from here. Without this branch the action fell
+    // through to the API call below with api_endpoint = NULL, which left `url`
+    // empty, POSTed to the axios baseURL and came back 404 — reported as
+    // "<label> failed", naming neither the action nor the real reason.
+    if (meta.__component) {
+      const Comp = ROW_ACTION_COMPONENTS[meta.__component]
+      if (!Comp) { toast.error(`Unknown action component: ${meta.__component}`); return }
+      setDetailComponent({ name: meta.__component, action })
+      return
+    }
     // Form-opening actions
     if (meta.__formKey) { setDetailFormAction(action); return }
     // Navigation actions
@@ -2425,6 +2456,14 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
     // with nothing. The second is worse — it produces a valid-looking URL with an
     // empty path segment that the server answers with a confusing error rather
     // than a 404.
+    // No endpoint at all, and none of the three payload conventions above
+    // claimed it: the row is misconfigured. Checked BEFORE the token guards,
+    // which an empty string passes — '' contains no '{' and no '//' — so the
+    // request went out against the axios baseURL instead of being refused here.
+    if (!url) {
+      toast.error(`${action.label} has no endpoint configured`)
+      return
+    }
     if (url.includes('{') || url.includes('//', url.indexOf('://') + 3)) {
       toast.error(`${action.label}: this record has no value for one of the fields the action needs`)
       return
@@ -2554,6 +2593,16 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
   const handleActionClick = (action) => {
     let meta = {}
     try { meta = JSON.parse(action.payloadTemplateJson || '{}') } catch {}
+    // Intercepted here as well as in executeAction. A component action carrying
+    // requires_confirmation would otherwise open a confirm dialog whose button
+    // then opens the wizard — two dialogs for one click. The component owns its
+    // own confirmation step.
+    if (meta.__component) {
+      const Comp = ROW_ACTION_COMPONENTS[meta.__component]
+      if (!Comp) { toast.error(`Unknown action component: ${meta.__component}`); return }
+      setDetailComponent({ name: meta.__component, action })
+      return
+    }
     if (meta.__formKey) { setDetailFormAction(action); return }
     if (action.requiresConfirmation || action.requiresRemarks) {
       setConfirmAction({ action, remarks: '' })
@@ -3186,6 +3235,35 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
               submitLabel={detailFormAction.label}
             />
           </Modal>
+        )
+      })()}
+
+      {/* Component actions — see ROW_ACTION_COMPONENTS.
+          Rendered inside detailBody rather than in either shell, so the full
+          page and the drawer both get it from one place and cannot drift.
+          Mounted at this level rather than beside the button so a re-render of
+          the header — which every invalidation causes — cannot unmount a
+          two-request wizard between its two requests. */}
+      {detailComponent && (() => {
+        const Comp = ROW_ACTION_COMPONENTS[detailComponent.name]
+        if (!Comp) return null
+        return (
+          <Comp
+            vendorId={id}
+            vendorName={entityLabel}
+            entityId={id}
+            row={entity}
+            onClose={() => setDetailComponent(null)}
+            onDone={() => {
+              // The same four queries executeAction invalidates. A restarted
+              // workflow changes the entity, its view context, its timeline and
+              // its row in the list behind this page.
+              qcDetail.invalidateQueries({ queryKey: ['module-detail', bp.apiBasePath, id] })
+              qcDetail.invalidateQueries({ queryKey: ['view-context', bp.entityType, id] })
+              qcDetail.invalidateQueries({ queryKey: ['module-workflow', bp.entityType, id] })
+              qcDetail.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+            }}
+          />
         )
       })()}
     </>
