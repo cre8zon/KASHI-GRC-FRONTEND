@@ -715,15 +715,55 @@ function ModuleListView({ bp }) {
   // only DRAFT or DEPRECATED. The server still enforces it independently, and
   // additionally refuses a policy an engagement already uses — which the client
   // cannot know from the list row.
-  const canDeleteRow = useCallback((row) => row?.editable !== false
-    && (isPlatformSide || ['DRAFT', 'DEPRECATED'].includes(row?.status)),
-    [isPlatformSide])
+  /**
+   * Who is offered Delete on a row.
+   *
+   * `isPlatformSide ||` short-circuited the status check, so a platform admin
+   * saw Delete on every row of every module while the server refused most of
+   * them. And the clause in front of it, `editable !== false`, hid Delete on
+   * exactly the rows a platform admin SHOULD be able to delete: editable ===
+   * false is how a platform-owned row reads to the tenant looking at it (the
+   * detail page calls the same test `platformOwned`). The rule was wrong in
+   * both directions at once.
+   *
+   * Split by who owns the row instead:
+   *
+   *   platform side  the platform's own rows, at any status - the audit library
+   *                  deliberately lets a system user delete a PUBLISHED
+   *                  template, so a status gate here would block real work.
+   *                  Not a customer's rows: those are theirs.
+   *   everyone else  their own rows, and only at a status where deleting is
+   *                  meaningful.
+   *
+   * Platform admins lose the Delete button on tenant-owned rows. That is the
+   * point - the server was already refusing those.
+   */
+  const canDeleteRow = useCallback((row) => {
+    const platformOwned = row?.editable === false
+    return isPlatformSide
+      ? platformOwned
+      : !platformOwned && ['DRAFT', 'DEPRECATED'].includes(row?.status)
+  }, [isPlatformSide])
 
-  const deleteOne = useCallback(async (row) => {
+  const [deleteReason, setDeleteReason] = useState('')
+
+  const deleteOne = useCallback(async (row, reason) => {
     if (deleting) return          // double-click guard — delete is not idempotent
     setDeleting(true)
     try {
-      await api.delete(`${bp.apiBasePath}/${row.id}`)
+      // The reason goes out BOTH ways, because the modules disagree on how to
+      // take it and this one button serves all of them:
+      //
+      //   body   PersonnelController wants @Valid @RequestBody
+      //          PersonnelDeleteRequest. Sending none failed validation before
+      //          any logic ran, so Delete on the one module that already did
+      //          soft delete properly was the one that 400'd.
+      //   param  the audit soft deletes take @RequestParam.
+      //
+      // An endpoint that wants neither ignores both.
+      const body = reason && reason.trim() ? { reason: reason.trim() } : undefined
+      await api.delete(`${bp.apiBasePath}/${row.id}`,
+        body ? { data: body, params: { reason: body.reason } } : undefined)
       qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
       toast.success('Deleted')
     } catch (e) {
@@ -734,6 +774,7 @@ function ModuleListView({ bp }) {
     } finally {
       setDeleting(false)
       setDeleteRow(null)
+      setDeleteReason('')
     }
   }, [bp.apiBasePath, qc, deleting])
 
@@ -1366,16 +1407,42 @@ function ModuleListView({ bp }) {
         <ConfirmDialog
           open
           title={`Delete ${deleteRow.title || deleteRow.name || 'this record'}?`}
-          message={'This permanently deletes the record and its control mappings. '
-                 + 'It cannot be undone.'}
+          // The old copy said "permanently deletes … cannot be undone", which
+          // is no longer true of the modules that now retire a record instead,
+          // and was never true of personnel. It says what actually happens and
+          // leaves the specifics to the server's own refusal message.
+          message={'The record is removed from lists. Where the module supports it '
+                 + 'the record is kept and can be restored; where it does not, '
+                 + 'deletion is permanent.'}
           confirmLabel="Delete"
           variant="danger"
           // ConfirmDialog passes this to its confirm Button, which disables
           // itself while loading — so the dialog cannot be double-submitted.
           loading={deleting}
-          onConfirm={() => deleteOne(deleteRow)}
-          onClose={() => setDeleteRow(null)}
-        />
+          onConfirm={() => deleteOne(deleteRow, deleteReason)}
+          onClose={() => { setDeleteRow(null); setDeleteReason('') }}
+        >
+        {/*
+          Optional, and sent to every module. Personnel REQUIRES it - its
+          delete takes a @RequestBody with a reason, so the generic button has
+          been failing validation there - and the audit soft deletes record it
+          on the row, where it is the first thing anyone asks for later.
+          A module that wants neither ignores it.
+        */}
+        <label className="block mt-3">
+          <span className="text-xs font-medium text-text-secondary">Reason</span>
+          <textarea
+            value={deleteReason}
+            onChange={e => setDeleteReason(e.target.value)}
+            rows={2}
+            maxLength={500}
+            placeholder="Why is this being deleted? Kept on the record."
+            className="mt-1 w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-card
+                       text-text-primary placeholder:text-text-muted resize-none
+                       focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+        </label>
+      </ConfirmDialog>
       )}
 
       {/* TestPolicyCsvImportModal — sibling, not nested inside bp.createFormKey */}

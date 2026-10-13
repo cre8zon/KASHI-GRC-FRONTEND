@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Check, CheckCheck, Clock, X, Loader2 } from 'lucide-react'
+import { Check, CheckCheck, Clock, X } from 'lucide-react'
 import { chatApi, list } from '../../api/chat.api'
 import { cn } from '../../lib/cn'
 
@@ -116,15 +116,30 @@ function PersonRow({ p }) {
  */
 export function MessageReceipt({ receipt, messageId, pending, direct }) {
   const [open, setOpen] = useState(false)
+  const [warm, setWarm] = useState(false)
+  const arm = () => setWarm(true)
 
   // enabled: open — the panel is the only thing that needs this, so a
   // conversation of 200 messages makes zero receipt requests until somebody
   // asks about one. staleTime 0 because the interesting case is "did they read
   // it in the last few seconds", which a cached answer would hide.
+  // -- WARM ON INTENT, NOT ON CLICK ---------------------------------------
+  //
+  // enabled was `open`, so every single time you asked who had read a message
+  // you were shown a spinner first. The request is small and the intent is
+  // visible well before the click: pointing at the ticks, or tabbing onto
+  // them, is enough to start it, and by the time the panel opens the answer is
+  // usually already here.
+  //
+  // `warm` is sticky. Once armed it stays armed, so the query is not torn down
+  // when the pointer leaves and a second look costs nothing.
+  //
+  // Still zero requests for a conversation nobody asks about — a message you
+  // never point at never warms, which is what the original `enabled` was for.
   const { data, isLoading } = useQuery({
     queryKey: ['chat-receipts', String(messageId)],
     queryFn:  () => chatApi.receipts(messageId),
-    enabled:  open && messageId != null && !pending,
+    enabled:  (open || warm) && messageId != null && !pending,
     staleTime: 0,
   })
   const people = list(data)
@@ -161,6 +176,7 @@ export function MessageReceipt({ receipt, messageId, pending, direct }) {
           happened — and in groups there was no affordance saying it could be
           clicked at all. */}
       <button type="button" onClick={() => setOpen(o => !o)}
+        onMouseEnter={arm} onFocus={arm} onTouchStart={arm}
         className={cn('inline-flex items-center gap-1 text-[10px] rounded px-1 -mx-0.5',
           'hover:bg-surface-overlay/70 transition-colors cursor-pointer', tone)}
         aria-expanded={open}
@@ -185,9 +201,21 @@ export function MessageReceipt({ receipt, messageId, pending, direct }) {
               </button>
             </div>
 
+            {/*
+              Rows in outline rather than a spinner, so the panel opens at
+              roughly its final size and the names drop into place instead of
+              the whole thing jumping from one line to a list. On a warmed
+              query this branch never renders at all.
+            */}
             {isLoading && (
-              <div className="flex items-center gap-1.5 py-2 text-[11px] text-text-muted">
-                <Loader2 size={12} className="animate-spin" /> Loading…
+              <div className="py-1 divide-y divide-border-subtle" aria-busy="true" aria-label="Loading message info">
+                {[0, 1].map(i => (
+                  <div key={i} className="flex items-center gap-2 py-1.5">
+                    <span className="h-5 w-5 rounded-full bg-surface-overlay animate-pulse shrink-0" />
+                    <span className="h-2.5 rounded bg-surface-overlay animate-pulse flex-1 max-w-[7rem]" />
+                    <span className="h-2.5 w-10 rounded bg-surface-overlay animate-pulse shrink-0" />
+                  </div>
+                ))}
               </div>
             )}
 

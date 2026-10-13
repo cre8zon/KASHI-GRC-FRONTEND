@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Building2, Users, Layers, UserMinus, Pencil, Archive, RotateCcw, Calendar, X } from 'lucide-react'
 import { collabApi, unwrapList, unwrapOne, errMsg } from '../../api/collab.api'
@@ -40,6 +40,29 @@ export default function WorkspaceDetailPage() {
   const [progMembersId, setProgMembersId] = useState(null) // programme id
   const [removing, setRemoving] = useState(null)          // member
   const [tab, setTab] = useUrlState('tab', 'overview')
+  const [, setSearchParams] = useSearchParams()
+
+  /**
+   * Open one programme's plan.
+   *
+   * WorkspacePlanTab already picks its programme from ?prog= (falling back to a
+   * per-workspace localStorage memo, then the first programme), so the whole of
+   * this is landing on the Plan tab with ?prog= already set.
+   *
+   * One setSearchParams, not setTab() followed by a separate prog write: two
+   * calls would leave a history entry on the Plan tab showing whichever
+   * programme was last remembered, so Back would go there instead of to
+   * Overview. Built from `prev` for the same reason useUrlState does — this URL
+   * can also carry state another tab put there.
+   */
+  const openProgramme = (programmeId) => {
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev)
+      p.set('tab', 'plan')
+      p.set('prog', String(programmeId))
+      return p
+    })
+  }
   const [requestId, setRequestId] = useUrlState('request', '')
 
   const { data: raw, isLoading, isError } = useQuery({
@@ -158,9 +181,21 @@ export default function WorkspaceDetailPage() {
               ) : programmes.map(p => (
                 <div key={p.id} className="px-4 py-3 border-b border-border-subtle last:border-0">
                   <div className="flex items-start justify-between gap-3">
+                    {/*
+                      The name opens this programme's plan. A button rather than
+                      a wrapper round the whole row: People and Edit sit in the
+                      same row, and a row-level onClick would fire on its way to
+                      them. Keyboard and middle-click behaviour come free.
+                    */}
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-text-primary flex items-center gap-2">
-                        <Layers size={13} className="text-text-muted shrink-0" /> {p.name}
+                      <button
+                        type="button"
+                        onClick={() => openProgramme(p.id)}
+                        title={`Open the ${p.name} plan`}
+                        className="text-left w-full group"
+                      >
+                      <p className="text-sm font-medium text-text-primary flex items-center gap-2 group-hover:text-brand-ink transition-colors">
+                        <Layers size={13} className="text-text-muted shrink-0" /> <span className="underline-offset-2 group-hover:underline">{p.name}</span>
                         <Badge label={p.status?.charAt(0) + p.status?.slice(1).toLowerCase()} colorTag={PROG_STATUS[p.status] || 'gray'} />
                       </p>
                       {(p.plannedStart || p.plannedEnd) && (
@@ -169,6 +204,7 @@ export default function WorkspaceDetailPage() {
                         </p>
                       )}
                       {p.description && <p className="text-xs text-text-secondary mt-1">{p.description}</p>}
+                      </button>
                       <div className="flex flex-wrap gap-1 mt-2">
                         {(p.memberUserIds || []).map(uid => (
                           <span key={uid} className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-overlay text-text-secondary">

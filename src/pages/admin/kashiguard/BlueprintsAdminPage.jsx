@@ -17,6 +17,7 @@ import { Input }         from '../../../components/ui/Input'
 import { Badge }         from '../../../components/ui/Badge'
 import { cn }            from '../../../lib/cn'
 import { blueprintsApi } from '../../../api/guardRules.api'
+import { rbacApi }       from '../../../api/rbac.api'
 import { useSelector }   from 'react-redux'
 import { selectAuth }    from '../../../store/slices/authSlice'
 import toast             from 'react-hot-toast'
@@ -112,6 +113,99 @@ function NavKeySelect({ label, value, onChange }) {
   )
 }
 
+/**
+ * roles, as a picker.
+ *
+ * ── WHY THIS IS NOT A TEXT BOX ────────────────────────────────────────────────
+ *
+ * resolution_role is matched to people as a plain string.
+ * ActionItemSpecification.resolvableBy:
+ *
+ *     root.get("resolutionRole").in(userRoles)
+ *
+ * userRoles is the caller's role NAMES. So a name that is not a real role
+ * matches nobody: the finding is raised, appears in no inbox, and is closed by
+ * no one. Nothing fails, nothing is logged, and the only symptom is that
+ * KashiGuard findings quietly go nowhere.
+ *
+ * A free-text box could not tell the difference, and a typo cost the same as a
+ * wrong answer. This asks the roles table, so an unmatchable value cannot be
+ * entered in the first place.
+ *
+ * ── THE SAME SOURCE THE WORKFLOW DESIGNER USES ────────────────────────────────
+ *
+ * rbacApi.roles.list is what NavigationAdminPage's grant modal reads, over
+ * /v1/tenants/{id}/roles/hierarchy — the same table StepForm's actor and
+ * assigner pickers choose from. If a workflow task and an action item are
+ * going to share a resolver, they have to resolve against the same list.
+ * Suspended roles are excluded by that call's default, which is correct here:
+ * a parked role holds no users.
+ *
+ * tenantId is null for a platform admin; rbacApi.roles.list falls back to
+ * tenant 1, which returns that tenant's roles AND the global ones (tenant_id
+ * NULL). Those global names are the ones a global blueprint should use, since
+ * a global blueprint is evaluated in every tenant.
+ */
+function useRoleOptions() {
+  const { tenantId } = useSelector(selectAuth)
+  return useQuery({
+    queryKey: ['rbac-roles-all', tenantId || 1],
+    queryFn:  () => rbacApi.roles.list(tenantId),
+    staleTime: 5 * 60 * 1000,
+    select: (roles) => (Array.isArray(roles) ? roles : [])
+      .filter(r => r?.name)
+      .sort((a, b) => (a.side || '').localeCompare(b.side || '')
+                   || a.name.localeCompare(b.name)),
+  })
+}
+
+function ResolutionRoleSelect({ value, onChange }) {
+  const { data: roles = [], isLoading } = useRoleOptions()
+
+  // A value that matches no role we loaded. Two honest reasons for it: a
+  // blueprint saved before this picker existed, and a role that lives in
+  // another tenant. Either way it is kept as an option and labelled, because
+  // silently rewriting somebody's saved value on open would be worse than
+  // showing them it is wrong.
+  const known   = roles.some(r => r.name === value)
+  const orphan  = !!value && !isLoading && !known
+
+  // Group by side, the way the roles screen presents them.
+  const bySide = roles.reduce((acc, r) => {
+    const k = r.side || 'OTHER'
+    ;(acc[k] = acc[k] || []).push(r)
+    return acc
+  }, {})
+
+  return (
+    <div>
+      <label className="text-xs text-text-muted mb-1 block">Resolution Role</label>
+      <select
+        value={value || ''}
+        onChange={e => onChange(e.target.value)}
+        className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
+        <option value="">{isLoading ? 'Loading roles\u2026' : 'None \u2014 nobody resolves by role'}</option>
+        {orphan && (
+          <option value={value}>{`${value} \u2014 not a current role`}</option>
+        )}
+        {Object.entries(bySide).map(([side, list]) => (
+          <optgroup key={side} label={side}>
+            {list.map(r => (
+              <option key={r.id ?? r.name} value={r.name}>{r.name}</option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+      <p className={cn('text-[10px] mt-1',
+        orphan ? 'text-status-warn-fg' : 'text-text-muted')}>
+        {orphan
+          ? 'No role is called this, so items raised from this blueprint reach nobody.'
+          : 'Everyone holding this role sees items raised from this blueprint.'}
+      </p>
+    </div>
+  )
+}
+
 function BlueprintModal({ blueprint, onClose }) {
   const isEdit = !!blueprint?.id
   const { mutate: save, isPending } = useSaveBlueprint(blueprint?.id)
@@ -120,7 +214,7 @@ function BlueprintModal({ blueprint, onClose }) {
     category:            blueprint?.category            || '',
     titleTemplate:       blueprint?.titleTemplate       || '',
     descriptionTemplate: blueprint?.descriptionTemplate || '',
-    resolutionRole:      blueprint?.resolutionRole      || 'ORG_REVIEWER',
+    resolutionRole:      blueprint?.resolutionRole      || 'REVIEWER',
     defaultPriority:     blueprint?.defaultPriority     || 'MEDIUM',
     standardRef:         blueprint?.standardRef         || '',
     blueprintCode:       blueprint?.blueprintCode       || '',
@@ -185,9 +279,8 @@ function BlueprintModal({ blueprint, onClose }) {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <Input label="Resolution Role" value={form.resolutionRole}
-            onChange={e => set('resolutionRole', e.target.value)}
-            placeholder="e.g. ORG_REVIEWER, LEAD_AUDITOR" />
+          <ResolutionRoleSelect value={form.resolutionRole}
+            onChange={v => set('resolutionRole', v)} />
           <div>
             <label className="text-xs text-text-muted mb-1 block">Default Priority</label>
             <select value={form.defaultPriority} onChange={e => set('defaultPriority', e.target.value)}
