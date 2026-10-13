@@ -55,6 +55,18 @@ const layoutBody = (cols) => cols.map(c => ({
   ...(c.width ? { width: c.width } : {}), ...(c.hidden ? { hidden: true } : {}),
 }))
 
+/**
+ * Run `onRefused` when a commit answers false, whether it answers straight away
+ * or through a promise. A throw counts as a refusal too: a cell that keeps text
+ * the server never took is the one failure worth never shipping.
+ */
+function refuse(result, onRefused) {
+  if (result === false) { onRefused(); return }
+  if (result && typeof result.then === 'function') {
+    result.then((ok) => { if (ok === false) onRefused() }, () => onRefused())
+  }
+}
+
 /** Patch the cached plan in place, so edits show before the server answers. */
 function patchCache(qc, workspaceId, fn) {
   qc.setQueryData(['collab-plan', workspaceId], (old) => {
@@ -131,13 +143,43 @@ export function PlanSheet({ workspaceId, items, allItems, programmes, members, c
    * called "New task", with the name selected so you can type over it.
    */
   const createFromDraft = async (draft, body) => {
-    if (drafting) return
+    if (drafting) return false
     const { status, progress, ...rest } = body
     const named = !!rest.title?.trim()
+    const title = named ? rest.title.trim() : 'New task'
     setDrafting(true)
+
+    /**
+     * Show the row before the server has it.
+     *
+     * Adding a row is two hops - create, then the refetch in `finally` - and
+     * until both land the sheet shows nothing at all. Typing a name, pressing
+     * Enter and watching an empty row for half a second reads as a dropped
+     * keystroke, which is why people press Enter again and end up with two.
+     * Editing a cell has always patched the cache this way (`save.mutate`);
+     * adding one simply never did.
+     *
+     * The provisional row is not editable - the id is temporary and the server
+     * has not accepted anything yet. The refetch replaces it with the real row
+     * moments later, and the catch below takes it out again if the create
+     * fails, so a row never lingers for work that did not happen.
+     */
+    const tempId = `pending-${Date.now()}`
+    patchCache(qc, workspaceId, (plan) => ({
+      ...plan,
+      items: [...plan.items, {
+        ...rest,
+        id: tempId, pending: true, kind: 'TASK', title,
+        programmeId: draft.programmeId, parentId: rest.parentId ?? null,
+        sortOrder: nextOrder(),
+        status: status || 'NOT_STARTED', progress: progress ?? 0,
+        custom: {}, canEdit: false, canUpdateStatus: false,
+      }],
+    }))
+
     try {
       const created = await collabApi.createItem(workspaceId, {
-        kind: 'TASK', ...rest, title: named ? rest.title.trim() : 'New task',
+        kind: 'TASK', ...rest, title,
         programmeId: draft.programmeId, sortOrder: nextOrder(),
       })
       if (created?.id && (status || progress != null)) {
@@ -146,8 +188,13 @@ export function PlanSheet({ workspaceId, items, allItems, programmes, members, c
         })
       }
       if (created?.id && !named) setFocusId(created.id)
+      return true
     } catch (e) {
       toast.error(errMsg(e, 'Could not add the row'))
+      patchCache(qc, workspaceId, (plan) => ({
+        ...plan, items: plan.items.filter(i => i.id !== tempId),
+      }))
+      return false
     } finally {
       setDrafting(false)
       onChanged()
@@ -278,7 +325,12 @@ export function PlanSheet({ workspaceId, items, allItems, programmes, members, c
     const linked = item.progressMode === 'LINKED'
     const ms = item.kind === 'MILESTONE'
     const h = health(item, today)
-    const common = { col: col.key, item: item.id, onEnter: moveDown }
+    // clearOnCommit: the blank row at the end of a section is a submit box, not
+    // a bound cell. Its `value` is "" for ever — committing it creates a NEW
+    // row elsewhere, so nothing upstream will ever echo back what was typed.
+    // Every cell in that row needs to empty itself on commit, or the next task
+    // starts life pre-filled with the last one's text.
+    const common = { col: col.key, item: item.id, onEnter: moveDown, clearOnCommit: !!item.draft }
     const coloured = !!styleOf(item, col.key).color || !!styleOf(item, col.key).bg   // formatting wins over status colours
     switch (col.key) {
       case 'title':
@@ -299,7 +351,11 @@ export function PlanSheet({ workspaceId, items, allItems, programmes, members, c
           <div className="flex items-center" style={{ paddingLeft: depth * 16 }}>
             <TextCell {...common} value={item.title} disabled={!full}
               className={item.kind === 'PHASE' && !styleOf(item, 'title').b ? 'font-semibold' : ''}
-              onCommit={(v) => v.trim() ? patch(item, { title: v.trim() }) : toast.error('A task needs a name')} />
+              // Emptying a name is how you start retyping one, not a mistake to
+              // be told off for. Refuse it quietly and the old name comes back,
+              // the way clearing a required cell behaves in a spreadsheet.
+              // Removing the row is the ⋮ menu's job, deliberately separate.
+              onCommit={(v) => v.trim() ? patch(item, { title: v.trim() }) : false} />
             {item.linked && <Link2 size={11} className="shrink-0 text-brand-ink mr-1" aria-label="Linked to an engagement" />}
           </div>
         )
@@ -336,7 +392,10 @@ export function PlanSheet({ workspaceId, items, allItems, programmes, members, c
           : <TextCell {...common} value={String(item.progress ?? 0)} disabled={!own} className="text-right" inputMode="numeric"
               onCommit={(v) => {
                 const n = Math.round(Number(v))
-                if (!Number.isFinite(n) || n < 0 || n > 100) { toast.error('% must be 0–100'); onChanged(); return }
+                // A number the column cannot hold IS worth saying out loud -
+                // unlike an empty name, it is not a step on the way anywhere.
+                // `false` puts the old value back without a refetch.
+                if (!Number.isFinite(n) || n < 0 || n > 100) { toast.error('% must be 0–100'); return false }
                 patch(item, { progress: n })
               }} />
       case 'notes':
@@ -347,7 +406,7 @@ export function PlanSheet({ workspaceId, items, allItems, programmes, members, c
         switch (col.type) {
           case 'NUMBER':
             return <TextCell {...common} value={val == null ? '' : String(val)} disabled={!own} className="text-right" inputMode="decimal"
-              onCommit={(v) => { if (v.trim() && !Number.isFinite(Number(v.replace(/,/g, '')))) { toast.error(`${col.label} takes a number`); onChanged(); return } set(v.trim() || null) }} />
+              onCommit={(v) => { if (v.trim() && !Number.isFinite(Number(v.replace(/,/g, '')))) { toast.error(`${col.label} takes a number`); return false } set(v.trim() || null) }} />
           case 'DATE':
             return <DateCell {...common} value={val || ''} disabled={!own} onCommit={(v) => set(v || null)} />
           case 'SELECT':
@@ -475,16 +534,25 @@ export function PlanSheet({ workspaceId, items, allItems, programmes, members, c
                 const at = sibs.findIndex(s => s.id === item.id)
                 const open = menu?.kind === 'row' && menu.key === item.id
                 return (
-                  <tr key={item.id} className="group border-b border-border/40 hover:bg-surface-overlay/30">
+                  <tr key={item.id} className={cn('group border-b border-border/40 hover:bg-surface-overlay/30',
+                    // On screen, not yet on the server. Dimmed so it reads as
+                    // landing rather than as a row you can already work on.
+                    item.pending && 'opacity-60')}>
                     <td className={cn('relative px-0 text-[10px] text-text-muted border-r border-border/40',
                       sel?.id === item.id && sel.col == null && 'bg-brand-500/15')}>
                       <div className="flex items-center justify-between pl-1.5">
                         <button type="button" title="Select the row (to format it)" onClick={() => setSel({ id: item.id, col: null })}
                           className="flex-1 text-left hover:text-text-primary">{idx + 1}</button>
-                        <button type="button" aria-label="Row options" onClick={(e) => setMenu({ kind: 'row', key: item.id, rect: e.currentTarget.getBoundingClientRect() })}
-                          className={cn('p-0.5 rounded hover:bg-surface-overlay text-text-secondary', open ? 'visible' : 'invisible group-hover:visible')}>
-                          <MoreVertical size={12} />
-                        </button>
+                        {/* No menu on a row the server has not accepted yet:
+                            its id is temporary, so move, indent, history and
+                            remove have nothing real to act on. It is back a
+                            moment later on the saved row. */}
+                        {!item.pending && (
+                          <button type="button" aria-label="Row options" onClick={(e) => setMenu({ kind: 'row', key: item.id, rect: e.currentTarget.getBoundingClientRect() })}
+                            className={cn('p-0.5 rounded hover:bg-surface-overlay text-text-secondary', open ? 'visible' : 'invisible group-hover:visible')}>
+                            <MoreVertical size={12} />
+                          </button>
+                        )}
                       </div>
                       {open && (
                         <Popover onClose={() => setMenu(null)} rect={menu.rect} align="left">
@@ -773,14 +841,24 @@ const cellCls = 'w-full h-8 px-2 bg-transparent outline-none border border-trans
  *    said before, then forward again a moment later when the patch arrived.
  *    Not slow saving: the save was instant and the cell was arguing with it.
  *    `sent` holds what we committed and the effect waits for the upstream value
- *    to agree before it touches the box again.
+ *    to settle before it touches the box again. "Settle" means agreeing with
+ *    what we sent OR moving anywhere else — a wait that can only end one way is
+ *    a wait that sometimes never ends, and a cell stuck on stale text is worse
+ *    than the flicker this replaced.
+ *
+ *    The blank row at the end of a section is not a bound cell at all: its
+ *    `value` is "" permanently, and committing it creates a row somewhere else
+ *    in the sheet. There is nothing for it to wait FOR, so `clearOnCommit`
+ *    empties it on the spot. Without that, the next task you type starts out
+ *    holding the last one's name.
  *
  * 3. UNCOMMITTED TEXT SURVIVES LEAVING. Typing into a cell and switching tabs
  *    unmounts the sheet and took the half-typed value with it. The same
  *    treatment the chat composer gets, keyed on the row and column - plan item
  *    ids are unique across workspaces, so the key needs nothing else.
  */
-function TextCell({ value, onCommit, disabled, col, item, onEnter, className, placeholder, inputMode, onPaste }) {
+function TextCell({ value, onCommit, disabled, col, item, onEnter, className, placeholder, inputMode, onPaste,
+                    clearOnCommit = false }) {
   const draftKey = (item == null || col == null) ? null : `plan-cell:${item}:${col}`
   const [v, setV] = useState(() => {
     if (!draftKey) return value ?? ''
@@ -794,7 +872,7 @@ function TextCell({ value, onCommit, disabled, col, item, onEnter, className, pl
   })
   const [focused, setFocused] = useState(false)
   const cancel = useRef(false)
-  const sent   = useRef(null)      // the value we committed, until upstream agrees
+  const sent   = useRef(null)      // { text, base } — what we committed, and what it replaced
   const ta     = useRef(null)
 
   const forget = () => { if (draftKey) { try { window.localStorage.removeItem(draftKey) } catch { /* ignore */ } } }
@@ -808,13 +886,28 @@ function TextCell({ value, onCommit, disabled, col, item, onEnter, className, pl
     el.style.height = `${el.scrollHeight}px`
   }, [v])
 
+  // Sync down from upstream, except while a commit of ours is in flight.
+  //
+  // The wait has to be able to END, and there are three ways out, not one:
+  //
+  //   upstream now equals what we sent   → it landed; take it
+  //   upstream moved to something ELSE   → it landed and was changed on the way
+  //                                        (a trim, a server default, somebody
+  //                                        else's edit); take that too
+  //   upstream still reads what it did   → genuinely in flight; leave the box
+  //
+  // The middle case is the one that was missing. Committing "Review  " saves
+  // "Review": upstream would never echo the trailing spaces back, the wait
+  // never ended, and the cell sat on stale text for good.
   useEffect(() => {
     if (focused) return
-    if (sent.current !== null) {
-      if ((value ?? '') === sent.current) sent.current = null   // it landed
-      else return                                               // still in flight
+    const up = value ?? ''
+    if (sent.current) {
+      if (up === sent.current.text) sent.current = null        // landed as sent
+      else if (up !== sent.current.base) sent.current = null   // landed, changed on the way
+      else return                                              // still in flight
     }
-    setV(value ?? '')
+    setV(up)
   }, [value, focused])
 
   // Keep the draft while it differs from what is saved; drop it when it does not.
@@ -835,7 +928,25 @@ function TextCell({ value, onCommit, disabled, col, item, onEnter, className, pl
       onBlur={() => {
         setFocused(false)
         if (cancel.current) { cancel.current = false; setV(value ?? ''); forget(); return }
-        if (v !== (value ?? '')) { sent.current = v; forget(); onCommit(v) }
+        const typed = v
+        const was   = value ?? ''
+        if (typed === was) return
+        forget()
+
+        // A submit box empties now - the row it creates is already on screen,
+        // patched into the cache before the request goes out. A bound cell
+        // holds what it sent until upstream settles.
+        if (clearOnCommit) setV('')
+        else sent.current = { text: typed, base: was }
+
+        // onCommit may answer false - now, or later through a promise - to say
+        // it did not take the value: a name that cannot be blank, a number the
+        // column cannot hold, a create the server refused. Nothing typed is
+        // lost to a refusal, and no refusal costs a refetch.
+        refuse(onCommit(typed), () => {
+          sent.current = null
+          setV(clearOnCommit ? typed : was)   // the box to correct, or the old value back
+        })
       }}
       onKeyDown={e => {
         // Shift+Enter is a new line; plain Enter still saves and moves down.
