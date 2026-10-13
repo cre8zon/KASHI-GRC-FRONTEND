@@ -6,6 +6,7 @@ import {
   Send, Globe, Archive, Paperclip, Smile, SmilePlus, Reply, Pin, PinOff, Video, Loader2,
   Bold, Italic, Strikethrough, Code, List, FileText, Image as ImageIcon, Info,
 } from 'lucide-react'
+import { useDraft } from '../../hooks/useDraft'
 import { chatApi, one, list, errMsg } from '../../api/chat.api'
 import { collabApi, unwrapOne } from '../../api/collab.api'
 import { useChatSocket } from '../../hooks/useChatSocket'
@@ -924,7 +925,10 @@ function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, 
  * conversation, so only its members can open it); Send posts the text with them.
  */
 function Composer({ id, members, meId, onSending, onSent, onFailed, replyingTo, onCancelReply, apiRef }) {
-  const [text, setText] = useState('')
+  // Kept per conversation and per browser, so switching to Workspaces and back
+  // — which unmounts this whole page — returns you to what you were typing.
+  // Keyed on `id`: the draft follows the conversation, not the box.
+  const [text, setText, clearDraft] = useDraft(id ? `chat-draft:${id}` : null)
   const [mentions, setMentions] = useState([])     // { userId, name }
   const [picker, setPicker] = useState(null)       // { start, query }
   const [pick, setPick] = useState(0)
@@ -973,7 +977,9 @@ function Composer({ id, members, meId, onSending, onSent, onFailed, replyingTo, 
       : tagged.filter(m => !m.isAll && body.includes('@' + m.name)).map(m => m.userId)
     const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
-    setText(''); setMentions([]); setFiles([]); setPicker(null); setEmoji(false)
+    // clearDraft, not setText(''): the text has stopped being a draft, so the
+    // stored copy has to go too or it would come back on the next visit.
+    clearDraft(); setMentions([]); setFiles([]); setPicker(null); setEmoji(false)
     if (ta.current) { ta.current.style.height = 'auto'; ta.current.focus() }
     onSending({
       id: tempId, pending: true, mine: true, senderId: meId, body, mentions: ids, reactions: [],

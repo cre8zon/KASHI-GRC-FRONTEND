@@ -505,7 +505,7 @@ export function PlanSheet({ workspaceId, items, allItems, programmes, members, c
                       return (
                         <td key={c.key} onFocusCapture={() => setSel({ id: item.id, col: c.key })}
                           style={css.backgroundColor ? { backgroundColor: css.backgroundColor } : undefined}
-                          className={cn('p-0 border-r border-border/40 align-middle overflow-hidden',
+                          className={cn('p-0 border-r border-border/40 align-top',
                             picked && sel.col == null && 'shadow-[inset_0_0_0_9999px_rgba(99,102,241,0.06)]')}>
                           <div style={{ ...css, backgroundColor: undefined }}>{renderCell(c, item, depth, owners, phases)}</div>
                         </td>
@@ -524,7 +524,7 @@ export function PlanSheet({ workspaceId, items, allItems, programmes, members, c
                   <tr className="border-b border-border/40 bg-surface-secondary/10">
                     <td className="px-1 text-center text-[10px] text-text-muted border-r border-border/40">{g.rows.length + 1}</td>
                     {visible.map(c => (
-                      <td key={c.key} className="p-0 border-r border-border/40 align-middle overflow-hidden">
+                      <td key={c.key} className="p-0 border-r border-border/40 align-top">
                         {renderCell(c, draft, 0, owners, phases)}
                       </td>
                     ))}
@@ -753,28 +753,98 @@ const MenuItem = ({ icon: Icon, children, onClick, danger, disabled }) => (
 const cellCls = 'w-full h-8 px-2 bg-transparent outline-none border border-transparent ' +
   'focus:border-brand-500 focus:bg-surface-raised/80 focus:relative focus:z-[1] disabled:cursor-default'
 
-/** Saves on blur when changed. Enter saves and moves down; Esc puts the old value back. */
+/**
+ * Saves on blur when changed. Enter saves and moves down; Esc puts the old
+ * value back; Shift+Enter starts a new line.
+ *
+ * -- THREE THINGS CHANGED HERE --------------------------------------------
+ *
+ * 1. WRAPPING. This was an <input>, and an input is single-line by
+ *    definition - `truncate` was the only honest thing it could do with a long
+ *    task name. A textarea that grows to its content wraps, and the cell shows
+ *    the whole value instead of the first thirty characters and a tooltip.
+ *    Enter still commits, so the only thing that changes for the keyboard is
+ *    that Shift+Enter now gives you a second line.
+ *
+ * 2. THE PAUSE AFTER ENTER. Pressing Enter blurred the cell, which set
+ *    focused=false, which let the sync effect below run against `value` - and
+ *    `value` was still the OLD text, because the optimistic cache patch had not
+ *    landed in this render yet. So the cell visibly snapped back to what it
+ *    said before, then forward again a moment later when the patch arrived.
+ *    Not slow saving: the save was instant and the cell was arguing with it.
+ *    `sent` holds what we committed and the effect waits for the upstream value
+ *    to agree before it touches the box again.
+ *
+ * 3. UNCOMMITTED TEXT SURVIVES LEAVING. Typing into a cell and switching tabs
+ *    unmounts the sheet and took the half-typed value with it. The same
+ *    treatment the chat composer gets, keyed on the row and column - plan item
+ *    ids are unique across workspaces, so the key needs nothing else.
+ */
 function TextCell({ value, onCommit, disabled, col, item, onEnter, className, placeholder, inputMode, onPaste }) {
-  const [v, setV] = useState(value ?? '')
+  const draftKey = (item == null || col == null) ? null : `plan-cell:${item}:${col}`
+  const [v, setV] = useState(() => {
+    if (!draftKey) return value ?? ''
+    try {
+      const saved = window.localStorage.getItem(draftKey)
+      // Only a draft that still differs from the saved value is worth keeping:
+      // one that matches is just a stale copy of what is already in the row.
+      if (saved != null && saved !== (value ?? '')) return saved
+    } catch { /* storage blocked - fall through to the stored value */ }
+    return value ?? ''
+  })
   const [focused, setFocused] = useState(false)
   const cancel = useRef(false)
-  useEffect(() => { if (!focused) setV(value ?? '') }, [value, focused])
+  const sent   = useRef(null)      // the value we committed, until upstream agrees
+  const ta     = useRef(null)
+
+  const forget = () => { if (draftKey) { try { window.localStorage.removeItem(draftKey) } catch { /* ignore */ } } }
+
+  // Grow to fit. Runs on every value change and on mount, so a row that loads
+  // with three lines of text is three lines high straight away.
+  useEffect(() => {
+    const el = ta.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [v])
+
+  useEffect(() => {
+    if (focused) return
+    if (sent.current !== null) {
+      if ((value ?? '') === sent.current) sent.current = null   // it landed
+      else return                                               // still in flight
+    }
+    setV(value ?? '')
+  }, [value, focused])
+
+  // Keep the draft while it differs from what is saved; drop it when it does not.
+  useEffect(() => {
+    if (!draftKey) return
+    try {
+      if (v !== (value ?? '')) window.localStorage.setItem(draftKey, v)
+      else window.localStorage.removeItem(draftKey)
+    } catch { /* ignore */ }
+  }, [v, value, draftKey])
+
   return (
-    <input value={v} disabled={disabled} data-col={col} data-item={item} placeholder={placeholder} inputMode={inputMode}
-      title={v.length > 30 ? v : undefined}
+    <textarea ref={ta} rows={1} value={v} disabled={disabled} data-col={col} data-item={item}
+      placeholder={placeholder} inputMode={inputMode}
       onChange={e => setV(e.target.value)}
       onPaste={onPaste}
       onFocus={() => setFocused(true)}
       onBlur={() => {
         setFocused(false)
-        if (cancel.current) { cancel.current = false; setV(value ?? ''); return }
-        if (v !== (value ?? '')) onCommit(v)
+        if (cancel.current) { cancel.current = false; setV(value ?? ''); forget(); return }
+        if (v !== (value ?? '')) { sent.current = v; forget(); onCommit(v) }
       }}
       onKeyDown={e => {
-        if (e.key === 'Enter') { e.preventDefault(); const el = e.currentTarget; el.blur(); onEnter?.(el) }
+        // Shift+Enter is a new line; plain Enter still saves and moves down.
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault(); const el = e.currentTarget; el.blur(); onEnter?.(el)
+        }
         if (e.key === 'Escape') { cancel.current = true; e.currentTarget.blur() }
       }}
-      className={cn(cellCls, 'truncate', className)} />
+      className={cn(cellCls, 'resize-none overflow-hidden whitespace-pre-wrap break-words leading-snug py-1', className)} />
   )
 }
 

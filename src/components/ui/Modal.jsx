@@ -55,7 +55,11 @@ export function ConfirmDialog({ open, onClose, onCancel, onConfirm, title, messa
                                confirmLabel = 'Confirm', variant = 'danger', loading,
                                /** Shown in place of confirmLabel while loading. A bare '…'
                                 *  reads as a stalled button rather than work in progress. */
-                               loadingText }) {
+                               loadingText,
+                               /** Anything the dialog needs below the message — a reason box,
+                                *  a checkbox, a list of what will be affected. Optional, so
+                                *  every existing caller renders exactly as before. */
+                               children }) {
   const handleClose = onClose || onCancel
   return (
     <Modal open={open} onClose={handleClose} title={title} size="sm"
@@ -77,6 +81,7 @@ export function ConfirmDialog({ open, onClose, onCancel, onConfirm, title, messa
       }
     >
       <p className="text-sm text-text-secondary">{message || description}</p>
+      {children}
     </Modal>
   )
 }
