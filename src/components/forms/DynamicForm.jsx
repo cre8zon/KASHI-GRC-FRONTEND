@@ -34,6 +34,20 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
   readOnlyFields = [],    // from vc.readOnlyFields — fields rendered as read-only text
   editableFields = null,  // from vc.editableFields — when set, ONLY these are editable (null = all editable)
   contextParams = null,   // runtime params (e.g. { frameworkref }) injected into framework-scoped lookups
+  // ── Optional, additive hooks (no existing caller passes them) ──────────────
+  // customFields: { [fieldKey]: ({ value, onChange, onBlur, error, values, field }) => node }
+  //   Renders a page-supplied control for that field key while the field row
+  //   (label, step, required, review read-back) still comes from ui_form_fields.
+  //   For a choice that needs live data the option tables cannot hold — e.g.
+  //   plan cards read from the billing catalogue.
+  // onStepValidate: async (stepNumber, values) => ({ fieldKey: message } | null)
+  //   Runs after the step's own validation passes and before Next advances —
+  //   for checks only the server can answer (is this code taken?).
+  // formatReviewValue: (fieldKey, raw, values) => string | undefined
+  //   Lets REVIEW_SUMMARY show a readable value (a plan's name, not its code).
+  customFields = null,
+  onStepValidate = null,
+  formatReviewValue = null,
 }) {
   const { data: formConfig, isLoading: loadingForm } = useFormConfig(formKey)
   // formConfig.components is populated by the backend getForm endpoint,
@@ -195,6 +209,7 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
   // current step's field keys before advancing, so a user is told about a
   // missing field on the step they are looking at rather than on submit.
   const [stepIdx, setStepIdx] = useState(0)
+  const [stepChecking, setStepChecking] = useState(false)
   useEffect(() => { setStepIdx(0) }, [formKey])
 
   if (loadingForm) return <div className="flex flex-col gap-3">{[1,2,3].map(i => <Skeleton key={i} className="h-8" />)}</div>
@@ -229,7 +244,24 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
                 && f.fieldType !== 'REVIEW_SUMMARY')
       .map(f => f.fieldKey)
     const ok = keys.length === 0 ? true : await trigger(keys)
-    if (ok) setStepIdx(i => Math.min(i + 1, stepNumbers.length - 1))
+    if (!ok) return
+    if (onStepValidate) {
+      setStepChecking(true)
+      try {
+        const remote = await onStepValidate(currentStep, watchedValues)
+        const entries = Object.entries(remote || {})
+        if (entries.length) {
+          entries.forEach(([field, message]) => setError(field, { type: 'server', message: String(message) }))
+          return
+        }
+      } catch {
+        // A failed check must not trap the user on the step — the submit
+        // re-validates everything server-side anyway.
+      } finally {
+        setStepChecking(false)
+      }
+    }
+    setStepIdx(i => Math.min(i + 1, stepNumbers.length - 1))
   }
 
   return (
@@ -315,6 +347,20 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
           // or when it is explicitly listed. readOnlyFields further overrides to read-only.
           const isEditable = (editableFields === null || editableFields.includes(field.fieldKey))
             && !readOnlyFields.includes(field.fieldKey)
+          const custom = customFields?.[field.fieldKey]
+          if (custom) {
+            return (
+              <div key={field.id ?? field.fieldKey} className={`col-span-${field.gridCols || 12}`}>
+                <FieldWrapper label={field.label} isRequired={field.isRequired} helperText={field.helperText}
+                              error={errorFor(field.fieldKey)?.message} type={field.fieldType}>
+                  <Controller name={field.fieldKey} control={control} render={({ field: f }) =>
+                    custom({ value: f.value, onChange: f.onChange, onBlur: f.onBlur,
+                             error: errorFor(field.fieldKey)?.message, values: watchedValues, field })
+                  } />
+                </FieldWrapper>
+              </div>
+            )
+          }
           return (
             <div key={field.id ?? field.fieldKey} className={`col-span-${field.gridCols || 12}`}>
               <FormField
@@ -327,6 +373,7 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
                 contextParams={contextParams}
                 formValues={watchedValues}
                 allFields={fields}
+                formatReviewValue={formatReviewValue}
               />
             </div>
           )
@@ -354,7 +401,7 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
           {isLastStep ? (
             <Button type="submit" loading={loading || isSubmitting} loadingText="Saving…" disabled={loading || isSubmitting}>{typeof submitLabel === 'function' ? submitLabel(watchedValues) : submitLabel}</Button>
           ) : (
-            <Button type="button" onClick={goNext}>Next</Button>
+            <Button type="button" onClick={goNext} loading={stepChecking} loadingText="Checking…">Next</Button>
           )}
         </div>
       </div>
@@ -410,7 +457,7 @@ function resolveLookupPath(path, values) {
   return kept.length ? `${base}?${kept.join('&')}` : base
 }
 
-function FormField({ field, register, control, error, config, isEditable = true, contextParams = null, formValues = null, allFields = null }) {
+function FormField({ field, register, control, error, config, isEditable = true, contextParams = null, formValues = null, allFields = null, formatReviewValue = null }) {
   const { fieldKey: key, fieldType: type, label, placeholder, helperText, isRequired } = field
 
   // Gap 1: when read-only, render a plain text display instead of any interactive input.
@@ -610,8 +657,10 @@ function FormField({ field, register, control, error, config, isEditable = true,
                 && f.isVisible !== false && f.isVisible !== 0
                 && (f.stepNumber ?? 1) < (field.stepNumber ?? 1))
               .map(f => {
-                const raw = formValues?.[f.fieldKey]
-                const shown = Array.isArray(raw) ? raw.join(', ')
+                const raw = String(f.fieldKey).split('.').reduce((acc, p) => (acc == null ? acc : acc[p]), formValues)
+                const custom = formatReviewValue ? formatReviewValue(f.fieldKey, raw, formValues) : undefined
+                const shown = custom !== undefined ? custom
+                  : Array.isArray(raw) ? raw.join(', ')
                   : (raw === true ? 'Yes' : raw === false ? 'No' : raw)
                 return (
                   <div key={f.id ?? f.fieldKey} className="flex items-baseline gap-2 min-w-0">

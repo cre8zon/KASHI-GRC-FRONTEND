@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useMatch } from 'react-router-dom'
 import { Plus, Search, RefreshCw, Building2, CheckCircle2, Clock, PauseCircle } from 'lucide-react'
 import { useTenantList } from '../../../hooks/useTenants'
 import { useScreenConfig } from '../../../hooks/useUIConfig'
@@ -9,6 +9,7 @@ import { PageLayout } from '../../../components/layout/PageLayout'
 import { EmptyState } from '../../../components/ui/DynamicState'
 import { Skeleton } from '../../../components/ui/EmptyState'
 import { cn } from '../../../lib/cn'
+import { CreateTenantModal } from '../../../components/tenant/CreateTenantModal'
 
 function StatCard({ icon: Icon, label, value, sub, color, onClick }) {
   return (
@@ -62,6 +63,7 @@ const COLUMNS = [
 
 export default function TenantListPage() {
   const navigate = useNavigate()
+  const creating = !!useMatch('/tenants/new')
   const [statusFilter, setStatusFilter] = useState('')
   const [search, setSearch]   = useState('')
   const [page, setPage]       = useState(1)
@@ -147,6 +149,9 @@ export default function TenantListPage() {
           }
         </div>
       </div>
+      {/* /tenants/new opens the create modal over the list (sidebar entry and
+          the Create button both route here), so the form sits inside the app shell. */}
+      <CreateTenantModal open={creating} onClose={() => navigate('/tenants')} />
     </PageLayout>
   )
 }

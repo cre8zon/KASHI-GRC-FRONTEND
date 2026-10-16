@@ -94,10 +94,15 @@ const CollabRoomPage             = lazy(() => import('./pages/collaboration/Room
 // Internal chat — the organisation's own staff
 const ChatPage                   = lazy(() => import('./pages/chat/ChatPage'))
 const TenantListPage             = lazy(() => import('./pages/admin/tenants/TenantListPage'))
-const CreateTenantPage           = lazy(() => import('./pages/admin/tenants/CreateTenantPage'))
-const TenantSuccessPage          = lazy(() => import('./pages/admin/tenants/TenantSuccessPage'))
 const TenantDetailPage           = lazy(() => import('./pages/admin/tenants/TenantDetailPage'))
 const SendWelcomeEmailPage       = lazy(() => import('./pages/admin/tenants/SendWelcomeEmailPage'))
+const BillingOverviewPage        = lazy(() => import('./pages/admin/billing/BillingOverviewPage'))
+const SubscriptionsPage          = lazy(() => import('./pages/admin/billing/SubscriptionsPage'))
+const PricingPlansPage           = lazy(() => import('./pages/admin/billing/PricingPlansPage'))
+const InvoicesPage               = lazy(() => import('./pages/admin/billing/InvoicesPage'))
+const FirmVerificationsPage      = lazy(() => import('./pages/admin/firm-verification/FirmVerificationsPage'))
+const EnquiriesPage              = lazy(() => import('./pages/admin/enquiries/EnquiriesPage'))
+const VerifyAuditFirmPage        = lazy(() => import('./pages/auth/VerifyAuditFirmPage'))
 const QuestionLibraryPage        = lazy(() => import('./pages/admin/assessment/QuestionLibraryPage'))
 const AssessmentTemplatesPage    = lazy(() => import('./pages/admin/assessment/AssessmentTemplatesPage'))
 const RiskMappingPage            = lazy(() => import('./pages/admin/assessment/RiskMappingPage'))
@@ -197,11 +202,11 @@ export default function App() {
           <Route path="/auth/reset-password"   element={<ResetPasswordPage />} />
           <Route path="/auth/set-password"     element={<ForcePasswordChangePage />} />
           <Route path="/auth/password-changed" element={<PasswordChangedPage />} />
+          {/* Audit-firm email confirmation — the firm has no account; the token is the credential */}
+          <Route path="/verify-audit-firm"     element={<VerifyAuditFirmPage />} />
           <Route path="/"                      element={<Navigate to="/dashboard" replace />} />
 
           {/* Outside AppShell */}
-          <Route path="/tenants/new"               element={<RequireSystem><RequireAuth><CreateTenantPage /></RequireAuth></RequireSystem>} />
-          <Route path="/tenants/success"           element={<RequireSystem><RequireAuth><TenantSuccessPage /></RequireAuth></RequireSystem>} />
           <Route path="/tenants/:id/welcome-email" element={<RequireSystem><RequireAuth><SendWelcomeEmailPage /></RequireAuth></RequireSystem>} />
 
           {/* Protected AppShell */}
@@ -300,7 +305,17 @@ export default function App() {
             <Route path="/admin/ui/flags"       element={<RequireSystem><FeatureFlagsAdminPage /></RequireSystem>} />
             <Route path="/admin/ui/branding"    element={<RequireSystem><BrandingAdminPage /></RequireSystem>} />
             <Route path="/tenants"     element={<RequireSystem><TenantListPage /></RequireSystem>} />
+            {/* Create tenant is a modal over the list, inside the shell like every other create form. */}
+            <Route path="/tenants/new" element={<RequireSystem><TenantListPage /></RequireSystem>} />
+            <Route path="/tenants/success" element={<Navigate to="/tenants" replace />} />
             <Route path="/tenants/:id" element={<RequireSystem><TenantDetailPage /></RequireSystem>} />
+            <Route path="/billing"               element={<RequireSystem><BillingOverviewPage /></RequireSystem>} />
+            <Route path="/billing/subscriptions" element={<RequireSystem><SubscriptionsPage /></RequireSystem>} />
+            <Route path="/billing/plans"         element={<RequireSystem><PricingPlansPage /></RequireSystem>} />
+            <Route path="/billing/invoices"      element={<RequireSystem><InvoicesPage /></RequireSystem>} />
+            <Route path="/admin/firm-verifications" element={<RequireSystem><FirmVerificationsPage /></RequireSystem>} />
+            {/* Website enquiries (demo, trial, sales, audit firm, support) — ?open=<id> opens one */}
+            <Route path="/admin/enquiries" element={<RequireSystem><EnquiriesPage /></RequireSystem>} />
             <Route path="/admin/rbac"             element={<RequireSystem><RbacAdminPage /></RequireSystem>} />
             <Route path="/admin/modules"          element={<RequireSystem><ModuleBlueprintAdminPage /></RequireSystem>} />
             <Route path="/admin/notifications"    element={<RequireSystem><NotificationTemplateAdminPage /></RequireSystem>} />
