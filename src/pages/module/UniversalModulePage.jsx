@@ -1673,6 +1673,47 @@ function CapabilityTabBody({ tab, bp, id, entity, vc, focusActionItemId }) {
   return null
 }
 
+/**
+ * Which workflow step transition an action performs, or null if it performs
+ * none. Returns APPROVE, REJECT or SEND_BACK.
+ *
+ * ── WHY NOT A LIST OF ACTION KEYS ────────────────────────────────────────────
+ *
+ * The seed already says what each action does, in data:
+ * `ui_actions.payload_template_json.actionType`. A hardcoded list of action
+ * KEYS does not keep up with it, and two active actions prove it — both carry
+ * an actionType under a name no such list had:
+ *
+ *   261  ASSESSMENT_FINAL_SIGNOFF  "Sign off assessment"  → APPROVE
+ *    63  WORKFLOW_APPROVE          "Submit"               → APPROVE
+ *
+ * Neither was recognised as a transition, so for a user with override
+ * authority and no task the request went to the TASK endpoint with an empty
+ * id — `/v1/workflow-instances/tasks//action` — and failed. Sign-off was
+ * broken for exactly the person entitled to force it.
+ *
+ * The key is kept as the fallback, because an action may name its transition
+ * through the key alone and carry no payload.
+ *
+ * ── AND WHY THE SET STAYS CLOSED ─────────────────────────────────────────────
+ *
+ * Only the three that move a STEP. The task endpoint also takes COMMENT,
+ * REASSIGN, DELEGATE, ESCALATE and WITHDRAW, and 247 "Add remark" carries
+ * actionType COMMENT — but overrideAdvanceStep reads anything that is not
+ * REJECT as an approval, so routing a remark through it would silently
+ * approve the step. Adding a remark is not overriding anything.
+ */
+const STEP_TRANSITIONS = ['APPROVE', 'REJECT', 'SEND_BACK', 'COMPLETE_STEP']
+function transitionOf(action) {
+  let fromPayload = null
+  try { fromPayload = JSON.parse(action?.payloadTemplateJson || '{}').actionType }
+  catch { /* malformed payload — the action key still answers */ }
+  const raw = String(fromPayload || action?.actionKey || '').toUpperCase()
+  if (!STEP_TRANSITIONS.includes(raw)) return null
+  // COMPLETE_STEP is a label for the same transition, not a fourth verb.
+  return raw === 'COMPLETE_STEP' ? 'APPROVE' : raw
+}
+
 // ─── Shared header-action filter ─────────────────────────────────────────────
 // ONE filter for the full detail page AND the drawer.
 //
@@ -1783,12 +1824,18 @@ function filterScreenActions({ actions, entity, vc = {}, bp = {}, taskId, roleAc
       // hand them every task-acting action across every module, which is a far
       // wider change than intended.
       //
-      // Deliberately narrow: only for the four workflow transition keys, only
-      // when the backend has already confirmed override authority for this
-      // step (permission held AND same side, checked server-side too).
-      const isTransition = ['APPROVE', 'REJECT', 'SEND_BACK', 'COMPLETE_STEP']
-            .includes(action.actionKey)
-      const overrideExempt = isTransition && vc.canOverride === true
+      // Deliberately narrow: only for a workflow transition, and only when the
+      // backend has already confirmed override authority for this step (the
+      // blueprint allows it, the permission is held, the side matches — all
+      // checked server-side too).
+      //
+      // transitionOf rather than a key list: this was the third copy of the
+      // same four names in this file, and it is the copy that decides whether
+      // audit engagement's "Complete step" — which requires workflow:task:act,
+      // a permission an overrider has no task to use — reaches an overrider at
+      // all. ASSESSMENT_FINAL_SIGNOFF carries the same permission under a name
+      // the list did not have, so it was hidden from overriders for no reason.
+      const overrideExempt = !!transitionOf(action) && vc.canOverride === true
       if (!overrideExempt && !vc.permissions.includes(action.requiredPermission)) return false
     }
     // Workflow-advancing actions: derived from blueprint statusFlowJson transitions.
@@ -1827,8 +1874,23 @@ function filterScreenActions({ actions, entity, vc = {}, bp = {}, taskId, roleAc
       // Once workflowInstanceId is set the gate applies as before, so approvals
       // mid-flow still require the task or an override. The server re-checks
       // regardless; this only decides whether the button is offered.
+      //
+      // The key set comes from the module blueprint's statusFlowJson, which
+      // not every module fills in. An action that POSTS TO THE TASK ENDPOINT is
+      // a step transition whatever that JSON says, and without a task or
+      // override it can only produce
+      // /v1/workflow-instances/tasks//action — an empty id and a 404. So the
+      // endpoint settles it where the blueprint is silent.
+      //
+      // Deliberately the endpoint and not transitionOf: audit_policy_detail has
+      // an action keyed APPROVE whose endpoint is
+      // /v1/audit/library/policies/{id}/approve. That is a policy approval, not
+      // a workflow step, and gating it on a workflow task would break it.
+      const postsToTaskEndpoint =
+            String(action.apiEndpoint || '').includes('/workflow-instances/tasks/')
       const workflowStarted = entity?.workflowInstanceId != null
-      if (transitionKeys.has(action.actionKey) && !effectiveCanAct && workflowStarted) return false
+      if ((transitionKeys.has(action.actionKey) || postsToTaskEndpoint)
+            && !effectiveCanAct && workflowStarted) return false
       // When a step uses compound-task section gates (hasSections=true), completion
       // happens automatically when all section items are done — hide the manual button
       // to prevent premature APPROVE calls that would fail the gate check.
@@ -1861,6 +1923,28 @@ function filterScreenActions({ actions, entity, vc = {}, bp = {}, taskId, roleAc
       if (['COMPLETE_STEP', 'APPROVE'].includes(action.actionKey)
             && vc.hasSections === true
             && vc.canOverride !== true) return false
+
+      // ── SEND BACK HAS NO OVERRIDE ──────────────────────────────────
+      //
+      // WorkflowEngineService.overrideAdvanceStep decides the new status
+      // with one comparison:
+      //
+      //     "REJECT".equalsIgnoreCase(action) ? REJECTED : APPROVED
+      //
+      // There is no SEND_BACK branch. So an override send-back marks the
+      // step APPROVED and advances the workflow — the opposite of the
+      // button's label and of its own confirmation text, "It returns to
+      // the previous step." A button that does the reverse of what it
+      // says is worse than a missing one, and this is the screen where
+      // somebody is already forcing a step past unfinished work.
+      //
+      // The engine's real send-back (handleSendBack: N steps back, with
+      // target validation) takes a TaskInstance, and the override path
+      // has none to give it. Until that is reachable without a task,
+      // Send back is offered only where a task exists. Approve and
+      // Reject both behave correctly on the override path and stay.
+      if (transitionOf(action) === 'SEND_BACK'
+            && !vc.taskId && vc.canOverride === true) return false
 
       // ── AND THE MIRROR OF IT ───────────────────────────────────────
       //
@@ -2554,7 +2638,10 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
       // ── Override path: workflow:step:override — no task, use override endpoint ──
       // When backend returns canAct=true but no taskId, the user has override authority.
       // Route APPROVE/REJECT/SEND_BACK to the step override endpoint instead of task action.
-      const isWorkflowTransition = ['APPROVE', 'REJECT', 'SEND_BACK', 'COMPLETE_STEP'].includes(action.actionKey)
+      // Read from the seed rather than matched against a list of names — see
+      // transitionOf. This is what makes "Sign off assessment" and the
+      // remediation "Submit" reach the override endpoint at all.
+      const transition = transitionOf(action)
       // WAS: vc.canAct && !vc.taskId. Arriving from the inbox always carries a
       // taskId, so the override path was unreachable for exactly the people who
       // hold the permission. canOverride answers it directly.
@@ -2562,11 +2649,15 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
       // !vc.taskId is kept deliberately: someone who holds BOTH a task and
       // override authority should complete the task normally, not silently
       // override their own step.
-      const isOverridePath = isWorkflowTransition && !vc.taskId
+      const isOverridePath = transition && !vc.taskId
             && vc.canOverride === true && vc.stepInstanceId
       if (isOverridePath) {
         await api.post(`/v1/workflow-instances/steps/${vc.stepInstanceId}/override`, {
-          action: action.actionKey === 'COMPLETE_STEP' ? 'APPROVE' : action.actionKey,
+          // The transition, not the action key: the endpoint compares this
+          // against "REJECT" and treats everything else as an approval, so
+          // sending it ASSESSMENT_FINAL_SIGNOFF would have been an approval
+          // by accident rather than by intent.
+          action: transition,
           remarks: remarks || undefined,
         })
       } else {
@@ -2951,6 +3042,31 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
           {/* FIX: Render screen designer actions with correct variants and status guards */}
           {screenActions.map(action => {
             const ActionIcon = resolveIcon(action.icon)
+
+            // The action's own word, from the payload override or the seed.
+            let actionLabel = action.label
+            try {
+              const m = JSON.parse(action.payloadTemplateJson || '{}')
+              actionLabel = m.__label || action.label
+            } catch { /* malformed payload — the seeded label still stands */ }
+
+            // ── SAME BUTTON, HONEST LABEL ─────────────────────────────────
+            //
+            // When this click takes the override path — authority here but no
+            // task — the label has to say so: they are forcing the step past
+            // work that is not done, and the record will name them for it.
+            //
+            // But it has to keep saying WHICH action. Approve and Reject are
+            // separate buttons on this header (ui_actions 244 and 246), both
+            // are transitions, and flattening both to "Override step" left two
+            // buttons distinguishable only by icon colour. Each still posts its
+            // own transition, so the label was the only place the difference
+            // was lost — on the one screen where a mis-click is least
+            // recoverable.
+            const willOverride = transitionOf(action)
+                  && !vc.taskId && vc.canOverride === true && vc.stepInstanceId
+            const label = willOverride ? `Override: ${actionLabel}` : actionLabel
+
             return (
             <Button
               key={action.id}
@@ -2959,24 +3075,15 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
               loading={actingId != null && actingId === action.id}
               // Explicit text rather than a bare spinner beside the unchanged
               // label — "Approve" with a spinner reads as an unresponsive
-              // button; "Approving…" reads as work in progress.
-              loadingText={String(action.label || '').replace(/^\s*\+\s*/, '') + '…'}
+              // button; "Approving…" reads as work in progress. It follows the
+              // label above, so an override spins as "Override: Approve…"
+              // rather than reverting to a word the button is not showing.
+              loadingText={String(label || '').replace(/^\s*\+\s*/, '') + '…'}
               disabled={actingId != null && actingId !== action.id}
               icon={ActionIcon || undefined}
               onClick={() => handleActionClick(action)}
             >
-              {(() => {
-                // Same button, honest label. When this click will take the
-                // override path — the user has authority here but no task — say
-                // "Override step" rather than "Complete step": they are forcing
-                // it past work that is not done, and the record will name them.
-                const willOverride = ['APPROVE','REJECT','SEND_BACK','COMPLETE_STEP']
-                      .includes(action.actionKey)
-                      && !vc.taskId && vc.canOverride === true && vc.stepInstanceId
-                if (willOverride) return 'Override step'
-                try { const m = JSON.parse(action.payloadTemplateJson||'{}'); return m.__label || action.label }
-                catch { return action.label }
-              })()}
+              {label}
             </Button>
             )
           })}

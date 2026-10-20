@@ -951,6 +951,32 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
                       </div>
                     </label>
                   )}
+                  {/* ── MAY THIS STEP BE FORCED? ──────────────────────────────
+                      Off by default, and off is the right default. Override
+                      used to be decided by the workflow:step:override
+                      permission and a side match alone — neither of which
+                      knows which workflow it is looking at — so a grant made
+                      for one workflow put override buttons on every module
+                      that had a live step on that side. This is the switch
+                      that was missing. */}
+                  <label className="flex items-start gap-2.5 cursor-pointer mt-2">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 accent-brand-500"
+                      checked={!!step.allowStepOverride}
+                      onChange={e => set('allowStepOverride', e.target.checked)}
+                    />
+                    <div>
+                      <p className="text-xs font-medium text-text-primary">Allow override on this step</p>
+                      <p className="text-[10px] text-text-muted leading-snug mt-0.5">
+                        When checked: somebody holding <code className="text-brand-ink">workflow:step:override</code>,
+                        on this step's own side, can force it past work that is not done. The step
+                        is recorded as overridden, named with who did it, and every task still open
+                        on it is closed. Leave it off unless this workflow genuinely needs a way
+                        through a step that can stall.
+                      </p>
+                    </div>
+                  </label>
                   {/* Assignable side + role — shown only for ASSIGNMENT_SCOPED steps */}
                   {step.actorResolution === 'ASSIGNMENT_SCOPED' && (
                     <div className="mt-3 pt-3 border-t border-border/40 space-y-2">
@@ -1409,6 +1435,7 @@ export function StepForm({ steps, setSteps, errors, workflowId }) {
     assignableSide: null,
     assignableRoleId: null,
     allowOverride: true,
+    allowStepOverride: false,
     stepAction: null,
     navKey: null,
     assignerNavKey: null,
@@ -1534,6 +1561,7 @@ export function stepsToFormState(apiSteps = []) {
     assignableSide:       s.assignableSide || null,
     assignableRoleId:     s.assignableRoleId || null,
     allowOverride:        s.allowOverride !== undefined ? s.allowOverride : true,
+    allowStepOverride:    s.allowStepOverride === true,
     stepAction:           s.stepAction || null,
     navKey:               s.navKey || null,
     assignerNavKey:       s.assignerNavKey || null,
@@ -1578,6 +1606,7 @@ export function stepsToPayload(steps) {
     assignerResolution:   s.assignerResolution || 'POOL',
     assignerRoleIds:      s.assignerRoleIds || [],
     allowOverride:        s.allowOverride !== undefined ? s.allowOverride : true,
+    allowStepOverride:    s.allowStepOverride === true,
     stepAction:           s.stepAction || undefined,
     navKey:               s.navKey || undefined,
     assignerNavKey:       s.assignerNavKey || undefined,
