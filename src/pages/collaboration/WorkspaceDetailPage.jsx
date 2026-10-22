@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Building2, Users, Layers, UserMinus, Pencil, Archive, RotateCcw, Calendar, X } from 'lucide-react'
+import { Plus, Building2, Users, Layers, UserMinus, Pencil, Archive, RotateCcw, Calendar, X, Crown } from 'lucide-react'
 import { collabApi, unwrapList, unwrapOne, errMsg } from '../../api/collab.api'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Card, CardHeader, CardBody } from '../../components/ui/Card'
@@ -16,18 +16,29 @@ import { WorkspaceMeetingsTab } from '../../components/collab/Meetings'
 import { WorkspaceRequestsTab } from '../../components/collab/WorkspaceRequestsTab'
 import EvidenceUploader from '../../components/ui/EvidenceUploader'
 import { cn } from '../../lib/cn'
+import { GlassSelect } from '../../components/ui/GlassSelect'
+import { useFitToViewport } from '../../hooks/useFitToViewport'
 
 /**
  * Collaboration › Workspace — who is in it and its programmes (overview), the
  * plan, meetings, requests between the two sides, and shared documents.
  *
- * What the caller may change comes from the server (canManage): workspace
- * owners, or the organisation's staff holding collab:workspace:manage. The
- * firm's people only ever receive the programmes they are on, so nothing here
- * filters by side.
+ * Who may do what comes from the server:
+ *   canManage            — the workspace OWNER only (whoever created it or had
+ *                          it handed to them): members, roles, programmes and
+ *                          their people, settings, archive.
+ *   canContribute        — owner and MEMBERS: plan rows, requests, rooms,
+ *                          meetings, documents. VIEWERS read.
+ *   canTransferOwnership — the owner, or staff holding collab:workspace:manage
+ *                          (oversight: hand a workspace on when its owner leaves).
+ * Members only receive the programmes they are on; the owner receives all of
+ * them. Nothing here filters by side or programme itself.
  */
 const SIDE_LABEL = { CLIENT: 'Organisation', FIRM: 'Audit firm' }
 const ROLE_LABEL = { OWNER: 'Owner', MEMBER: 'Member', VIEWER: 'Viewer' }
+// Roles that can be given or changed. Ownership moves only by transfer, so
+// there is always exactly one owner.
+const ASSIGNABLE_ROLES = { MEMBER: 'Member', VIEWER: 'Viewer' }
 const PROG_STATUS = { PLANNED: 'gray', ACTIVE: 'blue', COMPLETED: 'green', ARCHIVED: 'gray' }
 
 export default function WorkspaceDetailPage() {
@@ -39,6 +50,11 @@ export default function WorkspaceDetailPage() {
   const [progEdit, setProgEdit] = useState(null)          // null | {} (new) | programme
   const [progMembersId, setProgMembersId] = useState(null) // programme id
   const [removing, setRemoving] = useState(null)          // member
+  const [transferring, setTransferring] = useState(null)  // member to make owner
+  // Programmes and Members scroll inside their cards with the card header
+  // pinned, rather than the whole page scrolling.
+  const progListRef = useRef(null)
+  const memberListRef = useRef(null)
   const [tab, setTab] = useUrlState('tab', 'overview')
   const [, setSearchParams] = useSearchParams()
 
@@ -85,11 +101,20 @@ export default function WorkspaceDetailPage() {
     onSuccess: () => { toast.success('Removed from the workspace'); setRemoving(null); refresh() },
     onError: (e) => toast.error(errMsg(e, 'Could not remove this person')),
   })
+  const { mutate: transferOwnership, isPending: transferringNow } = useMutation({
+    mutationFn: (mid) => collabApi.transferOwnership(id, mid),
+    onSuccess: () => { toast.success('Ownership transferred'); setTransferring(null); refresh() },
+    onError: (e) => toast.error(errMsg(e, 'Could not transfer ownership')),
+  })
   const { mutate: setStatus } = useMutation({
     mutationFn: (status) => collabApi.update(id, { status }),
     onSuccess: (_r, status) => { toast.success(status === 'ARCHIVED' ? 'Workspace archived' : 'Workspace reopened'); refresh() },
     onError: (e) => toast.error(errMsg(e, 'Could not change the workspace')),
   })
+
+  const listDeps = [tab, ws?.members?.length, ws?.programmes?.length, isLoading]
+  const progListH = useFitToViewport(progListRef, { min: 240, deps: listDeps })
+  const memberListH = useFitToViewport(memberListRef, { min: 240, deps: listDeps })
 
   if (isLoading) {
     return <PageLayout title="Workspace"><div className="px-6 space-y-3"><Skeleton className="h-24" /><Skeleton className="h-64" /></div></PageLayout>
@@ -106,6 +131,9 @@ export default function WorkspaceDetailPage() {
   const programmes = Array.isArray(ws.programmes) ? ws.programmes : []
   const byUser = Object.fromEntries(members.map(m => [m.userId, m]))
   const archived = ws.status === 'ARCHIVED'
+  const canManage = !!ws.canManage && !archived
+  const canTransfer = !!(ws.canManage || ws.canTransferOwnership) && !archived
+  const owner = members.find(m => m.role === 'OWNER')
 
   return (
     <PageLayout
@@ -121,7 +149,7 @@ export default function WorkspaceDetailPage() {
         </div>
       )}
     >
-      <div className="px-6 pb-6 space-y-4 overflow-y-auto">
+      <div className="px-6 pb-6 space-y-4">
         {!ws.firmAccessActive && (
           <div className="text-xs rounded-card border border-status-warn-bd bg-status-warn-bg text-status-warn-fg px-3 py-2">
             The organisation's access grant for this audit firm has ended, so the firm's people can no longer open this workspace.
@@ -157,7 +185,7 @@ export default function WorkspaceDetailPage() {
               subtitle="Shared with everyone in the workspace. Files for one request or meeting are kept on that request or meeting." />
             <CardBody>
               <EvidenceUploader entityType="COLLAB_WORKSPACE" entityId={Number(id)} documentType="EVIDENCE"
-                canUpload={!archived} canRemove={!!ws.canManage && !archived} emptyLabel="No documents yet" />
+                canUpload={!!ws.canContribute && !archived} canRemove={canManage} emptyLabel="No documents yet" />
             </CardBody>
           </Card>
         )}
@@ -170,10 +198,11 @@ export default function WorkspaceDetailPage() {
               subtitle={ws.mySide === 'FIRM'
                 ? 'The programmes you are on'
                 : 'Each programme has its own plan. The firm sees only programmes its people are on.'}
-              actions={ws.canManage && !archived && (
+              actions={canManage && (
                 <Button size="xs" icon={Plus} onClick={() => setProgEdit({})}>Programme</Button>
               )} />
-            <CardBody className="p-0">
+            <div className="overflow-y-auto overscroll-contain" ref={progListRef}
+              style={progListH ? { maxHeight: progListH } : undefined}>
               {programmes.length === 0 ? (
                 <p className="px-4 py-6 text-xs text-text-muted text-center">
                   No programmes yet. Add one per piece of work, for example "FY27 ISO 27001" or "Q1 pen test".
@@ -213,7 +242,7 @@ export default function WorkspaceDetailPage() {
                         ))}
                       </div>
                     </div>
-                    {ws.canManage && !archived && (
+                    {canManage && (
                       <div className="flex items-center gap-1 shrink-0">
                         <Button variant="ghost" size="xs" icon={Users} onClick={() => setProgMembersId(p.id)}>People</Button>
                         <Button variant="ghost" size="icon-xs" icon={Pencil} onClick={() => setProgEdit(p)} aria-label="Edit programme" />
@@ -222,49 +251,72 @@ export default function WorkspaceDetailPage() {
                   </div>
                 </div>
               ))}
-            </CardBody>
+            </div>
           </Card>
 
           {/* ── Members ── */}
           <Card className="xl:col-span-2">
-            <CardHeader title="Members" subtitle={`${members.length} ${members.length === 1 ? 'person' : 'people'}`}
-              actions={ws.canManage && !archived && (
+            <CardHeader title="Members"
+              subtitle={`${members.length} ${members.length === 1 ? 'person' : 'people'}${owner ? ` · owned by ${owner.name}` : ''}`}
+              actions={canManage && (
                 <Button size="xs" icon={Plus} onClick={() => setShowAdd(true)}>Add</Button>
               )} />
-            <CardBody className="p-0">
+            <div className="overflow-y-auto overscroll-contain" ref={memberListRef}
+              style={memberListH ? { maxHeight: memberListH } : undefined}>
               {['CLIENT', 'FIRM'].map(side => {
                 const list = members.filter(m => m.side === side)
+                  // Owner first, then by name.
+                  .sort((a, b) => (b.role === 'OWNER') - (a.role === 'OWNER') || String(a.name).localeCompare(String(b.name)))
                 if (list.length === 0) return null
                 return (
                   <div key={side}>
-                    <p className="px-4 pt-3 pb-1 text-[10px] font-medium uppercase tracking-wide text-text-muted flex items-center gap-1.5">
+                    <p className="sticky top-0 z-[1] bg-surface-raised px-4 pt-3 pb-1 text-[10px] font-medium uppercase tracking-wide text-text-muted flex items-center gap-1.5">
                       <Building2 size={10} /> {side === 'FIRM' ? (ws.firmName || SIDE_LABEL.FIRM) : SIDE_LABEL.CLIENT}
                     </p>
-                    {list.map(m => (
+                    {list.map(m => {
+                      const isOwner = m.role === 'OWNER'
+                      return (
                       <div key={m.id} className="px-4 py-2 flex items-center justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="text-sm text-text-primary truncate">{m.name}</p>
+                          <p className="text-sm text-text-primary truncate flex items-center gap-1.5">
+                            {isOwner && <Crown size={12} className="text-brand-ink shrink-0" aria-hidden />}
+                            <span className="truncate">{m.name}</span>
+                          </p>
                           <p className="text-[11px] text-text-muted truncate">{m.email}</p>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          {ws.canManage && !archived ? (
-                            <select value={m.role} onChange={e => changeRole({ mid: m.id, role: e.target.value })}
+                          {canManage && !isOwner ? (
+                            <GlassSelect value={m.role} onChange={e => changeRole({ mid: m.id, role: e.target.value })}
+                              aria-label={`Role for ${m.name}`}
                               className="text-[11px] h-7 rounded-ctl border border-border bg-surface-raised px-1.5 text-text-secondary">
-                              {Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                            </select>
+                              {Object.entries(ASSIGNABLE_ROLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                            </GlassSelect>
                           ) : (
-                            <Badge label={ROLE_LABEL[m.role] || m.role} colorTag={m.role === 'OWNER' ? 'indigo' : 'gray'} />
+                            <Badge label={ROLE_LABEL[m.role] || m.role} colorTag={isOwner ? 'indigo' : 'gray'} />
                           )}
-                          {ws.canManage && !archived && (
-                            <Button variant="ghost" size="icon-xs" icon={UserMinus} onClick={() => setRemoving(m)} aria-label="Remove" />
+                          {canTransfer && !isOwner && (
+                            <Button variant="ghost" size="icon-xs" icon={Crown} onClick={() => setTransferring(m)}
+                              aria-label={`Make ${m.name} the owner`} title="Make owner" />
+                          )}
+                          {canManage && !isOwner && (
+                            <Button variant="ghost" size="icon-xs" icon={UserMinus} onClick={() => setRemoving(m)}
+                              aria-label={`Remove ${m.name}`} title="Remove" />
                           )}
                         </div>
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )
               })}
-            </CardBody>
+              {!ws.canManage && (
+                <p className="px-4 py-3 text-[11px] text-text-muted border-t border-border-subtle">
+                  {ws.myRole === 'VIEWER'
+                    ? 'You can view this workspace. Ask the owner if you need to add to it.'
+                    : 'The owner manages members and programmes. You can add to the plan, requests, rooms, meetings and documents.'}
+                </p>
+              )}
+            </div>
           </Card>
         </div>
         )}
@@ -281,6 +333,12 @@ export default function WorkspaceDetailPage() {
         title={`Remove ${removing?.name || 'this person'}?`}
         message="They lose access to this workspace and are taken off its programmes."
         confirmLabel="Remove" />
+      <ConfirmDialog open={!!transferring} onClose={() => setTransferring(null)} onCancel={() => setTransferring(null)}
+        onConfirm={() => transferOwnership(transferring.id)} loading={transferringNow}
+        title={`Make ${transferring?.name || 'this person'} the owner?`}
+        message={`${transferring?.name || 'They'} will manage the workspace: its members, programmes and settings.${
+          owner ? ` ${ws.myRole === 'OWNER' ? 'You' : owner.name} will stay on as a member.` : ''}`}
+        confirmLabel="Transfer ownership" />
     </PageLayout>
   )
 }
@@ -312,7 +370,7 @@ function AddMemberModal({ open, onClose, workspaceId, onDone }) {
       subtitle="People from your organisation, and from this workspace's audit firm.">
       <div className="space-y-3">
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search by name or email"
-          className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary" />
+          className="w-full h-9 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary" />
         <div className="max-h-64 overflow-y-auto rounded-ctl border border-border">
           {isLoading ? <p className="p-3 text-xs text-text-muted">Loading…</p>
             : shown.length === 0 ? <p className="p-3 text-xs text-text-muted">Nobody else can be added.</p>
@@ -326,11 +384,11 @@ function AddMemberModal({ open, onClose, workspaceId, onDone }) {
         </div>
         <label className="block">
           <span className="text-xs font-medium text-text-secondary">Workspace role</span>
-          <select value={role} onChange={e => setRole(e.target.value)}
+          <GlassSelect value={role} onChange={e => setRole(e.target.value)}
             className="mt-1 w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary">
-            {Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-          <span className="text-[11px] text-text-muted">Owners manage members and programmes. What else someone can do follows their permissions.</span>
+            {Object.entries(ASSIGNABLE_ROLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </GlassSelect>
+          <span className="text-[11px] text-text-muted">Members add to the plan, requests, rooms, meetings and documents. Viewers can only look. To hand over the workspace, use “Make owner” on a member.</span>
         </label>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onClose} disabled={isPending}>Cancel</Button>
@@ -353,9 +411,9 @@ function EditWorkspaceModal({ open, onClose, ws, onDone }) {
     <Modal open={open} onClose={onClose} size="sm" title="Edit workspace">
       <div className="space-y-3">
         <input value={name} onChange={e => setName(e.target.value)}
-          className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary" />
+          className="w-full h-9 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary" />
         <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Description"
-          className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary" />
+          className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary" />
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onClose} disabled={isPending}>Cancel</Button>
           <Button size="sm" onClick={() => mutate()} disabled={!name.trim()} loading={isPending}>Save</Button>
@@ -414,26 +472,26 @@ function ProgrammeModal({ programme, onClose, workspaceId, onDone }) {
       subtitle="A programme is one piece of work with its own timeline, e.g. one standard or one subsidiary.">
       <div className="space-y-3">
         <input value={form.name || ''} onChange={set('name')} placeholder="Name"
-          className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary" />
+          className="w-full h-9 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary" />
         <textarea value={form.description || ''} onChange={set('description')} rows={2} placeholder="Description (optional)"
-          className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary" />
+          className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary" />
         <div className="grid grid-cols-2 gap-2">
           <label className="block">
             <span className="text-xs text-text-secondary">Planned start</span>
             <input type="date" value={form.plannedStart || ''} onChange={set('plannedStart')}
-              className="mt-1 w-full h-9 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary" />
+              className="mt-1 w-full h-9 rounded-ctl border border-border glass-field px-2 text-sm text-text-primary" />
           </label>
           <label className="block">
             <span className="text-xs text-text-secondary">Planned end</span>
             <input type="date" value={form.plannedEnd || ''} onChange={set('plannedEnd')}
-              className="mt-1 w-full h-9 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary" />
+              className="mt-1 w-full h-9 rounded-ctl border border-border glass-field px-2 text-sm text-text-primary" />
           </label>
         </div>
         {!isNew && (
-          <select value={form.status} onChange={set('status')}
+          <GlassSelect value={form.status} onChange={set('status')}
             className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary">
             {['PLANNED', 'ACTIVE', 'COMPLETED', 'ARCHIVED'].map(s => <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>)}
-          </select>
+          </GlassSelect>
         )}
         <div className="flex justify-between gap-2">
           <div>{!isNew && <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)} disabled={isPending}>Delete</Button>}</div>

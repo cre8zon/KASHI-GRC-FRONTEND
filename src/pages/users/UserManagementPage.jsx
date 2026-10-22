@@ -22,6 +22,7 @@ import { selectAuth, selectVendorId } from '../../store/slices/authSlice'
 import { usePermission }      from '../../hooks/usePermission'
 import { SYSTEM_TENANT_ID }   from '../../utils/permissions'
 import toast                  from 'react-hot-toast'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
@@ -302,7 +303,7 @@ function RoleAssignPanel({ user, tenantId, side }) {
                 className={cn(
                   'px-2 py-0.5 rounded text-[10px] font-medium border transition-colors',
                   locked
-                    ? 'border-border/50 text-text-muted/40 cursor-not-allowed'
+                    ? 'border-border/50 text-text-faint cursor-not-allowed'
                     : selectedSide === s
                       ? 'bg-brand-500/15 border-brand-500/40 text-brand-ink'
                       : 'border-border text-text-muted hover:text-text-secondary'
@@ -386,13 +387,16 @@ function OnboardUserModal({ open, onClose, side, tenantId, vendorId }) {
   const needsVendorPicker = isVendorSide && !vendorId
   const { data: vendorsData, isLoading: vendorsLoading } = useQuery({
     queryKey: ['vendors-picker', tenantId],
-    queryFn:  () => vendorsApi.list({ take: 200 }),
+    // tenantId so a platform admin onboarding a vendor user into ANOTHER
+    // tenant sees that tenant's vendors (ignored server-side for everyone else).
+    queryFn:  () => vendorsApi.list({ take: 500, tenantId }),
     // Fetched whenever the modal is open on the vendor side — the fixed
     // case needs it too, to resolve the vendor's NAME for display.
     enabled:  open && isVendorSide,
     staleTime: 60 * 1000,
   })
-  const vendors = vendorsData?.items || (Array.isArray(vendorsData) ? vendorsData : []) || []
+  const vendors = [...(vendorsData?.items || (Array.isArray(vendorsData) ? vendorsData : []) || [])]
+    .sort((a, b) => String(a.name || a.vendorName || '').localeCompare(String(b.name || b.vendorName || ''), undefined, { sensitivity: 'base' }))
   const fixedVendor = vendorId
     ? vendors.find(v => String(v.id ?? v.vendorId) === String(vendorId))
     : null
@@ -502,7 +506,7 @@ function OnboardUserModal({ open, onClose, side, tenantId, vendorId }) {
             </label>
             {needsVendorPicker ? (
               <>
-                <select
+                <GlassSelect
                   value={form.vendorId}
                   onChange={e => set('vendorId', e.target.value)}
                   className="h-9 w-full px-2 rounded-ctl border border-border bg-surface-raised text-sm
@@ -515,7 +519,7 @@ function OnboardUserModal({ open, onClose, side, tenantId, vendorId }) {
                       {v.name || v.vendorName}
                     </option>
                   ))}
-                </select>
+                </GlassSelect>
                 <p className="text-[10px] text-text-muted mt-1">
                   Which vendor does this person work for? Vendor users must belong to one.
                 </p>
@@ -843,7 +847,7 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
             <input value={search}
               onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search users…"
-              className="h-8 pl-8 pr-3 w-48 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-48 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
           {canInvite && (

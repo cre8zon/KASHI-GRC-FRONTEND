@@ -216,14 +216,14 @@ function StartEngagementModal({ projectId, plannedTemplate, onClose }) {
         <div>
           <label className="block text-xs text-text-secondary mb-1">Engagement name *</label>
           <input value={name} onChange={e => setName(e.target.value)}
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
 
         <div>
           <label className="block text-xs text-text-secondary mb-1">Lead auditor ID (optional)</label>
           <input value={leadAuditorId} onChange={e => setLeadAuditorId(e.target.value)}
             placeholder="User ID"
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
 
         <Button variant="primary" icon={Play} loading={M.start.isPending}
@@ -363,7 +363,7 @@ export default function AuditProjectTemplatesPanel({ projectId }) {
             <label className="block text-xs text-text-secondary mb-1">Planning note (optional)</label>
             <input value={addNote} onChange={e => setAddNote(e.target.value)}
               placeholder="e.g. Q1 2026, External auditor, Surveillance only"
-              className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
 
           <p className="text-xs text-text-muted -mt-2">

@@ -264,7 +264,7 @@ function TaskRow({
         disabled={disabled}
         className="flex w-full items-start gap-3 p-3 text-left disabled:opacity-50"
       >
-        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-ctl bg-brand-500 text-brand-900">
+        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-ctl bg-brand-500 text-brand-on">
           <Icon size={13} />
         </span>
         <span className="min-w-0 flex-1">
@@ -282,7 +282,7 @@ function TaskRow({
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="What is the article about?"
-              className="h-8 w-full rounded-ctl border border-border bg-surface px-2.5 text-[13px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-800/40"
+              className="h-8 w-full rounded-ctl border border-border glass-field px-2.5 text-[13px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-ink/40"
             />
           )}
 
@@ -332,7 +332,7 @@ function ProposalPreview({ taskKey, payload }) {
     case 'CONTENT_META':
       return (
         <div className={cn(box, 'space-y-2')}>
-          <p className="text-brand-900">{payload.metaTitle}</p>
+          <p className="text-brand-ink">{payload.metaTitle}</p>
           <p className="text-text-secondary">{payload.metaDescription}</p>
         </div>
       )
@@ -352,7 +352,7 @@ function ProposalPreview({ taskKey, payload }) {
         <div className={cn(box, 'space-y-2')}>
           {(payload.links || []).map((l, n) => (
             <div key={n}>
-              <p><span className="text-brand-900">{l.anchorText}</span>
+              <p><span className="text-brand-ink">{l.anchorText}</span>
                 <span className="reg-code ml-1.5 font-mono text-[11px] text-text-faint">/blog/{l.slug}</span></p>
               <p className="text-[11px] text-text-faint">{l.rationale}</p>
             </div>

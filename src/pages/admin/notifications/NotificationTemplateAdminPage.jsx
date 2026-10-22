@@ -12,6 +12,7 @@ import { Modal, ConfirmDialog } from '../../../components/ui/Modal'
 import { cn } from '../../../lib/cn'
 import toast from 'react-hot-toast'
 import { notificationTemplatesApi as notifApi } from '../../../api/notificationTemplates.api'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
@@ -164,13 +165,13 @@ export default function NotificationTemplateAdminPage() {
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
               <input value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search templates…"
-                className="w-full pl-8 pr-3 h-7 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full pl-8 pr-3 h-7 text-xs glass-field border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
-            <select value={moduleFilter} onChange={e => setModuleFilter(e.target.value)}
+            <GlassSelect value={moduleFilter} onChange={e => setModuleFilter(e.target.value)}
               className="w-full h-7 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">All modules</option>
               {modules.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
+            </GlassSelect>
           </div>
           <div className="flex-1 overflow-y-auto">
             {isLoading
@@ -352,7 +353,7 @@ function TemplateDetail({ template, onEdit, onDelete }) {
                   <div key={k} className="flex items-center gap-1.5">
                     <span className="text-[10px] font-mono text-text-muted w-28 shrink-0">{`{{${k}}}`}</span>
                     <input value={v} onChange={e => setPreviewData(p => ({ ...p, [k]: e.target.value }))}
-                      className="flex-1 h-5 px-1.5 text-[10px] bg-surface-raised border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500/50" />
+                      className="flex-1 h-5 px-1.5 text-[10px] glass-field border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500/50" />
                   </div>
                 ))}
               </div>
@@ -453,7 +454,7 @@ function TemplateFormModal({ open, onClose, initial, onSave, loading }) {
               <input value={form.eventKey} onChange={e => set('eventKey', e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '_'))}
                 placeholder="TASK_ASSIGNED"
                 list="event-key-suggestions"
-                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-8 px-3 text-xs font-mono glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
               <datalist id="event-key-suggestions">
                 {WELL_KNOWN_EVENT_KEYS.map(k => <option key={k.key} value={k.key} />)}
               </datalist>
@@ -465,31 +466,31 @@ function TemplateFormModal({ open, onClose, initial, onSave, loading }) {
             <label className="text-xs font-medium text-text-secondary block mb-1">Title template <span className="text-status-fail-fg">*</span></label>
             <input value={form.titleTemplate} onChange={e => set('titleTemplate', e.target.value)}
               placeholder="Task assigned: {{stepName}}"
-              className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-8 px-3 text-xs glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
 
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Body template</label>
             <textarea value={form.bodyTemplate} onChange={e => set('bodyTemplate', e.target.value)}
               rows={3} placeholder="{{workflowName}} requires your attention."
-              className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+              className="w-full px-3 py-2 text-xs glass-field border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
           </div>
 
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Action URL (deep link)</label>
             <input value={form.actionUrl} onChange={e => set('actionUrl', e.target.value)}
               placeholder="/workflow/tasks/{{taskId}}"
-              className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-8 px-3 text-xs font-mono glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             <p className="text-[10px] text-text-muted mt-0.5">Supports placeholders. Clicking notification navigates here.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">Icon (Lucide)</label>
-              <select value={form.icon} onChange={e => set('icon', e.target.value)}
+              <GlassSelect value={form.icon} onChange={e => set('icon', e.target.value)}
                 className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 {COMMON_ICONS.map(i => <option key={i} value={i}>{i}</option>)}
-              </select>
+              </GlassSelect>
             </div>
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">Color</label>

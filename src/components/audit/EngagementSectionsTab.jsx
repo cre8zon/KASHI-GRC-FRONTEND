@@ -194,7 +194,7 @@ function UserPicker({ users = [], value, onChange, placeholder = 'Assign…', lo
             right: coords.right,
             ...(flipUp ? { bottom: coords.bottom + 4 } : { top: coords.top + 4 }),
           }}
-          className="w-52 bg-surface-raised border border-border rounded-card shadow-elevated z-[9999] overflow-hidden">
+          className="w-52 glass-card border border-border rounded-card shadow-elevated z-[9999] overflow-hidden">
           <div className="p-1.5 border-b border-border">
             <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-overlay rounded-ctl">
               <Search size={10} className="text-text-muted shrink-0" />
@@ -945,7 +945,7 @@ export function EngagementSectionsTab({ engagementId, vc = {}, stepInstanceId, o
                   </div>
                 )}
                 <button onClick={doBulkAssign} disabled={bulkMut.isPending || (!bulkAuditorId && !bulkAuditeeId)}
-                  className="text-[10px] px-2.5 py-1 rounded bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+                  className="text-[10px] px-2.5 py-1 rounded bg-brand-500 text-brand-on hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
                   {bulkMut.isPending ? 'Assigning…' : `Assign to ${selectedSectionIds.size} section${selectedSectionIds.size !== 1 ? 's' : ''}`}
                 </button>
               </div>

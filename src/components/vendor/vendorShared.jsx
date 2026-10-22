@@ -55,6 +55,7 @@ import { cn } from '../../lib/cn'
 import { useSelector } from 'react-redux'
 import { selectAuth } from '../../store/slices/authSlice'
 import { useEntityActionItems, useMyActionItems } from '../../hooks/useActionItems'
+import { GlassSelect } from '../ui/GlassSelect'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DATA
@@ -243,7 +244,7 @@ export function UserPicker({
             right: coords.right,
             ...(flipUp ? { bottom: coords.bottom + 4 } : { top: coords.top + 4 }),
           }}
-          className="w-52 bg-surface-raised border border-border rounded-card shadow-elevated z-[9999] overflow-hidden"
+          className="w-52 glass-card border border-border rounded-card shadow-elevated z-[9999] overflow-hidden"
         >
           <div className="p-1.5 border-b border-border">
             <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-overlay rounded-ctl">
@@ -421,7 +422,7 @@ export function BulkAssignBar({
   if (!count) return null
   return createPortal(
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[9998] flex items-center gap-3
-                    px-3 py-2 rounded-card border border-border bg-surface-raised shadow-elevated">
+                    px-3 py-2 rounded-card border border-border glass-overlay shadow-elevated">
       <span className="text-[11px] text-text-primary font-medium whitespace-nowrap">
         {count} {itemNoun}{count === 1 ? '' : 's'} selected
       </span>
@@ -618,7 +619,7 @@ export function assigneesInSections(sections, field = 'assignedUserId',
  */
 export function AssignmentFilter({ value, onChange, people = [], selfLabel, delegatedLabel }) {
   return (
-    <select
+    <GlassSelect
       value={value}
       onChange={e => onChange?.(e.target.value)}
       title="Filter by who this question is with"
@@ -631,7 +632,7 @@ export function AssignmentFilter({ value, onChange, people = [], selfLabel, dele
       {people.map(p => (
         <option key={p.id} value={`user:${p.id}`}>{p.name}</option>
       ))}
-    </select>
+    </GlassSelect>
   )
 }
 
@@ -1528,7 +1529,7 @@ export function QuestionActionBar({
               a.variant === 'danger'
                 ? 'border-status-fail-bd text-status-fail-fg hover:bg-status-fail-bg'
                 : a.variant === 'primary'
-                  ? 'border-brand-500 bg-brand-500 text-white hover:opacity-90'
+                  ? 'border-brand-500 bg-brand-500 text-brand-on hover:opacity-90'
                   : 'border-border text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
             )}>
             {Icon && <Icon size={11} />}

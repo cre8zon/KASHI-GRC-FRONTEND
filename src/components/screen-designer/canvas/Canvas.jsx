@@ -46,7 +46,7 @@ function Canvas({ screen, screenType, selectedElement, onSelectElement, roleProf
       </div>
 
       {/* Canvas info bar */}
-      <div className="px-4 py-1.5 bg-brand-500/5 border-b border-brand-500/15 text-[10px] text-brand-600 flex items-center gap-2 shrink-0 font-medium">
+      <div className="px-4 py-1.5 bg-brand-500/5 border-b border-brand-500/15 text-[10px] text-brand-ink flex items-center gap-2 shrink-0 font-medium">
         <Info size={10} />
         Click any element below to configure it in the Inspector →
         <span className="ml-auto font-mono">{screenType?.hint}</span>

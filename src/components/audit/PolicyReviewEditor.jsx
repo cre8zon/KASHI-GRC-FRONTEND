@@ -147,7 +147,7 @@ export function PolicyReviewEditor({ policyInstanceId, policy = {}, canReview, r
               ? 'Describe the minor gaps noted…'
               : 'Whether the policy is current and satisfies the requirement…'}
           className={cn(
-            'w-full text-[11px] leading-relaxed rounded-ctl border border-border bg-surface',
+            'w-full text-[11px] leading-relaxed rounded-ctl border border-border glass-field',
             'px-2 py-1.5 text-text-primary placeholder:text-text-muted resize-y',
             'focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 disabled:opacity-50')}
         />

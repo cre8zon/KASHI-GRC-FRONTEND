@@ -87,7 +87,7 @@ function PlanCard({ plan, onEdit, labels = {} }) {
   const annual = plan.prices.filter(x => x.billingInterval === 'ANNUAL' && x.isActive)
   const monthly = plan.prices.filter(x => x.billingInterval === 'MONTHLY' && x.isActive)
   return (
-    <div className={cn('rounded-card border bg-surface-raised p-4 flex flex-col gap-3', plan.isActive ? 'border-border' : 'border-dashed border-border opacity-70')}>
+    <div className={cn('rounded-card border glass-card p-4 flex flex-col gap-3', plan.isActive ? 'border-border' : 'border-dashed border-border opacity-70')}>
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-sm font-semibold text-text-primary">{plan.name} <span className="font-mono text-[11px] text-text-muted">{plan.code}</span></p>
@@ -318,7 +318,7 @@ function FeatureMatrix({ plans, features, canManage }) {
       {features.length === 0 ? (
         <Empty icon={ListChecks} title="No features in the catalogue">Run the pricing seed, or add rows here. The website comparison table is built from them.</Empty>
       ) : (
-        <div className="rounded-card border border-border overflow-x-auto bg-surface-raised">
+        <div className="rounded-card border border-border overflow-x-auto glass-card">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-surface-overlay/50">
@@ -348,7 +348,7 @@ function FeatureMatrix({ plans, features, canManage }) {
                               <button type="button" aria-label={`${on ? 'Remove' : 'Include'} ${f.label} ${on ? 'from' : 'in'} ${p.name}`}
                                 disabled={toggle.isPending || !canManage} onClick={() => toggle.mutate({ plan: p, key: f.featureKey, on: !on })}
                                 className={cn('w-6 h-6 rounded border inline-flex items-center justify-center transition-colors',
-                                  on ? 'bg-brand-500 border-brand-500 text-brand-900' : 'border-border hover:border-brand-500/60 text-transparent')}>
+                                  on ? 'bg-brand-500 border-brand-500 text-brand-on' : 'border-border hover:border-brand-500/60 text-transparent')}>
                                 <Check size={13} strokeWidth={3} />
                               </button>
                             )}
@@ -451,8 +451,8 @@ function WebsitePreview() {
       {plans.length === 0 ? <Empty icon={Globe2} title="Nothing is published">Mark plans active and "On public price list" to show them.</Empty> : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {plans.map(p => (
-            <div key={p.code} className={cn('rounded-card border p-4 flex flex-col gap-2 bg-surface-raised', p.badge ? 'border-brand-500' : 'border-border')}>
-              {p.badge && <span className="self-start text-[10px] px-2 py-0.5 rounded-full bg-brand-500 text-brand-900 font-semibold">{p.badge}</span>}
+            <div key={p.code} className={cn('rounded-card border p-4 flex flex-col gap-2 glass-card', p.badge ? 'border-brand-500' : 'border-border')}>
+              {p.badge && <span className="self-start text-[10px] px-2 py-0.5 rounded-full bg-brand-500 text-brand-on font-semibold">{p.badge}</span>}
               <p className="text-sm font-semibold text-text-primary">{p.name}</p>
               {p.tagline && <p className="text-xs text-text-muted">{p.tagline}</p>}
               <p className="text-lg font-semibold text-text-primary">
@@ -480,7 +480,7 @@ function WebsitePreview() {
       {cmp?.plans?.length > 0 && (
         <div>
           <SectionTitle>Comparison table</SectionTitle>
-          <div className="rounded-card border border-border overflow-x-auto bg-surface-raised">
+          <div className="rounded-card border border-border overflow-x-auto glass-card">
             <table className="w-full text-sm">
               <thead><tr className="border-b border-border bg-surface-overlay/50">
                 <th className="px-3 py-2 text-left text-[11px] text-text-muted uppercase">Feature</th>

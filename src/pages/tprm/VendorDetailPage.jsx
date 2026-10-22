@@ -35,6 +35,7 @@ import { selectAuth, selectRoles }           from '../../store/slices/authSlice'
 import toast                                 from 'react-hot-toast'
 import { useComments }                       from '../../hooks/useComments'
 import { CommentFeed }                       from '../../components/comments/CommentFeed'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const ASSESSMENT_STATUS_COLOR = {
@@ -163,7 +164,7 @@ function StatCard({ icon: Icon, label, value, sub, accent = 'brand' }) {
     amber:  'text-status-warn-fg bg-status-warn-bg',
   }
   return (
-    <div className="rounded-card border border-border bg-surface-raised p-4 flex items-center gap-3">
+    <div className="rounded-card border border-border glass-card p-4 flex items-center gap-3">
       <div className={cn('w-9 h-9 rounded-card flex items-center justify-center shrink-0', accentClasses[accent])}>
         <Icon size={16} />
       </div>
@@ -499,13 +500,13 @@ function VendorSetupBanner({ vendor, onRefresh }) {
                     : 'Start the TPRM workflow. The assessment template will be instantiated automatically.'}
                 </p>
                 {!hasWorkflow && (
-                  <select value={selectedWfId} onChange={e => setSelectedWfId(e.target.value)}
+                  <GlassSelect value={selectedWfId} onChange={e => setSelectedWfId(e.target.value)}
                     className="mt-2 h-7 w-full max-w-xs rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                     <option value="">Select workflow…</option>
                     {activeWorkflows.map(w => (
                       <option key={w.id} value={w.id}>{w.name} (v{w.version})</option>
                     ))}
-                  </select>
+                  </GlassSelect>
                 )}
               </div>
               {!hasWorkflow && (
@@ -702,7 +703,7 @@ function AssessmentPhaseTracker({ assessmentStatus, currentStepOrder }) {
                     : isDone  ? 'bg-status-pass-bg'
                     : 'bg-border'
                 )}>
-                  {isDone && <Check size={9} className="text-on-dark" />}
+                  {isDone && <Check size={9} className="text-status-pass-fg" />}
                   {isActive && <div className="w-2 h-2 rounded-full bg-surface-raised animate-pulse" />}
                 </div>
                 <span className={cn(
@@ -782,7 +783,7 @@ function AssessmentSectionAccordion({ sections = [] }) {
                 <div className="w-16 h-1.5 rounded-full bg-surface-overlay overflow-hidden">
                   <div className={cn(
                     'h-full rounded-full transition-all',
-                    submitted ? 'bg-status-pass-bg' : 'bg-brand-500'
+                    submitted ? 'bg-status-pass-fg' : 'bg-brand-fill'
                   )} style={{ width: `${pct}%` }} />
                 </div>
                 <span className="text-[10px] font-mono text-brand-ink">{pct}%</span>
@@ -898,7 +899,7 @@ function AssessmentDetailCard({ assessment, riskMappings, onCancel, workflowProg
           {/* Progress bar */}
           <div className="mt-2.5 flex items-center gap-2">
             <div className="flex-1 h-1.5 rounded-full bg-surface-overlay overflow-hidden">
-              <div className="h-full rounded-full bg-brand-500 transition-all duration-500"
+              <div className="h-full rounded-full bg-brand-fill transition-all duration-500"
                 style={{ width: `${pct}%` }} />
             </div>
             <span className="text-[10px] font-mono text-brand-ink shrink-0">{pct}%</span>
@@ -946,7 +947,7 @@ function AssessmentDetailCard({ assessment, riskMappings, onCancel, workflowProg
               { label: 'Answered',           value: assessment.progress?.answered ?? 0 },
               { label: 'Mandatory',          value: assessment.progress?.mandatoryQuestions ?? 0 },
             ].map(({ label, value }) => (
-              <div key={label} className="rounded-card border border-border bg-surface-raised px-3 py-2 text-center">
+              <div key={label} className="rounded-card border border-border glass-card px-3 py-2 text-center">
                 <p className="text-[10px] text-text-muted">{label}</p>
                 <p className="text-lg font-bold text-text-primary tabular-nums">{value}</p>
               </div>
@@ -997,7 +998,7 @@ function AssessmentsTab({ vendorId, vendorRiskScore, workflowProgress }) {
     <>
       {/* Risk tier banner */}
       {matchingMapping && (
-        <div className="mb-4 px-3 py-2.5 rounded-card border border-border bg-surface-raised flex items-center gap-3">
+        <div className="mb-4 px-3 py-2.5 rounded-card border border-border glass-card flex items-center gap-3">
           <Shield size={13} className="text-brand-ink shrink-0" />
           <p className="text-xs text-text-muted">
             Risk score{' '}
@@ -1073,7 +1074,7 @@ function SectionsStatusPanel({ assessmentId }) {
     <div className="space-y-2">
       {sections.map(s => (
         <div key={s.sectionInstanceId}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-card border border-border bg-surface-raised">
+          className="flex items-center gap-3 px-3 py-2.5 rounded-card border border-border glass-card">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-text-primary truncate">{s.sectionName}</p>
             <p className="text-[10px] text-text-muted mt-0.5">
@@ -1314,7 +1315,7 @@ function TeamTab({ vendorId, vendor }) {
         <div className="space-y-2">
           {users.map(u => (
             <div key={u.userId || u.id}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-card border border-border bg-surface-raised">
+              className="flex items-center gap-3 px-3 py-2.5 rounded-card border border-border glass-card">
               <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0">
                 <span className="text-[10px] font-bold text-brand-ink">
                   {(u.fullName || u.email || '?').slice(0, 2).toUpperCase()}
@@ -1366,7 +1367,7 @@ function ContractsTab({ vendorId }) {
     <div className="space-y-3">
       {contracts.map(c => (
         <div key={c.contractId}
-          className="rounded-card border border-border bg-surface-raised p-4">
+          className="rounded-card border border-border glass-card p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-text-primary truncate">
@@ -1413,7 +1414,7 @@ function ActionItemsTab({ vendorId }) {
     <div className="space-y-2">
       {items.map(ai => (
         <div key={ai.id}
-          className="rounded-card border border-border bg-surface-raised px-4 py-3 flex items-start gap-3">
+          className="rounded-card border border-border glass-card px-4 py-3 flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold text-text-primary truncate">{ai.title}</p>
             {ai.description && <p className="text-[11px] text-text-muted mt-0.5 line-clamp-2">{ai.description}</p>}

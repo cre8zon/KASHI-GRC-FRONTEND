@@ -41,6 +41,7 @@ import { cn }          from '../../lib/cn'
 import { useSelector } from 'react-redux'
 import { selectAuth }  from '../../store/slices/authSlice'
 import toast           from 'react-hot-toast'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -202,29 +203,29 @@ function ControlForm({ initial, onSubmit, loading }) {
         <label className="block text-xs text-text-secondary mb-1">Control name *</label>
         <input value={form.name} onChange={e => set('name', e.target.value)}
           placeholder="e.g. User access management"
-          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Control code</label>
           <input value={form.controlCode} onChange={e => set('controlCode', e.target.value)}
             placeholder="e.g. A.9.1.1, CC6.1, AC-1"
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
           <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)}
             placeholder="e.g. ISO 27001, SOC 2"
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Test type</label>
-          <select value={form.testType} onChange={e => set('testType', e.target.value)}
+          <GlassSelect value={form.testType} onChange={e => set('testType', e.target.value)}
             className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
+          </GlassSelect>
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">
@@ -233,7 +234,7 @@ function ControlForm({ initial, onSubmit, loading }) {
           </label>
           <input value={form.controlTag} onChange={e => set('controlTag', e.target.value.toUpperCase())}
             placeholder="e.g. ENCRYPTION_AT_REST, MFA"
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           <p className="text-[10px] text-text-muted mt-1">
             Snapshotted at engagement creation. One rule covers all controls with this tag.
           </p>
@@ -243,7 +244,7 @@ function ControlForm({ initial, onSubmit, loading }) {
         <label className="block text-xs text-text-secondary mb-1">Description</label>
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3}
           placeholder="What this control tests and what evidence is expected"
-          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full px-3 py-2 rounded-ctl border border-border glass-field text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div>
         <label className="block text-xs text-text-secondary mb-1">
@@ -252,7 +253,7 @@ function ControlForm({ initial, onSubmit, loading }) {
         </label>
         <textarea value={form.evidenceGuidance} onChange={e => set('evidenceGuidance', e.target.value)} rows={3}
           placeholder={'e.g. Screenshot of MFA enforcement policy\nUser access review sign-off for the period\nExport of privileged accounts'}
-          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full px-3 py-2 rounded-ctl border border-border glass-field text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
         <p className="text-[10px] text-text-muted mt-1">
           One item per line. Snapshotted into every control instance when an engagement is created,
           so later edits do not change engagements already under way.
@@ -280,20 +281,20 @@ function SectionForm({ initial, allRootSections, onSubmit, loading }) {
         <label className="block text-xs text-text-secondary mb-1">Section name *</label>
         <input value={form.name} onChange={e => set('name', e.target.value)}
           placeholder="e.g. A.9 — Access Control"
-          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Section code</label>
           <input value={form.sectionCode} onChange={e => set('sectionCode', e.target.value)}
             placeholder="e.g. A.9, CC6, PR.AC"
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
           <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)}
             placeholder="e.g. ISO 27001"
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <div>
@@ -301,7 +302,7 @@ function SectionForm({ initial, allRootSections, onSubmit, loading }) {
           Parent section
           <span className="ml-1 text-text-muted font-normal">(leave blank for top-level)</span>
         </label>
-        <select value={form.parentId ?? ''} onChange={e => set('parentId', e.target.value || null)}
+        <GlassSelect value={form.parentId ?? ''} onChange={e => set('parentId', e.target.value || null)}
           className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
           <option value="">— Top-level section —</option>
           {(allRootSections ?? []).map(s => (
@@ -309,12 +310,12 @@ function SectionForm({ initial, allRootSections, onSubmit, loading }) {
               {s.sectionCode ? `${s.sectionCode} — ${s.name}` : s.name}
             </option>
           ))}
-        </select>
+        </GlassSelect>
       </div>
       <div>
         <label className="block text-xs text-text-secondary mb-1">Description</label>
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
-          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full px-3 py-2 rounded-ctl border border-border glass-field text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <Button variant="primary" onClick={() => onSubmit(form)} loading={loading} disabled={!form.name.trim()}>
         {initial ? 'Update section' : 'Add section'}
@@ -665,16 +666,16 @@ export default function AuditLibraryPage() {
             <input value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); setSecPage(1); setTplPage(1) }}
               placeholder={tab === 'controls' ? 'Search controls…' : tab === 'sections' ? 'Search sections…' : 'Search templates…'}
-              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
 
           {tab === 'controls' && (
             <div className="relative">
-              <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
+              <GlassSelect value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
                 className="h-8 appearance-none pl-3 pr-7 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 <option value="">All types</option>
                 {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
+              </GlassSelect>
               <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             </div>
           )}
@@ -878,21 +879,21 @@ export default function AuditLibraryPage() {
                   <label className="block text-xs text-text-secondary mb-1">Template name *</label>
                   <input value={form.name} onChange={e => set('name', e.target.value)}
                     placeholder="e.g. ISO 27001 Full Audit"
-                    className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-text-secondary mb-1">Audit type</label>
-                    <select value={form.auditType} onChange={e => set('auditType', e.target.value)}
+                    <GlassSelect value={form.auditType} onChange={e => set('auditType', e.target.value)}
                       className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                       {AUDIT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
+                    </GlassSelect>
                   </div>
                   <div>
                     <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
                     <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)}
                       placeholder="ISO 27001, SOC 2…"
-                      className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
                 </div>
                 <Button variant="primary" loading={TM.create.isPending} disabled={!form.name.trim()}

@@ -101,7 +101,7 @@ export default function AiBubbleAction({ editor, policyId, disabled }) {
           'flex h-7 items-center gap-1 rounded-ctl px-2 text-xs font-medium transition-colors',
           disabled || tooShort
             ? 'text-text-muted cursor-not-allowed'
-            : 'text-brand-800 hover:bg-brand-500/10',
+            : 'text-brand-ink hover:bg-brand-500/10',
         )}
       >
         <Sparkles size={13} strokeWidth={2} />
@@ -138,7 +138,7 @@ export default function AiBubbleAction({ editor, policyId, disabled }) {
               <button
                 onClick={() => custom.trim() && run('CUSTOM')}
                 disabled={!custom.trim()}
-                className="h-7 w-full rounded-ctl bg-brand-500 text-xs font-medium text-brand-ink disabled:opacity-40"
+                className="h-7 w-full rounded-ctl bg-brand-500 text-xs font-medium text-brand-on disabled:opacity-40"
               >
                 Rewrite
               </button>
@@ -163,7 +163,7 @@ export default function AiBubbleAction({ editor, policyId, disabled }) {
                 ) : (
                   <>
                     <button onClick={apply}
-                      className="flex h-7 items-center gap-1 rounded-ctl bg-brand-500 px-2.5 text-xs font-medium text-brand-ink hover:bg-brand-600">
+                      className="flex h-7 items-center gap-1 rounded-ctl bg-brand-500 px-2.5 text-xs font-medium text-brand-on hover:bg-brand-600">
                       <Check size={12} /> Apply
                     </button>
                     <button onClick={() => run(mode)}

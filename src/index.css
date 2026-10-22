@@ -29,92 +29,133 @@
 .tiptap p.is-editor-empty:first-child::before { content:attr(data-placeholder); color:var(--text-muted); pointer-events:none; float:left; height:0; }
 .tiptap { outline:none; }
 
-/* ══ Calm v3 utilities ══ */
+/* ══ Glass system — Calm v4 ══════════════════════════════════════════════
+   Frosted surfaces in BOTH themes, layered by depth:
 
-/* Glass — chrome (sidebar/topnav) and overlays (modals/drawers/menus).
-   Content surfaces NEVER get these. */
-.glass-chrome {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-bd);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
-}
-.glass-field {
-  background: var(--field-bg);
-  border: 1px solid var(--field-bd);
-  backdrop-filter: blur(var(--field-blur)) saturate(1.3);
-  -webkit-backdrop-filter: blur(var(--field-blur)) saturate(1.3);
-}
-.glass-field:focus, .glass-field:focus-within {
-  background: var(--field-bg-focus);
-}
+     .glass-chrome   sidebar, top nav, tab bar          (most opaque chrome)
+     .glass-card     content cards, panels, tiles        (the workhorse)
+     .glass-inset    a panel nested inside a card        (lighter, no shadow)
+     .glass-overlay  modals, drawers, menus, popovers    (densest — sits over content)
+     .glass-field    inputs, selects, textareas
+     .glass-button   secondary / ghost-plus buttons, segmented controls
 
-/* Fields inside an overlay must be SOLID.
-   --field-bg is 45% white and --field-bd 55% white, which reads correctly on
-   the mesh wash or a frosted card: white translucency over colour looks like a
-   lighter panel. A modal is glass-overlay, i.e. --glass-bg-hi = 82% white in
-   light theme, so a white field on a near-white surface with a white border
-   disappears — the input becomes invisible even though every token resolves.
-   Inside overlays the field gets the inset surface and a real border instead.
-   Dark theme is unaffected: its field tokens are dark on dark and already
-   contrast. */
-.glass-overlay .glass-field {
-  background: rgb(var(--color-surface-inset));
-  border: 1px solid rgb(var(--color-border-strong));
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-.glass-overlay .glass-field:focus,
-.glass-overlay .glass-field:focus-within {
-  background: rgb(var(--color-surface-raised));
-  border-color: rgb(var(--color-brand-600));
-}
+   Every layer = translucent fill + backdrop blur + saturation + a 1px rim +
+   a specular top highlight (::after, inset shadow — no gradient). Values are
+   per-theme tokens in index.html; readability is guaranteed by fill opacity,
+   not by turning glass off.
 
-.glass-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-bd);
-  backdrop-filter: blur(var(--card-blur)) saturate(1.5);
-  -webkit-backdrop-filter: blur(var(--card-blur)) saturate(1.5);
-}
-.glass-overlay {
-  background: var(--glass-bg-hi);
-  border: 1px solid var(--glass-bd);
-  backdrop-filter: blur(22px) saturate(1.5);
-  -webkit-backdrop-filter: blur(22px) saturate(1.5);
-}
-@supports not (backdrop-filter: blur(1px)) {
-  /* Without backdrop-filter, glass must become solid. This block previously
-     re-declared the glass treatment complete with backdrop-filter, so the
-     fallback provided no fallback at all. */
-  .glass-chrome, .glass-overlay, .glass-field {
-    background: rgb(var(--color-surface-raised));
-    border: 1px solid rgb(var(--color-border));
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+   These live in @layer components ON PURPOSE: Tailwind utilities on the same
+   element (border-brand-500 for a selected card, bg-status-fail-bg for an
+   error tile, shadow-overlay on a modal) must win. When glass sat outside the
+   layers it silently overrode them — a selected card lost its border. */
+@layer components {
+  .glass-chrome, .glass-card, .glass-inset, .glass-overlay, .glass-field, .glass-button {
+    -webkit-backdrop-filter: blur(var(--gl-blur, 20px)) saturate(var(--gl-sat, 1.6));
+    backdrop-filter: blur(var(--gl-blur, 20px)) saturate(var(--gl-sat, 1.6));
   }
+
+  .glass-chrome {
+    --gl-blur: var(--glass-blur);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-bd);
+    box-shadow: var(--glass-hl), var(--shadow-elevated);
+  }
+
+  .glass-card {
+    --gl-blur: var(--card-blur);
+    position: relative;
+    background: var(--card-bg);
+    border: 1px solid var(--card-bd);
+  }
+  /* Specular rim: a 1px light line along the top edge + faint inner glow.
+     A pseudo-element so it survives any shadow-* utility on the card. */
+  .glass-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: var(--glass-hl);
+  }
+
+  .glass-inset {
+    --gl-blur: 12px;
+    background: var(--inset-bg);
+    border: 1px solid var(--inset-bd);
+  }
+
+  .glass-overlay {
+    --gl-blur: var(--overlay-blur);
+    --gl-sat: 1.7;
+    background: var(--glass-bg-hi);
+    border: 1px solid var(--glass-bd);
+    box-shadow: var(--glass-hl), var(--shadow-overlay);
+  }
+
   .glass-field {
-    background: rgb(var(--color-surface-inset));
+    --gl-blur: var(--field-blur);
+    --gl-sat: 1.4;
+    background: var(--field-bg);
+    border: 1px solid var(--field-bd);
+    box-shadow: var(--field-shadow);
+    transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .glass-field:hover { border-color: var(--field-bd-hover); }
+  .glass-field:focus, .glass-field:focus-within {
+    background: var(--field-bg-focus);
+    border-color: rgb(var(--color-brand-ink) / .55);
+    box-shadow: var(--field-shadow-focus);
+  }
+  .glass-field::placeholder { color: rgb(var(--color-text-muted)); }
+
+  .glass-button {
+    --gl-blur: 14px;
+    background: var(--button-glass-bg);
+    border: 1px solid var(--button-glass-bd);
+    box-shadow: var(--glass-hl), 0 1px 2px rgb(0 0 0 / .06);
+  }
+  .glass-button:hover { background: var(--button-glass-bg-hover); }
+
+  /* Inside an overlay, fields/insets sit on a dense frosted panel; give them
+     a clearer edge so they don't dissolve into it. */
+  .glass-overlay .glass-field {
+    background: var(--field-bg-in-overlay);
     border-color: rgb(var(--color-border-strong));
   }
-  .glass-field:focus, .glass-field:focus-within {
-    background: rgb(var(--color-surface-raised));
+  .glass-overlay .glass-field:focus,
+  .glass-overlay .glass-field:focus-within {
+    background: var(--field-bg-focus);
+    border-color: rgb(var(--color-brand-ink) / .6);
   }
-  .glass-card { background: rgb(var(--color-surface-raised)); }
+}
+
+/* Lift on hover for clickable glass cards. */
+.glass-card.card-hover:hover { box-shadow: var(--shadow-hover); }
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  /* No backdrop-filter → glass must become solid, or text sits on raw wash. */
+  .glass-chrome, .glass-card, .glass-overlay, .glass-button { background: rgb(var(--color-surface-raised)); }
+  .glass-inset { background: rgb(var(--color-surface-overlay)); }
+  .glass-field { background: rgb(var(--color-surface-inset)); border-color: rgb(var(--color-border-strong)); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass-chrome, .glass-card, .glass-overlay, .glass-button {
+    background: rgb(var(--color-surface-raised));
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  .glass-inset { background: rgb(var(--color-surface-overlay)); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 @media print {
   body { background: #fff !important; }
-  /* Translucency and blur do not print. */
-  .glass-chrome, .glass-overlay, .glass-field {
+  /* Translucency and blur do not print — audit evidence must print clean. */
+  .glass-chrome, .glass-card, .glass-inset, .glass-overlay, .glass-field, .glass-button {
     background: #fff !important;
     border: 1px solid #cbd5e1 !important;
-    backdrop-filter: none !important;
+    box-shadow: none !important;
     -webkit-backdrop-filter: none !important;
-  }
-  .glass-card {
-    background: #fff !important;
     backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
   }
+  .glass-card::after { display: none !important; }
 }
 
 /* Registry signatures */

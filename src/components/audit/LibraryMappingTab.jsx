@@ -476,7 +476,7 @@ function AddMappingModal({ entityType, entityId, linkedEntityType, linkedType, e
             onChange={e => setSearch(e.target.value)}
             placeholder={`Search ${linkedEntityType.toLowerCase()}s…`}
             autoFocus
-            className="w-full pl-9 pr-3 h-9 text-sm bg-surface-overlay border border-border rounded-card text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+            className="w-full pl-9 pr-3 h-9 text-sm glass-field border border-border rounded-card text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/40"
           />
         </div>
 

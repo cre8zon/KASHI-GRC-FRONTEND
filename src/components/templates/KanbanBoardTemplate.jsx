@@ -141,7 +141,7 @@ export function KanbanBoardTemplate({
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search records…"
-            className="h-7 pl-8 pr-3 w-48 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="h-7 pl-8 pr-3 w-48 text-xs glass-field border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div className="flex items-center gap-3 ml-auto">
           {statuses.map(s => (
@@ -245,7 +245,7 @@ function KanbanCard({ record, renderCard, onClick, onDragStart, onDragEnd }) {
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onClick={onClick}
-      className="bg-surface-raised border border-border rounded-card cursor-pointer hover:border-brand-500/30 hover:shadow-elevated transition-all active:opacity-60 active:scale-95 select-none"
+      className="glass-card border border-border rounded-card cursor-pointer hover:border-brand-500/30 hover:shadow-elevated transition-all active:opacity-60 active:scale-95 select-none"
     >
       {renderCard
         ? renderCard(record)

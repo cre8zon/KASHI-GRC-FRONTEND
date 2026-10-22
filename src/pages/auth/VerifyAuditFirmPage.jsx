@@ -34,8 +34,8 @@ export default function VerifyAuditFirmPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface p-4">
-      <div className="w-full max-w-lg rounded-card border border-border bg-surface-raised shadow-elevated p-6 space-y-5">
-        <p className="text-xs font-semibold tracking-wide text-text-muted uppercase">KashiGRC · Audit-firm verification</p>
+      <div className="w-full max-w-lg rounded-card border border-border glass-card shadow-elevated p-6 space-y-5">
+        <p className="text-xs font-semibold tracking-wide text-text-muted uppercase">KashiGuard · Audit-firm verification</p>
 
         {state.phase === 'loading' && <p className="text-sm text-text-muted flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Checking link…</p>}
 
@@ -45,7 +45,7 @@ export default function VerifyAuditFirmPage() {
             <div>
               <p className="text-sm font-semibold text-text-primary">Link not valid</p>
               <p className="text-sm text-text-secondary mt-1">{state.message}</p>
-              <p className="text-xs text-text-muted mt-3">Reply to the email you received from KashiGRC and we will send a new link.</p>
+              <p className="text-xs text-text-muted mt-3">Reply to the email you received from KashiGuard and we will send a new link.</p>
             </div>
           </div>
         )}
@@ -66,7 +66,7 @@ export default function VerifyAuditFirmPage() {
               <p className="text-base font-semibold text-text-primary">Confirm your firm's details</p>
               <p className="text-sm text-text-secondary mt-1">
                 {state.d.contactName ? `${state.d.contactName}, please` : 'Please'} check that these details are accurate and that you are authorised to
-                confirm them for your firm. Once verified, your firm's auditors can be admitted into client organisations on KashiGRC.
+                confirm them for your firm. Once verified, your firm's auditors can be admitted into client organisations on KashiGuard.
               </p>
             </div>
             <dl className="grid grid-cols-3 gap-x-4 gap-y-2 text-sm rounded-card border border-border p-4">
@@ -80,7 +80,7 @@ export default function VerifyAuditFirmPage() {
             <div className="flex items-center justify-between gap-3">
               <p className="text-[11px] text-text-muted">If anything is wrong, don't confirm — reply to the email instead.</p>
               <button onClick={confirm} disabled={state.busy}
-                className="h-9 px-4 rounded-ctl bg-brand-500 text-brand-900 text-sm font-medium hover:bg-brand-600 disabled:opacity-60 flex items-center gap-2">
+                className="h-9 px-4 rounded-ctl bg-brand-500 text-brand-on text-sm font-medium hover:bg-brand-600 disabled:opacity-60 flex items-center gap-2">
                 {state.busy && <Loader2 size={14} className="animate-spin" />} Confirm details
               </button>
             </div>

@@ -288,7 +288,7 @@ ${signOffRows ? `
 </table>` : ''}
 
 <div class="footer">
-  ${engagement.name||'Audit Engagement'} · ${engagement.engagementRef||''} · Generated ${fmtDate(new Date())} · KashiGRC
+  ${engagement.name||'Audit Engagement'} · ${engagement.engagementRef||''} · Generated ${fmtDate(new Date())} · KashiGuard
 </div>
 </body></html>`
 
@@ -499,7 +499,7 @@ export default function AuditReportPage() {
                   )}
                 </div>
               </div>
-              <Shield size={40} className="text-brand-ink/20 shrink-0" />
+              <Shield size={40} className="text-brand-ink shrink-0" />
             </div>
             <div className="mt-5 grid grid-cols-3 gap-4 pt-5 border-t border-border">
               {[
@@ -536,7 +536,7 @@ export default function AuditReportPage() {
             <div className="h-2 bg-surface-overlay rounded-full overflow-hidden">
               <div
                 className={cn('h-full rounded-full transition-all',
-                  passRate >= 80 ? 'bg-status-pass-bg' : passRate >= 60 ? 'bg-status-warn-bg' : 'bg-status-fail-bg'
+                  passRate >= 80 ? 'bg-status-pass-fg' : passRate >= 60 ? 'bg-status-warn-fg' : 'bg-status-fail-fg'
                 )}
                 style={{ width: `${passRate}%` }}
               />

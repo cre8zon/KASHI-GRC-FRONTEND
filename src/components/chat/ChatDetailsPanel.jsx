@@ -106,7 +106,7 @@ function About({ conv, onMute, onSettings, onLeave, onAddPeople, canCall, onCall
   return (
     <div className="p-4 space-y-4">
       <div className="flex flex-col items-center text-center">
-        <span className="w-14 h-14 rounded-full bg-brand-500/15 text-brand-900 flex items-center justify-center"><Icon size={22} /></span>
+        <span className="w-14 h-14 rounded-full bg-brand-500/15 text-brand-ink flex items-center justify-center"><Icon size={22} /></span>
         <p className="text-sm font-semibold text-text-primary mt-2 break-words">{conv.kind === 'CHANNEL' ? '#' : ''}{conv.name}</p>
         <p className="text-[11px] text-text-muted mt-0.5">
           {conv.kind === 'CHANNEL' ? (conv.visibility === 'PRIVATE' ? 'Private channel' : 'Public channel') : 'Group'}
@@ -175,7 +175,7 @@ function People({ conv, onAddPeople, onRemove }) {
         <div className="relative flex-1">
           <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder={`Search ${people.length || ''} people`}
-            className="w-full h-7 pl-6 pr-2 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary" />
+            className="w-full h-7 pl-6 pr-2 rounded-ctl border border-border glass-field text-xs text-text-primary" />
         </div>
         {conv.canManage && !conv.archived && (
           <button type="button" onClick={onAddPeople} title="Add people"
@@ -336,7 +336,7 @@ export function Avatar({ name, online, size = 'sm' }) {
   const lg = size === 'lg'
   return (
     <span className="relative shrink-0 inline-block">
-      <span className={cn('rounded-full bg-brand-500/20 text-brand-900 font-semibold flex items-center justify-center',
+      <span className={cn('rounded-full bg-brand-500/20 text-brand-ink font-semibold flex items-center justify-center',
         lg ? 'w-14 h-14 text-lg' : 'w-7 h-7 text-[10px]')}>{initials(name)}</span>
       {online && <PresenceDot className={lg ? 'w-3.5 h-3.5 right-0.5 bottom-0.5' : undefined} />}
     </span>

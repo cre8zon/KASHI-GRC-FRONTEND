@@ -9,6 +9,7 @@ import { PageLayout } from '../../../components/layout/PageLayout'
 import { Button } from '../../../components/ui/Button'
 import { cn } from '../../../lib/cn'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 // ─── Tier style map (purely visual — no score ranges) ────────────────────────
 
@@ -18,7 +19,7 @@ const TIER_STYLE = {
   HIGH:     { accent: 'text-status-warn-fg',  bg: 'bg-status-warn-bg',  border: 'border-status-warn-bd',  dot: 'bg-status-warn-fg',  badge: 'bg-status-warn-bg text-status-warn-fg border border-status-warn-bd',  bar: 'bg-status-fail-fg/75',  ring: 'focus:ring-status-warn-bd'  },
   CRITICAL: { accent: 'text-status-fail-fg',    bg: 'bg-status-fail-bg',    border: 'border-status-fail-bd',    dot: 'bg-status-fail-fg',    badge: 'bg-status-fail-bg text-status-fail-fg border border-status-fail-bd',         bar: 'bg-status-fail-fg',    ring: 'focus:ring-status-fail-bd'    },
 }
-const DEFAULT_STYLE = { accent: 'text-brand-ink', bg: 'bg-brand-500/5', border: 'border-brand-500/20', dot: 'bg-brand-400', badge: 'bg-brand-500/15 text-brand-ink border border-brand-500/25', bar: 'bg-brand-500', ring: 'focus:ring-brand-500/40' }
+const DEFAULT_STYLE = { accent: 'text-brand-ink', bg: 'bg-brand-500/5', border: 'border-brand-500/20', dot: 'bg-brand-fill', badge: 'bg-brand-500/15 text-brand-ink border border-brand-500/25', bar: 'bg-status-pending-fg', ring: 'focus:ring-brand-500/40' }
 const tierStyle = (label) => TIER_STYLE[label] || DEFAULT_STYLE
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -135,7 +136,7 @@ function TierCard({ tier, rangeError, publishedTemplates, onChange, isFirst, isL
                 value={tier.minScore}
                 onChange={e => set('minScore', parseFloat(e.target.value))}
                 className={cn(
-                  'w-16 h-6 text-center font-mono text-xs rounded border bg-surface-raised text-text-primary',
+                  'w-16 h-6 text-center font-mono text-xs rounded border glass-field text-text-primary',
                   'focus:outline-none focus:ring-1 focus:ring-brand-500/50',
                   rangeError ? 'border-status-fail-bd' : 'border-border'
                 )}
@@ -153,7 +154,7 @@ function TierCard({ tier, rangeError, publishedTemplates, onChange, isFirst, isL
                 value={tier.maxScore}
                 onChange={e => set('maxScore', parseFloat(e.target.value))}
                 className={cn(
-                  'w-16 h-6 text-center font-mono text-xs rounded border bg-surface-raised text-text-primary',
+                  'w-16 h-6 text-center font-mono text-xs rounded border glass-field text-text-primary',
                   'focus:outline-none focus:ring-1 focus:ring-brand-500/50',
                   rangeError ? 'border-status-fail-bd' : 'border-border'
                 )}
@@ -193,7 +194,7 @@ function TierCard({ tier, rangeError, publishedTemplates, onChange, isFirst, isL
               <span className="text-[10px] font-mono text-text-muted w-16 shrink-0 text-right pr-1">
                 Option {idx + 1}
               </span>
-              <select value={tplId} onChange={e => updateSlot(idx, e.target.value)}
+              <GlassSelect value={tplId} onChange={e => updateSlot(idx, e.target.value)}
                 className={cn(
                   'flex-1 h-8 appearance-none pl-3 pr-2 rounded-ctl border text-xs text-text-primary',
                   'bg-surface-raised focus:outline-none focus:ring-1 transition-colors',
@@ -206,7 +207,7 @@ function TierCard({ tier, rangeError, publishedTemplates, onChange, isFirst, isL
                     {t.name}{taken.includes(String(t.templateId)) ? ' (already added)' : ''}
                   </option>
                 ))}
-              </select>
+              </GlassSelect>
               <button onClick={() => removeSlot(idx)}
                 className="h-8 w-8 flex items-center justify-center rounded-ctl text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors shrink-0"
                 title="Remove this option">
@@ -314,7 +315,7 @@ export default function RiskMappingPage() {
         {tiers.length > 0 && (
           <div>
             <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-2">Range preview</p>
-            <div className="h-6 w-full rounded-card overflow-hidden flex text-[10px] font-bold text-on-dark">
+            <div className="h-6 w-full rounded-card overflow-hidden flex text-[10px] font-bold text-text-inverse">
               {tiers.map(tier => {
                 const style = tierStyle(tier.label)
                 const width = Math.max(0, ((tier.maxScore - tier.minScore) / totalRange) * 100)

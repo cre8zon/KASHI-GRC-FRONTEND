@@ -15,6 +15,7 @@ import { cn } from '../../../lib/cn'
 import toast from 'react-hot-toast'
 import { moduleBlueprintsApi } from '../../../api/moduleBlueprints.api'
 import { uiAdminApi } from '../../../api/uiConfig.api'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
@@ -170,7 +171,7 @@ export default function ModuleBlueprintAdminPage() {
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
               <input value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search modules…"
-                className="w-full pl-8 pr-3 h-7 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full pl-8 pr-3 h-7 text-xs glass-field border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -509,7 +510,7 @@ function BlueprintDetail({ bp, tab, setTab, onEdit, onDelete, onActivate, onDeac
                                 : 'text-status-warn-fg bg-status-warn-bg')}>
                             {t.actionKey}
                           </code>
-                        : <span className="text-[10px] text-text-muted/50 italic ml-1">no actionKey</span>
+                        : <span className="text-[10px] text-text-faint italic ml-1">no actionKey</span>
                       }
                       {t.permission && <code className="ml-auto text-[10px] font-mono text-text-muted">{t.permission}</code>}
                     </div>
@@ -652,14 +653,14 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
               <input value={form.entityType} onChange={e => set('entityType', e.target.value.toUpperCase().replace(/\s/g, '_'))}
                 placeholder="RISK"
                 disabled={!!initial}
-                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:opacity-50" />
+                className="w-full h-8 px-3 text-xs font-mono glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:opacity-50" />
               <p className="text-[10px] text-text-muted mt-0.5">UPPER_SNAKE_CASE, immutable after creation</p>
             </div>
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">Display name <span className="text-status-fail-fg">*</span></label>
               <input value={form.displayName} onChange={e => set('displayName', e.target.value)}
                 placeholder="Risk Management"
-                className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-8 px-3 text-xs glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -667,22 +668,22 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
               <label className="text-xs font-medium text-text-secondary block mb-1">Plural name</label>
               <input value={form.displayNamePlural} onChange={e => set('displayNamePlural', e.target.value)}
                 placeholder="Risks"
-                className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-8 px-3 text-xs glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">API base path <span className="text-status-fail-fg">*</span></label>
               <input value={form.apiBasePath} onChange={e => set('apiBasePath', e.target.value)}
                 placeholder="/v1/risks"
-                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-8 px-3 text-xs font-mono glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">Icon</label>
-              <select value={form.icon} onChange={e => set('icon', e.target.value)}
+              <GlassSelect value={form.icon} onChange={e => set('icon', e.target.value)}
                 className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 {ICON_OPTIONS.map(i => <option key={i} value={i}>{i}</option>)}
-              </select>
+              </GlassSelect>
             </div>
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">Color</label>
@@ -724,7 +725,7 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
                 (blocks this module's screens for tenants without it — leave blank for all)
               </span>
             </label>
-            <select
+            <GlassSelect
               value={form.requiredFeature || ''}
               onChange={e => set('requiredFeature', e.target.value || null)}
               className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
@@ -734,7 +735,7 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
                   {f.flagKey}{f.description ? ` — ${f.description}` : ''}
                 </option>
               ))}
-            </select>
+            </GlassSelect>
             <p className="text-[10px] text-text-muted mt-1">
               ⚠ Do NOT set this on shared screens (e.g. audit_engagement, reached both
               standalone and via multi-framework projects) — it would block tenants
@@ -745,12 +746,12 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
             <label className="text-xs font-medium text-text-secondary block mb-1">Workflow eligibility (comma-sep entity types)</label>
             <input value={form.workflowEligibility} onChange={e => set('workflowEligibility', e.target.value)}
               placeholder="RISK,RISK_ACCEPTANCE"
-              className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-8 px-3 text-xs font-mono glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Sort order</label>
             <input type="number" value={form.sortOrder} onChange={e => set('sortOrder', parseInt(e.target.value) || 0)}
-              className="w-24 h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-24 h-8 px-3 text-xs glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
         </div>
       )}
@@ -772,7 +773,7 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
               <label className="text-xs font-medium text-text-secondary block mb-1">{f.label}</label>
               <input value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)}
                 placeholder={f.placeholder}
-                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-8 px-3 text-xs font-mono glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
               <p className="text-[10px] text-text-muted mt-0.5">{f.hint}</p>
             </div>
           ))}
@@ -790,7 +791,7 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
             onChange={e => set('fieldsSchemaJson', e.target.value)}
             rows={16}
             spellCheck={false}
-            className="w-full px-3 py-2.5 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+            className="w-full px-3 py-2.5 text-xs font-mono glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             placeholder={JSON.stringify({ sections: [{ key: 'overview', label: 'Overview', fields: [{ key: 'title', label: 'Title', type: 'TEXT', required: true, gridCols: 12 }] }] }, null, 2)}
           />
         </div>
@@ -807,7 +808,7 @@ function BlueprintFormModal({ open, onClose, initial, onSave, loading }) {
             onChange={e => set('statusFlowJson', e.target.value)}
             rows={16}
             spellCheck={false}
-            className="w-full px-3 py-2.5 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+            className="w-full px-3 py-2.5 text-xs font-mono glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             placeholder={JSON.stringify({
               statuses: ['OPEN','IN_PROGRESS','RESOLVED','CLOSED'],
               transitions: [

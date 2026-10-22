@@ -14,6 +14,7 @@ import { Modal, ConfirmDialog } from '../../../components/ui/Modal'
 import { Input }       from '../../../components/ui/Input'
 import { cn }          from '../../../lib/cn'
 import toast           from 'react-hot-toast'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -70,7 +71,7 @@ function JsonTextarea({ label, value, onChange, placeholder, helperText }) {
         placeholder={placeholder}
         rows={3}
         className={cn(
-          'w-full rounded-ctl border bg-surface-raised px-3 py-2 text-xs font-mono text-text-primary',
+          'w-full rounded-ctl border glass-field px-3 py-2 text-xs font-mono text-text-primary',
           'placeholder:text-text-muted focus:outline-none focus:ring-1 resize-y',
           error
             ? 'border-status-fail-bd focus:ring-status-fail-bd'
@@ -192,13 +193,13 @@ function PermissionSelect({ value, onChange }) {
         </button>
 
         {open && (
-          <div className="absolute z-50 mt-1 w-full rounded-ctl border border-border bg-surface-raised shadow-xl">
+          <div className="absolute z-50 mt-1 w-full rounded-ctl border border-border glass-overlay shadow-xl">
             <div className="p-2 border-b border-border">
               <div className="relative">
                 <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
                 <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
                   placeholder="Search permissions…"
-                  className="w-full h-6 pl-6 pr-2 rounded border border-border bg-surface text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  className="w-full h-6 pl-6 pr-2 rounded border border-border glass-field text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </div>
             </div>
             <div className="max-h-48 overflow-y-auto py-1">
@@ -311,7 +312,7 @@ function ActionForm({ item, allActions, onSubmit, isPending, onClose }) {
             value={form.screenKey}
             onChange={e => set('screenKey', e.target.value)}
             placeholder="issue_list"
-            className="h-8 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-8 w-full rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
           <datalist id="screen-key-options">
             {screenKeys.map(k => <option key={k} value={k} />)}
@@ -329,10 +330,10 @@ function ActionForm({ item, allActions, onSubmit, isPending, onClose }) {
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">
             HTTP Method
           </label>
-          <select value={form.httpMethod} onChange={e => set('httpMethod', e.target.value)}
+          <GlassSelect value={form.httpMethod} onChange={e => set('httpMethod', e.target.value)}
             className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {HTTP_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+          </GlassSelect>
         </div>
         <div className="col-span-3">
           <Input label="API Endpoint" value={form.apiEndpoint}
@@ -750,30 +751,30 @@ export default function UiActionsAdminPage() {
           )}
 
           {/* Filters */}
-          <select value={screenFilter} onChange={e => { setScreenFilter(e.target.value); setPage(1) }}
+          <GlassSelect value={screenFilter} onChange={e => { setScreenFilter(e.target.value); setPage(1) }}
             className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 max-w-[140px]">
             <option value="">All screens</option>
             {screenKeys.map(k => <option key={k} value={k}>{k}</option>)}
-          </select>
+          </GlassSelect>
 
-          <select value={sideFilter} onChange={e => { setSideFilter(e.target.value); setPage(1) }}
+          <GlassSelect value={sideFilter} onChange={e => { setSideFilter(e.target.value); setPage(1) }}
             className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             <option value="">All sides</option>
             {SIDES.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          </GlassSelect>
 
-          <select value={globalFilter} onChange={e => { setGlobalFilter(e.target.value); setPage(1) }}
+          <GlassSelect value={globalFilter} onChange={e => { setGlobalFilter(e.target.value); setPage(1) }}
             className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             <option value="">Global + tenant</option>
             <option value="true">Global only</option>
             <option value="false">Tenant-scoped</option>
-          </select>
+          </GlassSelect>
 
           <div className="relative">
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search key or label…"
-              className="h-8 pl-7 pr-3 w-44 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-7 pr-3 w-44 rounded-ctl border border-border glass-field text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
 
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />

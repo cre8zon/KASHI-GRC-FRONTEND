@@ -26,6 +26,7 @@ import { KeyDifferentiatorBar }  from '../../../components/screen-designer/KeyDi
 import { CreateScreenModal }     from '../../../components/screen-designer/modals/CreateScreenModal'
 import { TemplateGallery }       from '../../../components/screen-designer/modals/TemplateGallery'
 import { TemplatePicker }        from '../../../components/screen-designer/modals/TemplatePicker'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 export default function ScreenDesignerPage() {
   const [selectedScreen,   setSelectedScreen]   = useState(null)
@@ -138,7 +139,7 @@ export default function ScreenDesignerPage() {
         {/* Role simulator */}
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-[11px] text-text-muted">Preview as</span>
-          <select
+          <GlassSelect
             value={selectedRole}
             onChange={e => setSelectedRole(e.target.value)}
             className="h-7 px-2 text-[11px] bg-surface-overlay border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -157,7 +158,7 @@ export default function ScreenDesignerPage() {
               <option value="auditor">Auditor (REVIEW)</option>
               <option value="auditee">Auditee (FILL)</option>
             </optgroup>
-          </select>
+          </GlassSelect>
           {roleProfile?.sod && (
             <span className="text-[10px] px-2 py-0.5 rounded bg-status-fail-bg border border-status-fail-bd text-status-fail-fg font-medium">
               SoD active
@@ -216,7 +217,7 @@ export default function ScreenDesignerPage() {
                     className={cn(
                       'flex items-center gap-1.5 px-3 py-2.5 text-[11px] font-medium border-b-2 -mb-px transition-colors',
                       activeTab === key
-                        ? 'border-brand-400 text-brand-ink'
+                        ? 'border-brand-fill text-brand-ink'
                         : 'border-transparent text-text-muted hover:text-text-secondary'
                     )}>
                     <Icon size={11} />{label}

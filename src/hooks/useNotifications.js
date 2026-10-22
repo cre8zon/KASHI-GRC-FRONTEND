@@ -151,7 +151,7 @@ function desktopNotify(n, navigateTo) {
     if (Notification.permission !== 'granted') return
     if (typeof document !== 'undefined' && document.visibilityState === 'visible') return
 
-    const notif = new Notification('KashiGRC', {
+    const notif = new Notification('KashiGuard', {
       body: n.message || 'New notification',
       tag:  `kashi-notif-${n.notificationId}`,
       icon: '/favicon.ico',

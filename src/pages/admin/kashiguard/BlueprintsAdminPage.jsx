@@ -21,6 +21,7 @@ import { rbacApi }       from '../../../api/rbac.api'
 import { useSelector }   from 'react-redux'
 import { selectAuth }    from '../../../store/slices/authSlice'
 import toast             from 'react-hot-toast'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -96,7 +97,7 @@ function NavKeySelect({ label, value, onChange }) {
       <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">
         {label}
       </label>
-      <select
+      <GlassSelect
         value={value || ''}
         onChange={e => onChange(e.target.value || null)}
         className="h-9 w-full appearance-none pl-3 pr-8 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -105,7 +106,7 @@ function NavKeySelect({ label, value, onChange }) {
         {options.map(o => (
           <option key={o.navKey} value={o.navKey}>{o.label || o.navKey}</option>
         ))}
-      </select>
+      </GlassSelect>
       <p className="text-[10px] font-mono text-text-muted mt-1 truncate">
         {selected?.route || '\u2014'}
       </p>
@@ -180,7 +181,7 @@ function ResolutionRoleSelect({ value, onChange }) {
   return (
     <div>
       <label className="text-xs text-text-muted mb-1 block">Resolution Role</label>
-      <select
+      <GlassSelect
         value={value || ''}
         onChange={e => onChange(e.target.value)}
         className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
@@ -195,7 +196,7 @@ function ResolutionRoleSelect({ value, onChange }) {
             ))}
           </optgroup>
         ))}
-      </select>
+      </GlassSelect>
       <p className={cn('text-[10px] mt-1',
         orphan ? 'text-status-warn-fg' : 'text-text-muted')}>
         {orphan
@@ -246,18 +247,18 @@ function BlueprintModal({ blueprint, onClose }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-text-muted mb-1 block">Source Type</label>
-            <select value={form.sourceType} onChange={e => set('sourceType', e.target.value)}
+            <GlassSelect value={form.sourceType} onChange={e => set('sourceType', e.target.value)}
               className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               {SOURCE_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
-            </select>
+            </GlassSelect>
           </div>
           <div>
             <label className="text-xs text-text-muted mb-1 block">Category</label>
-            <select value={form.category} onChange={e => set('category', e.target.value)}
+            <GlassSelect value={form.category} onChange={e => set('category', e.target.value)}
               className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">Select category…</option>
               {CATEGORIES.map(c => <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>)}
-            </select>
+            </GlassSelect>
           </div>
         </div>
 
@@ -275,7 +276,7 @@ function BlueprintModal({ blueprint, onClose }) {
           <textarea value={form.descriptionTemplate}
             onChange={e => set('descriptionTemplate', e.target.value)}
             rows={3} placeholder="Detailed guidance for the remediation assignee…"
-            className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+            className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -283,10 +284,10 @@ function BlueprintModal({ blueprint, onClose }) {
             onChange={v => set('resolutionRole', v)} />
           <div>
             <label className="text-xs text-text-muted mb-1 block">Default Priority</label>
-            <select value={form.defaultPriority} onChange={e => set('defaultPriority', e.target.value)}
+            <GlassSelect value={form.defaultPriority} onChange={e => set('defaultPriority', e.target.value)}
               className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
-            </select>
+            </GlassSelect>
           </div>
         </div>
 
@@ -371,7 +372,7 @@ export default function BlueprintsAdminPage() {
           { label: 'Custom',  value: tenantCount,        color: 'text-status-tag-fg' },
           { label: 'High+',   value: blueprints.filter(b => ['HIGH','CRITICAL'].includes(b.defaultPriority)).length, color: 'text-status-warn-fg' },
         ].map(s => (
-          <div key={s.label} className="p-3 rounded-card border border-border bg-surface-raised text-center">
+          <div key={s.label} className="p-3 rounded-card border border-border glass-card text-center">
             <p className={cn('text-2xl font-bold', s.color)}>{s.value}</p>
             <p className="text-[10px] text-text-muted uppercase tracking-wide mt-0.5">{s.label}</p>
           </div>
@@ -384,16 +385,16 @@ export default function BlueprintsAdminPage() {
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search blueprints…"
-            className="w-full h-8 pl-8 pr-3 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 pl-8 pr-3 rounded-ctl border border-border glass-field text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
-        <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
+        <GlassSelect value={catFilter} onChange={e => setCatFilter(e.target.value)}
           className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-secondary focus:outline-none">
           {categories.map(c => <option key={c} value={c}>{c === 'ALL' ? 'All Categories' : c.replace(/_/g,' ')}</option>)}
-        </select>
-        <select value={srcFilter} onChange={e => setSrcFilter(e.target.value)}
+        </GlassSelect>
+        <GlassSelect value={srcFilter} onChange={e => setSrcFilter(e.target.value)}
           className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-secondary focus:outline-none">
           {sources.map(s => <option key={s} value={s}>{s === 'ALL' ? 'All Sources' : s.replace(/_/g,' ')}</option>)}
-        </select>
+        </GlassSelect>
       </div>
 
       {/* Table */}

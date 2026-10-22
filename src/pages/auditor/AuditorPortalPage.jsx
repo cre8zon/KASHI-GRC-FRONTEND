@@ -42,6 +42,7 @@ import { Button }      from '../../components/ui/Button'
 import { Badge }       from '../../components/ui/Badge'
 import { cn }          from '../../lib/cn'
 import api             from '../../config/axios.config'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -151,18 +152,18 @@ export default function AuditorPortalPage() {
             className="w-full h-7 pl-7 pr-3 text-xs border border-border rounded bg-transparent text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
 
-        <select value={filters.severity} onChange={e => setFilter('severity', e.target.value)}
+        <GlassSelect value={filters.severity} onChange={e => setFilter('severity', e.target.value)}
           className="h-7 px-2 text-xs border border-border rounded bg-transparent text-text-primary focus:outline-none">
           <option value="ALL">All severity</option>
           {['CRITICAL','HIGH','MEDIUM','LOW'].map(s => <option key={s}>{s}</option>)}
-        </select>
+        </GlassSelect>
 
-        <select value={filters.status} onChange={e => setFilter('status', e.target.value)}
+        <GlassSelect value={filters.status} onChange={e => setFilter('status', e.target.value)}
           className="h-7 px-2 text-xs border border-border rounded bg-transparent text-text-primary focus:outline-none">
           <option value="ALL">All status</option>
           {['OPEN','TRIAGED','IN_PROGRESS','PENDING_REVIEW','PENDING_VALIDATION','RESOLVED','CLOSED'].map(s =>
             <option key={s} value={s}>{s.replace('_',' ')}</option>)}
-        </select>
+        </GlassSelect>
       </div>
 
       {/* ── Findings table ──────────────────────────────────────────── */}

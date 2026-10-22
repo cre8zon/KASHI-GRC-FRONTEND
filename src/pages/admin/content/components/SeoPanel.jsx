@@ -44,7 +44,7 @@ function SerpPreview({ title, description, slug }) {
   return (
     <div className="rounded-card border border-border bg-surface p-3">
       <p className="mb-1 text-[11px] text-text-faint">www.digiosec.com › blog › {slug || 'slug'}</p>
-      <p className="text-[15px] leading-snug text-brand-900 hover:underline">
+      <p className="text-[15px] leading-snug text-brand-ink hover:underline">
         {shownTitle}{(title || '').length > 62 && '…'}
       </p>
       <p className="mt-0.5 text-[12.5px] leading-relaxed text-text-secondary">
@@ -140,7 +140,7 @@ export function SeoPanel({ post, patch, postId }) {
           value={post.metaDescription || ''}
           onChange={(e) => patch({ metaDescription: e.target.value })}
           placeholder="The argument for opening this result rather than the one above it."
-          className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[13px] leading-relaxed text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-800/40"
+          className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[13px] leading-relaxed text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-ink/40"
         />
         <p className="text-[11px] text-text-faint">Required to publish. Under 50 or over 160 characters is rejected.</p>
       </div>
@@ -158,7 +158,7 @@ export function SeoPanel({ post, patch, postId }) {
           value={post.excerpt || ''}
           onChange={(e) => patch({ excerpt: e.target.value })}
           placeholder="The one or two sentences that appear on a card and in the feed."
-          className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[13px] leading-relaxed text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-800/40"
+          className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[13px] leading-relaxed text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-ink/40"
         />
         <p className="text-[11px] text-text-faint">
           Listing cards and RSS — not search results.
@@ -217,7 +217,7 @@ export function SeoPanel({ post, patch, postId }) {
           <button
             type="button"
             onClick={() => { setSlugDraft(derived); patch({ slug: derived }) }}
-            className="flex items-center gap-1.5 self-start text-[11px] text-text-secondary transition-colors hover:text-brand-900"
+            className="flex items-center gap-1.5 self-start text-[11px] text-text-secondary transition-colors hover:text-brand-ink"
           >
             <RotateCcw size={11} />
             Rebuild from the headline — <span className="reg-code font-mono">{derived}</span>

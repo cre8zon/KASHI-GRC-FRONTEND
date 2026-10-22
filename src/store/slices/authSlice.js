@@ -1,4 +1,5 @@
 import { createSlice, createSelector } from '@reduxjs/toolkit'
+import { isJwtExpired, jwtExpiryMs } from '../../lib/jwt'
 
 const initialState = {
   token: null, refreshToken: null, expiresAt: null,
@@ -11,6 +12,21 @@ const initialState = {
   memberships: [],
   requiresPasswordReset: false,
   isAuthenticated: false,
+  // "Keep me signed in" — persists the session across browser restarts and
+  // exempts it from the idle timeout (the refresh-token lifetime still caps it).
+  rememberMe: false,
+}
+
+/**
+ * Expiry for the store, from the token's own `exp` claim. The server's
+ * session.expiresAt is zone-less server time and can be hours off in the
+ * browser; it is only used when the token cannot be decoded.
+ */
+function expiryIso(session) {
+  const ms = jwtExpiryMs(session?.token)
+  if (ms) return new Date(ms).toISOString()
+  if (typeof session?.expiresInMs === 'number') return new Date(Date.now() + session.expiresInMs).toISOString()
+  return session?.expiresAt ?? null
 }
 
 const authSlice = createSlice({
@@ -21,7 +37,8 @@ const authSlice = createSlice({
       const { user, session } = payload
       state.token                = session.token
       state.refreshToken         = session.refreshToken
-      state.expiresAt            = session.expiresAt
+      state.expiresAt            = expiryIso(session)
+      state.rememberMe           = !!payload.rememberMe
       state.userId               = user.userId
       state.email                = user.email
       state.fullName             = user.fullName
@@ -51,7 +68,7 @@ const authSlice = createSlice({
       const { user, session } = payload
       state.token        = session.token
       state.refreshToken = session.refreshToken
-      state.expiresAt    = session.expiresAt
+      state.expiresAt    = expiryIso(session)
       state.tenantId     = user.tenantId
       state.tenantName   = user.tenantName || null
       state.roles        = user.roles || []
@@ -64,11 +81,37 @@ const authSlice = createSlice({
       state.token     = payload.token
       state.expiresAt = payload.expiresAt
     },
+    /**
+     * A refresh succeeded. Same tenant, same person — only the credentials and
+     * whatever the server now says about roles/permissions change, so a role
+     * granted or revoked since sign-in takes effect without a re-login.
+     */
+    sessionRefreshed(state, { payload }) {
+      const { user, session } = payload || {}
+      if (!session?.token) return
+      state.token        = session.token
+      state.refreshToken = session.refreshToken || state.refreshToken
+      state.expiresAt    = expiryIso(session)
+      if (user) {
+        state.roles       = user.roles       || state.roles
+        state.permissions = user.permissions || state.permissions
+        state.memberships = user.memberships || state.memberships
+        if (user.tenantName) state.tenantName = user.tenantName
+      }
+    },
+    /**
+     * Boot-time check. An expired ACCESS token is not the end of the session
+     * while the refresh token is still good — SessionManager renews it on
+     * mount. Only when both are spent is the stored session dropped, so a
+     * reload after lunch no longer bounces a user who is still signed in.
+     */
     validateSession(state) {
       if (!state.isAuthenticated || !state.token) return
-      if (state.expiresAt && Date.now() > new Date(state.expiresAt).getTime()) {
-        return initialState
-      }
+      const exp = jwtExpiryMs(state.token)
+        ?? (state.expiresAt ? new Date(state.expiresAt).getTime() : null)
+      if (!exp || Date.now() < exp) return   // still valid (or unknown — let the server decide)
+      if (state.refreshToken && !isJwtExpired(state.refreshToken)) return
+      return initialState
     },
     // Called after bootstrap to update names without requiring re-login
     updateContext(state, { payload }) {
@@ -78,7 +121,7 @@ const authSlice = createSlice({
   },
 })
 
-export const { loginSuccess, logout, tenantSwitched, updateToken, validateSession, updateContext } = authSlice.actions
+export const { loginSuccess, logout, tenantSwitched, sessionRefreshed, updateToken, validateSession, updateContext } = authSlice.actions
 export default authSlice.reducer
 
 export const selectAuth            = (s) => s.auth

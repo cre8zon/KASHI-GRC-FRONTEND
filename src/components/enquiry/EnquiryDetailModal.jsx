@@ -98,12 +98,12 @@ export function EnquiryDetailModal({ id, onClose, config }) {
 
               <div>
                 <SectionTitle>{e.subject || (e.type === 'SUPPORT' ? 'Request' : 'Message')}</SectionTitle>
-                <div className="rounded-card border border-border bg-surface-raised p-4 text-sm text-text-primary whitespace-pre-wrap leading-relaxed">
+                <div className="rounded-card border border-border glass-card p-4 text-sm text-text-primary whitespace-pre-wrap leading-relaxed">
                   {e.message || <span className="text-text-muted">No message — they only filled in the form fields.</span>}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 rounded-card border border-border bg-surface-raised p-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 rounded-card border border-border glass-card p-4">
                 <Field label="Email"><a href={`mailto:${e.email}?subject=${encodeURIComponent(`Re: your ${TYPE_LABEL[e.type]?.toLowerCase() || 'enquiry'} (${e.reference})`)}`} className="text-brand-ink hover:underline inline-flex items-center gap-1"><Mail size={12} />{e.email}</a></Field>
                 <Field label="Phone">{e.phone && <a href={`tel:${e.phone}`} className="inline-flex items-center gap-1"><Phone size={12} />{e.phone}</a>}</Field>
                 <Field label="Job title">{e.jobTitle}</Field>
@@ -120,7 +120,7 @@ export function EnquiryDetailModal({ id, onClose, config }) {
 
               <div>
                 <SectionTitle>Where they came from</SectionTitle>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 rounded-card border border-border bg-surface-raised p-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 rounded-card border border-border glass-card p-4">
                   <Field label="Form page" className="col-span-2" mono>{e.source?.sourcePage}</Field>
                   <Field label="First landed on" className="col-span-2" mono>{e.source?.landingPage}</Field>
                   <Field label="Referrer" className="col-span-2" mono>{e.source?.referrer}</Field>
@@ -138,7 +138,7 @@ export function EnquiryDetailModal({ id, onClose, config }) {
                 <ol className="space-y-3">
                   {(e.activities || []).map(a => <ActivityRow key={a.id} a={a} />)}
                 </ol>
-                {canManage && <div className="mt-3 rounded-card border border-border bg-surface-raised p-3 space-y-2">
+                {canManage && <div className="mt-3 rounded-card border border-border glass-card p-3 space-y-2">
                   <TextArea rows={3} value={note} onChange={ev => setNote(ev.target.value)}
                     placeholder="Add a note — call summary, what they need, next step. Visible to the platform team only." />
                   <div className="flex items-center justify-between">
@@ -177,7 +177,7 @@ export function EnquiryDetailModal({ id, onClose, config }) {
                 </div>
               ) : null}
 
-              <div className="rounded-card border border-border bg-surface-raised p-4 space-y-3">
+              <div className="rounded-card border border-border glass-card p-4 space-y-3">
                 <div>
                   <p className="text-[11px] font-medium text-text-muted uppercase tracking-wide mb-1">Status</p>
                   {converted ? <StatusPill status="CONVERTED" /> : (
@@ -278,7 +278,7 @@ function TenantLinker({ enquiryId, onLinked }) {
   return (
     <div className="space-y-1.5 pt-1">
       <input value={q} onChange={ev => setQ(ev.target.value)} placeholder="Search tenant name or code…" autoFocus
-        className="h-8 w-full rounded-ctl border border-border bg-surface-raised px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500" />
+        className="h-8 w-full rounded-ctl border border-border glass-field px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500" />
       {(data?.items || []).map(t => (
         <button key={t.tenantId} onClick={() => link.mutate(t.tenantId)} disabled={link.isPending}
           className="w-full text-left flex items-center justify-between px-2 py-1.5 rounded-ctl hover:bg-surface-overlay text-sm">

@@ -1,7 +1,7 @@
 /**
  * QuestionDrawer — right-side slide-in panel for full per-question context.
  *
- * This is the primary collaboration surface for KashiGRC, matching how
+ * This is the primary collaboration surface for KashiGuard, matching how
  * ServiceNow IRM and OneTrust handle per-item detail panels.
  *
  * Layout:

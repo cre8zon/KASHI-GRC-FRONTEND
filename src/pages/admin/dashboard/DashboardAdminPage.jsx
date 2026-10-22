@@ -33,6 +33,7 @@ import { Modal }       from '../../../components/ui/Modal'
 import { cn }          from '../../../lib/cn'
 import api             from '../../../config/axios.config'
 import toast           from 'react-hot-toast'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -450,7 +451,7 @@ function WidgetEditorModal({ widget, onClose }) {
         {/* Which dashboard. First, because it is the one field that decides
             whether the widget is ever seen, and it had no control at all. */}
         <Field label="Dashboard">
-          <select value={form.dashboardId} onChange={e => set('dashboardId', e.target.value)}
+          <GlassSelect value={form.dashboardId} onChange={e => set('dashboardId', e.target.value)}
             className={INPUT}>
             <option value="">Choose a dashboard…</option>
             {dashboards.map(d => (
@@ -458,7 +459,7 @@ function WidgetEditorModal({ widget, onClose }) {
                 {d.name}{d.entityType ? ` · ${d.entityType}` : ''}{d.platformProvided ? ' (platform)' : ''}
               </option>
             ))}
-          </select>
+          </GlassSelect>
           <p className="text-[11px] text-text-muted mt-1">
             A widget belonging to no dashboard appears on none of them.
           </p>
@@ -487,14 +488,14 @@ function WidgetEditorModal({ widget, onClose }) {
         {/* Presentation and behaviour — the remaining new columns. */}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Value format">
-            <select value={form.valueFormat} onChange={e => set('valueFormat', e.target.value)}
+            <GlassSelect value={form.valueFormat} onChange={e => set('valueFormat', e.target.value)}
               className={INPUT}>
               <option value="NUMBER">Number</option>
               <option value="PERCENT">Percent</option>
               <option value="DURATION_HOURS">Duration (hours → 30m, 3.2h, 3d)</option>
               <option value="CURRENCY">Currency</option>
               <option value="DATE">Date</option>
-            </select>
+            </GlassSelect>
           </Field>
           <Field label="Empty message">
             <input value={form.emptyMessage} onChange={e => set('emptyMessage', e.target.value)}
@@ -592,7 +593,7 @@ function WidgetEditorModal({ widget, onClose }) {
           <textarea value={form.configJson} onChange={e => set('configJson', e.target.value)}
             rows={3}
             placeholder={configHint}
-            className="w-full px-3 py-2 text-xs font-mono border border-border rounded bg-surface-overlay text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+            className="w-full px-3 py-2 text-xs font-mono border border-border rounded glass-field text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
           <p className="text-[9px] text-text-muted mt-0.5">Hint: <code className="font-mono">{configHint}</code></p>
         </Field>
 

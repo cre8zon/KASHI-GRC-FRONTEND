@@ -155,7 +155,7 @@ function ActionItemThread({ entityId, item, visibility = 'ALL' }) {
       {open && (
         <div className="px-3 pb-3 space-y-2.5">
           {thread.length === 0 && (
-            <p className="text-[10px] text-text-muted/50 italic">No replies yet.</p>
+            <p className="text-[10px] text-text-faint italic">No replies yet.</p>
           )}
           {thread.map(c => (
             <div key={c.id || c.commentId} className="flex gap-2">
@@ -165,7 +165,7 @@ function ActionItemThread({ entityId, item, visibility = 'ALL' }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-[10px] font-medium text-text-secondary">{c.createdByName}</span>
-                  <span className="text-[9px] text-text-muted/40">{c.createdAt ? formatDate(c.createdAt) : ''}</span>
+                  <span className="text-[9px] text-text-faint">{c.createdAt ? formatDate(c.createdAt) : ''}</span>
                 </div>
                 <p className="text-[11px] text-text-secondary leading-relaxed">{c.commentText}</p>
               </div>

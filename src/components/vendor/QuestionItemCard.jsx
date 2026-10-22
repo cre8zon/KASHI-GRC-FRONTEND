@@ -362,7 +362,7 @@ export function QuestionItemCard({
         value={text}
         onChange={e => pushText(e.target.value)}
         placeholder={canEdit ? 'Enter a number…' : 'No answer'}
-        className="w-full bg-surface-overlay border border-border rounded-ctl px-2 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted outline-none focus:border-border-strong disabled:opacity-60"
+        className="w-full glass-field border border-border rounded-ctl px-2 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted outline-none focus:border-border-strong disabled:opacity-60"
       />
     ) : question.responseType === 'DATE' ? (
       // ISO yyyy-mm-dd, which is what <input type="date"> emits and reads. A
@@ -373,7 +373,7 @@ export function QuestionItemCard({
         disabled={!canEdit}
         value={/^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : ''}
         onChange={e => pushText(e.target.value)}
-        className="bg-surface-overlay border border-border rounded-ctl px-2 py-1.5 text-[11px] text-text-primary outline-none focus:border-border-strong disabled:opacity-60"
+        className="glass-field border border-border rounded-ctl px-2 py-1.5 text-[11px] text-text-primary outline-none focus:border-border-strong disabled:opacity-60"
       />
     ) : question.responseType === 'FILE_UPLOAD' ? (
       // The attachment IS the answer, and it lives in the drawer's Evidence
@@ -407,7 +407,7 @@ export function QuestionItemCard({
         value={text}
         onChange={e => pushText(e.target.value)}
         placeholder={canEdit ? 'Your answer…' : 'No answer'}
-        className="w-full bg-surface-overlay border border-border rounded-ctl px-2 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted outline-none focus:border-border-strong resize-y disabled:opacity-60"
+        className="w-full glass-field border border-border rounded-ctl px-2 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted outline-none focus:border-border-strong resize-y disabled:opacity-60"
       />
     )
   )

@@ -15,6 +15,7 @@ import {
 import { MentionInput }                 from '../ui/MentionInput'
 import { commentsApi }                  from '../../api/comments.api'
 import toast                            from 'react-hot-toast'
+import { GlassSelect } from '../ui/GlassSelect'
 
 const TYPE_CONFIG = {
   COMMENT:          { label: null,                 bg: 'bg-surface-raised border border-border', icon: null,          iconColor: '' },
@@ -85,7 +86,7 @@ function RevisionReplyThread({ comment, questionInstanceId }) {
   return (
     <div className="mt-1 border-t border-on-dark/5 pl-7">
       <button type="button" onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 text-[10px] text-text-muted/60 hover:text-text-secondary transition-colors py-1">
+        className="flex items-center gap-1.5 text-[10px] text-text-muted hover:text-text-secondary transition-colors py-1">
         <MessageSquare size={9} />
         <span>{allComments.length > 0 ? `${allComments.length} repl${allComments.length > 1 ? 'ies' : 'y'}` : 'Reply for clarification'}</span>
         <ChevronDown size={8} className={cn('transition-transform', open && 'rotate-180')} />
@@ -94,7 +95,7 @@ function RevisionReplyThread({ comment, questionInstanceId }) {
       {open && (
         <div className="space-y-2 pb-2">
           {allComments.length === 0 && (
-            <p className="text-[10px] text-text-muted/40 italic">No replies yet.</p>
+            <p className="text-[10px] text-text-faint italic">No replies yet.</p>
           )}
           {allComments.map(c => (
             <div key={c.id} className="flex gap-1.5">
@@ -104,7 +105,7 @@ function RevisionReplyThread({ comment, questionInstanceId }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-[10px] font-medium text-text-secondary">{c.createdByName}</span>
-                  <span className="text-[9px] text-text-muted/40">{c.createdAt ? formatDateTime(c.createdAt) : ''}</span>
+                  <span className="text-[9px] text-text-faint">{c.createdAt ? formatDateTime(c.createdAt) : ''}</span>
                 </div>
                 <p className="text-[11px] text-text-secondary leading-relaxed">{c.commentText}</p>
               </div>
@@ -220,22 +221,22 @@ function CommentInput({ onSubmit, adding, showVisibility, showType }) {
       {(showType || (showVisibility && (isOrg || isCiso))) && (
         <div className="flex items-center gap-2 flex-wrap">
           {showType && (
-            <select value={type} onChange={e => setType(e.target.value)}
+            <GlassSelect value={type} onChange={e => setType(e.target.value)}
               className="text-[10px] bg-surface-raised border border-border rounded px-2 py-1 text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="COMMENT">Comment</option>
               <option value="REVISION_REQUEST">Request revision</option>
               <option value="RESOLVED">Mark resolved</option>
               {isOrg && <option value="REMEDIATION">Remediation</option>}
-            </select>
+            </GlassSelect>
           )}
           {showVisibility && (isOrg || isCiso) && (
-            <select value={visibility} onChange={e => setVisibility(e.target.value)}
+            <GlassSelect value={visibility} onChange={e => setVisibility(e.target.value)}
               className="text-[10px] bg-surface-raised border border-border rounded px-2 py-1 text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="ALL">Visible to all</option>
               {isOrg && <option value="INTERNAL">Org internal (org only)</option>}
               {!isOrg && <option value="VENDOR_INTERNAL">Vendor internal (vendor only)</option>}
               {(isOrg || isCiso) && <option value="CISO_ONLY">CISO only</option>}
-            </select>
+            </GlassSelect>
           )}
         </div>
       )}
@@ -251,8 +252,8 @@ function CommentInput({ onSubmit, adding, showVisibility, showType }) {
         <button onClick={submit} disabled={!text.trim() || adding}
           className="w-8 h-8 flex items-center justify-center rounded-card bg-brand-500 hover:bg-brand-600 disabled:opacity-40 transition-colors flex-shrink-0 mb-px">
           {adding
-            ? <Loader2 size={14} className="animate-spin text-on-dark" />
-            : <Send size={14} className="text-on-dark" />}
+            ? <Loader2 size={14} className="animate-spin text-brand-on" />
+            : <Send size={14} className="text-brand-on" />}
         </button>
       </div>
     </div>

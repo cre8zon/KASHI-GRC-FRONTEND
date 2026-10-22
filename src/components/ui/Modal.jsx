@@ -26,7 +26,7 @@ export function Modal({ open, onClose, title, subtitle, children, size = 'md', f
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-ink-900/25 backdrop-blur-[2px] animate-fade-in" onClick={onClose} />
+      <div className="absolute inset-0 bg-on-dark-inv/30 backdrop-blur-[3px] animate-fade-in" onClick={onClose} />
       <div className={cn(
         'relative w-full glass-overlay rounded-modal shadow-overlay',
         'animate-slide-up max-h-[90vh] flex flex-col',
@@ -71,7 +71,7 @@ export function ConfirmDialog({ open, onClose, onCancel, onConfirm, title, messa
             disabled={loading}
             className={cn(
               'h-8 px-4 text-sm font-medium rounded-ctl transition-all',
-              variant === 'danger' ? 'bg-status-fail-bg text-on-dark hover:bg-status-fail-bg' : 'bg-brand-500 text-brand-900 hover:bg-brand-600',
+              variant === 'danger' ? 'bg-status-fail-fg text-text-inverse hover:bg-status-fail-fg' : 'bg-brand-500 text-brand-on hover:bg-brand-600',
               loading && 'opacity-50 cursor-not-allowed'
             )}
           >

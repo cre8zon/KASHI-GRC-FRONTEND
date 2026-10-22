@@ -91,7 +91,7 @@ export function BlockPicker({ onPick, onClose }) {
             >
               <span className={cn(
                 'flex h-7 w-7 shrink-0 items-center justify-center rounded-ctl',
-                item.starred ? 'bg-brand-500 text-brand-900' : 'bg-surface-inset text-text-secondary'
+                item.starred ? 'bg-brand-500 text-brand-on' : 'bg-surface-inset text-text-secondary'
               )}>
                 <Icon size={14} />
               </span>

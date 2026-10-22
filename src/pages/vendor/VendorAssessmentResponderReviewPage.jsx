@@ -192,7 +192,7 @@ function AnswerCard({ question, assessmentId, canAct, onOpenDrawer, drawerOpenId
             {!resp?.reviewerStatus || resp.reviewerStatus === 'PENDING' ? <span /> : null}
             <button
               onClick={() => onOpenDrawer(isDrawerOpen ? null : question)}
-              className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-ink transition-colors ml-auto">
+              className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-ink transition-colors ml-auto">
               <MessageSquare size={10} />
               {isDrawerOpen ? 'Close panel' : 'Notes & discussion'}
             </button>
@@ -518,7 +518,7 @@ export default function VendorAssessmentResponderReviewPage() {
             Approve this assessment and publish the reviewed answers to the org team.
           </p>
           <textarea
-            className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+            className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             rows={3}
             placeholder="Review remarks (optional)"
             value={remarks}

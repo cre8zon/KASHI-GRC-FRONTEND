@@ -104,7 +104,7 @@ function SectionHeader({ icon: Icon, title, subtitle, className }) {
 }
 
 function PassRateBar({ passRate, size = 'md' }) {
-  const color = passRate >= 80 ? 'bg-status-pass-bg' : passRate >= 60 ? 'bg-status-warn-bg' : 'bg-status-fail-bg'
+  const color = passRate >= 80 ? 'bg-status-pass-fg' : passRate >= 60 ? 'bg-status-warn-fg' : 'bg-status-fail-fg'
   const textColor = passRate >= 80 ? 'text-status-pass-fg' : passRate >= 60 ? 'text-status-warn-fg' : 'text-status-fail-fg'
   return (
     <div className={cn('flex items-center gap-2', size === 'sm' ? 'gap-1.5' : 'gap-2')}>
@@ -280,7 +280,7 @@ function WorkflowTimeline({ steps }) {
               active ? 'border-status-tag-bd bg-status-tag-bg' :
                        'border-border bg-surface-overlay')}>
               {done && <CheckCircle2 size={10} className="text-status-pass-fg" />}
-              {active && <div className="w-1.5 h-1.5 rounded-full bg-status-tag-bg animate-pulse" />}
+              {active && <div className="w-1.5 h-1.5 rounded-full bg-status-tag-fg animate-pulse" />}
             </div>
             <div className="flex-1 min-w-0 pb-2 border-b border-border/30 last:border-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -496,7 +496,7 @@ ${signOffRows ? `
 ` : ''}
 
 <div class="footer">
-  ${report.projectName} · ${report.instanceRef || ''} · Generated ${fmtDate(report.generatedAt || new Date())} · KashiGRC
+  ${report.projectName} · ${report.instanceRef || ''} · Generated ${fmtDate(report.generatedAt || new Date())} · KashiGuard
 </div>
 </body></html>`
 
@@ -913,7 +913,7 @@ export default function AuditProgrammeReportPage() {
             ))}
           </div>
           <p className="text-[10px] text-text-muted mt-6 text-center">
-            {report.projectName} · {report.instanceRef} · Generated {fmt(report.generatedAt || new Date())} · KashiGRC Platform
+            {report.projectName} · {report.instanceRef} · Generated {fmt(report.generatedAt || new Date())} · KashiGuard Platform
           </p>
         </div>
 

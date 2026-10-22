@@ -1,4 +1,4 @@
-# KashiGRC Frontend
+# KashiGuard Frontend
 
 Enterprise GRC + TPRM platform frontend — React 18 + Vite + Redux Toolkit + TanStack React Query.
 

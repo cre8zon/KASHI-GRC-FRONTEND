@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux'
 import { selectRoleSides, selectAuth } from '../../store/slices/authSlice'
 import { tenantsApi } from '../../api/tenants.api'
 import { vendorsApi } from '../../api/vendors.api'
+import { PickerCombobox } from '../../components/ui/PickerCombobox'
 import { SYSTEM_TENANT_ID } from '../../utils/permissions'
 import { cn } from '../../lib/cn'
 import UserManagementPage from './UserManagementPage'
@@ -46,46 +47,51 @@ function SideTabBar({ active, onChange, tabs = SIDE_TABS }) {
   )
 }
 
-function TenantPicker({ value, onChange, tenants, loading }) {
+// Tenant / vendor pickers. Searchable comboboxes rather than native <select>:
+// a native list opens scrolled to the selected option, so with the admin's own
+// tenant pre-selected the list always opened mid-way. These open at the top,
+// newest first (toggle to A–Z), with search.
+function TenantPicker({ value, onChange, tenants, loading, ownTenantId }) {
+  const items = tenants.map(t => ({
+    value: t.tenantId,
+    label: t.name,
+    sub: [t.code, t.tenantId === ownTenantId ? 'Your tenant' : null,
+          t.status && t.status !== 'ACTIVE' ? t.status : null].filter(Boolean).join(' · ') || null,
+    createdAt: t.createdAt,
+  }))
   return (
     <div className="flex items-center gap-2 px-6 py-3 border-b border-border">
-      <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">
-        Tenant
-      </label>
-      <select
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
-        className="h-8 px-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary
-                   focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[220px]">
-        <option value="">{loading ? 'Loading tenants…' : 'Select a tenant…'}</option>
-        {tenants.map(t => (
-          <option key={t.tenantId} value={t.tenantId}>{t.name}</option>
-        ))}
-      </select>
+      <PickerCombobox
+        label="Tenant"
+        value={value}
+        onChange={onChange}
+        items={items}
+        loading={loading}
+        placeholder="Select a tenant…"
+        sortStorageKey="kashi_picker_sort_tenants"
+      />
     </div>
   )
 }
 
 function VendorPicker({ value, onChange, vendors, loading }) {
+  const items = vendors.map(v => ({
+    value: v.id ?? v.vendorId,
+    label: v.name || v.vendorName,
+    sub: [v.status && v.status !== 'ACTIVE' ? v.status : null, v.industry].filter(Boolean).join(' · ') || null,
+    createdAt: v.createdAt,
+  }))
   return (
     <div className="flex items-center gap-2 px-6 py-3 border-b border-border">
-      <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">
-        Vendor
-      </label>
-      <select
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
-        className="h-8 px-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary
-                   focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[220px]">
-        <option value="">
-          {loading ? 'Loading vendors…' : 'All vendors'}
-        </option>
-        {vendors.map(v => (
-          <option key={v.id || v.vendorId} value={v.id || v.vendorId}>
-            {v.name || v.vendorName}
-          </option>
-        ))}
-      </select>
+      <PickerCombobox
+        label="Vendor"
+        value={value}
+        onChange={onChange}
+        items={items}
+        loading={loading}
+        allOption={{ label: 'All vendors' }}
+        sortStorageKey="kashi_picker_sort_vendors"
+      />
     </div>
   )
 }
@@ -120,7 +126,7 @@ export default function UsersHubPage() {
 
   const { data: tenantsData, isLoading: tenantsLoading } = useQuery({
     queryKey: ['tenants-picker-for-users'],
-    queryFn:  () => tenantsApi.list({ take: 200 }),
+    queryFn:  () => tenantsApi.list({ take: 500 }),
     enabled:  isSystem,
     staleTime: 60 * 1000,
   })
@@ -132,7 +138,10 @@ export default function UsersHubPage() {
   const activeSideForVendors = isSystem ? systemActiveSide : orgActiveSide
   const { data: vendorsData, isLoading: vendorsLoading } = useQuery({
     queryKey: ['vendors-picker', vendorScopeTenantId],
-    queryFn:  () => vendorsApi.list({ take: 200 }),
+    // tenantId: a platform admin is looking at ANOTHER tenant's vendors. The
+    // backend honours it only for platform operators (everyone else is pinned
+    // to their own tenant), so passing it always is safe.
+    queryFn:  () => vendorsApi.list({ take: 500, tenantId: vendorScopeTenantId }),
     enabled:  activeSideForVendors === 'VENDOR' && !!vendorScopeTenantId,
     staleTime: 60 * 1000,
   })
@@ -177,6 +186,7 @@ export default function UsersHubPage() {
             onChange={setSelectedTenantId}
             tenants={tenants}
             loading={tenantsLoading}
+            ownTenantId={ownTenantId}
           />
           <p className="px-6 py-8 text-sm text-text-muted">
             Choose a tenant above to see its users, side by side.
@@ -196,6 +206,7 @@ export default function UsersHubPage() {
               onChange={setSelectedTenantId}
               tenants={tenants}
               loading={tenantsLoading}
+              ownTenantId={ownTenantId}
             />
             <SideTabBar active={systemActiveSide} onChange={setSystemActiveSide} tabs={activeTabs} />
             {systemActiveSide === 'VENDOR' && (

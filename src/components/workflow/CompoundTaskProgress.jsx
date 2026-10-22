@@ -24,7 +24,7 @@ export function CompoundTaskProgress({ sections = [], compact = false }) {
       </div>
  
       <div className="h-1.5 rounded-full bg-surface-overlay overflow-hidden">
-        <div className="h-full rounded-full bg-brand-500 transition-all duration-500"
+        <div className="h-full rounded-full bg-brand-fill transition-all duration-500"
              style={{ width: `${pct}%` }} />
       </div>
  
@@ -39,7 +39,7 @@ function SectionRow({ section, compact }) {
   const icon = section.completed
     ? <CheckCircle size={14} className="text-status-pass-fg shrink-0 mt-0.5" />
     : <Circle size={14} className={cn('shrink-0 mt-0.5',
-        section.required ? 'text-text-muted' : 'text-text-muted/40')} />
+        section.required ? 'text-text-muted' : 'text-text-faint')} />
  
   return (
     <div className={cn('flex items-start gap-2.5', section.completed && 'opacity-60')}>
@@ -62,7 +62,7 @@ function SectionRow({ section, compact }) {
           <div className="mt-1 flex items-center gap-2">
             <List size={10} className="text-text-muted" />
             <div className="flex-1 h-1 rounded-full bg-surface-overlay overflow-hidden">
-              <div className="h-full rounded-full bg-brand-400 transition-all duration-300"
+              <div className="h-full rounded-full bg-brand-fill transition-all duration-300"
                    style={{ width: `${Math.round((section.itemsCompleted / section.itemsTotal) * 100)}%` }} />
             </div>
             <span className="text-[10px] text-text-muted font-mono">

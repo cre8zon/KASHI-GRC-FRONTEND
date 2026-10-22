@@ -217,7 +217,7 @@ function SectionRow({ section, index, onUpdate, onRemove }) {
               value={section.label}
               onChange={e => onUpdate('label', e.target.value)}
               placeholder="e.g. Answer questions"
-              className="h-7 w-full rounded border border-border bg-surface-raised px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="h-7 w-full rounded border border-border glass-field px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
 
@@ -231,7 +231,7 @@ function SectionRow({ section, index, onUpdate, onRemove }) {
               onChange={e => onUpdate('completionEvent', e.target.value.toUpperCase().replace(/[\s-]+/g, '_'))}
               placeholder="ASSESSMENT_SUBMITTED"
               list={`ce-suggestions-${index}`}
-              className="h-7 w-full rounded border border-border bg-surface-raised px-2 text-xs font-mono text-brand-ink placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="h-7 w-full rounded border border-border glass-field px-2 text-xs font-mono text-brand-ink placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
             <datalist id={`ce-suggestions-${index}`}>
               {COMPLETION_EVENT_SUGGESTIONS.map(ev => <option key={ev} value={ev} />)}
@@ -247,7 +247,7 @@ function SectionRow({ section, index, onUpdate, onRemove }) {
               value={section.sectionKey}
               onChange={e => onUpdate('sectionKey', e.target.value.toUpperCase().replace(/[\s-]+/g, '_'))}
               placeholder="ANSWER"
-              className="h-7 w-full rounded border border-border bg-surface-raised px-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="h-7 w-full rounded border border-border glass-field px-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
 
@@ -296,7 +296,7 @@ function SectionRow({ section, index, onUpdate, onRemove }) {
               value={section.description || ''}
               onChange={e => onUpdate('description', e.target.value)}
               placeholder="Shown in the section panel header"
-              className="h-7 w-full rounded border border-border bg-surface-raised px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="h-7 w-full rounded border border-border glass-field px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
 
@@ -342,7 +342,7 @@ function SectionRow({ section, index, onUpdate, onRemove }) {
                   value={section.sectionScreenKey || ''}
                   onChange={e => onUpdate('sectionScreenKey', e.target.value.toLowerCase().replace(/\s+/g, '_'))}
                   placeholder="e.g. risk_control_section"
-                  className="h-7 w-full rounded border border-border bg-surface-raised px-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="h-7 w-full rounded border border-border glass-field px-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
                 <p className="text-[9px] text-text-muted mt-0.5">
                   GET /v1/ui-config/screen/:key → section container config
@@ -358,7 +358,7 @@ function SectionRow({ section, index, onUpdate, onRemove }) {
                   value={section.itemScreenKey || ''}
                   onChange={e => onUpdate('itemScreenKey', e.target.value.toLowerCase().replace(/\s+/g, '_'))}
                   placeholder="e.g. risk_control_item"
-                  className="h-7 w-full rounded border border-border bg-surface-raised px-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="h-7 w-full rounded border border-border glass-field px-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
                 <p className="text-[9px] text-text-muted mt-0.5">
                   GET /v1/ui-config/screen/:key → item card config
@@ -375,7 +375,7 @@ function SectionRow({ section, index, onUpdate, onRemove }) {
                   onChange={e => onUpdate('itemRefType', e.target.value.toUpperCase().replace(/\s+/g, '_'))}
                   placeholder="CONTROL"
                   list={`irt-suggestions-${index}`}
-                  className="h-7 w-full rounded border border-border bg-surface-raised px-2 text-xs font-mono text-brand-ink placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="h-7 w-full rounded border border-border glass-field px-2 text-xs font-mono text-brand-ink placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
                 <datalist id={`irt-suggestions-${index}`}>
                   {ITEM_REF_TYPE_SUGGESTIONS.map(t => <option key={t} value={t} />)}
@@ -390,14 +390,14 @@ function SectionRow({ section, index, onUpdate, onRemove }) {
               <div className="col-span-2">
                 <label className="block text-[10px] text-text-muted uppercase tracking-wide mb-0.5">
                   Section UI override JSON
-                  <span className="ml-1 text-text-muted/60 normal-case">(optional — extends sectionScreenKey)</span>
+                  <span className="ml-1 text-text-muted normal-case">(optional — extends sectionScreenKey)</span>
                 </label>
                 <textarea
                   value={section.sectionUiJson || ''}
                   onChange={e => onUpdate('sectionUiJson', e.target.value)}
                   placeholder={'{\n  "hiddenTabs": ["comments"],\n  "availableActions": ["COMPLETE"]\n}'}
                   rows={3}
-                  className="w-full rounded border border-border bg-surface-raised px-2 py-1.5 text-xs font-mono text-text-primary placeholder:text-text-muted/50 resize-none focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="w-full rounded border border-border glass-field px-2 py-1.5 text-xs font-mono text-text-primary placeholder:text-text-faint resize-none focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
               </div>
 
@@ -405,14 +405,14 @@ function SectionRow({ section, index, onUpdate, onRemove }) {
               <div className="col-span-2">
                 <label className="block text-[10px] text-text-muted uppercase tracking-wide mb-0.5">
                   Item UI override JSON
-                  <span className="ml-1 text-text-muted/60 normal-case">(optional — extends itemScreenKey)</span>
+                  <span className="ml-1 text-text-muted normal-case">(optional — extends itemScreenKey)</span>
                 </label>
                 <textarea
                   value={section.itemUiJson || ''}
                   onChange={e => onUpdate('itemUiJson', e.target.value)}
                   placeholder={'{\n  "readOnlyFields": ["risk_rating"],\n  "hiddenFields": ["internal_notes"]\n}'}
                   rows={3}
-                  className="w-full rounded border border-border bg-surface-raised px-2 py-1.5 text-xs font-mono text-text-primary placeholder:text-text-muted/50 resize-none focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="w-full rounded border border-border glass-field px-2 py-1.5 text-xs font-mono text-text-primary placeholder:text-text-faint resize-none focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
               </div>
               </>)}

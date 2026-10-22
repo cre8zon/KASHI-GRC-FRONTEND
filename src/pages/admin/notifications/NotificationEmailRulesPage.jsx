@@ -15,6 +15,7 @@ import {
   useUpdateNotificationEmailRule,
   useDeleteNotificationEmailRule,
 } from '../../../hooks/useNotificationEmailRules'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 /**
  * NotificationEmailRulesPage — maps notification eventKeys to email
@@ -94,23 +95,23 @@ function RuleEditor({ rule, onClose }) {
           <>
             <div>
               <label className="block text-xs text-text-muted mb-1">Email template</label>
-              <select value={form.templateName} onChange={set('templateName')} className={inputCls}>
+              <GlassSelect value={form.templateName} onChange={set('templateName')} className={inputCls}>
                 <option value="">— select template —</option>
                 {templates.map(t => (
                   <option key={t.id} value={t.name} disabled={t.isActive === false}>
                     {t.name}{t.isActive === false ? ' (inactive)' : ''}
                   </option>
                 ))}
-              </select>
+              </GlassSelect>
               <p className="text-[11px] text-text-muted mt-1">
                 Placeholders must use guaranteed variables — otherwise recipients see literal {'{{braces}}'}.
               </p>
             </div>
             <div>
               <label className="block text-xs text-text-muted mb-1">Audience</label>
-              <select value={form.audience} onChange={set('audience')} className={inputCls}>
+              <GlassSelect value={form.audience} onChange={set('audience')} className={inputCls}>
                 {AUDIENCES.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
-              </select>
+              </GlassSelect>
             </div>
           </>
         )}

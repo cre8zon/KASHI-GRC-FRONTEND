@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { DynamicBadge, Badge } from './Badge'
 import { COLOR_MAP } from '../../config/constants'
@@ -56,6 +56,58 @@ function LookupCell({ id }) {
   )
 }
 
+/**
+ * Caps the table's own scroll area to the space left below it inside the page's
+ * scroll container, so the BODY scrolls inside the table and the sticky header
+ * stays visible.
+ *
+ * Why this is needed: every page body (PageLayout) is the scroll container, and
+ * most callers put the table straight into it. The table's `h-full` therefore
+ * resolved to "as tall as the rows", its inner overflow-auto never scrolled,
+ * and the sticky header scrolled off with the page. Callers that already give
+ * the table a bounded flex parent are unaffected — this is only a ceiling.
+ */
+const MIN_TABLE_HEIGHT = 280
+function findScrollParent(node) {
+  let p = node?.parentElement
+  while (p && p !== document.body) {
+    const oy = getComputedStyle(p).overflowY
+    if (oy === 'auto' || oy === 'scroll') return p
+    p = p.parentElement
+  }
+  return null
+}
+function useFitToViewport(scrollRef, footerRef, deps) {
+  const [maxHeight, setMaxHeight] = useState(null)
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const sp = findScrollParent(el)
+    const measure = () => {
+      const footer = footerRef.current?.offsetHeight || 0
+      const elTop = el.getBoundingClientRect().top
+      let available
+      if (sp) {
+        const spRect = sp.getBoundingClientRect()
+        // Position as if the page were scrolled to the top, so scrolling the
+        // page does not make the table grow and shrink.
+        const topInSp = elTop - spRect.top + sp.scrollTop
+        const padBottom = parseFloat(getComputedStyle(sp).paddingBottom) || 0
+        available = sp.clientHeight - topInSp - footer - padBottom - 24
+      } else {
+        available = window.innerHeight - elTop - footer - 24
+      }
+      setMaxHeight(Math.max(MIN_TABLE_HEIGHT, Math.floor(available)))
+    }
+    measure()
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
+    if (ro) { if (sp) ro.observe(sp); if (sp?.firstElementChild) ro.observe(sp.firstElementChild) }
+    window.addEventListener('resize', measure)
+    return () => { ro?.disconnect(); window.removeEventListener('resize', measure) }
+  }, deps) // eslint-disable-line react-hooks/exhaustive-deps
+  return maxHeight
+}
+
 export function DataTable({
   columns = [],
   data = [],
@@ -91,6 +143,9 @@ export function DataTable({
   const selectableCount = selectable ? data.filter(selectableRow).length : 0
 
   const displayCols = localCols || columns
+  const scrollRef = useRef(null)
+  const footerRef = useRef(null)
+  const maxHeight = useFitToViewport(scrollRef, footerRef, [loading, data.length, !!pagination])
 
   const renderCell = (row, col) => {
     const val = row[col.key]
@@ -144,7 +199,7 @@ export function DataTable({
           <div className="flex items-center gap-2 min-w-[90px]">
             <div className="flex-1 h-1.5 rounded-full bg-surface-overlay overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all ${done ? 'bg-status-pass-fg' : 'bg-brand-500'}`}
+                className={`h-full rounded-full transition-all ${done ? 'bg-status-pass-fg' : 'bg-brand-fill'}`}
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -196,13 +251,16 @@ export function DataTable({
   }
 
   return (
-    <div className="flex flex-col h-full rounded-card border border-border-subtle overflow-hidden bg-surface-raised/40">
-      <div className="flex-1 overflow-auto">
-        <table className="w-full text-sm border-collapse">
-          <thead className="sticky top-0 z-10 bg-brand-500/8 backdrop-blur-sm">
-            <tr className="border-b border-border-subtle">
+    <div className="flex flex-col h-full min-h-0 rounded-card border border-border-subtle overflow-hidden glass-card">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-auto overscroll-contain"
+           style={maxHeight ? { maxHeight } : undefined}>
+        {/* border-separate, not collapse: with collapse, sticky header cells
+            lose their borders and rows show through the seam while scrolling. */}
+        <table className="w-full text-sm border-separate border-spacing-0">
+          <thead className="sticky top-0 z-10">
+            <tr>
               {selectable && (
-                <th className="w-10 px-3 py-2.5">
+                <th className="w-10 px-3 py-2.5 bg-surface-raised/90 backdrop-blur-md border-b border-border">
                   <input
                     type="checkbox"
                     className="rounded border-border bg-surface-raised accent-brand-500"
@@ -234,6 +292,7 @@ export function DataTable({
                   onDragEnd={() => setDragColIdx(null)}
                   className={cn(
                     'px-3 py-2.5 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider',
+                    'bg-surface-raised/90 backdrop-blur-md border-b border-border',
                     'whitespace-nowrap select-none cursor-grab active:cursor-grabbing',
                     col.sortable && 'hover:text-text-secondary',
                     dragColIdx === ci && 'opacity-40'
@@ -249,7 +308,7 @@ export function DataTable({
           </thead>
           <tbody>
             {loading && Array.from({ length: 6 }).map((_, r) => (
-              <tr key={r} className="border-b border-border/50">
+              <tr key={r} className="[&>td]:border-b [&>td]:border-border/50">
                 {selectable && (
                   <td className="pl-4 py-3">
                     <div className="h-4 w-4 rounded bg-surface-overlay animate-pulse" />
@@ -276,7 +335,7 @@ export function DataTable({
               <tr
                 key={row.id || i}
                 className={cn(
-                  'border-b border-border/50 data-row transition-colors',
+                  '[&>td]:border-b [&>td]:border-border/50 data-row transition-colors',
                   onRowClick && 'cursor-pointer',
                   hoveredRow === i && 'bg-surface-overlay'
                 )}
@@ -314,7 +373,7 @@ export function DataTable({
       </div>
 
       {pagination && (
-        <div className="flex items-center justify-between px-3 py-2 border-t border-border text-xs text-text-secondary">
+        <div ref={footerRef} className="shrink-0 flex items-center justify-between px-3 py-2 border-t border-border text-xs text-text-secondary">
           <span className="font-mono">
             {pagination.totalItems} record{pagination.totalItems !== 1 ? 's' : ''}
           </span>

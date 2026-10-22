@@ -14,6 +14,7 @@ import { Card, CardHeader, CardBody } from '../../../components/ui/Card'
 import { cn }          from '../../../lib/cn'
 import { COLOR_MAP }   from '../../../config/constants'
 import toast           from 'react-hot-toast'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 const COMPONENT_TYPES = ['BADGE', 'DROPDOWN', 'MULTI_SELECT', 'RADIO', 'CHECKBOX_GROUP', 'TABLE_COLUMNS', 'FEATURE_FLAG', 'STATUS_FLOW']
 const COLOR_TAGS = Object.keys(COLOR_MAP)
@@ -72,14 +73,14 @@ function OptionRow({ opt, componentId, onDelete }) {
   return (
     <div className="flex items-center gap-2 px-3 py-2 bg-surface-overlay rounded">
       <input value={form.optionLabel} onChange={e => setForm(f => ({ ...f, optionLabel: e.target.value }))}
-        className="h-6 flex-1 rounded border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
-      <select value={form.colorTag} onChange={e => setForm(f => ({ ...f, colorTag: e.target.value }))}
+        className="h-6 flex-1 rounded border border-border glass-field px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+      <GlassSelect value={form.colorTag} onChange={e => setForm(f => ({ ...f, colorTag: e.target.value }))}
         className="h-6 w-24 rounded border border-border bg-surface-raised px-1 text-xs text-text-primary focus:outline-none">
         <option value="">No color</option>
         {COLOR_TAGS.map(c => <option key={c} value={c}>{c}</option>)}
-      </select>
+      </GlassSelect>
       <input type="number" value={form.sortOrder} onChange={e => setForm(f => ({ ...f, sortOrder: parseInt(e.target.value) }))}
-        className="h-6 w-12 rounded border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none" />
+        className="h-6 w-12 rounded border border-border glass-field px-2 text-xs text-text-primary focus:outline-none" />
       <Button size="xs" loading={isPending} onClick={() => update({ id: opt.id, data: form }, { onSuccess: () => setEditing(false) })}>
         Save
       </Button>
@@ -145,12 +146,12 @@ function OptionPanel({ component, onClose }) {
             placeholder="Active" />
           <div>
             <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Color</label>
-            <select value={newOpt.colorTag}
+            <GlassSelect value={newOpt.colorTag}
               onChange={e => setNewOpt(f => ({ ...f, colorTag: e.target.value }))}
               className="w-full h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none">
               <option value="">None</option>
               {COLOR_TAGS.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            </GlassSelect>
           </div>
           <Input label="Sort" type="number" value={newOpt.sortOrder}
             onChange={e => setNewOpt(f => ({ ...f, sortOrder: parseInt(e.target.value) || 0 }))}
@@ -230,7 +231,7 @@ export default function ComponentsAdminPage() {
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search key…"
-              className="h-8 pl-8 pr-3 w-44 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-44 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
           <Button size="sm" icon={Plus} onClick={() => setEditTarget(true)}>New Component</Button>
@@ -289,10 +290,10 @@ function ComponentForm({ item, onSubmit, isPending, onClose }) {
           placeholder="vendor_status" disabled={!!item} />
         <div>
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Type *</label>
-          <select value={form.componentType} onChange={e => set('componentType', e.target.value)}
+          <GlassSelect value={form.componentType} onChange={e => set('componentType', e.target.value)}
             className="w-full h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none">
             {COMPONENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
+          </GlassSelect>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">

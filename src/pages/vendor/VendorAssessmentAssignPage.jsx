@@ -139,7 +139,7 @@ function UserPicker({ label, value, onChange, filterRole, stepInstanceId }) {
             onChange={e => { setSearch(e.target.value); setOpen(true) }}
             onFocus={() => setOpen(true)}
             placeholder="Search by name or email…"
-            className="h-8 w-full pl-8 pr-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-8 w-full pl-8 pr-3 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
           {open && users.length > 0 && (
             <div className="absolute z-10 top-full left-0 right-0 mt-1 rounded-ctl border border-border bg-surface shadow-lg overflow-hidden">
@@ -357,7 +357,7 @@ function CISOAssignView({ assessment, taskId, stepInstanceId, onDone }) {
       </p>
 
       {/* ── Bulk assignment bar ────────────────────────────────────────────── */}
-      <div className="rounded-card border border-border bg-surface-raised p-3 space-y-3">
+      <div className="rounded-card border border-border glass-card p-3 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <ListChecks size={13} className="text-text-muted shrink-0" />
           <span className="text-xs font-medium text-text-secondary">

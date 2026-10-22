@@ -793,7 +793,7 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
               onChange={e => { setLocalText(e.target.value); setDirty(true) }}
               rows={3}
               autoFocus={dirty}
-              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+              className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
               placeholder="Type your answer…"
             />
             <div className="flex items-center gap-2">
@@ -892,7 +892,7 @@ function QuestionInput({ question, assessmentId, disabled, onAssign, isContribut
                 )}>
                 <span className={cn('w-3 h-3 rounded-ctl border flex-shrink-0 flex items-center justify-center',
                   selected ? 'bg-brand-500 border-brand-500' : 'border-current opacity-50')}>
-                  {selected && <CheckCircle2 size={9} className="text-on-dark" />}
+                  {selected && <CheckCircle2 size={9} className="text-brand-on" />}
                 </span>
                 {opt.optionValue}
               </button>
@@ -1375,7 +1375,7 @@ export default function VendorAssessmentFillPage() {
                                 onClick={() => drawerQuestion?.questionInstanceId === q.questionInstanceId
                                   ? setDrawerQuestion(null)
                                   : setDrawerQuestion(q)}
-                                className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-ink transition-colors ml-auto">
+                                className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-ink transition-colors ml-auto">
                                 <MessageSquare size={10} />
                                 {drawerQuestion?.questionInstanceId === q.questionInstanceId
                                   ? 'Close panel'
@@ -1475,7 +1475,7 @@ export default function VendorAssessmentFillPage() {
                             ? 'bg-status-tag-bg border-status-tag-bd'
                             : 'border-border hover:border-status-tag-bd'
                         )}>
-                        {allBatchSelected && <CheckCircle2 size={10} className="text-on-dark" />}
+                        {allBatchSelected && <CheckCircle2 size={10} className="text-status-tag-fg" />}
                       </button>
                       <span className="text-[11px] text-text-muted">
                         Select all in section — assign to one contributor at once
@@ -1519,7 +1519,7 @@ export default function VendorAssessmentFillPage() {
                                 : 'border-border hover:border-status-tag-bd'
                             )}>
                             {batchSet.has(q.questionInstanceId) && (
-                              <CheckCircle2 size={10} className="text-on-dark" />
+                              <CheckCircle2 size={10} className="text-status-tag-fg" />
                             )}
                           </button>
                         )}
@@ -1635,7 +1635,7 @@ export default function VendorAssessmentFillPage() {
                               onClick={() => drawerQuestion?.questionInstanceId === q.questionInstanceId
                                 ? setDrawerQuestion(null)
                                 : setDrawerQuestion(q)}
-                              className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-brand-ink transition-colors shrink-0">
+                              className="flex items-center gap-1 text-[10px] text-text-muted hover:text-brand-ink transition-colors shrink-0">
                               <MessageSquare size={10} />
                               {drawerQuestion?.questionInstanceId === q.questionInstanceId
                                 ? 'Close panel'
@@ -1731,7 +1731,7 @@ export default function VendorAssessmentFillPage() {
             </span>
           </div>
           <textarea
-            className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+            className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             rows={3}
             placeholder="Submission remarks (optional)"
             value={submitRemarks}

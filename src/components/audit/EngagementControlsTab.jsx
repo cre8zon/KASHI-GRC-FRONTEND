@@ -34,6 +34,7 @@ import api    from '../../config/axios.config'
 import { cn } from '../../lib/cn'
 import toast  from 'react-hot-toast'
 import { Modal } from '../ui/Modal'
+import { GlassSelect } from '../ui/GlassSelect'
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 const fetchControls      = (eid)         => api.get(`/v1/audit/engagements/${eid}/controls`)
@@ -156,7 +157,7 @@ function PullEvidenceModal({ open, onClose, engagementId, onPulled }) {
         <button
           onClick={() => doPull()}
           disabled={pulling || isLoading || (preview.candidateRecords ?? 0) === 0}
-          className="text-xs px-3 py-1.5 rounded-ctl bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5">
+          className="text-xs px-3 py-1.5 rounded-ctl bg-brand-500 text-brand-on hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5">
           {pulling ? 'Linking…' : <><Link2 size={11}/> Pull evidence</>}
         </button>
       </div>
@@ -215,7 +216,7 @@ function UserPicker({ users=[], value, onChange, loading, placeholder }) {
       {open && coords && createPortal(
         <div ref={menuRef}
           style={{ position:'fixed', right:coords.right, ...(flipUp?{bottom:coords.bottom+4}:{top:coords.top+4}) }}
-          className="w-48 bg-surface-raised border border-border rounded-card shadow-elevated z-[9999] overflow-hidden">
+          className="w-48 glass-card border border-border rounded-card shadow-elevated z-[9999] overflow-hidden">
           <div className="p-1 border-b border-border">
             <div className="flex items-center gap-1 px-2 py-0.5 bg-surface-overlay rounded text-[10px]">
               <Search size={9} className="text-text-muted"/><input autoFocus value={query} onChange={e=>setQuery(e.target.value)} onClick={e=>e.stopPropagation()} placeholder="Search…" className="flex-1 bg-transparent text-text-primary placeholder:text-text-muted outline-none"/>
@@ -266,7 +267,7 @@ function TestResultPicker({ currentResult, onSelect, saving }) {
         <Icon size={9}/><span>{current.short}</span>{open?<ChevronUp size={8}/>:<ChevronDown size={8}/>}
       </button>
       {open && (
-        <div className={cn("absolute right-0 w-40 bg-surface-raised border border-border rounded-card shadow-elevated z-50 py-1", flipUp?"bottom-full mb-1":"top-full mt-1")}>
+        <div className={cn("absolute right-0 w-40 glass-overlay border border-border rounded-card shadow-elevated z-50 py-1", flipUp?"bottom-full mb-1":"top-full mt-1")}>
           {RESULTS.map(r=>{ const RIcon=r.icon; return (
             <button key={r.value} onClick={(e)=>{e.stopPropagation();onSelect(r.value);setOpen(false)}}
               className={cn('w-full flex items-center gap-2 px-3 py-1.5 text-[11px] hover:bg-surface-overlay', r.value===currentResult?`${r.color} ${r.bg}`:'text-text-secondary')}>
@@ -599,8 +600,8 @@ function ControlRow({ ctrl, engagementId, auditorUsers, auditeeUsers, auditeeUse
                 <UserCheck size={8} className="text-brand-ink"/>
                 {auditor?userName(auditor):`#${ctrl.assignedAuditorId}`}
               </span>
-            : <span className="text-[9px] text-text-muted/40 flex items-center gap-0.5 italic">
-                <UserCheck size={8} className="text-text-muted/30"/>
+            : <span className="text-[9px] text-text-faint flex items-center gap-0.5 italic">
+                <UserCheck size={8} className="text-text-faint"/>
                 inherited
               </span>}
           {ctrl.auditeeAssignedUserId
@@ -608,8 +609,8 @@ function ControlRow({ ctrl, engagementId, auditorUsers, auditeeUsers, auditeeUse
                 <Users size={8} className="text-status-warn-fg"/>
                 {auditee?userName(auditee):`#${ctrl.auditeeAssignedUserId}`}
               </span>
-            : <span className="text-[9px] text-text-muted/40 flex items-center gap-0.5 italic">
-                <Users size={8} className="text-text-muted/30"/>
+            : <span className="text-[9px] text-text-faint flex items-center gap-0.5 italic">
+                <Users size={8} className="text-text-faint"/>
                 inherited
               </span>}
         </div>
@@ -1038,7 +1039,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
             {canRecordResult&&<span className="text-status-pass-fg flex items-center gap-0.5"><CheckCircle2 size={9}/> result</span>}
             {canSubmitEvidence&&<span className="text-status-pass-fg flex items-center gap-0.5"><CheckCheck size={9}/> evidence</span>}
             {/* Result filter */}
-            <select value={resultFilter} onChange={e=>setResultFilter(e.target.value)}
+            <GlassSelect value={resultFilter} onChange={e=>setResultFilter(e.target.value)}
               className="text-[9px] bg-surface border border-border rounded px-1.5 py-0.5 text-text-secondary focus:outline-none focus:border-brand-500/50 cursor-pointer">
               <option value="">All results</option>
               <option value="NOT_TESTED">Pending</option>
@@ -1046,9 +1047,9 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
               <option value="PARTIALLY_EFFECTIVE">Partial</option>
               <option value="INEFFECTIVE">Failed</option>
               <option value="NOT_APPLICABLE">N/A</option>
-            </select>
+            </GlassSelect>
             {/* Delegation filter */}
-            <select value={delegationFilter} onChange={e=>setDelegationFilter(e.target.value)}
+            <GlassSelect value={delegationFilter} onChange={e=>setDelegationFilter(e.target.value)}
               className={cn('text-[9px] bg-surface border rounded px-1.5 py-0.5 focus:outline-none focus:border-brand-500/50 cursor-pointer',
                 delegationFilter?'border-brand-500/40 text-brand-ink':'border-border text-text-secondary')}>
               <option value="">All delegations</option>
@@ -1060,7 +1061,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
               {delegatees.length>0 && <optgroup label="Delegated to">
                 {delegatees.map(([id,name])=><option key={id} value={`u:${id}`}>{name}</option>)}
               </optgroup>}
-            </select>
+            </GlassSelect>
             {/* My view / My sections toggle — inline in the stats row */}
             {(canAssignAuditor || canAssignAuditee) ? (
               <button onClick={()=>setMyView(!myViewOn)} className={cn('flex items-center gap-1 px-2 py-0.5 rounded-ctl border transition-all',myViewOn?'border-brand-500/40 bg-brand-500/10 text-brand-ink':'border-border text-text-muted hover:text-text-secondary')}>
@@ -1084,7 +1085,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
             <div className="flex items-center gap-2">
               <span className="text-[9px] text-text-muted w-20 shrink-0">Evidence</span>
               <div className="flex-1 h-1.5 bg-surface-overlay rounded-full overflow-hidden">
-                <div className="h-full bg-status-pass-bg rounded-full transition-all"
+                <div className="h-full bg-status-pass-fg rounded-full transition-all"
                   style={{width:`${Math.round(stats.evidenceDone/stats.total*100)}%`}}/>
               </div>
               <span className="text-[9px] text-text-muted w-8 text-right">{Math.round(stats.evidenceDone/stats.total*100)}%</span>
@@ -1094,9 +1095,9 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
               <div className="flex items-center gap-2">
                 <span className="text-[9px] text-text-muted w-20 shrink-0">Evaluated</span>
                 <div className="flex-1 h-1.5 bg-surface-overlay rounded-full overflow-hidden flex">
-                  <div className="h-full bg-status-pass-bg" style={{width:`${Math.round(stats.effective/stats.total*100)}%`}}/>
-                  <div className="h-full bg-status-warn-bg" style={{width:`${Math.round(stats.partial/stats.total*100)}%`}}/>
-                  <div className="h-full bg-status-fail-bg" style={{width:`${Math.round(stats.ineffective/stats.total*100)}%`}}/>
+                  <div className="h-full bg-status-pass-fg" style={{width:`${Math.round(stats.effective/stats.total*100)}%`}}/>
+                  <div className="h-full bg-status-warn-fg" style={{width:`${Math.round(stats.partial/stats.total*100)}%`}}/>
+                  <div className="h-full bg-status-fail-fg" style={{width:`${Math.round(stats.ineffective/stats.total*100)}%`}}/>
                 </div>
                 <span className="text-[9px] text-text-muted w-8 text-right">{Math.round((stats.effective+stats.partial+stats.ineffective)/stats.total*100)}%</span>
               </div>
@@ -1111,25 +1112,25 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
           {canAssignAuditor && auditorRoles.length > 0 && (
             <div className="flex items-center gap-1.5">
               <UserCheck size={9} className="text-brand-ink shrink-0"/>
-              <select
+              <GlassSelect
                 value={auditorRoleFilter ?? ''}
                 onChange={e => setAuditorRoleFilter(e.target.value ? Number(e.target.value) : null)}
                 className="text-[10px] bg-surface border border-border rounded px-1.5 py-0.5 text-text-secondary focus:outline-none focus:border-brand-500/50 cursor-pointer">
                 <option value="">All auditors</option>
                 {auditorRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
+              </GlassSelect>
             </div>
           )}
           {canAssignAuditee && auditeeRoles.length > 0 && (
             <div className="flex items-center gap-1.5">
               <Users size={9} className="text-status-warn-fg shrink-0"/>
-              <select
+              <GlassSelect
                 value={auditeeRoleFilter ?? ''}
                 onChange={e => setAuditeeRoleFilter(e.target.value ? Number(e.target.value) : null)}
                 className="text-[10px] bg-surface border border-border rounded px-1.5 py-0.5 text-text-secondary focus:outline-none focus:border-status-warn-bd cursor-pointer">
                 <option value="">All auditees</option>
                 {auditeeRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
+              </GlassSelect>
             </div>
           )}
           {(auditorRoleFilter || auditeeRoleFilter) && (
@@ -1209,7 +1210,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
             <button
               onClick={doBulkAssign}
               disabled={bulkMut.isPending || (!bulkAuditorId && !bulkAuditeeId)}
-              className="ml-auto text-[10px] px-3 py-1 rounded bg-brand-500 text-brand-900 hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+              className="ml-auto text-[10px] px-3 py-1 rounded bg-brand-500 text-brand-on hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
               {bulkMut.isPending ? 'Assigning…' : `Assign to ${selectedControlIds.size} control${selectedControlIds.size !== 1 ? 's' : ''}`}
             </button>
           </div>
@@ -1258,7 +1259,7 @@ export function EngagementControlsTab({ engagementId, vc = {}, taskId }) {
             <button onClick={()=>setShowBulkSubmit(false)} disabled={bulkSubmitMut.isPending}
               className="text-xs px-3 py-1.5 rounded-ctl border border-border text-text-secondary hover:bg-surface-overlay disabled:opacity-40">Cancel</button>
             <button onClick={()=>bulkSubmitMut.mutate()} disabled={bulkSubmitMut.isPending||bulkLinkedTargets.length===0}
-              className="text-xs px-3 py-1.5 rounded-ctl bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-40 flex items-center gap-1.5">
+              className="text-xs px-3 py-1.5 rounded-ctl bg-brand-500 text-brand-on hover:bg-brand-600 disabled:opacity-40 flex items-center gap-1.5">
               <CheckCheck size={11}/>{bulkSubmitMut.isPending?'Submitting…':'Submit'}
             </button>
           </div>

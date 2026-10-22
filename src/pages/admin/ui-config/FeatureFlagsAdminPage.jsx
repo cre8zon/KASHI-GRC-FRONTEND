@@ -86,7 +86,7 @@ export default function FeatureFlagsAdminPage() {
             const licensed = flag.mode === 'LICENSED'
             return (
             <div key={flag.id}
-              className="flex items-center gap-4 px-4 py-3 rounded-card border border-border bg-surface-raised hover:bg-surface-overlay transition-colors">
+              className="flex items-center gap-4 px-4 py-3 rounded-card border border-border glass-card hover:bg-surface-overlay transition-colors">
 
               {/* Info: name + description (the identity of the flag) */}
               <div className="flex-1 min-w-0">
@@ -207,7 +207,7 @@ function FlagForm({ onSubmit, isPending, onClose }) {
         <input value={form.allowedSidesJson}
           onChange={e => set('allowedSidesJson', e.target.value)}
           placeholder='["ORGANIZATION","VENDOR"] — blank = all sides'
-          className="h-8 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="h-8 w-full rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         {/* Quick side shortcuts */}
         <div className="flex flex-wrap gap-1.5 mt-2">
           {SIDES.map(s => (
@@ -298,7 +298,7 @@ function EditFlagForm({ flag, onSubmit, isPending, onClose }) {
         <input value={form.allowedSidesJson}
           onChange={e => set('allowedSidesJson', e.target.value)}
           placeholder='["ORGANIZATION","VENDOR"] — blank = all sides'
-          className="h-8 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="h-8 w-full rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         <div className="flex flex-wrap gap-1.5 mt-2">
           {SIDES.map(s => (
             <button key={s} type="button"

@@ -39,13 +39,13 @@ export default function SubscriptionsPage() {
         <div className="relative">
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search customer or plan…"
-            className="h-8 pl-8 pr-3 w-60 rounded-ctl border border-border bg-surface-raised text-sm focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="h-8 pl-8 pr-3 w-60 rounded-ctl border border-border glass-field text-sm focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>}>
       <div className="px-6 pt-2 pb-6 space-y-4">
         <div className="flex flex-wrap gap-2">
           {VIEWS.map(v => (
             <button key={v.key} onClick={() => setView(v.key)} className={cn('px-3 py-1 rounded-ctl text-xs font-medium',
-              view === v.key ? 'bg-brand-500 text-brand-900' : 'bg-surface-overlay text-text-secondary hover:text-text-primary')}>{v.label}</button>
+              view === v.key ? 'bg-brand-500 text-brand-on' : 'bg-surface-overlay text-text-secondary hover:text-text-primary')}>{v.label}</button>
           ))}
         </div>
         {isLoading ? <p className="text-sm text-text-muted">Loading…</p> : rows.length === 0 ? (

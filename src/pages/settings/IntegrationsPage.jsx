@@ -27,6 +27,7 @@ import { Button }     from '../../components/ui/Button'
 import { cn }         from '../../lib/cn'
 import { integrationApi } from '../../api/integration.api'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -137,7 +138,7 @@ function ConnectForm({ integrationKey, displayName, onSuccess }) {
   })
 
   return (
-    <div className="p-4 bg-surface-raised rounded-card border border-border space-y-3">
+    <div className="p-4 glass-card rounded-card border border-border space-y-3">
       <h3 className="text-sm font-medium text-text-primary">Connect {displayName}</h3>
       {fields.map(f => (
         <div key={f.key}>
@@ -150,7 +151,7 @@ function ConnectForm({ integrationKey, displayName, onSuccess }) {
               placeholder={f.placeholder}
               value={form[f.key] || ''}
               onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-              className="w-full px-3 py-2 rounded border border-border bg-surface-overlay text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono resize-none"
+              className="w-full px-3 py-2 rounded border border-border glass-field text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono resize-none"
             />
           ) : (
             <input
@@ -158,7 +159,7 @@ function ConnectForm({ integrationKey, displayName, onSuccess }) {
               placeholder={f.placeholder}
               value={form[f.key] || ''}
               onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-              className="w-full px-3 py-2 rounded border border-border bg-surface-overlay text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full px-3 py-2 rounded border border-border glass-field text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           )}
           {f.json && isBadJson(form[f.key]) && (
@@ -262,7 +263,7 @@ function CheckRow({ check, integrationKey }) {
           <p className="text-[10px] text-text-muted font-medium">Customise check settings</p>
           <div>
             <label className="block text-[10px] text-text-muted mb-1">Run frequency</label>
-            <select
+            <GlassSelect
               value={overrides.runFrequency || check.runFrequency}
               onChange={e => setOverrides(p => ({ ...p, runFrequency: e.target.value }))}
               className="w-full px-2 py-1.5 rounded border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -270,7 +271,7 @@ function CheckRow({ check, integrationKey }) {
               {['HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY'].map(f => (
                 <option key={f} value={f}>{f}</option>
               ))}
-            </select>
+            </GlassSelect>
           </div>
           <div>
             <label className="block text-[10px] text-text-muted mb-1">
@@ -281,7 +282,7 @@ function CheckRow({ check, integrationKey }) {
               placeholder={`{"scope":"ADMINS"}`}
               defaultValue={check.hasCustomConfig ? '[custom]' : ''}
               onChange={e => setOverrides(p => ({ ...p, checkConfigJson: e.target.value }))}
-              className="w-full px-2 py-1.5 rounded border border-border bg-surface-raised text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+              className="w-full px-2 py-1.5 rounded border border-border glass-field text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             />
           </div>
           <div className="flex gap-2 pt-1">
@@ -447,7 +448,7 @@ function IntegrationDetail({ catalogItem, connected }) {
               No checks available. The global library may not have checks for this integration.
             </div>
           ) : (
-            <div className="rounded-card border border-border bg-surface-raised overflow-hidden flex-1 overflow-y-auto">
+            <div className="rounded-card border border-border glass-card overflow-hidden flex-1 overflow-y-auto">
               {checks.map(c => (
                 <CheckRow key={c.checkKey} check={c} integrationKey={integrationKey} />
               ))}
@@ -484,7 +485,7 @@ function RunHistory({ integrationKey }) {
         Run history
       </button>
       {open && (
-        <div className="mt-2 rounded-card border border-border bg-surface-raised overflow-hidden max-h-40 overflow-y-auto">
+        <div className="mt-2 rounded-card border border-border glass-card overflow-hidden max-h-40 overflow-y-auto">
           {isLoading ? (
             <div className="py-4 flex justify-center"><RefreshCw size={12} className="animate-spin text-text-muted" /></div>
           ) : runs.length === 0 ? (

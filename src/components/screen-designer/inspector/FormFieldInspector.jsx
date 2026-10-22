@@ -181,12 +181,12 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
           <IField label="Validation rules (JSON)">
             <textarea value={form.validationRulesJson} onChange={e => set('validationRulesJson', e.target.value)}
               rows={2} placeholder='{"minLength":3,"maxLength":255}'
-              className="w-full px-2 py-1.5 text-[9px] font-mono bg-surface-overlay border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+              className="w-full px-2 py-1.5 text-[9px] font-mono glass-field border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
           </IField>
           <IField label="Conditional (dependsOnJson)">
             <textarea value={form.dependsOnJson} onChange={e => set('dependsOnJson', e.target.value)}
               rows={2} placeholder='{"field":"issue_type","operator":"eq","value":"INTERNAL"}'
-              className="w-full px-2 py-1.5 text-[9px] font-mono bg-surface-overlay border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+              className="w-full px-2 py-1.5 text-[9px] font-mono glass-field border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
             <p className="text-[9px] text-text-muted mt-0.5">Field only shows when condition is true</p>
           </IField>
         </InspectorSection>
@@ -273,7 +273,7 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
         )}
         <button onClick={() => saveMut.mutate()}
           disabled={saveMut.isPending}
-          className="flex-1 text-[10px] font-medium text-brand-900 bg-brand-500 hover:bg-brand-600 rounded py-1.5 transition-colors disabled:opacity-50">
+          className="flex-1 text-[10px] font-medium text-brand-on bg-brand-500 hover:bg-brand-600 rounded py-1.5 transition-colors disabled:opacity-50">
           {saveMut.isPending ? 'Saving…' : initial?.id ? 'Update field' : 'Add field'}
         </button>
       </div>

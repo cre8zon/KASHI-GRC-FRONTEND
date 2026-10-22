@@ -1,7 +1,8 @@
 import axios from 'axios'
 import { store } from '../store'
-import { logout } from '../store/slices/authSlice'
 import { queryClient } from './queryClient'
+import { SESSION_CODES, isAuthEndpoint, canRefresh, refreshSession, endSession } from '../lib/session'
+import { isJwtExpired } from '../lib/jwt'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
@@ -99,11 +100,43 @@ api.interceptors.response.use(
     }
     return response.data?.data ?? response.data
   },
-  (error) => {
-    if (error.response?.status === 401) {
-      store.dispatch(logout())
-      window.location.href = '/auth/login'
+  async (error) => {
+    const httpStatus = error.response?.status
+    const code       = error.response?.data?.error?.code
+    const cfg        = error.config || {}
+    const url        = cfg.url || ''
+
+    // ── Session handling ────────────────────────────────────────────────
+    // A 401 whose code says "session over" (or no code at all) → renew once
+    // and replay the request; if renewal is impossible, end the session and
+    // send the user to sign in. Other 401s (e.g. a mistyped current password)
+    // are ordinary errors and fall through to the caller.
+    //
+    // The 403 branch covers a backend that predates the 401 entry point: it
+    // answered an expired token with an empty 403. We only treat it as expiry
+    // when our own token says it has expired, so a genuine permission 403 is
+    // never mistaken for a sign-out.
+    const sessionOver =
+      store.getState().auth.isAuthenticated && !isAuthEndpoint(url) && (
+        (httpStatus === 401 && (!code || SESSION_CODES.has(code))) ||
+        (httpStatus === 403 && !code && isJwtExpired(store.getState().auth.token))
+      )
+
+    if (sessionOver) {
+      if (!cfg._kashiRetried && canRefresh()) {
+        try {
+          await refreshSession()
+          cfg._kashiRetried = true
+          // The request interceptor re-reads the (now refreshed) token.
+          return api(cfg)
+        } catch {
+          endSession('expired')
+        }
+      } else {
+        endSession(code === 'AUTH_TOKEN_INVALID' ? 'invalid' : 'expired')
+      }
     }
+
     const apiError = error.response?.data?.error
     // Carry the HTTP status through. This used to reject with the API error body
     // alone, so every consumer saw { code, message } and nothing could tell a 403

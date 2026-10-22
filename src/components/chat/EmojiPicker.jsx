@@ -104,10 +104,10 @@ export function EmojiPicker({ onPick, onClose, className }) {
     : CATEGORIES[cat][2]
 
   return (
-    <div ref={box} className={cn('w-72 rounded-card border border-border bg-surface-raised shadow-overlay p-2 z-40', className)}
+    <div ref={box} className={cn('w-72 rounded-card border border-border glass-card shadow-overlay p-2 z-40', className)}
       onMouseDown={(e) => e.stopPropagation()}>
       <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search emoji" autoFocus
-        className="w-full h-7 px-2 mb-1.5 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary" />
+        className="w-full h-7 px-2 mb-1.5 rounded-ctl border border-border glass-field text-xs text-text-primary" />
       {!term && (
         <div className="flex gap-0.5 mb-1.5 border-b border-border-subtle pb-1">
           {CATEGORIES.map(([name, icon], i) => (

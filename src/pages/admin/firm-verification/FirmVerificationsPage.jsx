@@ -61,7 +61,7 @@ export default function FirmVerificationsPage() {
           <div className="flex flex-wrap gap-1.5">
             {VIEWS.map(v => (
               <button key={v.key} onClick={() => setView(v.key)} className={cn('px-2.5 py-1 rounded-ctl text-xs font-medium',
-                view === v.key ? 'bg-brand-500 text-brand-900' : 'bg-surface-overlay text-text-secondary hover:text-text-primary')}>
+                view === v.key ? 'bg-brand-500 text-brand-on' : 'bg-surface-overlay text-text-secondary hover:text-text-primary')}>
                 {v.label} <span className="opacity-70">{count(v)}</span>
               </button>
             ))}
@@ -69,7 +69,7 @@ export default function FirmVerificationsPage() {
           {isLoading ? <p className="text-sm text-text-muted">Loading…</p> : rows.length === 0 ? (
             <p className="text-xs text-text-muted py-6 text-center">Nothing here.</p>
           ) : (
-            <div className="rounded-card border border-border divide-y divide-border/60 bg-surface-raised">
+            <div className="rounded-card border border-border divide-y divide-border/60 glass-card">
               {rows.map(a => {
                 const d = daysUntil(a.verifiedUntil)
                 return (
@@ -140,7 +140,7 @@ function StartVerificationModal({ open, onClose, onStarted }) {
         <div className="relative">
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
           <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Search tenant name or code…"
-            className="h-9 w-full pl-8 pr-3 rounded-ctl border border-border bg-surface-raised text-sm focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="h-9 w-full pl-8 pr-3 rounded-ctl border border-border glass-field text-sm focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         {q.trim().length < 2 ? <p className="text-xs text-text-muted px-1">Type at least two characters.</p>
           : isFetching ? <p className="text-xs text-text-muted px-1">Searching…</p>

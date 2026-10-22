@@ -83,7 +83,7 @@ export default function TenantSubscriptionTab({ tenant }) {
               <li key={s.id} className="ml-4">
                 <span className={cn('absolute -left-[5px] mt-2 w-2.5 h-2.5 rounded-full border-2 border-surface-raised',
                   s.id === data?.currentId ? 'bg-brand-500' : 'bg-border')} />
-                <div className={cn('rounded-card border p-3 bg-surface-raised', s.id === data?.currentId ? 'border-brand-500/40' : 'border-border')}>
+                <div className={cn('rounded-card border p-3 glass-card', s.id === data?.currentId ? 'border-brand-500/40' : 'border-border')}>
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     <span className="font-mono text-text-muted">#{s.id}</span>
                     <span className="font-semibold text-text-primary">{s.planCode}</span>
@@ -121,7 +121,7 @@ export default function TenantSubscriptionTab({ tenant }) {
 function CurrentCard({ sub, upcoming }) {
   const d = daysUntil(sub.termEnd)
   return (
-    <div className="rounded-card border border-border bg-surface-raised p-4 space-y-4">
+    <div className="rounded-card border border-border glass-card p-4 space-y-4">
       <div className="flex items-center gap-2">
         <CreditCard size={15} className="text-brand-ink" />
         <span className="text-sm font-semibold text-text-primary">{sub.planCode}</span>

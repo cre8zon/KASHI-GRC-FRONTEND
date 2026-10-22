@@ -78,7 +78,7 @@ function ContributionPicker({ policyInstanceId, controlInstanceId, current, canE
       {open && coords && createPortal(
         <div ref={menuRef}
           style={{ position:'fixed', right:coords.right, ...(flipUp?{bottom:coords.bottom+4}:{top:coords.top+4}) }}
-          className="w-28 bg-surface-raised border border-border rounded-card shadow-elevated z-[9999] py-1">
+          className="w-28 glass-card border border-border rounded-card shadow-elevated z-[9999] py-1">
           {Object.entries(CONTRIBUTION).map(([k,v]) => (
             <button key={k} onClick={()=>{mutate(k);setOpen(false)}}
               className={cn('w-full text-left px-3 py-1.5 text-[11px] hover:bg-surface-overlay',k===current?`${v.color} ${v.bg}`:'text-text-secondary')}>

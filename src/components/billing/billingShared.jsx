@@ -9,6 +9,7 @@
 import { useSearchParams } from 'react-router-dom'
 import { useCallback } from 'react'
 import { cn } from '../../lib/cn'
+import { GlassSelect } from '../ui/GlassSelect'
 
 // ─── Tabs, URL-backed ────────────────────────────────────────────────────────
 
@@ -100,7 +101,7 @@ export const humanize = (s) => s ? String(s).replace(/_/g, ' ').toLowerCase().re
 
 export function Kpi({ label, value, sub, tone, hint, className }) {
   return (
-    <div className={cn('rounded-card border border-border bg-surface-raised px-4 py-3 min-w-0', className)} title={hint}>
+    <div className={cn('rounded-card border border-border glass-card px-4 py-3 min-w-0', className)} title={hint}>
       <p className="text-[11px] font-medium text-text-muted uppercase tracking-wide truncate">{label}</p>
       <p className={cn('mt-1 text-xl font-semibold font-mono tabular-nums truncate',
         tone === 'good' ? 'text-status-pass-fg' : tone === 'bad' ? 'text-status-fail-fg' : tone === 'warn' ? 'text-status-warn-fg' : 'text-text-primary')}>
@@ -164,18 +165,18 @@ export function TextIn(props) {
 
 export function SelectIn({ options = [], placeholder, ...props }) {
   return (
-    <select {...props} className={cn(CTRL, 'pr-7', props.className)}>
+    <GlassSelect {...props} className={cn(CTRL, 'pr-7', props.className)}>
       {placeholder !== undefined && <option value="">{placeholder}</option>}
       {options.map(o => typeof o === 'string'
         ? <option key={o} value={o}>{humanize(o)}</option>
         : <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
+    </GlassSelect>
   )
 }
 
 export function TextArea(props) {
   return <textarea rows={3} {...props}
-    className={cn('w-full rounded-ctl border border-border bg-surface-raised px-2.5 py-1.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500', props.className)} />
+    className={cn('w-full rounded-ctl border border-border glass-field px-2.5 py-1.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500', props.className)} />
 }
 
 // ─── Misc ───────────────────────────────────────────────────────────────────
@@ -205,7 +206,7 @@ export const today = () => new Date().toISOString().slice(0, 10)
 /** Table shell with the house styling. */
 export function Table({ head, children, className }) {
   return (
-    <div className={cn('rounded-card border border-border overflow-x-auto bg-surface-raised', className)}>
+    <div className={cn('rounded-card border border-border overflow-x-auto glass-card', className)}>
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border bg-surface-overlay/50">

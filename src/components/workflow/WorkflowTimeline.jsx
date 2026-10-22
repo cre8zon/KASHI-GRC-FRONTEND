@@ -208,7 +208,7 @@ function TaskRow({ task, isAssigner, stepInstanceId, workflowInstanceId, isAdmin
                       <button
                         onClick={() => resetTask({ rollbackDownstream: false })}
                         disabled={resetting}
-                        className="flex-1 text-[10px] font-bold text-brand-900 bg-brand-600 hover:bg-brand-700 rounded px-2 py-1 transition-colors disabled:opacity-50"
+                        className="flex-1 text-[10px] font-bold text-brand-on bg-brand-600 hover:bg-brand-700 rounded px-2 py-1 transition-colors disabled:opacity-50"
                       >
                         {resetting ? 'Reopening…' : 'Yes, reopen task'}
                       </button>
@@ -248,7 +248,7 @@ function TaskRow({ task, isAssigner, stepInstanceId, workflowInstanceId, isAdmin
                       <button
                         onClick={() => { resetTask({ rollbackDownstream: true }); setConfirmRollback(false) }}
                         disabled={resetting}
-                        className="flex-1 text-[10px] font-bold text-on-dark bg-status-fail-bg hover:bg-status-fail-bg rounded px-2 py-1 transition-colors disabled:opacity-50"
+                        className="flex-1 text-[10px] font-bold text-text-inverse bg-status-fail-fg hover:bg-status-fail-fg rounded px-2 py-1 transition-colors disabled:opacity-50"
                       >
                         {resetting ? 'Rolling back…' : 'Yes, roll back downstream'}
                       </button>
@@ -505,7 +505,7 @@ export function WorkflowTimeline({ progress, workflowInstanceId, isAdmin = false
           <GitBranch size={11} className="text-brand-ink shrink-0" />
           <span className="font-medium text-text-secondary">{workflowName}</span>
           {workflowInstanceId && (
-            <span className="text-text-muted/50">· Instance #{workflowInstanceId}</span>
+            <span className="text-text-faint">· Instance #{workflowInstanceId}</span>
           )}
         </div>
       )}

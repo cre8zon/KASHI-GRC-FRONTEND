@@ -31,7 +31,7 @@ function CreateScreenModal({ onClose, onCreate }) {
           <input value={key} onChange={e => setKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
             placeholder="e.g. vendor_question_item"
             autoFocus
-            className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 px-3 text-xs font-mono glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="text-xs font-medium text-text-secondary block mb-2">Screen type</label>
@@ -46,7 +46,7 @@ function CreateScreenModal({ onClose, onCreate }) {
                 <div>
                   <div className="text-xs font-medium text-text-primary">{t.label}</div>
                   <div className="text-[9px] text-text-muted mt-0.5">{t.desc}</div>
-                  <code className="text-[8px] font-mono text-text-muted/60 mt-1 block">{t.fieldName}</code>
+                  <code className="text-[8px] font-mono text-text-muted mt-1 block">{t.fieldName}</code>
                 </div>
               </button>
             ))}

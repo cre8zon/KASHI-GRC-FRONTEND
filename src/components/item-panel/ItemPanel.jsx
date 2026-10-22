@@ -237,11 +237,11 @@ function ActivityTab({ entityType, entityId }) {
         <div key={ev.id || i}
           className="flex items-center gap-2 py-1 border-b border-border/30 last:border-0">
           <div className="h-px flex-1 bg-border/40 max-w-4" />
-          <span className="text-[10px] text-text-muted/70 italic flex-1">
+          <span className="text-[10px] text-text-muted italic flex-1">
             {ev.commentText}
           </span>
           {ev.createdAt && (
-            <span className="text-[10px] text-text-muted/50 shrink-0 font-mono">
+            <span className="text-[10px] text-text-faint shrink-0 font-mono">
               {new Date(ev.createdAt).toLocaleDateString()}
             </span>
           )}

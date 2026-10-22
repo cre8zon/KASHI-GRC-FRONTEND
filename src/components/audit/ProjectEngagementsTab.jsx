@@ -26,6 +26,7 @@ import { Badge }      from '../ui/Badge'
 import { EmptyState } from '../ui/EmptyState'
 import { formatDate } from '../../utils/format'
 import toast          from 'react-hot-toast'
+import { GlassSelect } from '../ui/GlassSelect'
 
 const STATUS_COLOR = {
   PLANNING:            'gray',
@@ -66,7 +67,7 @@ function AuditorPicker({ value, users, onChange, saving }) {
   // value is Long from backend, option values are strings in HTML — normalise both to string
   const strValue = value != null ? String(value) : ''
   return (
-    <select
+    <GlassSelect
       value={strValue}
       onChange={e => onChange(e.target.value ? Number(e.target.value) : null)}
       disabled={saving}
@@ -83,7 +84,7 @@ function AuditorPicker({ value, users, onChange, saving }) {
       {value && !(users || []).some(u => String(u.userId || u.id) === strValue) && (
         <option value={strValue}>User #{value}</option>
       )}
-    </select>
+    </GlassSelect>
   )
 }
 
@@ -96,7 +97,7 @@ function DualProgressBar({ submitted, tested, total }) {
       <div className="flex items-center gap-2">
         <span className="text-[9px] text-text-muted w-14 shrink-0">Evidence</span>
         <div className="flex-1 h-1.5 rounded-full bg-surface-overlay overflow-hidden">
-          <div className="h-full bg-status-pass-bg rounded-full transition-all" style={{ width: `${submittedPct}%` }} />
+          <div className="h-full bg-status-pass-fg rounded-full transition-all" style={{ width: `${submittedPct}%` }} />
         </div>
         <span className="text-[9px] text-text-muted tabular-nums w-7 text-right">{submittedPct}%</span>
       </div>
@@ -104,7 +105,7 @@ function DualProgressBar({ submitted, tested, total }) {
         <div className="flex items-center gap-2">
           <span className="text-[9px] text-text-muted w-14 shrink-0">Evaluated</span>
           <div className="flex-1 h-1.5 rounded-full bg-surface-overlay overflow-hidden">
-            <div className="h-full bg-brand-400 rounded-full transition-all" style={{ width: `${testedPct}%` }} />
+            <div className="h-full bg-brand-fill rounded-full transition-all" style={{ width: `${testedPct}%` }} />
           </div>
           <span className="text-[9px] text-text-muted tabular-nums w-7 text-right">{testedPct}%</span>
         </div>
@@ -231,7 +232,7 @@ export default function ProjectEngagementsTab({ projectId, vc = {}, stepInstance
       {engagements.map(eng => (
         <div
           key={eng.id}
-          className="rounded-card border border-border bg-surface-raised hover:bg-surface-overlay transition-colors p-4"
+          className="rounded-card border border-border glass-card hover:bg-surface-overlay transition-colors p-4"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 min-w-0 flex-1">

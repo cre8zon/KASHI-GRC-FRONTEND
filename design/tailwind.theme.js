@@ -1,5 +1,5 @@
 /**
- * KashiGRC "Registry" — Tailwind theme extension.
+ * KashiGuard "Registry" — Tailwind theme extension.
  * Merge into tailwind.config.js → theme.extend.
  * Class names match what the codebase already uses
  * (bg-surface-raised, text-text-primary, border-border, brand-500 …)

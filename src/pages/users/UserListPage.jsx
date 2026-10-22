@@ -162,7 +162,7 @@ export default function UserListPage() {
             <input value={search}
               onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search users…"
-              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
           <Button size="sm" icon={Plus} onClick={() => setShowCreate(true)}>Add User</Button>

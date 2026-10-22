@@ -9,6 +9,7 @@ import { cn } from '../../lib/cn'
 import { joinRoomCall } from './call/callStore'
 import { PeopleMultiSelect } from './PeopleMultiSelect'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../ui/GlassSelect'
 
 /**
  * Standing call rooms — always open, join any time ("Audit team daily",
@@ -31,7 +32,12 @@ export function RoomsPanel({ workspaceId, archived, compact }) {
   const data = unwrapOne(raw) || {}
   const rooms = (Array.isArray(data.rooms) ? data.rooms : [])
     .filter(r => workspaceId == null || r.workspaceId === workspaceId)
-  const canCreate = !!data.canCreate && !archived
+  // Inside a workspace: only its owner and MEMBERS (or holders of the meeting
+  // permission) may open a room there — the server lists those workspaces in
+  // canCreateIn. Viewers see the rooms but cannot add one.
+  const canCreate = !archived && (workspaceId == null
+    ? !!data.canCreate
+    : (Array.isArray(data.canCreateIn) && data.canCreateIn.some(x => String(x) === String(workspaceId))))
   const refresh = () => qc.invalidateQueries({ queryKey: ['collab-rooms'] })
 
   if (!data.enabled && !isLoading) {
@@ -42,7 +48,7 @@ export function RoomsPanel({ workspaceId, archived, compact }) {
   if (compact && rooms.length === 0 && !canCreate) return null
 
   return (
-    <div className="rounded-card border border-border bg-surface-raised">
+    <div className="rounded-card border border-border glass-card">
       <div className="px-4 py-2 border-b border-border-subtle flex items-center justify-between">
         <p className="text-xs font-medium text-text-secondary flex items-center gap-1.5"><Video size={12} /> Rooms</p>
         {canCreate && <Button variant="ghost" size="xs" icon={Plus} onClick={() => setEditing({})}>Room</Button>}
@@ -136,11 +142,11 @@ export function RoomModal({ room, workspaceId, onClose, onDone }) {
       }>
       <div className="space-y-3">
         {isNew && workspaceId == null && (
-          <select value={f.workspaceId} onChange={e => setForm(x => ({ ...x, workspaceId: e.target.value, memberUserIds: [] }))} className={input}>
+          <GlassSelect value={f.workspaceId} onChange={e => setForm(x => ({ ...x, workspaceId: e.target.value, memberUserIds: [] }))} className={input}>
             {opts.canScheduleInternal && <option value="">Internal — my organisation only</option>}
             {!opts.canScheduleInternal && <option value="" disabled>Choose a workspace</option>}
             {workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-          </select>
+          </GlassSelect>
         )}
         <input value={f.name} onChange={e => setForm(x => ({ ...x, name: e.target.value }))} placeholder="Name, e.g. Audit team daily" className={input} />
         <input value={f.description} onChange={e => setForm(x => ({ ...x, description: e.target.value }))} placeholder="What it is for (optional)" className={input} />

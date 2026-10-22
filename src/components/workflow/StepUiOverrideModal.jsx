@@ -21,7 +21,7 @@
  *   <Button size="xs" variant="secondary" icon={Shield}
  *     onClick={() => setOverrideModalOpen(true)}>
  *     Configure UI override
- *     {step.stepUiOverrideJson && <span className="ml-1 text-brand-400">●</span>}
+ *     {step.stepUiOverrideJson && <span className="ml-1 text-brand-ink">●</span>}
  *   </Button>
  *
  *   <StepUiOverrideModal

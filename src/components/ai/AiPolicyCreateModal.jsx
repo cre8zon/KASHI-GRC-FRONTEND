@@ -44,6 +44,7 @@ import { Button } from '../ui/Button'
 import { aiApi } from '../../api/ai.api'
 import api from '../../config/axios.config'
 import { cn } from '../../lib/cn'
+import { GlassSelect } from '../ui/GlassSelect'
 
 const STAGES = [
   'Gathering your organisation profile',
@@ -241,7 +242,7 @@ export default function AiPolicyCreateModal({ open, onClose, onCreated }) {
             <div key={label} className="flex items-center gap-2">
               <div className={cn(
                 'flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-medium',
-                step > i + 1 ? 'bg-brand-500 text-brand-ink'
+                step > i + 1 ? 'bg-brand-500 text-brand-on'
                 : step === i + 1 ? 'bg-brand-500/15 text-brand-ink ring-1 ring-brand-500/40'
                 : 'bg-surface-overlay text-text-muted',
               )}>
@@ -251,7 +252,7 @@ export default function AiPolicyCreateModal({ open, onClose, onCreated }) {
                 step === i + 1 ? 'text-text-primary font-medium' : 'text-text-muted')}>
                 {label}
               </span>
-              {i < 2 && <ChevronRight size={13} className="text-text-muted/40" />}
+              {i < 2 && <ChevronRight size={13} className="text-text-faint" />}
             </div>
           ))}
         </div>
@@ -282,7 +283,7 @@ export default function AiPolicyCreateModal({ open, onClose, onCreated }) {
                   <button key={f} onClick={() => toggleFw(f)}
                     className={cn('h-7 rounded-ctl px-2.5 text-xs transition-colors',
                       frameworks.includes(f)
-                        ? 'bg-brand-500 text-brand-ink'
+                        ? 'bg-brand-500 text-brand-on'
                         : 'border border-border text-text-secondary hover:bg-surface-overlay')}>
                     {f}
                   </button>
@@ -332,13 +333,13 @@ export default function AiPolicyCreateModal({ open, onClose, onCreated }) {
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-text-secondary">Review cycle</span>
-                <select value={meta.reviewFrequencyMonths || 12}
+                <GlassSelect value={meta.reviewFrequencyMonths || 12}
                   onChange={e => setMeta(m => ({ ...m, reviewFrequencyMonths: Number(e.target.value) }))}
                   className="glass-field h-9 w-full rounded-ctl px-2 text-sm text-text-primary">
                   {REVIEW_CYCLES.map(c => (
                     <option key={c.value} value={c.value}>{c.label}</option>
                   ))}
-                </select>
+                </GlassSelect>
               </label>
             </div>
 
@@ -415,9 +416,9 @@ export default function AiPolicyCreateModal({ open, onClose, onCreated }) {
               <div key={s} className={cn('flex items-center gap-2 text-xs transition-opacity',
                 i < stage ? 'text-text-muted'
                 : i === stage ? 'text-text-primary'
-                : 'text-text-muted/40')}>
-                {i < stage ? <Check size={13} className="text-brand-600" />
-                 : i === stage ? <Loader2 size={13} className="animate-spin text-brand-500" />
+                : 'text-text-faint')}>
+                {i < stage ? <Check size={13} className="text-brand-ink" />
+                 : i === stage ? <Loader2 size={13} className="animate-spin text-brand-ink" />
                  : <ChevronRight size={13} />}
                 {s}
               </div>

@@ -1,133 +1,119 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
-import { ShieldCheck, ArrowRight, Mail, ArrowLeft, MailCheck } from 'lucide-react'
+import { Mail, ArrowLeft, MailCheck, KeyRound, ArrowRight } from 'lucide-react'
 import { authApi } from '../../api/auth.api'
+import { AuthLayout, AuthHeading } from '../../components/auth/AuthLayout'
+import { TextField, FormAlert, SubmitButton } from '../../components/auth/AuthFields'
+import { parseApiError } from '../../lib/passwordPolicy'
 
 const schema = z.object({
-  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
+  email: z.string().trim().min(1, 'Enter your work email').email('Enter a valid email address'),
 })
+
+const RESEND_COOLDOWN = 30
 
 /**
  * ForgotPasswordPage — step 1 of reset: enter email, we send a reset link.
  *
- * Deliberately shows the SAME success message whether or not the email exists,
- * so the form can't be used to enumerate which emails have accounts.
+ * The response is the same whether or not the email has an account (the
+ * server no longer 404s on unknown emails), so this form cannot be used to
+ * find out who has an account. Only network/server failures show an error.
  */
 export default function ForgotPasswordPage() {
-  const [sent, setSent] = useState(false)
-  const { register, handleSubmit, getValues, setError, formState: { errors } } = useForm({
+  const [sentTo, setSentTo]     = useState(null)
+  const [cooldown, setCooldown] = useState(0)
+
+  const { register, handleSubmit, setFocus, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { email: '' },
+    mode: 'onTouched',
   })
+  useEffect(() => { setFocus('email') }, [setFocus])
 
-  const { mutate, isPending } = useMutation({
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const id = setTimeout(() => setCooldown(c => c - 1), 1000)
+    return () => clearTimeout(id)
+  }, [cooldown])
+
+  const { mutate, isPending, error, reset } = useMutation({
     mutationFn: (email) => authApi.requestReset(email),
-    // The reset endpoint now 404s on an unknown email (deliberate: this is an
-    // admin portal, not a public signup). onSettled would show the confirmation
-    // panel on top of the error toast, so success and failure are split.
-    onSuccess: () => setSent(true),
-    onError: (err) => setError('email', {
-      type: 'server',
-      message: err?.response?.data?.message || 'No account found with this email address',
-    }),
+    onSuccess: (_, email) => { setSentTo(email); setCooldown(RESEND_COOLDOWN) },
+    // A pre-fix backend still 404s on an unknown email — treat it as success
+    // so the page never reveals whether an account exists.
+    onError: (err, email) => {
+      if (err?.status === 404 || err?.code === 'RESOURCE_NOT_FOUND') { setSentTo(email); setCooldown(RESEND_COOLDOWN) }
+    },
   })
 
-  const onSubmit = ({ email }) => mutate(email)
+  const apiErr = useMemo(() => {
+    if (!error || error?.status === 404 || error?.code === 'RESOURCE_NOT_FOUND') return { form: null, fields: {} }
+    return parseApiError(error, "We couldn't send the reset link. Please try again.")
+  }, [error])
+
+  const onSubmit = ({ email }) => mutate(email.trim())
+
+  if (sentTo) {
+    return (
+      <AuthLayout headline="Check your inbox." sub="The link in the email lets you choose a new password.">
+        <AuthHeading icon={MailCheck} tone="pass" title="Check your email">
+          If an account exists for <span className="font-semibold text-text-primary">{sentTo}</span>, we've sent it a password reset link.
+        </AuthHeading>
+        <ul className="mb-6 space-y-2 text-[13px] text-text-secondary">
+          <li>• The link works once and expires in 15 minutes.</li>
+          <li>• Not there? Check spam or quarantine, then resend.</li>
+        </ul>
+        <button
+          type="button"
+          disabled={cooldown > 0 || isPending}
+          onClick={() => mutate(sentTo)}
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-ctl border border-border-strong bg-surface-raised text-sm font-semibold text-text-primary transition-colors hover:bg-surface-overlay disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand-ink/30"
+        >
+          {isPending ? 'Sending…' : cooldown > 0 ? `Resend link in ${cooldown}s` : 'Resend link'}
+        </button>
+        <BackToSignIn />
+      </AuthLayout>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-surface flex">
-      {/* Left panel — branding */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-sidebar border-r border-border relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5"
-          style={{ backgroundImage: 'radial-gradient(circle, rgb(var(--color-brand-500)) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-9 h-9 rounded-card bg-brand-500/20 border border-brand-500/30 flex items-center justify-center">
-              <ShieldCheck size={18} className="text-brand-ink" />
-            </div>
-            <span className="text-lg font-bold text-text-primary tracking-tight">KashiGRC</span>
-          </div>
-          <h1 className="text-4xl font-bold text-text-primary leading-tight mb-4">
-            Reset your<br />password.
-          </h1>
-          <p className="text-text-secondary text-base leading-relaxed max-w-sm">
-            Enter the email associated with your account and we'll send you a secure link to set a new password.
-          </p>
-        </div>
-        <div className="relative z-10 text-xs text-text-muted">
-          Reset links expire after 15 minutes for your security.
-        </div>
-      </div>
+    <AuthLayout headline="Locked out? It happens." sub="We'll email you a secure, single-use link to set a new password.">
+      <AuthHeading icon={KeyRound} title="Reset your password">
+        Enter the work email for your account and we'll send you a reset link.
+      </AuthHeading>
 
-      {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-sm">
-          <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <ShieldCheck size={20} className="text-brand-ink" />
-            <span className="font-bold text-text-primary">KashiGRC</span>
-          </div>
+      {apiErr.form && <FormAlert tone="fail">{apiErr.form}</FormAlert>}
 
-          {sent ? (
-            <div>
-              <div className="w-12 h-12 rounded-card bg-status-pass-bg border border-status-pass-bd flex items-center justify-center mb-5">
-                <MailCheck size={22} className="text-status-pass-fg" />
-              </div>
-              <h2 className="text-2xl font-bold text-text-primary mb-2">Check your email</h2>
-              <p className="text-sm text-text-muted mb-2 leading-relaxed">
-                If an account exists for <span className="font-medium text-text-secondary">{getValues('email')}</span>,
-                we've sent a link to reset your password.
-              </p>
-              <p className="text-sm text-text-muted mb-8 leading-relaxed">
-                The link expires in 15 minutes. Don't forget to check your spam folder.
-              </p>
-              <Link to="/login"
-                className="inline-flex items-center gap-2 text-sm font-medium text-brand-ink hover:opacity-80 transition-opacity">
-                <ArrowLeft size={15} /> Back to sign in
-              </Link>
-            </div>
-          ) : (
-            <>
-              <h2 className="text-2xl font-bold text-text-primary mb-1">Forgot password?</h2>
-              <p className="text-sm text-text-muted mb-8">
-                No worries — we'll send you reset instructions.
-              </p>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4" onChange={() => error && reset()}>
+        <TextField
+          label="Work email"
+          type="email"
+          icon={Mail}
+          autoComplete="email"
+          inputMode="email"
+          placeholder="you@company.com"
+          error={errors.email?.message || apiErr.fields.email}
+          {...register('email')}
+        />
+        <SubmitButton loading={isPending} loadingText="Sending link…">
+          Send reset link <ArrowRight size={15} />
+        </SubmitButton>
+      </form>
 
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <div className="flex flex-col gap-1">
-                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary uppercase tracking-wide">
-                    <Mail size={11} /> Email Address
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="you@company.com"
-                    autoComplete="email"
-                    autoFocus
-                    className="h-10 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 transition-colors"
-                    {...register('email')}
-                  />
-                  {errors.email && <p className="text-xs text-status-fail-fg">{errors.email.message}</p>}
-                </div>
+      <BackToSignIn />
+    </AuthLayout>
+  )
+}
 
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="h-10 w-full rounded-ctl bg-brand-500 text-brand-900 text-sm font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-60">
-                  {isPending ? 'Sending…' : <>Send reset link <ArrowRight size={15} /></>}
-                </button>
-              </form>
-
-              <Link to="/login"
-                className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text-secondary transition-colors">
-                <ArrowLeft size={15} /> Back to sign in
-              </Link>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
+function BackToSignIn() {
+  return (
+    <Link to="/auth/login"
+      className="mt-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-text-secondary transition-colors hover:text-text-primary focus-visible:underline">
+      <ArrowLeft size={14} /> Back to sign in
+    </Link>
   )
 }

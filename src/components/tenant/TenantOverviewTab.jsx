@@ -59,7 +59,7 @@ export default function TenantOverviewTab({ tenant, owner }) {
 
       <section>
         <SectionTitle>Account</SectionTitle>
-        <div className="grid grid-cols-4 gap-4 rounded-card border border-border p-4 bg-surface-raised">
+        <div className="grid grid-cols-4 gap-4 rounded-card border border-border p-4 glass-card">
           <Field label="Status"><StatusPill status={tenant.status} /></Field>
           <Field label="Plan">{tenant.plan}</Field>
           <Field label="Organisation type">{tenant.isAuditFirm ? <StatusPill status="APPROVED" label="Verified audit firm" /> : 'Customer'}</Field>
@@ -76,7 +76,7 @@ export default function TenantOverviewTab({ tenant, owner }) {
       <section>
         <SectionTitle>Profile</SectionTitle>
         {editing ? (
-          <div className="grid grid-cols-2 gap-3 rounded-card border border-border p-4 bg-surface-raised">
+          <div className="grid grid-cols-2 gap-3 rounded-card border border-border p-4 glass-card">
             <FormRow label="Display name"><TextIn value={f.name} onChange={e => set('name', e.target.value)} /></FormRow>
             <FormRow label="Industry"><SelectIn value={f.industry} onChange={e => set('industry', e.target.value)} placeholder="—" options={INDUSTRIES} /></FormRow>
             <FormRow label="Employees"><SelectIn value={f.employeeBand} onChange={e => set('employeeBand', e.target.value)} placeholder="—" options={EMPLOYEE_BANDS.map(b => ({ value: b, label: b }))} /></FormRow>
@@ -87,7 +87,7 @@ export default function TenantOverviewTab({ tenant, owner }) {
             <FormRow label="Description" className="col-span-2"><TextArea rows={2} value={f.description} onChange={e => set('description', e.target.value)} /></FormRow>
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-4 rounded-card border border-border p-4 bg-surface-raised">
+          <div className="grid grid-cols-4 gap-4 rounded-card border border-border p-4 glass-card">
             <Field label="Industry">{tenant.industry && humanize(tenant.industry)}</Field>
             <Field label="Employees">{tenant.employeeBand}</Field>
             <Field label="Country">{tenant.country}</Field>
@@ -101,14 +101,14 @@ export default function TenantOverviewTab({ tenant, owner }) {
       <section>
         <SectionTitle>Bill to</SectionTitle>
         {editing ? (
-          <div className="grid grid-cols-2 gap-3 rounded-card border border-border p-4 bg-surface-raised">
+          <div className="grid grid-cols-2 gap-3 rounded-card border border-border p-4 glass-card">
             <FormRow label="Legal name"><TextIn value={f.legalName} onChange={e => set('legalName', e.target.value)} /></FormRow>
             <FormRow label="GSTIN / tax ID"><TextIn value={f.taxId} onChange={e => set('taxId', e.target.value.toUpperCase())} /></FormRow>
             <FormRow label="Billing email" className="col-span-2"><TextIn type="email" value={f.billingEmail} onChange={e => set('billingEmail', e.target.value)} /></FormRow>
             <FormRow label="Billing address" className="col-span-2"><TextArea rows={3} value={f.billingAddress} onChange={e => set('billingAddress', e.target.value)} /></FormRow>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-4 rounded-card border border-border p-4 bg-surface-raised">
+          <div className="grid grid-cols-3 gap-4 rounded-card border border-border p-4 glass-card">
             <Field label="Legal name">{tenant.legalName}</Field>
             <Field label="GSTIN / tax ID" mono>{tenant.taxId}</Field>
             <Field label="Billing email">{tenant.billingEmail}</Field>

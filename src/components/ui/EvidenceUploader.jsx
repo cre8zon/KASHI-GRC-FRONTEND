@@ -141,7 +141,7 @@ function DocumentRow({ doc, entityType, entityId, linkType, canRemove, compact, 
       <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
         {/* Preview hint — subtle eye icon always visible */}
         {doc.documentId && onPreview && (
-          <span className="p-1 text-text-muted/40 group-hover:text-brand-ink transition-colors" title="Click row to preview">
+          <span className="p-1 text-text-faint group-hover:text-brand-ink transition-colors" title="Click row to preview">
             <Eye size={12} />
           </span>
         )}
@@ -254,7 +254,7 @@ function UploadProgressBar({ fileName, progress, done, error }) {
       {!done && !error && (
         <div className="h-1 rounded-full bg-surface-overlay overflow-hidden">
           <div
-            className="h-full rounded-full bg-brand-500 transition-all duration-300"
+            className="h-full rounded-full bg-brand-fill transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>

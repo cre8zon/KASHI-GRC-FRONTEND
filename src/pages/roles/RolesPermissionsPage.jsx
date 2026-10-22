@@ -17,6 +17,7 @@ import { useSelector }  from 'react-redux'
 import { selectAuth }   from '../../store/slices/authSlice'
 import { usePermission } from '../../hooks/usePermission'
 import toast            from 'react-hot-toast'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -199,20 +200,20 @@ function RoleForm({ side: defaultSide, onSubmit, isPending, onClose, isSystem = 
           placeholder="e.g. ORG_MANAGER" error={errors.name} />
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">Side *</label>
-          <select value={form.side} onChange={e => set('side', e.target.value)}
+          <GlassSelect value={form.side} onChange={e => set('side', e.target.value)}
             className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {SIDES.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          </GlassSelect>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">Level</label>
-          <select value={form.level} onChange={e => set('level', e.target.value)}
+          <GlassSelect value={form.level} onChange={e => set('level', e.target.value)}
             className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-          </select>
+          </GlassSelect>
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">Type</label>
@@ -270,7 +271,7 @@ function RoleForm({ side: defaultSide, onSubmit, isPending, onClose, isSystem = 
           <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
           <input value={permSearch} onChange={e => setPermSearch(e.target.value)}
             placeholder="Search permissions…"
-            className="h-7 w-full pl-7 pr-3 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="h-7 w-full pl-7 pr-3 rounded-ctl border border-border glass-field text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div className="border border-border rounded-card overflow-hidden max-h-52 overflow-y-auto">
           {Object.entries(grouped).map(([group, perms]) => (
@@ -378,7 +379,7 @@ function RolePermissionEditor({ role, onClose }) {
         <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
         <input value={permSearch} onChange={e => setPermSearch(e.target.value)}
           placeholder="Search permissions…"
-          className="h-7 w-full pl-7 pr-3 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="h-7 w-full pl-7 pr-3 rounded-ctl border border-border glass-field text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
 
       <div className="border border-border rounded-card overflow-hidden max-h-80 overflow-y-auto">
@@ -475,7 +476,7 @@ function RolesPanel({ tenantId, side, canManage, isSystem = false }) {
           const isSystem = role.is_system || role.isSystem
           return (
             <div key={id}
-              className="flex items-center justify-between px-3 py-2.5 rounded-card border border-border bg-surface-raised hover:border-border-subtle transition-colors group">
+              className="flex items-center justify-between px-3 py-2.5 rounded-card border border-border glass-card hover:border-border-subtle transition-colors group">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className={cn(
                   'w-7 h-7 rounded-ctl flex items-center justify-center shrink-0',
@@ -619,7 +620,7 @@ function PermissionsPanel({ canManage }) {
         <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search permissions…"
-          className="h-7 w-full pl-7 pr-3 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="h-7 w-full pl-7 pr-3 rounded-ctl border border-border glass-field text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
 
       {isLoading && (

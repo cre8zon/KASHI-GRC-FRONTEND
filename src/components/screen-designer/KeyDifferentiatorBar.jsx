@@ -33,7 +33,7 @@ function KeyDifferentiatorBar({ screen, inline = false }) {
               <Copy size={9} />
             </button>
           ) : (
-            <span className="text-text-muted/40 font-mono">—</span>
+            <span className="text-text-faint font-mono">—</span>
           )}
         </div>
       ))}

@@ -328,7 +328,7 @@ async function generatePDF(assessment, sections = []) {
   <div class="cover">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div>
-        <div style="font-size:11px;font-weight:800;letter-spacing:3px;opacity:.6;text-transform:uppercase;margin-bottom:2px">KashiGRC</div>
+        <div style="font-size:11px;font-weight:800;letter-spacing:3px;opacity:.6;text-transform:uppercase;margin-bottom:2px">KashiGuard</div>
         <div style="font-size:9px;opacity:.5;letter-spacing:2px;text-transform:uppercase">Third-Party Risk Management</div>
       </div>
       <div style="text-align:right;font-size:10px;opacity:.5">
@@ -477,7 +477,7 @@ async function generatePDF(assessment, sections = []) {
   </table>
 
   <div class="footer-bar">
-    <div>KashiGRC &nbsp;&middot;&nbsp; Third-Party Risk Management Platform</div>
+    <div>KashiGuard &nbsp;&middot;&nbsp; Third-Party Risk Management Platform</div>
     <div>Confidential &mdash; Internal Use Only</div>
     <div>Generated ${fmtDate(new Date())}</div>
   </div>
@@ -567,7 +567,7 @@ function ReportHeader({ assessment, onDownload, generatingPDF }) {
           {pct != null && (
             <div className="flex-1 max-w-xs">
               <div className="h-1.5 rounded-full bg-surface-overlay overflow-hidden">
-                <div className={cn('h-full rounded-full', pct >= 80 ? 'bg-status-pass-bg' : pct >= 60 ? 'bg-status-warn-bg' : 'bg-status-fail-bg')}
+                <div className={cn('h-full rounded-full', pct >= 80 ? 'bg-status-pass-fg' : pct >= 60 ? 'bg-status-warn-fg' : 'bg-status-fail-fg')}
                   style={{ width: `${Math.min(pct, 100)}%` }}/>
               </div>
             </div>
@@ -647,9 +647,9 @@ function SectionBreakdown({ sections }) {
               </div>
             </div>
             <div className="ml-7 h-1.5 rounded-full bg-surface-overlay overflow-hidden flex">
-              <div className="h-full bg-status-pass-bg" style={{ width: `${r.total > 0 ? r.pass/r.total*100 : 0}%` }}/>
-              <div className="h-full bg-status-warn-bg" style={{ width: `${r.total > 0 ? r.partial/r.total*100 : 0}%` }}/>
-              <div className="h-full bg-status-fail-bg"   style={{ width: `${r.total > 0 ? r.fail/r.total*100 : 0}%` }}/>
+              <div className="h-full bg-status-pass-fg" style={{ width: `${r.total > 0 ? r.pass/r.total*100 : 0}%` }}/>
+              <div className="h-full bg-status-warn-fg" style={{ width: `${r.total > 0 ? r.partial/r.total*100 : 0}%` }}/>
+              <div className="h-full bg-status-fail-fg"   style={{ width: `${r.total > 0 ? r.fail/r.total*100 : 0}%` }}/>
             </div>
           </div>
         ))}
@@ -726,7 +726,7 @@ function Findings({ assessment, isAdmin, onUpdate }) {
             Use <code className="bg-surface-overlay px-1 rounded">--- Reviewer Name · Date ---</code> headers to separate reviewers.
           </p>
           <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={12}
-            className="w-full text-sm bg-surface border border-border rounded-card px-4 py-3 text-text-primary
+            className="w-full text-sm glass-field border border-border rounded-card px-4 py-3 text-text-primary
               placeholder-text-muted focus:outline-none focus:border-brand-500/50 resize-y leading-relaxed"
             placeholder="Document key findings, risk observations, deficiencies, and recommendations..."/>
           <div className="flex items-center gap-2 justify-end">
@@ -1142,7 +1142,7 @@ export default function AssessmentReportPage() {
           <AuditTrail workflowInstanceId={workflowInstanceId} history={history}/>
           <SignOffChain progress={progress}/>
           <div className="border-t border-border pt-5 flex items-center justify-between text-[10px] text-text-muted pb-8">
-            <span>KashiGRC · Third-Party Risk Management Platform</span>
+            <span>KashiGuard · Third-Party Risk Management Platform</span>
             <span>Confidential — Internal Use Only</span>
             <span>Generated {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
           </div>

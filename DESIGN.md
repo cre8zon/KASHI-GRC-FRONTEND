@@ -1,4 +1,4 @@
-# KashiGRC Design System — "Calm" v3 (pastel + glass)
+# KashiGuard Design System — "Calm" v4 (brand + pastel, engine-generated themes)
 
 The design contract. Every UI change — human or AI — must comply.
 CI enforces it: `npm run lint:design` (runs automatically on `prebuild`).
@@ -10,18 +10,41 @@ cards; glass chrome (sidebar, top nav, drawers, menus, modals); generous
 radii; pill statuses with dots; gentle 150–200ms motion; quiet mono codes
 for the audit vernacular. Trustworthy without being stiff.
 
-Font: **Albert Sans** (IBM Plex Mono for codes). Default theme: **light**.
+Font: **Albert Sans** (IBM Plex Mono for codes). Default theme: **light**,
+default colour: **Kashi Purple `#936EC8`** for every user who has not chosen one.
 
-**Glass law** — glass is for chrome and overlays; content is always solid.
-`.glass-chrome` = sidebar + top nav (light sidebar mode only; dark/brand
-sidebars stay solid). `.glass-overlay` = modals, drawers, dropdown menus.
-Tables, cards, forms, reports = opaque. Solid fallback ships via `@supports`;
-`@media print` forces solid + white (audit evidence must print clean).
+**Glass law (v4)** — glass everywhere, readable everywhere. Six layers in
+`src/index.css` (`@layer components`, so utilities on the same element win):
+`.glass-chrome` (sidebar, top nav, tab bars) · `.glass-card` (cards, panels,
+tiles — the default for `<Card>` and any `rounded-card` container) ·
+`.glass-inset` (panel nested in a card) · `.glass-overlay` (modals, drawers,
+menus, popovers) · `.glass-field` (inputs) · `.glass-button` (secondary
+buttons). Each = translucent fill + blur + saturation + 1px rim + specular top
+highlight. Fill opacity per theme is set so text keeps AA over the brightest
+part of the wash (audited per preset). Solid fallback without backdrop-filter,
+with `prefers-reduced-transparency`, and in print. Use `<Card solid>` only for
+very dense data tables.
 
-**Pastel law** — the palette IS pastel; contrast comes from **tonal pairing**.
-Buttons are `bg-brand-500 text-brand-900` (pastel surface + deep same-hue ink).
-Links/rings/indicators use brand-800/900. **Never white text on pastel**
-(the guard has a dedicated `white-on-brand` rule). Never a saturated CTA.
+**Theme engine** — `src/lib/themeEngine.js` is the ONLY place a colour becomes
+tokens. A seed hex produces a full LIGHT and DARK token set (brand scale, ink,
+on-brand ink, fill, wash, and — in dark — every neutral tinted with the theme's
+own hue), injected as `<style id="kashi-theme-vars">`. Never write
+`--color-brand-*` / `--mesh-*` as inline styles: inline styles outrank
+`[data-theme="dark"]` and freeze the light palette in dark mode.
+
+**Contrast is solved by the engine, not by components.**
+| Token | Use | Guarantee |
+|---|---|---|
+| `bg-brand-500` + `text-brand-on` | solid buttons, active pills, avatars | ≥ 4.5:1 every preset, both themes |
+| `text-brand-ink` | links, brand text/icons on neutral or `bg-brand-500/10–20` tints | ≥ 4.5:1 |
+| `bg-brand-fill` | progress fills, dots, indicators | ≥ 3:1 vs the track |
+Never `text-white` / `text-brand-900` / `text-on-dark` on `bg-brand-500` —
+white is right for Kashi Purple and invisible on the pastels; the engine knows
+which. Status fills (bars, dots, solid buttons) use `-fg`; `-bg` is for chips.
+
+**Dark theme** — tinted dark glass (cards 62%, chrome 74%, overlays 90%) over
+four dim glows in the theme's own hue. Every composite stays dark, so light
+text keeps ≥ 7:1. No light blobs behind content, no pastel pills.
 
 ## Hard Rules
 
@@ -67,7 +90,7 @@ Links/rings/indicators use brand-800/900. **Never white text on pastel**
 
 | Layer | Tokens | Follows theme? |
 |---|---|---|
-| UI | `--color-brand-*`, surface/text/border/status | ✅ all 12 presets |
+| UI | `--color-brand-*` (+ `-on`, `-ink`, `-fill`), surface/text/border/status | ✅ Kashi Purple + 12 pastels, generated per theme |
 | Charts | `--chart-1..8` | ✅ (light/dark variants) |
 | Reports / PDF | `--rpt-*` | ❌ deliberately fixed |
 | Dark chrome | `--sidebar-dark`, `--color-on-dark` | ❌ constant |
@@ -80,7 +103,7 @@ exist for inline styles and `.policy-content`.
 
 - `EngagementIntegrationTab.jsx` — Okta/AWS/Azure/Google logo colours.
 - `BrandingAdminPage.jsx` — the colour picker's swatch data (content).
-- `config/brandPresets.js` — the 12 pastel seeds.
+- `config/brandPresets.js` — the Kashi Purple + 12 pastel seeds.
 
 ## Tools
 
@@ -89,6 +112,9 @@ exist for inline styles and `.policy-content`.
   `python3 tools/migrate_theme_v2.py` (dry-run) / `--apply`.
 
 ## Verify
+
+Token contrast for every preset × theme is checked by the audit described in
+the v4 change notes (793 pairs, 0 failures at release).
 
 `/admin/design-system` renders every primitive in the live theme. Check it
 after any token change, in light AND dark, across a few presets.

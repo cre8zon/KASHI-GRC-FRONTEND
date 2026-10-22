@@ -1,5 +1,5 @@
 /* ============================================================
-   KashiGRC — "Calm" design tokens  (v3: pastel + glass chrome)
+   KashiGuard — "Calm" design tokens  (v3: pastel + glass chrome)
    Soft, smooth, pastel. Glass on chrome & overlays only;
    content surfaces always solid. Default theme: LIGHT.
 
@@ -17,7 +17,7 @@
   /* ---------- Brand (runtime-overridable) ----------
      Format: space-separated RGB triplets — REQUIRED by the
      existing injector in useTheme.js and by Tailwind's
-     rgb(var(--x) / <alpha-value>) pattern. Defaults = KashiGRC teal. */
+     rgb(var(--x) / <alpha-value>) pattern. Defaults = KashiGuard teal. */
   --color-brand-50:  249 252 250;
   --color-brand-100: 239 247 242;
   --color-brand-200: 227 241 233;

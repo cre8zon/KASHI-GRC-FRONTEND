@@ -15,6 +15,7 @@ import { Modal, ConfirmDialog } from '../../../components/ui/Modal'
 import { Input }       from '../../../components/ui/Input'
 import { cn }          from '../../../lib/cn'
 import toast           from 'react-hot-toast'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -223,7 +224,7 @@ function PermissionPicker({ value, onChange }) {
         </button>
 
         {open && (
-          <div className="absolute z-50 mt-1 w-full rounded-ctl border border-border bg-surface-raised shadow-lg">
+          <div className="absolute z-50 mt-1 w-full rounded-ctl border border-border glass-overlay shadow-lg">
             <div className="p-2 border-b border-border">
               <div className="relative">
                 <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
@@ -232,7 +233,7 @@ function PermissionPicker({ value, onChange }) {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Search permissions…"
-                  className="w-full h-7 pl-6 pr-2 rounded border border-border bg-surface text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="w-full h-7 pl-6 pr-2 rounded border border-border glass-field text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
               </div>
             </div>
@@ -498,7 +499,7 @@ function PermissionRolesModal({ open, onClose, permCode, allPermsData }) {
                   <span className={cn('w-1.5 h-1.5 rounded-full shrink-0',
                     r.roleSide === 'SYSTEM'       ? 'bg-status-tag-bg' :
                     r.roleSide === 'ORGANIZATION' ? 'bg-status-info-bg'   :
-                    r.roleSide === 'AUDITOR'      ? 'bg-brand-400'   :
+                    r.roleSide === 'AUDITOR'      ? 'bg-brand-fill'   :
                     r.roleSide === 'AUDITEE'      ? 'bg-status-pass-bg'  : 'bg-status-warn-bg'
                   )} />
                   {r.roleName}
@@ -573,7 +574,7 @@ function PermissionRolesModal({ open, onClose, permCode, allPermsData }) {
               value={roleSearch}
               onChange={e => setRoleSearch(e.target.value)}
               placeholder="Filter roles…"
-              className="w-full h-7 pl-7 pr-3 rounded border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full h-7 pl-7 pr-3 rounded border border-border glass-field text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
 
@@ -746,7 +747,7 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
             value={form.parentKey || ''}
             onChange={e => set('parentKey', e.target.value || null)}
             placeholder="Blank = top-level item"
-            className="h-8 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-8 w-full rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
           <datalist id="parent-key-options">
             <option value="" />
@@ -781,7 +782,7 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">
             Allowed Sides
           </label>
-          <select value={form.allowedSides} onChange={e => set('allowedSides', e.target.value)}
+          <GlassSelect value={form.allowedSides} onChange={e => set('allowedSides', e.target.value)}
             className="w-full h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             <option value="">All sides</option>
             {SIDES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -789,7 +790,7 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
             <option value="ORGANIZATION,SYSTEM,AUDITOR">ORG + SYSTEM + AUDITOR</option>
             <option value="ORGANIZATION,VENDOR">ORG + VENDOR</option>
             <option value="ORGANIZATION,SYSTEM,AUDITOR,AUDITEE">All except VENDOR</option>
-          </select>
+          </GlassSelect>
         </div>
 
         <div className="flex flex-col gap-1">
@@ -801,7 +802,7 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
             value={form.module}
             onChange={e => set('module', e.target.value)}
             placeholder="e.g. THIRD-PARTY RISK"
-            className="h-8 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-8 w-full rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
           <datalist id="module-options">
             {existingModules.map(m => <option key={m} value={m} />)}
@@ -966,20 +967,20 @@ export default function NavigationAdminPage() {
       subtitle={`${data?.pagination?.totalItems ?? items.length} items`}
       actions={
         <div className="flex items-center gap-2">
-          <select
+          <GlassSelect
             value={sideFilter}
             onChange={e => { setSideFilter(e.target.value); setPage(1) }}
             className="h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
             <option value="">All sides</option>
             {SIDES.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          </GlassSelect>
 
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search label…"
-              className="h-8 pl-8 pr-3 w-44 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-44 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
           <Button size="sm" icon={Plus} onClick={() => setEditTarget(true)}>Add Item</Button>

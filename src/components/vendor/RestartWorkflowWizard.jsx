@@ -76,7 +76,7 @@ function Stepper({ step }) {
               <span className={cn(
                 'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 border',
                 done   && 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg',
-                active && 'bg-brand-500 border-brand-500 text-white',
+                active && 'bg-brand-500 border-brand-500 text-brand-on',
                 !done && !active && 'bg-surface-raised border-border text-text-muted')}>
                 {done ? <Check size={12} /> : n}
               </span>
@@ -103,7 +103,7 @@ function TemplateRow({ tpl, selected, onSelect, showTier }) {
         selected ? 'border-brand-500 bg-brand-500/10' : 'border-border hover:bg-surface-overlay')}>
       <span className={cn('w-4 h-4 rounded-full border flex items-center justify-center shrink-0',
         selected ? 'bg-brand-500 border-brand-500' : 'border-border')}>
-        {selected && <Check size={10} className="text-white" />}
+        {selected && <Check size={10} className="text-brand-on" />}
       </span>
       <span className="flex-1 min-w-0">
         <span className="block text-xs font-medium text-text-primary truncate">{tpl.name}</span>
@@ -265,7 +265,7 @@ export default function RestartWorkflowWizard({ vendorId, vendorName, onClose, o
                         : 'border-border hover:bg-surface-overlay')}>
                     <span className={cn('w-4 h-4 rounded-full border flex items-center justify-center shrink-0',
                       String(workflowId) === String(w.id) ? 'bg-brand-500 border-brand-500' : 'border-border')}>
-                      {String(workflowId) === String(w.id) && <Check size={10} className="text-white" />}
+                      {String(workflowId) === String(w.id) && <Check size={10} className="text-brand-on" />}
                     </span>
                     <GitBranch size={12} className="text-text-muted shrink-0" />
                     <span className="flex-1 min-w-0">
@@ -301,7 +301,7 @@ export default function RestartWorkflowWizard({ vendorId, vendorName, onClose, o
               onClick={() => restart.mutate()}
               className={cn(
                 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ctl text-[11px] font-medium transition-colors',
-                workflowId ? 'bg-brand-500 text-white hover:opacity-90'
+                workflowId ? 'bg-brand-500 text-brand-on hover:opacity-90'
                            : 'bg-surface-overlay text-text-muted cursor-not-allowed',
                 restart.isPending && 'opacity-60 cursor-wait')}>
               {restart.isPending ? <Loader2 size={11} className="animate-spin" /> : null}
@@ -405,7 +405,7 @@ export default function RestartWorkflowWizard({ vendorId, vendorName, onClose, o
                     onChange={(e) => setReason(e.target.value)}
                     rows={2}
                     placeholder="e.g. Vendor scores LOW but processes cardholder data under our PCI scope."
-                    className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
                 </div>
               )}
@@ -431,7 +431,7 @@ export default function RestartWorkflowWizard({ vendorId, vendorName, onClose, o
                   onClick={() => confirmTemplate.mutate()}
                   className={cn(
                     'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ctl text-[11px] font-medium transition-colors',
-                    canConfirm ? 'bg-brand-500 text-white hover:opacity-90'
+                    canConfirm ? 'bg-brand-500 text-brand-on hover:opacity-90'
                                : 'bg-surface-overlay text-text-muted cursor-not-allowed',
                     confirmTemplate.isPending && 'opacity-60 cursor-wait')}>
                   {confirmTemplate.isPending

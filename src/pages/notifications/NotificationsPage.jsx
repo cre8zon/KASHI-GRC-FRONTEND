@@ -174,7 +174,7 @@ function NotificationRow({ notification, onMarkRead }) {
       {/* Unread dot */}
       <div className="flex-shrink-0 mt-1">
         {isUnread
-          ? <div className="w-2 h-2 rounded-full bg-brand-400" />
+          ? <div className="w-2 h-2 rounded-full bg-brand-fill" />
           : <div className="w-2 h-2 rounded-full bg-transparent" />
         }
       </div>
@@ -255,7 +255,7 @@ export default function NotificationsPage() {
             className={cn(
               'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px',
               filter === f.key
-                ? 'border-brand-400 text-brand-ink'
+                ? 'border-brand-fill text-brand-ink'
                 : 'border-transparent text-text-muted hover:text-text-secondary'
             )}>
             {f.label}

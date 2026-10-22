@@ -10,6 +10,7 @@ import { PlanBoard, PlanItemModal, PlanHistoryModal, health } from './PlanBoard'
 import { PlanSheet } from './PlanSheet'
 import { useUrlState } from '../../hooks/useUrlState'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../ui/GlassSelect'
 
 /**
  * Workspace › Plan — one plan per workspace, one timeline per programme.
@@ -57,6 +58,9 @@ export function WorkspacePlanTab({ workspaceId, archived }) {
   const members = Array.isArray(plan.members) ? plan.members : []
   const today = plan.today || new Date().toISOString().slice(0, 10)
   const canEditPlan = !!plan.canEditPlan && !archived
+  // Adding, renaming, hiding and resizing columns changes the sheet for
+  // everyone, so it is the workspace owner's call (server: canEditColumns).
+  const canEditColumns = !!plan.canEditColumns && !archived
 
   const items = useMemo(() => allItems.filter(i =>
     (programmeId === '' || String(i.programmeId ?? 'ws') === programmeId)
@@ -105,11 +109,11 @@ export function WorkspacePlanTab({ workspaceId, archived }) {
             </button>
           ))}
         </div>
-        <select value={owner} onChange={e => setOwner(e.target.value)}
+        <GlassSelect value={owner} onChange={e => setOwner(e.target.value)}
           className="h-7 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-secondary">
           <option value="">Any owner</option>
           {members.map(m => <option key={m.userId} value={String(m.userId)}>{m.name}</option>)}
-        </select>
+        </GlassSelect>
         <span className="text-[11px] text-text-muted">
           {allItems.length} items · {counts.done} done{counts.late > 0 && <> · <span className="text-status-fail-fg font-medium">{counts.late} late</span></>}
         </span>
@@ -122,6 +126,7 @@ export function WorkspacePlanTab({ workspaceId, archived }) {
       {view === 'sheet' && (canEditPlan || allItems.length > 0) ? (
         <PlanSheet workspaceId={workspaceId} items={items} allItems={allItems} programmes={programmes}
           members={members} columns={Array.isArray(plan.columns) ? plan.columns : []} today={today} canEditPlan={canEditPlan}
+          canEditColumns={canEditColumns}
           programmeFilter={programmeId} ownerFilter={owner}
           onDetails={setEditing} onHistory={setHistoryOf} onChanged={refresh} />
       ) : allItems.length === 0 ? (
@@ -181,11 +186,11 @@ function ImportModal({ open, onClose, workspaceId, programmes, onDone, initialPr
         <div className="grid grid-cols-2 gap-2">
           <label className="block">
             <span className="text-xs font-medium text-text-secondary">Into programme</span>
-            <select value={programmeId} onChange={e => { setProgrammeId(e.target.value); setPreview(null) }}
+            <GlassSelect value={programmeId} onChange={e => { setProgrammeId(e.target.value); setPreview(null) }}
               className="mt-1 w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary">
               <option value="">Workspace-wide</option>
               {programmes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </GlassSelect>
           </label>
           <label className="block">
             <span className="text-xs font-medium text-text-secondary">Spreadsheet (.xlsx)</span>

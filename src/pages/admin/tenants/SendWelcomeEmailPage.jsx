@@ -46,8 +46,8 @@ function buildVars(owner, recipientEmail, tenantName, tempPassword) {
     loginUrl,
     login_url:         loginUrl,
     resetUrl:          loginUrl,
-    supportUrl:        'https://support.kashigrc.com',
-    support_url:       'https://support.kashigrc.com',
+    supportUrl:        'https://support.kashiguard.com',
+    support_url:       'https://support.kashiguard.com',
     organization_name: tenantName || '',
   }
 }
@@ -165,7 +165,7 @@ export default function SendWelcomeEmailPage() {
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => navigate(`/tenants/${tenant.tenantId}`)}
-              className="flex-1 h-10 bg-brand-500 text-brand-900 rounded-card text-sm font-semibold hover:bg-brand-600 transition-colors flex items-center justify-center gap-2"
+              className="flex-1 h-10 bg-brand-500 text-brand-on rounded-card text-sm font-semibold hover:bg-brand-600 transition-colors flex items-center justify-center gap-2"
             >
               View Tenant <ArrowRight size={14} />
             </button>
@@ -227,7 +227,7 @@ export default function SendWelcomeEmailPage() {
                   resetPassword()
                 }}
                 disabled={resetting || !resolvedOwner?.userId}
-                className="flex items-center gap-1.5 px-3 py-2 bg-status-warn-bg text-on-dark text-xs font-semibold rounded-card hover:bg-status-warn-bg transition-colors disabled:opacity-60 shrink-0"
+                className="flex items-center gap-1.5 px-3 py-2 bg-status-warn-fg text-text-inverse text-xs font-semibold rounded-card hover:bg-status-warn-fg transition-colors disabled:opacity-60 shrink-0"
               >
                 {resetting
                   ? <span className="w-3 h-3 border-2 border-on-dark/30 border-t-white rounded-full animate-spin" />
@@ -267,7 +267,7 @@ export default function SendWelcomeEmailPage() {
           </div>
 
           {activeTab === 'compose' && (
-            <div className="bg-surface-raised border border-border rounded-card p-5 space-y-4">
+            <div className="glass-card border border-border rounded-card p-5 space-y-4">
 
               {/* Recipient */}
               <div>
@@ -315,7 +315,7 @@ export default function SendWelcomeEmailPage() {
                 <input
                   value={subject}
                   onChange={e => setSubject(e.target.value)}
-                  className="h-9 w-full rounded-card border border-border bg-surface px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="h-9 w-full rounded-card border border-border glass-field px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
               </div>
 
@@ -331,7 +331,7 @@ export default function SendWelcomeEmailPage() {
                   value={body}
                   onChange={e => setBody(e.target.value)}
                   rows={12}
-                  className="w-full rounded-card border border-border bg-surface px-3 py-2 text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500/50 resize-none opacity-80"
+                  className="w-full rounded-card border border-border glass-field px-3 py-2 text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500/50 resize-none opacity-80"
                 />
                 <p className="text-[11px] text-text-muted mt-1">
                   To change the email content, go to{' '}
@@ -373,7 +373,7 @@ export default function SendWelcomeEmailPage() {
           )}
 
           {activeTab === 'preview' && (
-            <div className="bg-surface-raised border border-border rounded-card overflow-hidden">
+            <div className="glass-card border border-border rounded-card overflow-hidden">
               <div className="px-4 py-3 border-b border-border bg-surface-overlay">
                 <p className="text-xs text-text-muted">
                   Subject: <span className="text-text-primary">{subject}</span>
@@ -396,7 +396,7 @@ export default function SendWelcomeEmailPage() {
           {/* Mini live preview */}
           <div>
             <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Live Preview</p>
-            <div className="rounded-card border border-border overflow-hidden bg-surface-raised" style={{ height: 200 }}>
+            <div className="rounded-card border border-border overflow-hidden glass-card" style={{ height: 200 }}>
               <iframe
                 srcDoc={`<style>body{margin:0;padding:12px;font-family:system-ui,sans-serif;font-size:10px}</style>${body}`}
                 className="w-full h-full border-0"
@@ -417,7 +417,7 @@ export default function SendWelcomeEmailPage() {
           </div>
 
           {/* Tenant info */}
-          <div className="bg-surface-raised border border-border rounded-card p-4">
+          <div className="glass-card border border-border rounded-card p-4">
             <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Tenant Information</p>
             <div className="space-y-2 text-xs">
               {[

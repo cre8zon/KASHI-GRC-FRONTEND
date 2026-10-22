@@ -1221,7 +1221,7 @@ function ModuleListView({ bp }) {
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder={`Search ${entityPlural.toLowerCase()}…`}
-              className="w-52 pl-8 pr-3 h-8 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-52 pl-8 pr-3 h-8 text-xs glass-field border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           {/* FIX: Render screen designer actions for this list screen.
               This is the single source of truth for toolbar buttons — no more
@@ -1437,7 +1437,7 @@ function ModuleListView({ bp }) {
             rows={2}
             maxLength={500}
             placeholder="Why is this being deleted? Kept on the record."
-            className="mt-1 w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-card
+            className="mt-1 w-full px-3 py-2 text-xs glass-field border border-border rounded-card
                        text-text-primary placeholder:text-text-muted resize-none
                        focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
@@ -3014,7 +3014,7 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
                 className="text-xs text-text-muted hover:text-brand-ink transition-colors shrink-0">
                 {listLabel}
               </button>
-              <span className="text-text-muted/40 shrink-0">/</span>
+              <span className="text-text-faint shrink-0">/</span>
             </>
           )}
           {breadcrumbParentLabel && breadcrumbParentId && (
@@ -3025,7 +3025,7 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
                 title={breadcrumbParentLabel}>
                 {breadcrumbParentLabel}
               </button>
-              <span className="text-text-muted/40 shrink-0">/</span>
+              <span className="text-text-faint shrink-0">/</span>
             </>
           )}
           <span className="truncate font-medium">{entityLabel}</span>
@@ -3342,7 +3342,7 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
                 onChange={e => setConfirmAction(prev => ({ ...prev, remarks: e.target.value }))}
                 rows={3}
                 placeholder="Explain the reason for this action…"
-                className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-card text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+                className="w-full px-3 py-2 text-xs glass-field border border-border rounded-card text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
               />
             </div>
           )}
@@ -3455,7 +3455,7 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
               <span className="text-[11px] text-text-muted truncate max-w-[200px]" title={breadcrumbParentLabel}>
                 {breadcrumbParentLabel}
               </span>
-              <span className="text-text-muted/40 shrink-0">/</span>
+              <span className="text-text-faint shrink-0">/</span>
             </>
           )}
           <span className="text-sm font-semibold text-text-primary truncate">{entityLabel}</span>
@@ -4169,7 +4169,7 @@ function HistoryTab({ entityType, entityId, apiBasePath }) {
           const transition = h.fromStatus && h.toStatus ? `${h.fromStatus} → ${h.toStatus}` : null
           return (
             <div key={i} className="flex items-start gap-3 text-xs border-b border-border pb-2 last:border-0">
-              <div className="w-1.5 h-1.5 rounded-full bg-brand-500 mt-1.5 shrink-0" />
+              <div className="w-1.5 h-1.5 rounded-full bg-brand-fill mt-1.5 shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-text-primary">{label}</span>
@@ -4242,8 +4242,8 @@ function EntityDisplay({ value, lookupEntityType, lookupApiPath }) {
     return () => { cancelled = true }
   }, [valueStr, lookupEntityType, lookupApiPath]) // eslint-disable-line
 
-  if (!valueStr) return <span className="text-text-muted/40 text-xs italic">—</span>
-  if (label === null && valueStr) return <span className="text-text-muted/40 text-xs italic">—</span>
+  if (!valueStr) return <span className="text-text-faint text-xs italic">—</span>
+  if (label === null && valueStr) return <span className="text-text-faint text-xs italic">—</span>
   return <span className="text-sm text-text-primary">{label || valueStr}</span>
 }
 
@@ -4251,7 +4251,7 @@ function FieldDisplay({ label, value, type, editable, field = {} }) {
   // ── Render the value correctly based on type ──────────────────────────────
   const renderDisplayValue = () => {
     if (value === null || value === undefined || value === '') {
-      return <span className="text-text-muted/40 text-xs italic">—</span>
+      return <span className="text-text-faint text-xs italic">—</span>
     }
 
     switch (type) {
@@ -4834,7 +4834,7 @@ function DrawerProperty({ field, entity, screenConfig, editingKey, editValue, sa
     !!field.optionsComponentKey
 
   const renderValue = () => {
-    if (isEmpty) return <span className="text-text-muted/40 text-[11px] italic">Empty</span>
+    if (isEmpty) return <span className="text-text-faint text-[11px] italic">Empty</span>
 
     if (isBadgeField) {
       // Try DynamicBadge first — only works when screenConfig has options configured
@@ -4918,7 +4918,7 @@ function DrawerProperty({ field, entity, screenConfig, editingKey, editValue, sa
           }
           <div className="flex items-center gap-1.5">
             <button onClick={() => onSave(field.fieldKey)} disabled={saving}
-              className="text-[10px] px-2.5 py-1 rounded bg-brand-500 text-brand-900 hover:bg-brand-600 disabled:opacity-50 transition-colors font-medium">
+              className="text-[10px] px-2.5 py-1 rounded bg-brand-500 text-brand-on hover:bg-brand-600 disabled:opacity-50 transition-colors font-medium">
               {saving ? 'Saving…' : 'Save'}
             </button>
             <button onClick={onCancel}

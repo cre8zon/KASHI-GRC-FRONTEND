@@ -192,12 +192,12 @@ export default function AiDraftModal({
           {STAGES.map((s, i) => (
             <div key={s} className={cn(
               'flex items-center gap-2 text-xs transition-opacity',
-              i < stage ? 'text-text-muted' : i === stage ? 'text-text-primary' : 'text-text-muted/40',
+              i < stage ? 'text-text-muted' : i === stage ? 'text-text-primary' : 'text-text-faint',
             )}>
               {i < stage
-                ? <Check size={13} className="text-brand-600" />
+                ? <Check size={13} className="text-brand-ink" />
                 : i === stage
-                  ? <Loader2 size={13} className="animate-spin text-brand-500" />
+                  ? <Loader2 size={13} className="animate-spin text-brand-ink" />
                   : <ChevronRight size={13} />}
               {s}
             </div>

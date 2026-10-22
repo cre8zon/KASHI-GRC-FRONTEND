@@ -18,6 +18,7 @@ import { Badge }              from '../../../components/ui/Badge'
 import { cn }                 from '../../../lib/cn'
 import { guardRulesApi, blueprintsApi } from '../../../api/guardRules.api'
 import toast                  from 'react-hot-toast'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -138,7 +139,7 @@ function RuleModal({ rule, onClose }) {
             value={form.questionTag}
             onChange={e => set('questionTag', e.target.value.toUpperCase())}
             placeholder="e.g. MFA, ENCRYPTION, IRP…"
-            className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono"
+            className="w-full h-9 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono"
           />
           <datalist id="tag-suggestions">
             {SUGGESTED_TAGS.map(t => <option key={t} value={t} />)}
@@ -153,10 +154,10 @@ function RuleModal({ rule, onClose }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-text-muted mb-1 block">Condition Type *</label>
-            <select value={form.conditionType} onChange={e => set('conditionType', e.target.value)}
+            <GlassSelect value={form.conditionType} onChange={e => set('conditionType', e.target.value)}
               className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               {CONDITION_TYPES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-            </select>
+            </GlassSelect>
             {ctConfig && <p className="text-[10px] text-text-muted mt-1">{ctConfig.hint}</p>}
           </div>
           <div>
@@ -175,7 +176,7 @@ function RuleModal({ rule, onClose }) {
         {/* Blueprint picker */}
         <div>
           <label className="text-xs text-text-muted mb-1 block">Blueprint (finding to raise) *</label>
-          <select value={form.blueprintCode} onChange={e => set('blueprintCode', e.target.value)}
+          <GlassSelect value={form.blueprintCode} onChange={e => set('blueprintCode', e.target.value)}
             className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             <option value="">Select a blueprint…</option>
             {blueprints.map(b => (
@@ -183,7 +184,7 @@ function RuleModal({ rule, onClose }) {
                 [{b.blueprintCode}] {b.titleTemplate}
               </option>
             ))}
-          </select>
+          </GlassSelect>
           {selectedBp && (
             <div className="mt-2 p-2.5 rounded-card bg-surface-overlay border border-border">
               <div className="flex items-center gap-2">
@@ -204,11 +205,11 @@ function RuleModal({ rule, onClose }) {
             placeholder="Leave blank to use blueprint default" />
           <div>
             <label className="text-xs text-text-muted mb-1 block">Priority Override</label>
-            <select value={form.priorityOverride} onChange={e => set('priorityOverride', e.target.value)}
+            <GlassSelect value={form.priorityOverride} onChange={e => set('priorityOverride', e.target.value)}
               className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">Use blueprint default</option>
               {['LOW','MEDIUM','HIGH','CRITICAL'].map(p => <option key={p} value={p}>{p}</option>)}
-            </select>
+            </GlassSelect>
           </div>
         </div>
 
@@ -266,7 +267,7 @@ export default function GuardRulesAdminPage() {
           { label: 'Inactive',     value: inactiveCount, color: 'text-text-muted' },
           { label: 'Unique Tags',  value: new Set(rules.map(r=>r.questionTag)).size, color: 'text-brand-ink' },
         ].map(s => (
-          <div key={s.label} className="p-3 rounded-card border border-border bg-surface-raised text-center">
+          <div key={s.label} className="p-3 rounded-card border border-border glass-card text-center">
             <p className={cn('text-2xl font-bold', s.color)}>{s.value}</p>
             <p className="text-[10px] text-text-muted uppercase tracking-wide mt-0.5">{s.label}</p>
           </div>
@@ -279,9 +280,9 @@ export default function GuardRulesAdminPage() {
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search by question or blueprint…"
-            className="w-full h-8 pl-8 pr-3 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 pl-8 pr-3 rounded-ctl border border-border glass-field text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
-        <div className="flex items-center gap-1 bg-surface-raised border border-border rounded-card p-1">
+        <div className="flex items-center gap-1 glass-card border border-border rounded-card p-1">
           {['ALL','ACTIVE','INACTIVE'].map(f => (
             <button key={f} onClick={() => setActiveFilter(f)}
               className={cn('text-xs px-3 py-1 rounded-ctl transition-colors',

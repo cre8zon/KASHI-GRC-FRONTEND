@@ -42,7 +42,7 @@ export default function InvoicesPage() {
         <div className="relative">
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search customer or number…"
-            className="h-8 pl-8 pr-3 w-60 rounded-ctl border border-border bg-surface-raised text-sm focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="h-8 pl-8 pr-3 w-60 rounded-ctl border border-border glass-field text-sm focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>}>
       <div className="px-6 pt-2 pb-6 space-y-4">
         <div className="grid grid-cols-3 gap-3">
@@ -53,7 +53,7 @@ export default function InvoicesPage() {
         <div className="flex flex-wrap gap-2">
           {FILTERS.map(f => (
             <button key={f || 'all'} onClick={() => setStatus(f)} className={cn('px-3 py-1 rounded-ctl text-xs font-medium',
-              status === f ? 'bg-brand-500 text-brand-900' : 'bg-surface-overlay text-text-secondary hover:text-text-primary')}>
+              status === f ? 'bg-brand-500 text-brand-on' : 'bg-surface-overlay text-text-secondary hover:text-text-primary')}>
               {f ? f.charAt(0) + f.slice(1).toLowerCase() : 'All'}
             </button>
           ))}

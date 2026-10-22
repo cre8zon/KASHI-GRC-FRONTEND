@@ -98,7 +98,7 @@ export default function FirmApplicationPanel({ tenantId, tenantName, focusId }) 
       {apps.length > 1 && (
         <div>
           <SectionTitle>History</SectionTitle>
-          <div className="rounded-card border border-border divide-y divide-border/60 bg-surface-raised">
+          <div className="rounded-card border border-border divide-y divide-border/60 glass-card">
             {apps.filter(a => a.id !== current?.id).map(a => (
               <div key={a.id} className="flex items-center gap-3 px-3 py-2 text-xs">
                 <span className="font-mono text-text-muted">#{a.id}</span>
@@ -200,7 +200,7 @@ function WithdrawButton({ app, onChanged }) {
     <div className="w-full flex flex-wrap items-center gap-2 rounded-card border border-border bg-surface-overlay px-3 py-2">
       <span className="text-xs text-text-secondary">Withdraw application #{app.id}? It stays in the history; any confirmation link sent to the firm stops working.</span>
       <input value={reason} onChange={e => setReason(e.target.value)} placeholder="Reason (optional) — e.g. opened by mistake"
-        className="h-7 flex-1 min-w-[200px] rounded-ctl border border-border bg-surface-raised px-2 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500" />
+        className="h-7 flex-1 min-w-[200px] rounded-ctl border border-border glass-field px-2 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500" />
       <Button size="xs" variant="ghost" onClick={() => setAsking(false)}>Cancel</Button>
       <Button size="xs" variant="danger" loading={withdraw.isPending} onClick={() => withdraw.mutate()}>Withdraw</Button>
     </div>
@@ -229,7 +229,7 @@ function DetailsSection({ app, editable, onChanged }) {
     return (
       <section>
         <SectionTitle>Firm details</SectionTitle>
-        <div className="grid grid-cols-3 gap-4 rounded-card border border-border p-4 bg-surface-raised">
+        <div className="grid grid-cols-3 gap-4 rounded-card border border-border p-4 glass-card">
           <Field label="Legal name">{app.firmLegalName}</Field>
           <Field label="Type">{FIRM_TYPES.find(t => t.value === app.firmType)?.label || app.firmType}</Field>
           <Field label="Jurisdiction">{app.jurisdiction}</Field>
@@ -252,7 +252,7 @@ function DetailsSection({ app, editable, onChanged }) {
       <SectionTitle actions={<Button size="sm" variant={dirty ? 'primary' : 'secondary'} disabled={!dirty} loading={save.isPending} onClick={() => save.mutate()}>Save details</Button>}>
         1 · Firm details (as emailed by the firm)
       </SectionTitle>
-      <div className="grid grid-cols-2 gap-3 rounded-card border border-border p-4 bg-surface-raised">
+      <div className="grid grid-cols-2 gap-3 rounded-card border border-border p-4 glass-card">
         <FormRow label="Firm legal name"><TextIn value={f.firmLegalName} onChange={e => set('firmLegalName', e.target.value)} /></FormRow>
         <FormRow label="Firm type"><SelectIn value={f.firmType} onChange={e => set('firmType', e.target.value)} placeholder="Select" options={FIRM_TYPES} /></FormRow>
         <FormRow label="Registered / accredited with"><SelectIn value={f.registrationBody} onChange={e => set('registrationBody', e.target.value)} placeholder="Select" options={BODIES.map(b => ({ value: b, label: b }))} /></FormRow>
@@ -297,12 +297,12 @@ function EvidenceSection({ app, editable, onChanged }) {
       <section>
         <SectionTitle>2 · Evidence (upload what the firm emailed)</SectionTitle>
         <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-card border border-border p-3 bg-surface-raised">
+          <div className="rounded-card border border-border p-3 glass-card">
             <p className="text-xs font-semibold text-text-primary flex items-center gap-1.5 mb-1"><FileCheck2 size={13} /> Registration or accreditation certificate</p>
             <p className="text-[11px] text-text-muted mb-2">ICAI firm registration, CPA licence / peer-review letter, NABCB / ANAB / UKAS accreditation, CERT-In empanelment letter, PCI SSC QSA listing.</p>
             <EvidenceUploader entityType={ENTITY} entityId={app.id} linkType="REGISTRATION" documentType="FIRM_VERIFICATION" compact onUploadSuccess={onChanged} />
           </div>
-          <div className="rounded-card border border-border p-3 bg-surface-raised">
+          <div className="rounded-card border border-border p-3 glass-card">
             <p className="text-xs font-semibold text-text-primary flex items-center gap-1.5 mb-1"><FileCheck2 size={13} /> Supporting documents</p>
             <p className="text-[11px] text-text-muted mb-2">Peer-review report, professional indemnity cover, authorisation letter on firm letterhead, the firm's covering email (saved as PDF).</p>
             <EvidenceUploader entityType={ENTITY} entityId={app.id} linkType="OTHER" documentType="FIRM_VERIFICATION" compact onUploadSuccess={onChanged} />
@@ -332,7 +332,7 @@ function EvidenceList({ app }) {
   const ev = app.evidence || []
   if (!ev.length) return <p className="text-xs text-text-muted">No evidence attached.</p>
   return (
-    <div className="rounded-card border border-border divide-y divide-border/60 bg-surface-raised">
+    <div className="rounded-card border border-border divide-y divide-border/60 glass-card">
       {ev.map(d => (
         <div key={d.linkId} className="flex items-center gap-3 px-3 py-2 text-xs">
           <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-medium',
@@ -361,7 +361,7 @@ function EmailSection({ app, editable, onChanged }) {
   return (
     <section>
       <SectionTitle>{editable ? '3 · ' : ''}Email confirmation</SectionTitle>
-      <div className="rounded-card border border-border p-4 bg-surface-raised flex items-start gap-3">
+      <div className="rounded-card border border-border p-4 glass-card flex items-start gap-3">
         <Mail size={16} className={app.emailConfirmedAt ? 'text-status-pass-fg mt-0.5' : 'text-text-muted mt-0.5'} />
         <div className="flex-1 text-xs text-text-secondary space-y-1">
           {app.emailConfirmedAt ? (
@@ -397,7 +397,7 @@ function SubmitSection({ app, onChanged }) {
   })
   const problems = app.problems || []
   return (
-    <section className="rounded-card border border-border p-4 bg-surface-raised space-y-3">
+    <section className="rounded-card border border-border p-4 glass-card space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-text-primary">Ready for review?</p>
         <Button size="sm" icon={ClipboardCheck} disabled={problems.length > 0} loading={submit.isPending} onClick={() => submit.mutate()}>Submit for review</Button>
@@ -446,7 +446,7 @@ function ReviewSection({ app, onChanged }) {
         <Button size="sm" variant="secondary" loading={start.isPending} onClick={() => start.mutate()}>Pick up review</Button>}>
         Review
       </SectionTitle>
-      <div className="rounded-card border border-border p-4 bg-surface-raised space-y-3">
+      <div className="rounded-card border border-border p-4 glass-card space-y-3">
         <Check label="Registration verified on the public register" checked={c.registryChecked} onChange={v => set('registryChecked', v)}
           hint="ICAI member/firm search, state CPA board lookup, NABCB/ANAB/UKAS directory, CERT-In empanelled list, PCI SSC QSA list." />
         <FormRow label="What the register showed (URL, reference, date)">
@@ -454,7 +454,7 @@ function ReviewSection({ app, onChanged }) {
         </FormRow>
         <Check label="Evidence reviewed — names, numbers and dates are consistent" checked={c.evidenceAuthentic} onChange={v => set('evidenceAuthentic', v)} />
         <Check label="Sanctions / adverse-media check done on the firm and contact" checked={c.sanctionsChecked} onChange={v => set('sanctionsChecked', v)} />
-        <Check label="No conflict with KashiGRC (not a related party)" checked={c.independenceChecked} onChange={v => set('independenceChecked', v)} />
+        <Check label="No conflict with KashiGuard (not a related party)" checked={c.independenceChecked} onChange={v => set('independenceChecked', v)} />
         <div className="grid grid-cols-2 gap-3 pt-1">
           <FormRow label="Verified until (optional)" hint="Defaults to 12 months, capped at the registration expiry.">
             <TextIn type="date" value={until} onChange={e => setUntil(e.target.value)} />
@@ -467,13 +467,13 @@ function ReviewSection({ app, onChanged }) {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-card border border-border p-3 bg-surface-raised space-y-2">
+        <div className="rounded-card border border-border p-3 glass-card space-y-2">
           <p className="text-xs font-semibold text-text-primary">Need more from the firm?</p>
           <TextArea rows={2} value={question} onChange={e => setQuestion(e.target.value)} placeholder="What should the firm send?" />
           <Button size="sm" variant="secondary" disabled={!question.trim()} loading={ask.isPending} onClick={() => ask.mutate()}>Request information</Button>
           <p className="text-[11px] text-text-muted">Returns it to the preparer, who follows up with the firm by email.</p>
         </div>
-        <div className="rounded-card border border-border p-3 bg-surface-raised space-y-2">
+        <div className="rounded-card border border-border p-3 glass-card space-y-2">
           <p className="text-xs font-semibold text-text-primary">Reject</p>
           <TextArea rows={2} value={rejectNote} onChange={e => setRejectNote(e.target.value)} placeholder="Reason (kept on record)" />
           <Button size="sm" variant="danger" disabled={!rejectNote.trim()} loading={reject.isPending} onClick={() => reject.mutate()}>Reject</Button>
@@ -506,7 +506,7 @@ function ApprovedSection({ app, onChanged }) {
   return (
     <section className="space-y-3">
       {checklist && (
-        <div className="rounded-card border border-border p-3 bg-surface-raised text-xs space-y-1">
+        <div className="rounded-card border border-border p-3 glass-card text-xs space-y-1">
           <p className="font-semibold text-text-primary">Reviewer record</p>
           <p className="text-text-secondary">Register: {checklist.registryNote}</p>
           <p className="text-text-secondary">Mailbox confirmed: {fmtDate(checklist.mailboxConfirmedAt)} via {checklist.mailboxConfirmedTo}</p>

@@ -486,7 +486,7 @@ export default function PolicyEditorPage() {
                       onChange={e => setLinkInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') applyLink(); if (e.key === 'Escape') setLinkMenuOpen(false) }}
                       placeholder="https://"
-                      className="w-48 px-2 py-1 text-xs bg-surface-overlay border border-border rounded outline-none
+                      className="w-48 px-2 py-1 text-xs glass-field border border-border rounded outline-none
                                  text-text-primary placeholder:text-text-muted focus:border-brand-500/50"
                     />
                     <button onClick={applyLink} className="px-2 py-1 text-[10px] bg-brand-500/10 text-brand-ink border border-brand-500/20 rounded hover:bg-brand-500/20">Apply</button>

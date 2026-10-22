@@ -55,7 +55,7 @@ export default function OrgTemplatesPage() {
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search templates…"
-              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
@@ -110,7 +110,7 @@ export default function OrgTemplatesPage() {
 // ─── Template Card ────────────────────────────────────────────────────────────
 function TemplateCard({ template, onPreview }) {
   return (
-    <div className="rounded-card border border-border bg-surface-raised hover:border-border-subtle transition-colors">
+    <div className="rounded-card border border-border glass-card hover:border-border-subtle transition-colors">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-9 h-9 rounded-card bg-brand-500/10 flex items-center justify-center shrink-0">

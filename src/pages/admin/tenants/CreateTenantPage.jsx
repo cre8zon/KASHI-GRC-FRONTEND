@@ -61,7 +61,7 @@ function PlanPicker({ value, onChange, onBlur, plans, loading }) {
               </div>
               <span className={cn('w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5',
                 selected ? 'bg-brand-500 border-brand-500' : 'border-border')}>
-                {selected && <Check size={10} className="text-white" strokeWidth={3} />}
+                {selected && <Check size={10} className="text-brand-on" strokeWidth={3} />}
               </span>
             </div>
             <p className="text-sm font-mono text-text-primary">
@@ -204,7 +204,7 @@ export default function CreateTenantPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 rounded-card border border-border bg-surface-raised p-6 shadow-elevated">
+        <div className="lg:col-span-8 rounded-card border border-border glass-card p-6 shadow-elevated">
           <DynamicForm
             formKey={FORM_KEY}
             onSubmit={onSubmit}
@@ -216,12 +216,12 @@ export default function CreateTenantPage() {
         </div>
 
         <aside className="lg:col-span-4 space-y-4">
-          <div className="rounded-card border border-border bg-surface-raised p-4">
+          <div className="rounded-card border border-border glass-card p-4">
             <p className="text-xs font-semibold text-text-primary mb-3">What happens when you create</p>
             <ol className="space-y-3">
               {[
                 { icon: Building2,  t: 'Organisation is created', d: 'With a permanent tenant code. Audit firms use this code to request access.' },
-                { icon: UserCog,    t: 'First administrator is added', d: 'One login per email across KashiGRC. Credentials appear on the next screen.' },
+                { icon: UserCog,    t: 'First administrator is added', d: 'One login per email across KashiGuard. Credentials appear on the next screen.' },
                 { icon: CreditCard, t: 'Subscription is recorded', d: 'Trial or paid, from the plan catalogue. Revenue metrics start from this row.' },
                 { icon: Sparkles,   t: "Plan's modules are switched on", d: 'Every licensed module the plan includes. Extras can be granted later on the tenant.' },
                 { icon: BadgeCheck, t: 'Audit-firm verification (optional)', d: 'Opens a draft only. Audit-firm access needs evidence and the firm’s email confirmation.' },
@@ -234,7 +234,7 @@ export default function CreateTenantPage() {
               ))}
             </ol>
           </div>
-          <div className="rounded-card border border-border bg-surface-raised p-4 flex gap-2.5">
+          <div className="rounded-card border border-border glass-card p-4 flex gap-2.5">
             <ShieldCheck size={14} className="text-status-pass-fg mt-0.5 shrink-0" />
             <p className="text-[11px] text-text-muted leading-snug">
               All-or-nothing: if any part fails — a code or email already in use — nothing is created and the field is highlighted.

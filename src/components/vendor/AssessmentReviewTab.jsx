@@ -363,13 +363,13 @@ function RemediationPanel({ onCancel, onSubmit, busy }) {
         value={description}
         onChange={e => setDescription(e.target.value)}
         placeholder="What has to change, and why this answer is not acceptable as it stands…"
-        className="w-full bg-surface-overlay border border-border rounded-ctl px-2 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted outline-none focus:border-border-strong resize-y"
+        className="w-full glass-field border border-border rounded-ctl px-2 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted outline-none focus:border-border-strong resize-y"
       />
       <input
         value={expectedEvidence}
         onChange={e => setExpectedEvidence(e.target.value)}
         placeholder="Evidence you expect back (optional)"
-        className="w-full bg-surface-overlay border border-border rounded-ctl px-2 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted outline-none focus:border-border-strong"
+        className="w-full glass-field border border-border rounded-ctl px-2 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted outline-none focus:border-border-strong"
       />
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-1">
@@ -391,7 +391,7 @@ function RemediationPanel({ onCancel, onSubmit, busy }) {
           value={dueDate}
           onChange={e => setDueDate(e.target.value)}
           title="Due date (optional)"
-          className="bg-surface-overlay border border-border rounded-ctl px-2 py-1 text-[10px] text-text-primary outline-none focus:border-border-strong"
+          className="glass-field border border-border rounded-ctl px-2 py-1 text-[10px] text-text-primary outline-none focus:border-border-strong"
         />
         <span className="flex-1" />
         <button

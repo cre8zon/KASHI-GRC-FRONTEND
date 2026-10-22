@@ -72,7 +72,7 @@ function TemplateRow({ tpl, selected, onSelect, showTier }) {
       <span className={cn(
         'w-4 h-4 rounded-full border flex items-center justify-center shrink-0',
         selected ? 'bg-brand-500 border-brand-500' : 'border-border')}>
-        {selected && <Check size={10} className="text-white" />}
+        {selected && <Check size={10} className="text-brand-on" />}
       </span>
       <span className="flex-1 min-w-0">
         <span className="block text-xs font-medium text-text-primary truncate">
@@ -242,7 +242,7 @@ export default function TemplateSelectionPanel({ vendor, workflowInstanceId, onS
               onChange={(e) => setReason(e.target.value)}
               rows={2}
               placeholder="e.g. Vendor scores LOW but processes cardholder data under our PCI scope."
-              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
         )}
@@ -254,7 +254,7 @@ export default function TemplateSelectionPanel({ vendor, workflowInstanceId, onS
             className={cn(
               'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ctl text-[11px] font-medium transition-colors',
               canSubmit
-                ? 'bg-brand-500 text-white hover:opacity-90'
+                ? 'bg-brand-500 text-brand-on hover:opacity-90'
                 : 'bg-surface-overlay text-text-muted cursor-not-allowed',
               confirm.isPending && 'opacity-60 cursor-wait')}>
             {confirm.isPending

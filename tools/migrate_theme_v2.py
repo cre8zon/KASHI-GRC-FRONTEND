@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-KashiGRC Calm v3 theme codemod — v2 (comprehensive).
+KashiGuard Calm v3 theme codemod — v2 (comprehensive).
 
 Handles EVERY class of hardcoded styling found in the audit:
   1. Tailwind palette classes      text-red-400        -> text-status-fail-fg
@@ -345,7 +345,7 @@ def main():
                         f.write(updated)
 
     mode = 'APPLIED' if apply else 'DRY-RUN (no files written — pass --apply)'
-    print(f'=== KashiGRC Calm v3 codemod — {mode} ===')
+    print(f'=== KashiGuard Calm v3 codemod — {mode} ===')
     print(f'Files changed:            {len(changed_files)}')
     print(f'Files skipped (by rule):  {stats["files_skipped"]}')
     print('---')

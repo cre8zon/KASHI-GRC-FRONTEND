@@ -304,7 +304,7 @@ export default function DashboardPage() {
               <button disabled={saveLayout.isPending}
                 onClick={() => saveLayout.mutate(widgets.map(w => ({ id: w.id, gridCols: w.gridCols })))}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-ctl
-                           bg-brand-500 text-white disabled:opacity-60">
+                           bg-brand-500 text-brand-on disabled:opacity-60">
                 <Check size={12} /> {saveLayout.isPending ? 'Saving…' : 'Save layout'}
               </button>
             </>
@@ -316,7 +316,7 @@ export default function DashboardPage() {
       {widgetsLoading ? (
         <div className="grid grid-cols-4 gap-4">
           {[1,2,3,4].map(i => (
-            <div key={i} className="h-28 rounded-card border border-border bg-surface-raised animate-pulse" />
+            <div key={i} className="h-28 rounded-card border border-border glass-card animate-pulse" />
           ))}
         </div>
       ) : widgets.length > 0 ? (

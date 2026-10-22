@@ -178,7 +178,7 @@ export default function WorkflowBlueprintDesigner() {
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
               <input value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search blueprints…"
-                className="w-full pl-8 pr-3 h-7 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full pl-8 pr-3 h-7 text-xs glass-field border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">

@@ -369,7 +369,7 @@ export function TaskInbox({ filterFn, scope } = {}) {
             </label>
             <textarea rows={3} value={remarks} onChange={e => setRemarks(e.target.value)}
               placeholder="Add a note…"
-              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+              className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
           </div>
         </div>
       </Modal>

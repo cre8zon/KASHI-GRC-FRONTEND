@@ -285,7 +285,7 @@ function Avatar({ name, size = 'sm' }) {
 function MetaCell({ label, value }) {
   if (!value) return null
   return (
-    <div className="p-3 rounded-card border border-border bg-surface-raised">
+    <div className="p-3 rounded-card border border-border glass-card">
       <p className="text-[10px] text-text-muted uppercase tracking-wide font-medium mb-0.5">{label}</p>
       <p className="text-xs text-text-primary truncate">{value}</p>
     </div>
@@ -318,10 +318,10 @@ function StatCard({ label, value, sub, color = 'default', icon: Icon }) {
     <Card className="p-4 flex flex-col gap-1.5 min-h-[88px]">
       <div className="flex items-center justify-between">
         <p className="text-[10px] font-semibold text-text-muted uppercase tracking-widest">{label}</p>
-        {Icon && <Icon size={13} className="text-text-muted/60" />}
+        {Icon && <Icon size={13} className="text-text-muted" />}
       </div>
       <p className={cn('text-lg font-semibold leading-none', num)}>
-        {value ?? <span className="text-text-muted/40 text-sm font-normal italic">Pending</span>}
+        {value ?? <span className="text-text-faint text-sm font-normal italic">Pending</span>}
       </p>
       {sub && <p className="text-[10px] text-text-muted mt-auto leading-tight">{sub}</p>}
     </Card>
@@ -449,7 +449,7 @@ function QuestionComments({ questionInstanceId }) {
         <input value={text} onChange={e=>setText(e.target.value)}
           onKeyDown={e=>{ if(e.key==='Enter'&&!e.shiftKey&&text.trim()){ addComment({text:text.trim()}); setText('') }}}
           placeholder="Add comment…"
-          className="flex-1 bg-surface border border-border rounded-card px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted/50 outline-none focus:border-brand-500/60" />
+          className="flex-1 glass-field border border-border rounded-card px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-faint outline-none focus:border-brand-500/60" />
         <button onClick={()=>{ if(text.trim()){ addComment({text:text.trim()}); setText('') }}}
           disabled={!text.trim()||adding}
           className="text-[10px] px-2.5 py-1.5 rounded-card bg-brand-500/10 text-brand-ink hover:bg-brand-500/20 transition-colors disabled:opacity-40 font-medium">
@@ -548,7 +548,7 @@ function QuestionRow({ q, showScores, showReviewer, showActionItems, showComment
           <button
             onClick={(e) => { e.stopPropagation(); onOpenDrawer(q) }}
             title="Open collaboration drawer"
-            className="shrink-0 p-1 rounded hover:bg-surface-overlay text-text-muted/50 hover:text-brand-ink transition-colors ml-1">
+            className="shrink-0 p-1 rounded hover:bg-surface-overlay text-text-faint hover:text-brand-ink transition-colors ml-1">
             <MessageSquare size={12} />
           </button>
         )}
@@ -570,12 +570,12 @@ function QuestionRow({ q, showScores, showReviewer, showActionItems, showComment
                     className={cn('flex items-center justify-between px-3 py-2 rounded-card border text-xs',
                       isSel?'border-brand-500/40 bg-brand-500/8 text-text-primary':'border-border text-text-muted bg-surface')}>
                     <div className="flex items-center gap-2">
-                      <div className={cn('w-2 h-2 rounded-full shrink-0', isSel?'bg-brand-400':'bg-surface-overlay border border-border')}/>
+                      <div className={cn('w-2 h-2 rounded-full shrink-0', isSel?'bg-brand-fill':'bg-surface-overlay border border-border')}/>
                       {opt.optionValue}
                       {isSel && <span className="text-[9px] font-semibold text-brand-ink bg-brand-500/10 px-1 rounded">Selected</span>}
                     </div>
                     {showScores && opt.score!=null && (
-                      <span className={cn('text-[10px] font-mono font-semibold', isSel?'text-status-pass-fg':'text-text-muted/60')}>
+                      <span className={cn('text-[10px] font-mono font-semibold', isSel?'text-status-pass-fg':'text-text-muted')}>
                         {opt.score} pts
                       </span>
                     )}
@@ -765,7 +765,7 @@ function SectionCard({ section, idx, viewMode, assessmentId, userId, onOpenDrawe
         </div>
         <div className="flex items-center gap-2.5 shrink-0">
           <div className="w-20 h-1.5 rounded-full bg-surface-overlay overflow-hidden hidden sm:block">
-            <div className={cn('h-full rounded-full transition-all', pct===100?'bg-status-pass-bg':'bg-brand-500')}
+            <div className={cn('h-full rounded-full transition-all', pct===100?'bg-status-pass-fg':'bg-brand-fill')}
               style={{width:`${pct}%`}}/>
           </div>
           <span className="text-[10px] font-mono text-text-muted w-7 text-right">{pct}%</span>
@@ -840,7 +840,7 @@ function HistoryEntry({ entry }) {
           <span className={cn('text-[10px] font-mono', color)}>{action}</span>
         </div>
         {entry.performedByName && <p className="text-[10px] text-text-muted mt-0.5">by {entry.performedByName}</p>}
-        {entry.remarks && <p className="text-[10px] text-text-muted/70 italic mt-0.5">"{entry.remarks}"</p>}
+        {entry.remarks && <p className="text-[10px] text-text-muted italic mt-0.5">"{entry.remarks}"</p>}
       </div>
       <p className="text-[10px] text-text-muted shrink-0 font-mono">{formatDateTime(entry.createdAt)}</p>
     </div>
@@ -996,7 +996,7 @@ function SectionsPanel({ assessmentId }) {
   return (
     <div className="space-y-2">
       {sections.map(s => (
-        <div key={s.sectionInstanceId} className="flex items-center gap-3 px-3 py-2.5 rounded-card border border-border bg-surface-raised">
+        <div key={s.sectionInstanceId} className="flex items-center gap-3 px-3 py-2.5 rounded-card border border-border glass-card">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-text-primary truncate">{s.sectionName}</p>
             <p className="text-[10px] text-text-muted mt-0.5">{s.assignedUserName ? `→ ${s.assignedUserName}` : 'Unassigned'}</p>
@@ -1275,7 +1275,7 @@ export default function AssessmentDetailPage() {
                   <p className="text-lg font-semibold text-text-primary">{pct}%</p>
                   <p className="text-[10px] text-text-muted mt-0.5">{prog.answered??0} of {prog.totalQuestions??0} answered</p>
                   <div className="w-full h-1 rounded-full bg-surface-overlay mt-3 overflow-hidden">
-                    <div className={cn('h-full rounded-full transition-all duration-700',pct===100?'bg-status-pass-bg':'bg-brand-500')}
+                    <div className={cn('h-full rounded-full transition-all duration-700',pct===100?'bg-status-pass-fg':'bg-brand-fill')}
                       style={{width:`${pct}%`}}/>
                   </div>
                 </div>
@@ -1294,7 +1294,7 @@ export default function AssessmentDetailPage() {
                   riskCfg?`${riskCfg.bg} ${riskCfg.border}`:'bg-surface border-border')}>
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] font-semibold text-text-muted uppercase tracking-widest">Risk Rating</p>
-                    <Shield size={13} className="text-text-muted/60"/>
+                    <Shield size={13} className="text-text-muted"/>
                   </div>
                   {riskCfg ? (
                     <>
@@ -1306,7 +1306,7 @@ export default function AssessmentDetailPage() {
                       </div>
                     </>
                   ) : (
-                    <p className="text-sm text-text-muted/50 italic font-normal mt-1">Pending review</p>
+                    <p className="text-sm text-text-faint italic font-normal mt-1">Pending review</p>
                   )}
                 </div>
 

@@ -243,7 +243,7 @@ export function TrainingPlayerTab({ entity }) {
               <button
                 disabled={quizMutation.isPending || Object.keys(answers).length === 0}
                 onClick={() => quizMutation.mutate()}
-                className="self-start px-3 py-1.5 text-xs font-medium rounded-ctl bg-brand-500 text-white disabled:opacity-60">
+                className="self-start px-3 py-1.5 text-xs font-medium rounded-ctl bg-brand-500 text-brand-on disabled:opacity-60">
                 {quizMutation.isPending ? 'Submitting…' : 'Submit answers'}
               </button>
             </>
@@ -279,7 +279,7 @@ export function TrainingPlayerTab({ entity }) {
               <button
                 disabled={!confirmed || attestMutation.isPending}
                 onClick={() => attestMutation.mutate()}
-                className="self-start px-3 py-1.5 text-xs font-medium rounded-ctl bg-brand-500 text-white disabled:opacity-60">
+                className="self-start px-3 py-1.5 text-xs font-medium rounded-ctl bg-brand-500 text-brand-on disabled:opacity-60">
                 {attestMutation.isPending ? 'Recording…' : 'Confirm'}
               </button>
               <p className="text-[10px] text-text-muted opacity-70">

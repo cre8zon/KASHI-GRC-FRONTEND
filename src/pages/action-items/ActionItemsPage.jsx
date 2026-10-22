@@ -101,7 +101,7 @@ function ActionItemCard({ item, onUpdateStatus, highlighted }) {
 
   return (
     <div id={`action-item-${item.id}`} className={cn(
-      'rounded-card border bg-surface-raised p-4 space-y-3 transition-all',
+      'rounded-card border glass-card p-4 space-y-3 transition-all',
       highlighted && 'ring-2 ring-brand-500/60 ring-offset-1',
       item.status === 'OPEN' ? 'border-status-warn-bd' :
       item.status === 'IN_PROGRESS' ? 'border-status-info-bd' :
@@ -314,7 +314,7 @@ export default function ActionItemsPage() {
         {/* Filter bar */}
         <div className="flex items-center gap-4 flex-wrap">
           {/* Status filter */}
-          <div className="flex items-center gap-1 bg-surface-raised border border-border rounded-card p-1">
+          <div className="flex items-center gap-1 glass-card border border-border rounded-card p-1">
             {STATUS_FILTERS.map(f => (
               <button key={f.key}
                 onClick={() => setStatusFilter(f.key)}
