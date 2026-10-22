@@ -454,7 +454,7 @@ function ReviewSection({ app, onChanged }) {
         </FormRow>
         <Check label="Evidence reviewed — names, numbers and dates are consistent" checked={c.evidenceAuthentic} onChange={v => set('evidenceAuthentic', v)} />
         <Check label="Sanctions / adverse-media check done on the firm and contact" checked={c.sanctionsChecked} onChange={v => set('sanctionsChecked', v)} />
-        <Check label="No conflict with KashiGRC (not a related party)" checked={c.independenceChecked} onChange={v => set('independenceChecked', v)} />
+        <Check label="No conflict with KashiGuard (not a related party)" checked={c.independenceChecked} onChange={v => set('independenceChecked', v)} />
         <div className="grid grid-cols-2 gap-3 pt-1">
           <FormRow label="Verified until (optional)" hint="Defaults to 12 months, capped at the registration expiry.">
             <TextIn type="date" value={until} onChange={e => setUntil(e.target.value)} />

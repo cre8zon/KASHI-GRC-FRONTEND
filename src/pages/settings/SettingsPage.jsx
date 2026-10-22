@@ -122,8 +122,8 @@ function ProfileTab({ auth, branding, userColor }) {
               </div>
               <div className="rounded-card border border-brand-500/20 bg-brand-500/5 p-4">
                 <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">Platform</p>
-                <p className="text-base font-bold text-brand-ink">{branding?.companyName || 'KashiGRC'}</p>
-                <p className="text-xs text-text-muted mt-0.5">Powered by KashiGRC</p>
+                <p className="text-base font-bold text-brand-ink">{branding?.companyName || 'KashiGuard'}</p>
+                <p className="text-xs text-text-muted mt-0.5">Powered by KashiGuard</p>
               </div>
             </div>
           </CardBody>

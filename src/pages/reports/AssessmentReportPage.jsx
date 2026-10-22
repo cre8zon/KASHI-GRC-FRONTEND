@@ -328,7 +328,7 @@ async function generatePDF(assessment, sections = []) {
   <div class="cover">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div>
-        <div style="font-size:11px;font-weight:800;letter-spacing:3px;opacity:.6;text-transform:uppercase;margin-bottom:2px">KashiGRC</div>
+        <div style="font-size:11px;font-weight:800;letter-spacing:3px;opacity:.6;text-transform:uppercase;margin-bottom:2px">KashiGuard</div>
         <div style="font-size:9px;opacity:.5;letter-spacing:2px;text-transform:uppercase">Third-Party Risk Management</div>
       </div>
       <div style="text-align:right;font-size:10px;opacity:.5">
@@ -477,7 +477,7 @@ async function generatePDF(assessment, sections = []) {
   </table>
 
   <div class="footer-bar">
-    <div>KashiGRC &nbsp;&middot;&nbsp; Third-Party Risk Management Platform</div>
+    <div>KashiGuard &nbsp;&middot;&nbsp; Third-Party Risk Management Platform</div>
     <div>Confidential &mdash; Internal Use Only</div>
     <div>Generated ${fmtDate(new Date())}</div>
   </div>
@@ -1142,7 +1142,7 @@ export default function AssessmentReportPage() {
           <AuditTrail workflowInstanceId={workflowInstanceId} history={history}/>
           <SignOffChain progress={progress}/>
           <div className="border-t border-border pt-5 flex items-center justify-between text-[10px] text-text-muted pb-8">
-            <span>KashiGRC · Third-Party Risk Management Platform</span>
+            <span>KashiGuard · Third-Party Risk Management Platform</span>
             <span>Confidential — Internal Use Only</span>
             <span>Generated {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
           </div>

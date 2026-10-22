@@ -56,7 +56,7 @@ export default function LoginPage() {
     <AuthLayout
       footer={<>Trouble signing in? Contact your workspace administrator.</>}
     >
-      <AuthHeading title="Sign in to KashiGRC">
+      <AuthHeading title="Sign in to KashiGuard">
         Welcome back. Use your work email and password.
       </AuthHeading>
 

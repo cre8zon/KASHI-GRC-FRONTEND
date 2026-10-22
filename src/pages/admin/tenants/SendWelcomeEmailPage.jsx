@@ -46,8 +46,8 @@ function buildVars(owner, recipientEmail, tenantName, tempPassword) {
     loginUrl,
     login_url:         loginUrl,
     resetUrl:          loginUrl,
-    supportUrl:        'https://support.kashigrc.com',
-    support_url:       'https://support.kashigrc.com',
+    supportUrl:        'https://support.kashiguard.com',
+    support_url:       'https://support.kashiguard.com',
     organization_name: tenantName || '',
   }
 }

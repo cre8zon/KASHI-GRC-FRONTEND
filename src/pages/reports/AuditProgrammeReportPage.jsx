@@ -496,7 +496,7 @@ ${signOffRows ? `
 ` : ''}
 
 <div class="footer">
-  ${report.projectName} · ${report.instanceRef || ''} · Generated ${fmtDate(report.generatedAt || new Date())} · KashiGRC
+  ${report.projectName} · ${report.instanceRef || ''} · Generated ${fmtDate(report.generatedAt || new Date())} · KashiGuard
 </div>
 </body></html>`
 
@@ -913,7 +913,7 @@ export default function AuditProgrammeReportPage() {
             ))}
           </div>
           <p className="text-[10px] text-text-muted mt-6 text-center">
-            {report.projectName} · {report.instanceRef} · Generated {fmt(report.generatedAt || new Date())} · KashiGRC Platform
+            {report.projectName} · {report.instanceRef} · Generated {fmt(report.generatedAt || new Date())} · KashiGuard Platform
           </p>
         </div>
 

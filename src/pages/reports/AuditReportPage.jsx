@@ -288,7 +288,7 @@ ${signOffRows ? `
 </table>` : ''}
 
 <div class="footer">
-  ${engagement.name||'Audit Engagement'} · ${engagement.engagementRef||''} · Generated ${fmtDate(new Date())} · KashiGRC
+  ${engagement.name||'Audit Engagement'} · ${engagement.engagementRef||''} · Generated ${fmtDate(new Date())} · KashiGuard
 </div>
 </body></html>`
 

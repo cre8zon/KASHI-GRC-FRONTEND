@@ -221,7 +221,7 @@ export default function CreateTenantPage() {
             <ol className="space-y-3">
               {[
                 { icon: Building2,  t: 'Organisation is created', d: 'With a permanent tenant code. Audit firms use this code to request access.' },
-                { icon: UserCog,    t: 'First administrator is added', d: 'One login per email across KashiGRC. Credentials appear on the next screen.' },
+                { icon: UserCog,    t: 'First administrator is added', d: 'One login per email across KashiGuard. Credentials appear on the next screen.' },
                 { icon: CreditCard, t: 'Subscription is recorded', d: 'Trial or paid, from the plan catalogue. Revenue metrics start from this row.' },
                 { icon: Sparkles,   t: "Plan's modules are switched on", d: 'Every licensed module the plan includes. Extras can be granted later on the tenant.' },
                 { icon: BadgeCheck, t: 'Audit-firm verification (optional)', d: 'Opens a draft only. Audit-firm access needs evidence and the firm’s email confirmation.' },

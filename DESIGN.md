@@ -1,4 +1,4 @@
-# KashiGRC Design System — "Calm" v4 (brand + pastel, engine-generated themes)
+# KashiGuard Design System — "Calm" v4 (brand + pastel, engine-generated themes)
 
 The design contract. Every UI change — human or AI — must comply.
 CI enforces it: `npm run lint:design` (runs automatically on `prebuild`).

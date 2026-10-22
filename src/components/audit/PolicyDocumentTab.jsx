@@ -57,7 +57,7 @@ export function PolicyDocumentTab({ entity }) {
       {contentType === 'EXTERNAL_URL' && (
         url ? (
           <div className="px-5 py-6 flex flex-col items-start gap-3">
-            <p className="text-xs text-text-secondary">This policy is maintained outside KashiGRC.</p>
+            <p className="text-xs text-text-secondary">This policy is maintained outside KashiGuard.</p>
             <Button size="sm" variant="secondary" icon={ExternalLink}
               onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}>
               Open policy

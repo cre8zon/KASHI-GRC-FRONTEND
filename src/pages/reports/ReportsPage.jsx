@@ -792,7 +792,7 @@ export default function ReportsPage() {
           ))}
         </div>
         <div className="px-4 py-3 border-t border-border">
-          <p className="text-[9px] text-text-muted uppercase tracking-wide">KashiGRC Platform</p>
+          <p className="text-[9px] text-text-muted uppercase tracking-wide">KashiGuard Platform</p>
         </div>
       </aside>
 

@@ -20,7 +20,7 @@ const DEFAULT_POINTS = [
 ]
 
 export function AuthLayout({
-  eyebrow = 'KashiGRC',
+  eyebrow = 'KashiGuard',
   headline = 'Governance, risk and compliance — calmly.',
   sub = 'Third-party risk, audits and policies for teams that have to prove it.',
   points = DEFAULT_POINTS,
@@ -39,7 +39,7 @@ export function AuthLayout({
 
         <div className="relative flex items-center gap-3">
           <BrandMark className="bg-brand-on text-brand-500" />
-          <span className="text-lg font-bold tracking-tight">KashiGRC</span>
+          <span className="text-lg font-bold tracking-tight">KashiGuard</span>
         </div>
 
         <div className="relative max-w-md">
@@ -65,7 +65,7 @@ export function AuthLayout({
         </div>
 
         <p className="relative text-xs">
-          © {new Date().getFullYear()} KashiGRC · Authorised users only
+          © {new Date().getFullYear()} KashiGuard · Authorised users only
         </p>
       </aside>
 
@@ -74,7 +74,7 @@ export function AuthLayout({
         <div className={cn('w-full', wide ? 'max-w-[480px]' : 'max-w-[420px]')}>
           <div className="mb-6 flex items-center gap-2.5 lg:hidden">
             <BrandMark className="bg-brand-500 text-brand-on" />
-            <span className="text-base font-bold tracking-tight text-text-primary">KashiGRC</span>
+            <span className="text-base font-bold tracking-tight text-text-primary">KashiGuard</span>
           </div>
 
           <div className="glass-card rounded-modal shadow-elevated p-6 sm:p-8">

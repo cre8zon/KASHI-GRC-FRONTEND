@@ -41,7 +41,7 @@ export default function PasswordChangedPage() {
         </p>
         <ul className="space-y-1.5 text-[13px] text-text-secondary">
           <li>• Never share your password — our team will never ask for it.</li>
-          <li>• Use it only for KashiGRC.</li>
+          <li>• Use it only for KashiGuard.</li>
           <li>• Change it from Settings → Security at any time.</li>
         </ul>
       </div>

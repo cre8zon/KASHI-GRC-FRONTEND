@@ -17,7 +17,7 @@
  *
  * ── VANTA COMPARISON ─────────────────────────────────────────────────────────
  * Vanta's Documents tab shows policies AND evidence files together.
- * In KashiGRC:
+ * In KashiGuard:
  *   - AuditPoliciesTab = structured policies with review result
  *   - Evidence tab = uploaded files (EvidenceRecord + EvidenceLink)
  *   - These are intentionally separate — policies have a lifecycle + approval

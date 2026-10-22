@@ -135,7 +135,7 @@ function TemplateEditor({ template, onClose, onSaved }) {
             <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-text-muted uppercase tracking-wide">Subject Line</label>
               <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-                placeholder="Welcome to KashiGRC — {{firstName}}"
+                placeholder="Welcome to KashiGuard — {{firstName}}"
                 className="h-8 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div className="flex items-center justify-between">
@@ -150,7 +150,7 @@ function TemplateEditor({ template, onClose, onSaved }) {
               value={form.content}
               onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
               rows={10}
-              placeholder={`Hello {{firstName}},\n\nWelcome to KashiGRC...`}
+              placeholder={`Hello {{firstName}},\n\nWelcome to KashiGuard...`}
               className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             />
           </div>

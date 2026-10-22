@@ -1,5 +1,5 @@
 /**
- * KashiGRC brand presets — v4.
+ * KashiGuard brand presets — v4.
  *
  * The first preset, Kashi Purple (#936EC8), is the product's own brand colour
  * and the DEFAULT for every user who has not chosen a theme of their own. The
