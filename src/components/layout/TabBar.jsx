@@ -17,6 +17,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { X, Plus, LayoutDashboard } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { cn } from '../../lib/cn'
+import { useCall } from '../collab/call/callStore'
 import {
   selectTabs, selectActiveTabId,
   activateTab, closeTab, openTab, newTab,
@@ -70,6 +71,7 @@ export function TabBar() {
   const dispatch    = useDispatch()
   const tabs        = useSelector(selectTabs)
   const activeTabId = useSelector(selectActiveTabId)
+  const call        = useCall()
   const scrollRef   = useRef(null)
   const [ctxMenu, setCtxMenu] = useState(null)  // { x, y, tab }
 
@@ -120,12 +122,16 @@ export function TabBar() {
           style={{ scrollbarWidth: 'none' }}>
           {tabs.map(tab => {
             const isActive = tab.id === activeTabId
+            // The in-app call's tab: named after the call, a live dot while it
+            // runs (so a hidden call is never lost), and no close button —
+            // Leave ends the call and closes the tab.
+            const isLiveCall = call.active && (tab.route || '').split('?')[0] === '/call'
             return (
               <div
                 key={tab.id}
                 data-tab-id={tab.id}
                 onMouseDown={(e) => {
-                  if (e.button === 1) { e.preventDefault(); dispatch(closeTab(tab.id)) }
+                  if (e.button === 1) { e.preventDefault(); if (!isLiveCall) dispatch(closeTab(tab.id)) }
                   else if (e.button === 0) dispatch(activateTab(tab.id))
                 }}
                 onContextMenu={(e) => handleContextMenu(e, tab)}
@@ -142,15 +148,18 @@ export function TabBar() {
                 )}
               >
                 {/* Tab icon */}
-                <span className={cn('shrink-0', isActive ? 'text-brand-ink' : 'text-text-muted')}>
-                  <TabIcon name={tab.icon} size={12} />
+                <span className={cn('shrink-0 relative', isLiveCall ? 'text-status-fail-fg' : isActive ? 'text-brand-ink' : 'text-text-muted')}>
+                  <TabIcon name={isLiveCall ? 'PhoneCall' : tab.icon} size={12} />
+                  {isLiveCall && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-status-fail-fg animate-pulse" aria-hidden />}
                 </span>
 
                 {/* Tab title */}
-                <span className="flex-1 truncate min-w-0">{tab.title}</span>
+                <span className="flex-1 truncate min-w-0" title={isLiveCall ? 'Call in progress' : undefined}>
+                  {isLiveCall ? (call.title || 'Call') : tab.title}
+                </span>
 
-                {/* Close button — hidden for pinned, shown on hover/active */}
-                {!tab.isPinned && (
+                {/* Close button — hidden for pinned and a running call, shown on hover/active */}
+                {!tab.isPinned && !isLiveCall && (
                   <button
                     onMouseDown={(e) => { e.stopPropagation(); dispatch(closeTab(tab.id)) }}
                     className={cn(

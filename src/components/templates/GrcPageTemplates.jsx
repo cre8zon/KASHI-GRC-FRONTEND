@@ -123,7 +123,7 @@ export function ListPageTemplate({
               <ListFilter size={12} />
               Filters
               {Object.keys(activeFilters).length > 0 && (
-                <span className="text-[10px] bg-brand-500 text-brand-on rounded-full w-3.5 h-3.5 flex items-center justify-center">
+                <span className="count-badge">
                   {Object.keys(activeFilters).length}
                 </span>
               )}

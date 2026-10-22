@@ -1,14 +1,14 @@
 import { useEffect, useRef } from 'react'
-import { LiveKitRoom, VideoConference, useLocalParticipant, useRoomContext } from '@livekit/components-react'
-import { MediaDeviceFailure, RoomEvent, Track } from 'livekit-client'
+import { LiveKitRoom, VideoConference, StartAudio, useConnectionState, useLocalParticipant, useRoomContext } from '@livekit/components-react'
+import { ConnectionState, MediaDeviceFailure, RoomEvent, Track } from 'livekit-client'
 import '@livekit/components-styles'
 import toast from 'react-hot-toast'
 
 /**
  * The call itself — LiveKit's ready-made conference: participant grid,
  * speaker view, screen sharing, camera / microphone choice, in-call chat.
- * You join with the microphone on and the camera off; both are in the
- * control bar. Leaving (or losing the connection for good) ends the call.
+ * You join with the microphone and the camera off; both are in the
+ * control bar (and the microphone on the small call window too). Leaving (or losing the connection for good) ends the call.
  *
  * If the browser cannot use the microphone or camera (permission blocked, no
  * device, or another app holding it) we say which and what to do — LiveKit
@@ -22,7 +22,7 @@ const DEVICE_HELP = {
 }
 /**
  * Screen sharing: the browser's picker opens on "Entire screen", and this
- * KashiGuard tab is left out of the choices — sharing the tab you are calling
+ * KashiGRC tab is left out of the choices — sharing the tab you are calling
  * from only shows the call itself (a mirror). You can switch what you share
  * mid-call from the browser's bar.
  *
@@ -87,9 +87,30 @@ function ShareSetup({ onShareState }) {
   return null
 }
 
-export default function CallRoom({ url, token, compact, onLeave, onShareState }) {
+/**
+ * Reports the microphone to whoever shows controls outside the conference
+ * (the small call window): whether it is on, and a function to flip it.
+ */
+function MicBridge({ onMicState }) {
+  const { isMicrophoneEnabled, localParticipant } = useLocalParticipant()
+  const connected = useConnectionState() === ConnectionState.Connected
+  useEffect(() => {
+    // Not before the call is connected: until then "off" only means "not yet".
+    if (!connected) return
+    onMicState?.(isMicrophoneEnabled, () =>
+      localParticipant.setMicrophoneEnabled(!localParticipant.isMicrophoneEnabled).catch(() => {}))
+  }, [connected, isMicrophoneEnabled, localParticipant, onMicState])
+  return null
+}
+
+/**
+ * micOn — whether to join with the microphone on. Off by default, like the
+ * camera: you unmute when you are ready. After a refresh the call passes the
+ * state you had, so a reload does not unmute or mute you.
+ */
+export default function CallRoom({ url, token, compact, onLeave, onShareState, onMicState, micOn = false }) {
   return (
-    <LiveKitRoom serverUrl={url} token={token} connect audio video={false}
+    <LiveKitRoom serverUrl={url} token={token} connect audio={!!micOn} video={false}
       data-lk-theme="default" style={{ height: '100%' }}
       className={compact ? 'kashi-call-compact' : undefined}
       onDisconnected={onLeave}
@@ -112,9 +133,17 @@ export default function CallRoom({ url, token, compact, onLeave, onShareState })
       {/* Minimised: just the picture — the controls come back when you expand it. */}
       {/* Minimised, someone presenting: the shared screen fills the window (no thumbnail strip). */}
       <style>{`.kashi-call-compact .lk-control-bar{display:none}.kashi-call-compact .lk-video-conference-inner{height:100%}`
-        + `.kashi-call-compact .lk-focus-layout{grid-template-columns:1fr}.kashi-call-compact .lk-focus-layout .lk-carousel{display:none}`}</style>
+        + `.kashi-call-compact .lk-focus-layout{grid-template-columns:1fr}.kashi-call-compact .lk-focus-layout .lk-carousel{display:none}`
+        // LiveKit sizes the video area as 100% minus the control bar; with the
+        // bar hidden that left an empty strip under the picture.
+        + `.kashi-call-compact .lk-grid-layout-wrapper,.kashi-call-compact .lk-focus-layout-wrapper{height:100%}`}</style>
       <ShareSetup onShareState={onShareState} />
+      <MicBridge onMicState={onMicState} />
       <VideoConference />
+      {/* After a page refresh the browser may block sound until a click —
+          this appears only then, so the call is never silently mute. */}
+      <StartAudio label="Click to turn on the call's sound"
+        className="lk-button absolute left-1/2 top-3 -translate-x-1/2 z-20 !bg-status-warn-bg !text-status-warn-fg font-medium" />
     </LiveKitRoom>
   )
 }

@@ -6,7 +6,7 @@ import api from '../../config/axios.config'
 import { collabApi, unwrapOne } from '../../api/collab.api'
 import { useDocumentDownload } from '../../hooks/useDocuments'
 import { useOpenEntityDrawer } from '../../hooks/useEntityDrawer'
-import { joinMeetingCall } from '../collab/call/callStore'
+import { joinMeetingCall, openCallLink, CALL_LINK_RE } from '../collab/call/callStore'
 import { callOpen, MEETING_STATUS } from '../collab/Meetings'
 import { Badge } from '../ui/Badge'
 import { cn } from '../../lib/cn'
@@ -31,6 +31,7 @@ const LINK_RE = /\bhttps?:\/\/[^\s<>"]*[^\s<>".,;:!?'")\]]|(?<![\w/])\/(?:module
  * What a link points at inside this app, or null for an outside link.
  *   { kind: 'record', type, id, parentId? }   a module record (opens its drawer)
  *   { kind: 'meeting', id }                    a meeting / call
+ *   { kind: 'calllink', id }                   a call link (/join/{code}) — id is the code
  *   { kind: 'page', path }                     any other page of the app
  */
 export function appLink(href) {
@@ -41,6 +42,8 @@ export function appLink(href) {
   if (dt && /^\d+$/.test(di || '')) return { kind: 'record', type: dt.toUpperCase(), id: di }
   let m = u.pathname.match(/^\/collaboration\/meetings\/(\d+)\/?$/)
   if (m) return { kind: 'meeting', id: m[1] }
+  m = u.pathname.match(CALL_LINK_RE)
+  if (m && u.pathname.startsWith('/join/')) return { kind: 'calllink', id: m[1] }
   m = u.pathname.match(/^\/module\/([a-z0-9_]+)\/(\d+)\/([a-z0-9_]+)\/(\d+)\/?$/i)
   if (m) return { kind: 'record', type: m[3].toUpperCase(), id: m[4], parentId: m[2] }
   m = u.pathname.match(/^\/module\/([a-z0-9_]+)\/(\d+)\/?$/i)
@@ -232,6 +235,11 @@ function renderToken(kind, m, ctx, id) {
       const href = m[0]
       const a = appLink(href)
       const cls = cn('underline underline-offset-2 break-all', ctx.onBrand ? 'text-brand-on' : 'text-brand-ink hover:opacity-80')
+      if (a?.kind === 'calllink') {
+        // Joins here, in the call tab — following the link would leave the app.
+        return <a key={id} href={href} className={cls}
+          onClick={(e) => { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); openCallLink(a.id, ctx.navigate) }}>{href}</a>
+      }
       if (a) {
         const to = new URL(href, window.location.origin)
         return <a key={id} href={to.pathname + to.search + to.hash} className={cls}
@@ -246,7 +254,38 @@ function renderToken(kind, m, ctx, id) {
 // ── Link cards ───────────────────────────────────────────────────────────────
 
 export function LinkCard({ link }) {
+  if (link.kind === 'calllink') return <CallLinkCard code={link.id} />
   return link.kind === 'meeting' ? <MeetingCard id={link.id} /> : <RecordCard link={link} />
+}
+
+/** A call link someone shared: the call's name and a Join button while the link works. */
+function CallLinkCard({ code }) {
+  const navigate = useNavigate()
+  const [joining, setJoining] = useState(false)
+  const { data } = useQuery({
+    queryKey: ['collab-call-link-preview', code], queryFn: () => collabApi.callLinkPreview(code), staleTime: 30e3, retry: false,
+  })
+  const p = unwrapOne(data)
+  const active = !!p?.active
+  return (
+    <div className={cardCls}>
+      <div className="flex items-center gap-1.5 text-[11px] text-text-muted">
+        <Video size={11} /> Call link{p?.kind === 'ROOM' ? ' · room' : ''}
+      </div>
+      <p className="text-sm font-medium text-text-primary truncate mt-0.5">{p ? (p.title || 'Call') : 'Loading…'}</p>
+      <div className="flex items-center gap-2 mt-1.5">
+        {p && !active && <Badge label="Link expired" colorTag="gray" />}
+        <span className="flex-1" />
+        {active && (
+          <button type="button" disabled={joining}
+            onClick={async () => { setJoining(true); try { await openCallLink(code, navigate) } finally { setJoining(false) } }}
+            className="inline-flex items-center gap-1 rounded-ctl bg-brand-500 text-brand-on px-2 py-0.5 text-xs font-medium hover:opacity-90 disabled:opacity-60">
+            {joining ? <Loader2 size={12} className="animate-spin" /> : <Video size={12} />} Join
+          </button>
+        )}
+      </div>
+    </div>
+  )
 }
 
 const cardCls = 'mt-1.5 w-72 max-w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-left'

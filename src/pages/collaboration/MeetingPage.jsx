@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ExternalLink, Pencil, CheckCircle2, X, Plus, RotateCcw, Users, Video } from 'lucide-react'
 import { collabApi, unwrapList, unwrapOne, errMsg } from '../../api/collab.api'
@@ -12,6 +13,7 @@ import { Skeleton } from '../../components/ui/EmptyState'
 import EvidenceUploader from '../../components/ui/EvidenceUploader'
 import { MeetingFormModal, KIND_LABEL, PROVIDER_LABEL, MEETING_STATUS, fmtDateTime, fmtTime, callOpen, seriesLabel } from '../../components/collab/Meetings'
 import { joinMeetingCall } from '../../components/collab/call/callStore'
+import { InviteLinkButton } from '../../components/collab/call/CallControls'
 import { REQUEST_STATUS, fmtDue } from '../../components/collab/WorkspaceRequestsTab'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
@@ -29,6 +31,7 @@ export default function MeetingPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [search, setSearch] = useSearchParams()
+  const myUserId = useSelector(s => s.auth.userId)
   const autoJoined = useRef(false)
   const qc = useQueryClient()
   const [editing, setEditing] = useState(false)
@@ -99,6 +102,11 @@ export default function MeetingPage() {
               onClick={() => joinMeetingCall(m.id).then(() => qc.invalidateQueries({ queryKey: ['collab-meeting', id] }))}>
               Join call
             </Button>
+          )}
+          {/* The call's link, ahead of time — for whoever runs the meeting or
+              is invited to it (the server checks the same). */}
+          {m.inApp && m.status !== 'CANCELLED' && (canRun || attendees.some(a => String(a.userId) === String(myUserId))) && (
+            <InviteLinkButton meetingId={m.id} title={m.title} />
           )}
           {!m.inApp && m.joinUrl && m.status === 'SCHEDULED' && (
             <a href={m.joinUrl} target="_blank" rel="noopener noreferrer"
