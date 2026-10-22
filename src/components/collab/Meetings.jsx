@@ -8,6 +8,7 @@ import { Modal } from '../ui/Modal'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
 import { joinMeetingCall, startCall } from './call/callStore'
+import { copyInviteLink } from './call/CallControls'
 import { RoomsPanel } from './Rooms'
 import { PeopleMultiSelect } from './PeopleMultiSelect'
 import { GlassSelect } from '../ui/GlassSelect'
@@ -22,7 +23,7 @@ export const KIND_LABEL = {
   OPENING: 'Opening', WALKTHROUGH: 'Walkthrough', STATUS: 'Status',
   CLOSING: 'Closing', INTERNAL: 'Internal', OTHER: 'Meeting',
 }
-export const PROVIDER_LABEL = { EMBEDDED: 'KashiGuard call', NONE: 'No link', TEAMS: 'Teams', ZOOM: 'Zoom', MEET: 'Google Meet', OTHER: 'Link' }
+export const PROVIDER_LABEL = { EMBEDDED: 'KashiGRC call', NONE: 'No link', TEAMS: 'Teams', ZOOM: 'Zoom', MEET: 'Google Meet', OTHER: 'Link' }
 /**
  * Can this call be joined right now? The SERVER decides; this just reads it.
  *
@@ -245,8 +246,23 @@ export function MeetingFormModal({ open, onClose, meeting, workspaceId, onSaved 
       return collabApi.updateMeeting(meeting.id, body)
     },
     onSuccess: (r) => {
-      toast.success(isNew ? 'Meeting scheduled — invitations sent' : 'Meeting updated')
-      onSaved?.(unwrapOne(r)); onClose()
+      const saved = unwrapOne(r)
+      if (isNew && f.provider === 'EMBEDDED' && saved?.id) {
+        // An in-app meeting: offer its guest link now, so it can go out with
+        // the invitation (external auditors, vendors) instead of on the day.
+        toast.success((t) => (
+          <span className="flex items-center gap-3">
+            <span>Meeting scheduled — invitations sent</span>
+            <button type="button" onClick={() => { toast.dismiss(t.id); copyInviteLink(saved.id) }}
+              className="shrink-0 px-2 h-7 rounded-ctl text-xs font-medium bg-brand-500 text-brand-on hover:opacity-90">
+              Copy guest link
+            </button>
+          </span>
+        ), { duration: 12000 })
+      } else {
+        toast.success(isNew ? 'Meeting scheduled — invitations sent' : 'Meeting updated')
+      }
+      onSaved?.(saved); onClose()
     },
     onError: (e) => toast.error(errMsg(e, 'Could not save the meeting')),
   })

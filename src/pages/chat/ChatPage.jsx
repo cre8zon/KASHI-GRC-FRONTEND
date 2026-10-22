@@ -182,7 +182,7 @@ export default function ChatPage() {
                           )}
                         </div>
                         {c.unread > 0 && (
-                          <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-500 text-brand-on text-[10px] font-semibold flex items-center justify-center">
+                          <span className="count-badge shrink-0">
                             {c.unread > 99 ? '99+' : c.unread}
                           </span>
                         )}

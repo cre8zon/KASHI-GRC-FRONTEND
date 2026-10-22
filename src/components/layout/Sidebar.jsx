@@ -96,8 +96,20 @@ function getSidebarTokens(theme) {
     toggle:    'text-brand-on/90 hover:text-brand-on hover:bg-on-dark/20',
     name:      'text-brand-on',       subtext:    'text-brand-on/85',
     searchBg:  'bg-on-dark/20',
-    searchField: 'bg-on-dark/15 border border-brand-on/20 focus-within:bg-on-dark/25',
-    wsCard:    'bg-on-dark/15 border-brand-on/15',
+    // The cards that float on the purple — workspace, search, account — are
+    // frosted white glass, as the original design had them. Their text is
+    // the app's dark ink (≥ 10:1 on the frost); nav items on the bare brand
+    // panel keep brand-on. The glass came off when the nav ink went white
+    // (white on frost was unreadable); separate card inks bring it back.
+    searchField: 'glass-chrome border border-on-dark/60 focus-within:ring-2 focus-within:ring-on-dark/70',
+    searchInk: 'text-text-primary',  searchIcon: 'text-text-secondary',
+    wsGlass:   true,
+    wsCard:    'border-on-dark/60',
+    // secondary, not muted: muted measured 3.4:1 on the Kashi-purple frost.
+    cardName:  'text-text-primary',   cardSub:    'text-text-secondary',
+    cardToggle:'text-text-secondary hover:text-text-primary hover:bg-brand-500/10',
+    userBg:    'mx-2.5 mb-2.5 rounded-card border border-on-dark/60 glass-chrome',
+    userHover: 'rounded-card hover:bg-brand-500/8',
     border:    'border-brand-on/15',
   }
   // Brand sidebar in DARK app mode: deep brand-800 background with the LIGHT
@@ -143,7 +155,7 @@ function getSidebarTokens(theme) {
   }
 }
 
-// ── KashiGuard Logo Mark ────────────────────────────────────────────────────────
+// ── KashiGRC Logo Mark ────────────────────────────────────────────────────────
 function KashiLogo({ size = 28, className }) {
   return (
     <div className={cn(
@@ -383,12 +395,14 @@ function NavItem({ item, depth = 0, collapsed = false, t, forceOpen = false }) {
         )}
         {!collapsed && <span className="flex-1">{item.label}</span>}
         {badgeCount > 0 && !collapsed && (
-          <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center', t.badge)}>
+          // On the active pill the theme's tinted badge sat on the same hue and
+          // disappeared; there it is the solid, always-contrasting count badge.
+          <span className={cn(active ? 'count-badge' : cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center', t.badge))}>
             {badgeCount > 99 ? '99+' : badgeCount}
           </span>
         )}
         {badgeCount > 0 && collapsed && (
-          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-status-warn-fg" />
+          <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-status-fail-fg ring-2 ring-surface-raised" />
         )}
       </>
     </NavLink>
@@ -445,7 +459,7 @@ function SidebarUserPanel({ collapsed, t, auth, branding }) {
         )}>
         {/* Avatar */}
         <div className={cn(
-          'rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-brand-500 text-brand-900 ring-1 ring-brand-ink/20',
+          'rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-brand-500 text-brand-on ring-1 ring-brand-ink/20',
           collapsed ? 'w-8 h-8' : 'w-7 h-7'
         )}>
           {initials(fullName)}
@@ -454,17 +468,17 @@ function SidebarUserPanel({ collapsed, t, auth, branding }) {
         {/* Info — hidden when collapsed */}
         {!collapsed && (
           <div className="flex-1 min-w-0 text-left">
-            <p className={cn('text-xs font-semibold truncate', t.name)}>
+            <p className={cn('text-xs font-semibold truncate', t.userBg ? (t.cardName || t.name) : t.name)}>
               {fullName}
             </p>
-            <p className={cn('text-[10px] truncate', t.subtext)}>
+            <p className={cn('text-[10px] truncate', t.userBg ? (t.cardSub || t.subtext) : t.subtext)}>
               {isVendor && vendorName ? vendorName : (tenantName || email)}
             </p>
           </div>
         )}
 
         {!collapsed && (
-          <ChevronDown size={12} className={cn('shrink-0 transition-transform', t.subtext, open && 'rotate-180')} />
+          <ChevronDown size={12} className={cn('shrink-0 transition-transform', t.userBg ? (t.cardSub || t.subtext) : t.subtext, open && 'rotate-180')} />
         )}
       </button>
     </div>
@@ -683,7 +697,7 @@ export function Sidebar({ collapsed, onToggle }) {
   const visible        = useMemo(() => filterNav(grouped, navQuery), [grouped, navQuery])
   const searching      = navQuery.trim().length > 0
   const searchRef      = useRef(null)
-  const displayName    = branding?.companyName || 'KashiGuard'
+  const displayName    = branding?.companyName || 'KashiGRC'
 
   // Glass applies ONLY to the light sidebar: over the pastel wash it reads as
   // Two-tone: the nav area sits on the recessed panel colour; the top zone and
@@ -798,15 +812,15 @@ export function Sidebar({ collapsed, onToggle }) {
                   className="w-7 h-7 rounded-ctl object-contain shrink-0" />
               : <KashiLogo size={28} className="shrink-0" />}
             <div className="flex-1 min-w-0 text-left">
-              <div className={cn('text-[12.5px] font-bold leading-tight truncate', t.name)}>
+              <div className={cn('text-[12.5px] font-bold leading-tight truncate', t.cardName || t.name)}>
                 {displayName}
               </div>
-              <div className={cn('text-[9.5px] leading-tight truncate', t.subtext)}>
+              <div className={cn('text-[9.5px] leading-tight truncate', t.cardSub || t.subtext)}>
                 {auth?.tenantName || 'Workspace'}
               </div>
             </div>
             <button onClick={onToggle} title="Collapse sidebar"
-              className={cn('h-7 w-7 flex items-center justify-center rounded-ctl transition-colors shrink-0', t.toggle)}>
+              className={cn('h-7 w-7 flex items-center justify-center rounded-ctl transition-colors shrink-0', t.cardToggle || t.toggle)}>
               <PanelLeft size={15} />
             </button>
           </div>
@@ -822,7 +836,7 @@ export function Sidebar({ collapsed, onToggle }) {
               sibling of the workspace card above it instead of a painted
               rectangle sitting on the panel. */}
           <div className={cn('flex items-center gap-2 h-8 px-2.5 rounded-ctl', t.searchField)}>
-            <Search size={13} className={cn('shrink-0', t.subtext)} />
+            <Search size={13} className={cn('shrink-0', t.searchIcon || t.subtext)} />
             <input
               ref={searchRef}
               /* type="text", NOT type="search". Chrome and Edge render their
@@ -841,13 +855,13 @@ export function Sidebar({ collapsed, onToggle }) {
               aria-label="Search navigation"
               className={cn(
                 'w-full min-w-0 bg-transparent border-0 p-0 text-[12.5px] focus:outline-none focus:ring-0',
-                t.textBase, 'placeholder:text-current placeholder:opacity-80'
+                t.searchInk || t.textBase, 'placeholder:text-current placeholder:opacity-80'
               )}
             />
             {searching && (
               <button type="button" onClick={() => { setNavQuery(''); searchRef.current?.focus() }}
                       aria-label="Clear search"
-                      className={cn('shrink-0 transition-opacity hover:opacity-100 opacity-70', t.subtext)}>
+                      className={cn('shrink-0 transition-opacity hover:opacity-100 opacity-70', t.searchIcon || t.subtext)}>
                 <X size={12} />
               </button>
             )}

@@ -102,6 +102,10 @@
   }
   .glass-field:hover { border-color: var(--field-bd-hover); }
   .glass-field:focus, .glass-field:focus-within {
+    /* The brand border + halo below IS the focus indicator. Without this the
+       browser also draws its own dark outline over it (the chat composer
+       showed a black box instead of the theme colour). */
+    outline: none;
     background: var(--field-bg-focus);
     border-color: rgb(var(--color-brand-ink) / .55);
     box-shadow: var(--field-shadow-focus);
@@ -126,6 +130,41 @@
   .glass-overlay .glass-field:focus-within {
     background: var(--field-bg-focus);
     border-color: rgb(var(--color-brand-ink) / .6);
+  }
+
+  /* ── Count badges ─────────────────────────────────────────────────────────
+     Unread / pending counts (the bell, chat, sidebar, filter counts). They
+     used brand-500 + brand-on: 4.5:1 for the Kashi purple at 9px, and on the
+     pastel themes the pale fill all but vanished into the header (1.3–1.6:1).
+     These pair tokens the theme engine already guarantees, so they hold in
+     every theme, light and dark (measured over all 13 presets):
+       .count-badge        brand-ink fill, surface ink  — text ≥ 5.0:1, fill vs page ≥ 4.7:1
+       .count-badge-alert  status-fail fill, inverse ink — text ≥ 7.0:1, fill vs page ≥ 6.7:1
+     A 2px ring of the raised surface keeps the badge off whatever it overlaps
+     (the bell glyph, an active pill). */
+  .count-badge,
+  .count-badge-alert {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9999px;
+    font-size: 10px;
+    line-height: 1;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+    box-shadow: 0 0 0 2px rgb(var(--color-surface-raised));
+  }
+  .count-badge {
+    background: rgb(var(--color-brand-ink));
+    color: rgb(var(--color-surface-raised));
+  }
+  .count-badge-alert {
+    background: rgb(var(--color-status-fail-fg));
+    color: rgb(var(--color-text-inverse));
   }
 }
 

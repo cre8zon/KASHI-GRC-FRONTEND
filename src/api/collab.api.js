@@ -72,6 +72,20 @@ export const collabApi = {
   scheduleInRoom: (rid, body)        => api.post(`/v1/collab/rooms/${rid}/meetings`, body),
   cancelSeries: (mid)                => api.post(`/v1/collab/meetings/${mid}/cancel-series`),
 
+  // ── Call links & guests ───────────────────────────────────────────────────
+  // The call's shareable link (created on first ask) and, for whoever runs the
+  // call, guests on/off and "new link". The lobby lists guests waiting to be
+  // let in; admit / deny / remove decide one.
+  callLink:       (meetingId)        => api.post('/v1/collab/calls/link', { meetingId }),
+  updateCallLink: (meetingId, body)  => api.patch('/v1/collab/calls/link', { meetingId, ...body }),
+  callLobby:      (meetingId)        => api.get('/v1/collab/calls/lobby', { params: { meetingId } }),
+  // meetingId = the call you are in; the server judges "may admit" against it.
+  decideGuest:    (requestId, action, meetingId) => api.post(`/v1/collab/calls/lobby/${requestId}/${action}`, null,
+                    { params: meetingId ? { meetingId } : {} }),
+  // Opened while signed in: { mode: 'DIRECT', url, token, … } or { mode: 'GUEST' }.
+  openCallLink:   (code)             => api.post(`/v1/collab/call-links/${encodeURIComponent(code)}/join`),
+  callLinkPreview: (code)            => api.get(`/v1/collab/call-links/${encodeURIComponent(code)}`),
+
   // ── Requests (phase 3) ────────────────────────────────────────────────────
   requests:    (id)                  => api.get(`/v1/collab/workspaces/${id}/requests`),
   raiseRequest: (id, body)           => api.post(`/v1/collab/workspaces/${id}/requests`, body),

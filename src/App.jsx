@@ -93,6 +93,8 @@ const CollabMyWeekPage           = lazy(() => import('./pages/collaboration/MyWe
 const CollabMeetingsPage         = lazy(() => import('./pages/collaboration/MeetingsPage'))
 const CollabMeetingPage          = lazy(() => import('./pages/collaboration/MeetingPage'))
 const CollabRoomPage             = lazy(() => import('./pages/collaboration/RoomPage'))
+const CollabCallPage             = lazy(() => import('./pages/collaboration/CallPage'))
+const JoinCallPage               = lazy(() => import('./pages/collaboration/JoinCallPage'))
 // Internal chat — the organisation's own staff
 const ChatPage                   = lazy(() => import('./pages/chat/ChatPage'))
 const TenantListPage             = lazy(() => import('./pages/admin/tenants/TenantListPage'))
@@ -181,7 +183,7 @@ function AppShellWithTheme() {
   return (
     <ThemeProvider>
       <AppShell />
-      {/* In-app call window (Collaboration) — floats over every page while a call runs */}
+      {/* In-app call (Collaboration): fills the Call tab; a small card in other tabs */}
       <CallDock />
       {/* Token renewal, idle sign-out warning, cross-tab sign-out */}
       <SessionManager />
@@ -209,6 +211,9 @@ export default function App() {
           <Route path="/auth/password-changed" element={<PasswordChangedPage />} />
           {/* Audit-firm email confirmation — the firm has no account; the token is the credential */}
           <Route path="/verify-audit-firm"     element={<VerifyAuditFirmPage />} />
+          {/* A call link. Public: guests join without an account (they wait to
+              be admitted); signed-in colleagues go straight into the call tab. */}
+          <Route path="/join/:code"            element={<JoinCallPage />} />
           <Route path="/"                      element={<Navigate to="/dashboard" replace />} />
 
           {/* Outside AppShell */}
@@ -237,6 +242,8 @@ export default function App() {
             <Route path="/collaboration/meetings"       element={<CollabMeetingsPage />} />
             <Route path="/collaboration/meetings/:id"   element={<CollabMeetingPage />} />
             <Route path="/collaboration/rooms/:id"      element={<CollabRoomPage />} />
+            {/* The call tab — the in-app call fills it (CallDock moves it here). */}
+            <Route path="/call"                         element={<CollabCallPage />} />
             <Route path="/chat"                         element={<ChatPage />} />
             <Route path="/chat/:id"                     element={<ChatPage />} />
             <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
