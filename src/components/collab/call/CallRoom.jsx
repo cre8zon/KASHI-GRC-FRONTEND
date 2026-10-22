@@ -22,7 +22,7 @@ const DEVICE_HELP = {
 }
 /**
  * Screen sharing: the browser's picker opens on "Entire screen", and this
- * KashiGRC tab is left out of the choices — sharing the tab you are calling
+ * KashiGuard tab is left out of the choices — sharing the tab you are calling
  * from only shows the call itself (a mirror). You can switch what you share
  * mid-call from the browser's bar.
  *

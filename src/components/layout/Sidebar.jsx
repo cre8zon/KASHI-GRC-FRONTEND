@@ -155,7 +155,7 @@ function getSidebarTokens(theme) {
   }
 }
 
-// ── KashiGRC Logo Mark ────────────────────────────────────────────────────────
+// ── KashiGuard Logo Mark ────────────────────────────────────────────────────────
 function KashiLogo({ size = 28, className }) {
   return (
     <div className={cn(
@@ -697,7 +697,7 @@ export function Sidebar({ collapsed, onToggle }) {
   const visible        = useMemo(() => filterNav(grouped, navQuery), [grouped, navQuery])
   const searching      = navQuery.trim().length > 0
   const searchRef      = useRef(null)
-  const displayName    = branding?.companyName || 'KashiGRC'
+  const displayName    = branding?.companyName || 'KashiGuard'
 
   // Glass applies ONLY to the light sidebar: over the pastel wash it reads as
   // Two-tone: the nav area sits on the recessed panel colour; the top zone and
