@@ -15,6 +15,7 @@ import { joinMeetingCall } from '../../components/collab/call/callStore'
 import { REQUEST_STATUS, fmtDue } from '../../components/collab/WorkspaceRequestsTab'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 /**
  * Collaboration › Meeting — the record of one meeting: when, who, the join
@@ -101,7 +102,7 @@ export default function MeetingPage() {
           )}
           {!m.inApp && m.joinUrl && m.status === 'SCHEDULED' && (
             <a href={m.joinUrl} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 h-7 px-3 rounded-ctl bg-brand-500 text-brand-900 text-xs font-medium hover:bg-brand-600">
+              className="inline-flex items-center gap-1.5 h-7 px-3 rounded-ctl bg-brand-500 text-brand-on text-xs font-medium hover:bg-brand-600">
               <ExternalLink size={13} /> Join{m.provider && m.provider !== 'OTHER' ? ` on ${PROVIDER_LABEL[m.provider]}` : ''}
             </a>
           )}
@@ -198,7 +199,7 @@ export default function MeetingPage() {
             {attendees.length > 8 && (
               <div className="px-4 pt-2">
                 <input value={who} onChange={e => setWho(e.target.value)} placeholder="Find someone"
-                  className="w-full h-8 rounded-ctl border border-border bg-surface-raised px-2.5 text-xs text-text-primary" />
+                  className="w-full h-8 rounded-ctl border border-border glass-field px-2.5 text-xs text-text-primary" />
               </div>
             )}
             {/* Fixed height: a meeting with thirty invitees scrolls inside the card, not the page. */}
@@ -279,7 +280,7 @@ function ListEditor({ title, items, canEdit, placeholder, onSave, saving, checka
             save([...list, { text: draft.trim() }]); setDraft('')
           }}>
             <input value={draft} onChange={e => setDraft(e.target.value)} placeholder={placeholder}
-              className="flex-1 h-8 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary" />
+              className="flex-1 h-8 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary" />
             <Button type="submit" size="sm" variant="secondary" icon={Plus} disabled={!draft.trim() || saving}>Add</Button>
           </form>
         )}
@@ -300,7 +301,7 @@ function MinutesCard({ minutes, canEdit, onSave, saving }) {
         {text !== null ? (
           <div className="space-y-2">
             <textarea value={text} onChange={e => setText(e.target.value)} rows={10} autoFocus
-              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary" />
+              className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary" />
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setText(null)} disabled={saving}>Cancel</Button>
               <Button size="sm" loading={saving} onClick={() => { onSave(text); setText(null) }}>Save</Button>
@@ -341,12 +342,12 @@ function FollowUpModal({ open, onClose, meeting, onDone }) {
       <div className="space-y-3">
         <input value={form.title} onChange={set('title')} placeholder="What needs doing" className={input} />
         <textarea value={form.description} onChange={set('description')} rows={2} placeholder="Details (optional)"
-          className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary" />
+          className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary" />
         <div className="grid grid-cols-2 gap-2">
-          <select value={form.assigneeUserId} onChange={set('assigneeUserId')} className={input}>
+          <GlassSelect value={form.assigneeUserId} onChange={set('assigneeUserId')} className={input}>
             <option value="">Who</option>
             {people.map(p => <option key={p.userId} value={p.userId}>{p.name}</option>)}
-          </select>
+          </GlassSelect>
           <input type="date" value={form.dueDate} onChange={set('dueDate')} className={input} />
         </div>
       </div>

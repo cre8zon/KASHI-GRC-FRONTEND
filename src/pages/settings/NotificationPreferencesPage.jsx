@@ -106,7 +106,7 @@ function DeviceNotificationSettings() {
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-card bg-brand-500/10">
-              <Volume2 size={16} className="text-brand-500" />
+              <Volume2 size={16} className="text-brand-ink" />
             </div>
             <div>
               <p className="text-sm font-medium text-text-primary">Notification sound</p>
@@ -121,7 +121,7 @@ function DeviceNotificationSettings() {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-card bg-brand-500/10">
-              <Monitor size={16} className="text-brand-500" />
+              <Monitor size={16} className="text-brand-ink" />
             </div>
             <div>
               <p className="text-sm font-medium text-text-primary">Desktop alerts</p>
@@ -194,7 +194,7 @@ export function NotificationsTab() {
             <Card>
               <CardBody className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-card bg-brand-500/10"><Mail size={16} className="text-brand-500" /></div>
+                  <div className="p-2 rounded-card bg-brand-500/10"><Mail size={16} className="text-brand-ink" /></div>
                   <div>
                     <p className="text-sm font-medium text-text-primary">Email notifications</p>
                     <p className="text-xs text-text-muted">

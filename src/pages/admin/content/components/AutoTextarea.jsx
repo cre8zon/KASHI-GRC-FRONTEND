@@ -77,7 +77,7 @@ export function AutoField({ label, helperText, className, ...rest }) {
       )}
       <AutoTextarea
         className={cn(
-          'w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[13px] text-text-primary placeholder:text-text-faint focus:border-brand-800/40 focus:outline-none focus:ring-1 focus:ring-brand-800/40',
+          'w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[13px] text-text-primary placeholder:text-text-faint focus:border-brand-ink/40 focus:outline-none focus:ring-1 focus:ring-brand-ink/40',
           className,
         )}
         {...rest}

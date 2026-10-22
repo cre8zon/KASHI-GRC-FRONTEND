@@ -105,7 +105,7 @@ function TenantSwitcher({ memberships, activeTenantId }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 mt-1.5 w-72 rounded-card border border-border bg-surface-raised shadow-elevated py-1 z-50">
+        <div className="absolute left-0 mt-1.5 w-72 rounded-card border border-border glass-overlay shadow-elevated py-1 z-50">
           <p className="px-3 py-1.5 text-[9px] uppercase tracking-wide text-text-muted">
             Switch organization
           </p>
@@ -229,7 +229,7 @@ export function TopNav({ onMenuToggle }) {
         >
           <Bell size={16} />
           {unread > 0 && (
-            <span className="absolute top-1 right-1 h-4 w-4 bg-brand-500 text-brand-900 text-[9px] font-bold rounded-full flex items-center justify-center">
+            <span className="absolute top-1 right-1 h-4 w-4 bg-brand-500 text-brand-on text-[9px] font-bold rounded-full flex items-center justify-center">
               {unread > 9 ? '9+' : unread}
             </span>
           )}
@@ -249,7 +249,7 @@ export function TopNav({ onMenuToggle }) {
           </button>
 
           {showUser && (
-            <div className="absolute right-0 top-11 w-56 bg-surface-raised border border-border rounded-card shadow-overlay z-[100] py-1 animate-slide-up">
+            <div className="absolute right-0 top-11 w-56 glass-overlay border border-border rounded-card shadow-overlay z-[100] py-1 animate-slide-up">
               <div className="px-3 py-2.5 border-b border-border">
                 <p className="text-xs font-semibold text-text-primary truncate">{fullName}</p>
                 <p className="text-[11px] text-text-muted truncate">{email}</p>

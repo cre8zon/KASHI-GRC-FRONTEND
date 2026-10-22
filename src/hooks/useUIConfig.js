@@ -41,7 +41,7 @@ export const useBootstrap = () => {
             await usersApi.preferences.save({
               ui_app_theme:     'light',
               ui_sidebar_theme: 'light',
-              ui_sidebar_color: BRAND_PRESETS[0].hex, // pastel Sage — single source of truth
+              ui_sidebar_color: BRAND_PRESETS[0].hex, // Kashi Purple — single source of truth
             })
           } catch (err) {
             //
@@ -92,7 +92,13 @@ export const useBootstrap = () => {
           // colour it IS their choice, so apply it. The old guard skipped it
           // whenever kashi_brand_preset existed (always true after picking a
           // preset once), so every refresh ignored the saved colour.
-          if (sidebarColor) {
+          //
+          // The legacy #1e40af fallback is not a choice (it was the backend's
+          // no-branding default, saved back by the old client) — a user whose
+          // DB holds it is treated as never having chosen, and gets the Kashi
+          // Purple default instead.
+          const { isChosenHex } = await import('../config/brandPresets')
+          if (isChosenHex(sidebarColor)) {
             localStorage.setItem('kashi_sidebar_color', sidebarColor)
             const { applyBranding } = await import('../store/slices/uiConfigSlice')
             applyBranding({ ...data.branding, primaryColor: sidebarColor }, { force: true })
@@ -106,7 +112,8 @@ export const useBootstrap = () => {
         // backend doesn't drop the user back to the sage default.
         try {
           const cachedColor = localStorage.getItem('kashi_sidebar_color')
-          if (cachedColor) {
+          const { isChosenHex } = await import('../config/brandPresets')
+          if (isChosenHex(cachedColor)) {
             const { applyBranding } = await import('../store/slices/uiConfigSlice')
             applyBranding({ primaryColor: cachedColor }, { force: true })
             window.dispatchEvent(new CustomEvent('kashi-sidebar-changed'))

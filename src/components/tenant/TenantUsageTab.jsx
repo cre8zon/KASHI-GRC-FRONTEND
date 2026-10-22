@@ -14,7 +14,7 @@ import { cn } from '../../lib/cn'
 function Meter({ used, limit, label }) {
   const unlimited = limit === null || limit === undefined
   const pct = unlimited || !limit ? null : Math.round((used / limit) * 100)
-  const tone = pct === null ? 'bg-brand-500' : pct >= 100 ? 'bg-status-fail-fg' : pct >= 90 ? 'bg-status-warn-fg' : 'bg-brand-500'
+  const tone = pct === null ? 'bg-brand-fill' : pct >= 100 ? 'bg-status-fail-fg' : pct >= 90 ? 'bg-status-warn-fg' : 'bg-brand-fill'
   return (
     <div>
       <div className="flex items-baseline justify-between text-xs">
@@ -63,7 +63,7 @@ export default function TenantUsageTab({ tenantId }) {
 
       <section>
         <SectionTitle>Against the plan</SectionTitle>
-        <div className="rounded-card border border-border p-4 bg-surface-raised space-y-4">
+        <div className="rounded-card border border-border p-4 glass-card space-y-4">
           <Meter label="Vendors under management (priced metric)" used={u.vendors.total} limit={u.vendors.limit} />
           <Meter label="Seats (org users)" used={u.seats.total} limit={u.seats.limit} />
           {u.subscription && (
@@ -78,12 +78,12 @@ export default function TenantUsageTab({ tenantId }) {
       <div className="grid grid-cols-2 gap-4">
         <Breakdown icon={Building2} title="Vendors by status" data={u.vendors.byStatus} extra={`${u.vendors.portalUsers} vendor portal users`} />
         <Breakdown icon={ClipboardList} title="Assessments by status" data={u.assessments.byStatus} />
-        <div className="rounded-card border border-border p-4 bg-surface-raised text-xs space-y-1.5">
+        <div className="rounded-card border border-border p-4 glass-card text-xs space-y-1.5">
           <p className="font-semibold text-text-primary flex items-center gap-1.5"><Users size={13} /> People</p>
           <p className="text-text-secondary">{u.seats.neverLoggedIn} invited users have never logged in.</p>
           <p className="text-text-secondary">Last login on this tenant: {u.seats.lastLoginAt ? fmtDate(u.seats.lastLoginAt) : 'never'}.</p>
         </div>
-        <div className="rounded-card border border-border p-4 bg-surface-raised text-xs space-y-1.5">
+        <div className="rounded-card border border-border p-4 glass-card text-xs space-y-1.5">
           <p className="font-semibold text-text-primary flex items-center gap-1.5"><Sparkles size={13} /> AI cost this month</p>
           <p className="text-text-secondary font-mono">{(Number(u.ai.costMicros) / 1_000_000).toFixed(2)} (provider currency)</p>
           <p className="text-text-muted">Compare against MRR on Billing Overview → Utilisation.</p>
@@ -96,7 +96,7 @@ export default function TenantUsageTab({ tenantId }) {
 function Breakdown({ icon: Icon, title, data = {}, extra }) {
   const entries = Object.entries(data)
   return (
-    <div className="rounded-card border border-border p-4 bg-surface-raised text-xs">
+    <div className="rounded-card border border-border p-4 glass-card text-xs">
       <p className="font-semibold text-text-primary flex items-center gap-1.5 mb-2"><Icon size={13} /> {title}</p>
       {entries.length === 0 ? <p className="text-text-muted">None yet.</p> : (
         <ul className="space-y-1">

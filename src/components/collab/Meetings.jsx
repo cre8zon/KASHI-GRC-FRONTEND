@@ -10,6 +10,7 @@ import toast from 'react-hot-toast'
 import { joinMeetingCall, startCall } from './call/callStore'
 import { RoomsPanel } from './Rooms'
 import { PeopleMultiSelect } from './PeopleMultiSelect'
+import { GlassSelect } from '../ui/GlassSelect'
 
 /**
  * Collaboration meetings — shared pieces: the list row, the schedule / edit
@@ -146,7 +147,7 @@ export function MeetingRow({ m, onOpen, showWorkspace }) {
     <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={e => { if (e.key === 'Enter') onOpen() }}
       className="w-full text-left px-4 py-2.5 border-b border-border-subtle last:border-0 hover:bg-surface-overlay/50 flex items-center gap-3 cursor-pointer">
       <div className="w-14 shrink-0 text-center">
-        {series && <p className="text-[9px] uppercase tracking-wide text-brand-900 font-semibold">Next</p>}
+        {series && <p className="text-[9px] uppercase tracking-wide text-brand-ink font-semibold">Next</p>}
         <p className="text-[10px] uppercase text-text-muted">{new Date(m.startsAt).toLocaleDateString(undefined, { month: 'short' })}</p>
         <p className="text-lg leading-5 font-semibold text-text-primary">{new Date(m.startsAt).getDate()}</p>
       </div>
@@ -163,13 +164,13 @@ export function MeetingRow({ m, onOpen, showWorkspace }) {
       <div className="flex items-center gap-2 shrink-0">
         {callOpen(m) && (
           <button type="button" onClick={e => { e.stopPropagation(); joinMeetingCall(m.id) }}
-            className="inline-flex items-center gap-1 text-xs font-medium text-brand-900 hover:underline">
+            className="inline-flex items-center gap-1 text-xs font-medium text-brand-ink hover:underline">
             <Video size={12} /> Join
           </button>
         )}
         {!m.inApp && upcoming && m.joinUrl && (
           <a href={m.joinUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-            className="inline-flex items-center gap-1 text-xs text-brand-900 hover:underline">
+            className="inline-flex items-center gap-1 text-xs text-brand-ink hover:underline">
             <ExternalLink size={12} /> Join
           </a>
         )}
@@ -269,22 +270,22 @@ export function MeetingFormModal({ open, onClose, meeting, workspaceId, onSaved 
             <div className="grid grid-cols-2 gap-2">
               <label className="block">
                 <span className="text-xs text-text-secondary">Where</span>
-                <select value={f.workspaceId} onChange={e => setForm(x => ({ ...x, workspaceId: e.target.value, programmeId: '', attendeeUserIds: [],
+                <GlassSelect value={f.workspaceId} onChange={e => setForm(x => ({ ...x, workspaceId: e.target.value, programmeId: '', attendeeUserIds: [],
                     kind: e.target.value ? (x.kind === 'INTERNAL' ? 'STATUS' : x.kind) : 'INTERNAL' }))}
                   className={cn(input, 'mt-1')}>
                   {opts.canScheduleInternal && <option value="">Internal — my organisation only</option>}
                   {!opts.canScheduleInternal && <option value="" disabled>Choose a workspace</option>}
                   {workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                </select>
+                </GlassSelect>
               </label>
               {f.workspaceId && programmes.length > 0 && (
                 <label className="block">
                   <span className="text-xs text-text-secondary">Programme</span>
-                  <select value={f.programmeId} onChange={e => setForm(x => ({ ...x, programmeId: e.target.value, attendeeUserIds: [] }))}
+                  <GlassSelect value={f.programmeId} onChange={e => setForm(x => ({ ...x, programmeId: e.target.value, attendeeUserIds: [] }))}
                     className={cn(input, 'mt-1')}>
                     <option value="">Whole workspace</option>
                     {programmes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
+                  </GlassSelect>
                 </label>
               )}
             </div>
@@ -292,18 +293,18 @@ export function MeetingFormModal({ open, onClose, meeting, workspaceId, onSaved 
           {isNew && workspaceId && programmes.length > 0 && (
             <label className="block">
               <span className="text-xs text-text-secondary">Programme</span>
-              <select value={f.programmeId} onChange={e => setForm(x => ({ ...x, programmeId: e.target.value, attendeeUserIds: [] }))}
+              <GlassSelect value={f.programmeId} onChange={e => setForm(x => ({ ...x, programmeId: e.target.value, attendeeUserIds: [] }))}
                 className={cn(input, 'mt-1')}>
                 <option value="">Whole workspace</option>
                 {programmes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+              </GlassSelect>
             </label>
           )}
           <div className="grid grid-cols-3 gap-2">
             <input value={f.title} onChange={set('title')} placeholder="Title, e.g. Opening meeting" className={cn(input, 'col-span-2')} />
-            <select value={f.kind} onChange={set('kind')} className={input}>
+            <GlassSelect value={f.kind} onChange={set('kind')} className={input}>
               {kinds.map(k => <option key={k} value={k}>{KIND_LABEL[k]}</option>)}
-            </select>
+            </GlassSelect>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
@@ -316,10 +317,10 @@ export function MeetingFormModal({ open, onClose, meeting, workspaceId, onSaved 
             </label>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <select value={f.provider} onChange={set('provider')} className={input}>
+            <GlassSelect value={f.provider} onChange={set('provider')} className={input}>
               {Object.entries(PROVIDER_LABEL).filter(([k]) => k !== 'EMBEDDED' || calls.enabled || f.provider === 'EMBEDDED')
                 .map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
+            </GlassSelect>
             {f.provider === 'EMBEDDED' && (
               <p className="col-span-2 self-center text-[11px] text-text-muted">Invitees join from the meeting — no link needed.</p>
             )}
@@ -370,7 +371,12 @@ export function WorkspaceMeetingsTab({ workspaceId, archived, onOpen }) {
     queryFn: () => collabApi.workspaceMeetings(workspaceId),
   })
   const { data: optRaw } = useQuery({ queryKey: ['collab-meeting-options'], queryFn: () => collabApi.meetingOptions() })
-  const canSchedule = !!unwrapOne(optRaw)?.canSchedule && !archived
+  // Per workspace, not global: the options list only the workspaces where the
+  // caller may schedule (owner, MEMBER, or the meeting permission). A viewer
+  // here can still schedule elsewhere, so the global flag would mislead.
+  const optWorkspaces = unwrapOne(optRaw)?.workspaces
+  const canSchedule = !archived && Array.isArray(optWorkspaces)
+    && optWorkspaces.some(w => String(w.id) === String(workspaceId) && w.canSchedule !== false)
   const all = unwrapList(raw)
   const now = new Date()
   const upcoming = collapseSeries(all.filter(m => m.status === 'SCHEDULED' && new Date(m.endsAt || m.startsAt) >= now)
@@ -449,17 +455,17 @@ export function CallNowModal({ open, onClose, workspaceId, onStarted }) {
       }>
       <div className="space-y-3">
         {!workspaceId && (
-          <select value={wsId} onChange={e => { setWsId(e.target.value); setProgrammeId(''); setPicked([]) }} className={input}>
+          <GlassSelect value={wsId} onChange={e => { setWsId(e.target.value); setProgrammeId(''); setPicked([]) }} className={input}>
             {opts.canScheduleInternal && <option value="">Internal — my organisation only</option>}
             {!opts.canScheduleInternal && <option value="" disabled>Choose a workspace</option>}
             {workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-          </select>
+          </GlassSelect>
         )}
         {wsId && programmes.length > 0 && (
-          <select value={programmeId} onChange={e => { setProgrammeId(e.target.value); setPicked([]) }} className={input}>
+          <GlassSelect value={programmeId} onChange={e => { setProgrammeId(e.target.value); setPicked([]) }} className={input}>
             <option value="">Whole workspace</option>
             {programmes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </GlassSelect>
         )}
         <input value={title} onChange={e => setTitle(e.target.value)} placeholder="What about? (optional)" className={input} />
         <div>
@@ -478,7 +484,7 @@ export function CallNowModal({ open, onClose, workspaceId, onStarted }) {
 export function Section({ title, empty, children, actions }) {
   const has = Array.isArray(children) ? children.length > 0 : !!children
   return (
-    <div className="rounded-card border border-border bg-surface-raised">
+    <div className="rounded-card border border-border glass-card">
       <div className="px-4 py-2 border-b border-border-subtle flex items-center justify-between">
         <p className="text-xs font-medium text-text-secondary flex items-center gap-1.5"><Calendar size={12} /> {title}</p>
         {actions}

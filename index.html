@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="light" data-brand="sage">
+<html lang="en" data-theme="light" data-brand="kashi">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" id="favicon-link" href="/favicon.svg" />
@@ -9,22 +9,34 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
-      /* ══ Calm v3 tokens — RGB triplets, consumed as rgb(var(--x) / <alpha>) ══ */
+      /* ══ Calm v4 tokens — RGB triplets, consumed as rgb(var(--x) / <alpha>) ══
 
-      /* ── Brand scale — pastel Sage default; applyBrandPreset()/tenant
-            branding overrides at runtime ── */
+         These are the STATIC defaults (Kashi Purple, #936EC8). At runtime
+         src/lib/themeEngine.js generates the full light + dark token set for
+         whatever colour the user/tenant chose and writes it into
+         <style id="kashi-theme-vars">, which comes later in <head> and wins.
+         Nothing writes brand/mesh tokens as inline styles any more — inline
+         styles outrank [data-theme="dark"] and were the cause of the bright
+         pastel wash and pastel buttons in dark mode. */
+
+      /* ── Brand scale — Kashi Purple default ── */
       :root {
-        --color-brand-50:  249 252 250;
-        --color-brand-100: 239 247 242;
-        --color-brand-200: 227 241 233;
-        --color-brand-300: 211 234 220;
-        --color-brand-400: 193 225 206;
-        --color-brand-500: 175 216 192;   /* #AFD8C0 pastel sage */
-        --color-brand-600: 145 180 163;
-        --color-brand-700: 116 144 134;
-        --color-brand-800:  86 107 105;
-        --color-brand-900:  60  75  79;   /* deep sage ink — text on pastel */
-        --color-accent:      2 195 154;   /* mint */
+        --color-brand-50:  245 243 250;
+        --color-brand-100: 231 224 242;
+        --color-brand-200: 213 201 232;
+        --color-brand-300: 189 171 218;
+        --color-brand-400: 161 136 203;
+        --color-brand-500: 135 102 188;   /* #936EC8 nudged to clear AA with white */
+        --color-brand-600: 113  86 160;
+        --color-brand-700:  90  71 131;
+        --color-brand-800:  68  55 103;
+        --color-brand-900:  45  39  74;
+        /* Text/icons ON a solid brand-500 surface. White for a saturated seed,
+           a deep same-hue ink for pastels — themeEngine decides per seed. */
+        --color-brand-on:  255 255 255;
+        /* Progress fills, dots, indicators — ≥ 3:1 against the track. */
+        --color-brand-fill: 135 102 188;
+        --color-accent:     135 102 188;
 
         /* Shape */
         --radius-badge: 999px;
@@ -58,158 +70,224 @@
       /* ── LIGHT theme (default) ── */
       :root,
       [data-theme="light"] {
-        /* Brand INK — brand-coloured text/icons. Flips per theme so the same
-           class reads on white cards AND on dark surfaces. Never use a raw
-           light shade (brand-300/400) as text: on a pastel scale it is
-           invisible on light backgrounds. */
-        --color-brand-ink: var(--color-brand-800);
+        /* Brand INK — brand-coloured text/icons on neutral surfaces. */
+        --color-brand-ink: 113 86 160;
         --color-surface:         247 249 251;
         --color-surface-raised:  255 255 255;
         --color-surface-overlay: 241 244 248;
         --color-surface-inset:   237 241 245;
-        --color-border:          232 237 242;
-        --color-border-subtle:   239 242 246;
-        --color-border-strong:   198 208 220;
+        --color-border:          226 232 239;
+        --color-border-subtle:   236 240 245;
+        --color-border-strong:   190 201 214;
         --color-text-primary:     22  40  60;
-        --color-text-secondary:   60  79 102;
-        --color-text-muted:      100 119 142;
-        --color-text-faint:      113 131 155;
+        --color-text-secondary:   55  73  96;
+        /* muted/faint darkened: the old values measured 4.16:1 and 3.51:1 on
+           surface-overlay — placeholders, meta text and table captions were
+           failing AA across the app. */
+        --color-text-muted:       84 102 126;
+        --color-text-faint:       90 107 131;
         --color-text-inverse:    255 255 255;
         --color-sidebar:         255 255 255;
         --scrollbar-color:       203 213 225;
 
-        --color-status-pass-bg: 228 244 234; --color-status-pass-fg:  23 113  73;
-        --color-status-fail-bg: 252 234 234; --color-status-fail-fg: 179  49  47;
-        --color-status-warn-bg: 251 241 220; --color-status-warn-fg: 150  97  10;
-        --color-status-info-bg: 226 241 243; --color-status-info-fg:  14 109 119;
-        --color-status-pending-bg: 238 241 245; --color-status-pending-fg: 85 100 122;
-        --color-status-tag-bg:  238 236 248; --color-status-tag-fg:   93  79 179;
+        --color-status-pass-bg: 226 244 233; --color-status-pass-fg:  19 104  66;
+        --color-status-fail-bg: 252 233 233; --color-status-fail-fg: 168  38  36;
+        --color-status-warn-bg: 252 241 217; --color-status-warn-fg: 133  83   6;
+        --color-status-info-bg: 224 241 244; --color-status-info-fg:  11  99 108;
+        --color-status-pending-bg: 237 241 245; --color-status-pending-fg: 75 90 112;
+        --color-status-tag-bg:  239 236 249; --color-status-tag-fg:   88  72 172;
 
         --shadow-elevated: 0 1px 2px rgb(14 31 51 / .05), 0 4px 14px rgb(14 31 51 / .06);
         --shadow-hover:    0 2px 4px rgb(14 31 51 / .06), 0 10px 24px rgb(14 31 51 / .09);
         --shadow-overlay:  0 12px 40px rgb(14 31 51 / .16);
 
-        --glass-bg:    rgb(255 255 255 / .66);
-        --glass-bg-hi: rgb(255 255 255 / .82);
-        --glass-bd:    rgb(255 255 255 / .75);
-        --glass-blur:  18px;
-        /* Frosted content cards (Option B) — translucent so the wash shows
-           through, but opaque enough to keep dense text readable. */
-        --card-bg:     rgb(255 255 255 / .48);
-        --card-bd:     rgb(255 255 255 / .65);
-        --card-blur:   18px;
-        /* Frosted form fields — translucent so they sit ON the glass card
-           instead of punching an opaque white hole in it. */
-        --field-bg:      rgb(255 255 255 / .45);
-        --field-bd:      rgb(255 255 255 / .55);
-        --field-bg-focus:rgb(255 255 255 / .80);
-        --field-blur:    12px;
+        /* Glass — frosted in light mode. Fill opacity is what keeps text
+           readable over the wash (checked: muted text ≥ 4.5:1 on a card over
+           the wash centre for every preset). */
+        --glass-bg:    rgb(255 255 255 / .64);
+        --glass-bg-hi: rgb(255 255 255 / .84);
+        --glass-bd:    rgb(255 255 255 / .72);
+        --glass-blur:  24px;
+        --overlay-blur: 28px;
+        --glass-hl:    inset 0 1px 0 rgb(255 255 255 / .9), inset 0 0 0 1px rgb(255 255 255 / .22);
+        --card-bg:     rgb(255 255 255 / .62);
+        --card-bd:     rgb(255 255 255 / .75);
+        --card-blur:   24px;
+        --inset-bg:    rgb(255 255 255 / .5);
+        --inset-bd:    rgb(255 255 255 / .65);
+        /* Fields: frosted, recessed — translucent fill, inner shadow for
+           depth, a white top highlight, and a brand glow on focus. */
+        --field-bg:      rgb(255 255 255 / .46);
+        --field-bd:      rgb(var(--color-border-strong) / .6);
+        --field-bd-hover:rgb(var(--color-border-strong) / .95);
+        --field-bg-focus:rgb(255 255 255 / .82);
+        --field-bg-in-overlay: rgb(255 255 255 / .62);
+        --field-blur:    14px;
+        --field-shadow:  inset 0 1px 2px rgb(14 31 51 / .07), inset 0 -1px 0 rgb(255 255 255 / .55);
+        --field-shadow-focus: 0 0 0 3px rgb(var(--color-brand-500) / .2), inset 0 1px 2px rgb(14 31 51 / .05);
+        --button-glass-bg:       rgb(255 255 255 / .62);
+        --button-glass-bd:       rgb(var(--color-border-strong) / .6);
+        --button-glass-bg-hover: rgb(255 255 255 / .88);
       }
 
-      /* ── DARK theme ── */
+      /* ── DARK theme ──
+         Static fallback = Kashi Purple dark. themeEngine regenerates every
+         neutral below from the active theme's own hue at runtime. Glass is
+         near-opaque here on purpose: translucent cards over a coloured wash
+         were the "too bright, can't read" complaint. */
       [data-theme="dark"] {
-        --color-brand-ink: var(--color-brand-300);
-        --color-surface:          15  27  41;
-        --color-surface-raised:   21  36  53;
-        --color-surface-overlay:  28  46  66;
-        --color-surface-inset:    18  32  49;
-        --color-border:           36  55  76;
-        --color-border-subtle:    26  42  60;
-        --color-border-strong:    53  80 107;
-        --color-text-primary:    233 239 246;
-        --color-text-secondary:  188 201 216;
-        --color-text-muted:      132 150 171;
-        --color-text-faint:       93 113 136;
-        --color-text-inverse:     15  27  41;
-        --color-sidebar:          10  15  30;
-        --scrollbar-color:        51  65  85;
+        --color-brand-50:  236 229 245; --color-brand-100: 216 203 235;
+        --color-brand-200: 192 170 223; --color-brand-300: 170 140 212;
+        --color-brand-400: 145 107 199; --color-brand-500: 123  78 188;
+        --color-brand-600: 108  65 170; --color-brand-700:  91  55 144;
+        --color-brand-800:  47  30  72; --color-brand-900:  33  22  49;
+        --color-brand-on:  247 244 251;
+        --color-brand-ink: 199 175 233;
+        --color-brand-fill: 145 107 199;
+        --color-accent:     145 107 199;
+        --color-surface:          19  16  22;
+        --color-surface-raised:   26  23  31;
+        --color-surface-overlay:  35  31  41;
+        --color-surface-inset:    15  13  18;
+        --color-border:           50  44  58;
+        --color-border-subtle:    37  33  44;
+        --color-border-strong:    75  65  88;
+        --color-text-primary:    239 237 242;
+        --color-text-secondary:  205 200 213;
+        --color-text-muted:      172 164 182;
+        --color-text-faint:      146 138 158;
+        --color-text-inverse:     19  16  22;
+        --color-sidebar:          14  12  16;
+        --scrollbar-color:        67  59  79;
+        --sidebar-dark: rgb(12 11 15);
 
-        --color-status-pass-bg:  21  56  38; --color-status-pass-fg: 138 211 166;
-        --color-status-fail-bg:  61  30  32; --color-status-fail-fg: 235 162 162;
-        --color-status-warn-bg:  59  44  18; --color-status-warn-fg: 231 193 121;
-        --color-status-info-bg:  18  51  57; --color-status-info-fg: 133 203 211;
-        --color-status-pending-bg: 30 44 61; --color-status-pending-fg: 174 188 206;
-        --color-status-tag-bg:   40  35  73; --color-status-tag-fg:  188 177 238;
+        /* Status pills are SOLID deep tints with light ink (≥ 6:1). */
+        --color-status-pass-bg:  20  52  37; --color-status-pass-fg: 142 216 170;
+        --color-status-fail-bg:  64  27  30; --color-status-fail-fg: 246 170 168;
+        --color-status-warn-bg:  60  44  14; --color-status-warn-fg: 240 200 120;
+        --color-status-info-bg:  16  48  55; --color-status-info-fg: 140 210 220;
+        --color-status-pending-bg: 40 38 48; --color-status-pending-fg: 190 186 200;
+        --color-status-tag-bg:   44  36  76; --color-status-tag-fg:  196 184 244;
 
-        --shadow-elevated: 0 1px 2px rgb(0 0 0 / .3), 0 4px 14px rgb(0 0 0 / .25);
-        --shadow-hover:    0 2px 4px rgb(0 0 0 / .3), 0 10px 24px rgb(0 0 0 / .35);
-        --shadow-overlay:  0 16px 44px rgb(0 0 0 / .5);
+        --shadow-elevated: 0 1px 2px rgb(0 0 0 / .35), 0 4px 14px rgb(0 0 0 / .3);
+        --shadow-hover:    0 2px 4px rgb(0 0 0 / .35), 0 10px 24px rgb(0 0 0 / .4);
+        --shadow-overlay:  0 16px 44px rgb(0 0 0 / .55);
 
-        --glass-bg:    rgb(16 30 46 / .62);
-        --glass-bg-hi: rgb(16 30 46 / .82);
+        /* Dark glass: tinted, translucent, blurred — over the dim hue wash,
+           so it never glows. Every composite stays dark, so light text keeps
+           ≥ 7:1 regardless of what is behind the card. */
+        --glass-bg:    rgb(var(--color-surface-raised) / .74);
+        --glass-bg-hi: rgb(var(--color-surface-raised) / .9);
         --glass-bd:    rgb(255 255 255 / .08);
-        --card-bg:     rgb(21 36 53 / .55);
+        --glass-blur:  24px;
+        --overlay-blur: 28px;
+        --glass-hl:    inset 0 1px 0 rgb(255 255 255 / .07), inset 0 0 0 1px rgb(255 255 255 / .02);
+        --card-bg:     rgb(var(--color-surface-raised) / .62);
         --card-bd:     rgb(255 255 255 / .07);
-        --card-blur:   16px;
-        --field-bg:      rgb(12 20 32 / .45);
-        --field-bd:      rgb(255 255 255 / .08);
-        --field-bg-focus:rgb(12 20 32 / .80);
-        --field-blur:    12px;
+        --card-blur:   24px;
+        --inset-bg:    rgb(255 255 255 / .035);
+        --inset-bd:    rgb(255 255 255 / .06);
+        --field-bg:      rgb(var(--color-surface-inset) / .5);
+        --field-bd:      rgb(255 255 255 / .1);
+        --field-bd-hover:rgb(255 255 255 / .2);
+        --field-bg-focus:rgb(var(--color-surface-inset) / .78);
+        --field-bg-in-overlay: rgb(var(--color-surface-inset) / .6);
+        --field-blur:    14px;
+        --field-shadow:  inset 0 1px 2px rgb(0 0 0 / .35), inset 0 -1px 0 rgb(255 255 255 / .04);
+        --field-shadow-focus: 0 0 0 3px rgb(var(--color-brand-400) / .25), inset 0 1px 2px rgb(0 0 0 / .3);
+        --button-glass-bg:       rgb(255 255 255 / .05);
+        --button-glass-bd:       rgb(255 255 255 / .1);
+        --button-glass-bg-hover: rgb(255 255 255 / .09);
 
-        --mesh-1:#12211F; --mesh-2:#111A26; --mesh-3:#141E2C; --mesh-4:#181826;
+        /* Charts — lifted so series separate from a dark plot area. */
+        --chart-1:#4FB8C1; --chart-2:#8FA9D3; --chart-3:#3DDBB4; --chart-4:#E3A75C;
+        --chart-5:#B49BE0; --chart-6:#E08E99; --chart-7:#86B3DB; --chart-8:#B9BC8C;
+
+        --mesh-1: rgb(45 27 70); --mesh-2: rgb(33 24 45);
+        --mesh-3: rgb(49 27 52); --mesh-4: rgb(24 24 40);
       }
 
-      /* ── System theme follows OS ── */
+      /* ── LIGHT mesh wash (default) ── */
+      :root, [data-theme="light"] {
+        --mesh-1: rgb(189 171 218);
+        --mesh-2: rgb(231 224 242);
+        --mesh-3: rgb(213 201 232);
+        --mesh-4: rgb(245 243 250);
+      }
+
+      /* ── System theme follows OS (dark branch; light falls through to :root) ── */
       @media (prefers-color-scheme: dark) {
         [data-theme="system"] {
-          --color-brand-ink: var(--color-brand-300);
-          --color-surface:15 27 41; --color-surface-raised:21 36 53;
-          --color-surface-overlay:28 46 66; --color-surface-inset:18 32 49;
-          --color-border:36 55 76; --color-border-subtle:26 42 60; --color-border-strong:53 80 107;
-          --color-text-primary:233 239 246; --color-text-secondary:188 201 216;
-          --color-text-muted:132 150 171; --color-text-faint:93 113 136;
-          --color-text-inverse:15 27 41; --color-sidebar:10 15 30; --scrollbar-color:51 65 85;
-          --color-status-pass-bg:21 56 38; --color-status-pass-fg:138 211 166;
-          --color-status-fail-bg:61 30 32; --color-status-fail-fg:235 162 162;
-          --color-status-warn-bg:59 44 18; --color-status-warn-fg:231 193 121;
-          --color-status-info-bg:18 51 57; --color-status-info-fg:133 203 211;
-          --color-status-pending-bg:30 44 61; --color-status-pending-fg:174 188 206;
-          --color-status-tag-bg:40 35 73; --color-status-tag-fg:188 177 238;
-          --shadow-elevated:0 1px 2px rgb(0 0 0 / .3),0 4px 14px rgb(0 0 0 / .25);
-          --shadow-hover:0 2px 4px rgb(0 0 0 / .3),0 10px 24px rgb(0 0 0 / .35);
-          --shadow-overlay:0 16px 44px rgb(0 0 0 / .5);
-          --glass-bg:rgb(16 30 46 / .62); --glass-bg-hi:rgb(16 30 46 / .82); --glass-bd:rgb(255 255 255 / .08);
-          --card-bg:rgb(21 36 53 / .55); --card-bd:rgb(255 255 255 / .07); --card-blur:16px;
-          --field-bg:rgb(12 20 32 / .45); --field-bd:rgb(255 255 255 / .08); --field-bg-focus:rgb(12 20 32 / .80); --field-blur:12px;
-          --mesh-1:#12211F; --mesh-2:#111A26; --mesh-3:#141E2C; --mesh-4:#181826;
-        }
-      }
-      @media (prefers-color-scheme: light) {
-        [data-theme="system"] {
-          --color-brand-ink: var(--color-brand-800);
-          --color-surface:247 249 251; --color-surface-raised:255 255 255;
-          --color-surface-overlay:241 244 248; --color-surface-inset:237 241 245;
-          --color-border:232 237 242; --color-border-subtle:239 242 246; --color-border-strong:198 208 220;
-          --color-text-primary:22 40 60; --color-text-secondary:60 79 102;
-          --color-text-muted:100 119 142; --color-text-faint:113 131 155;
-          --color-text-inverse:255 255 255; --color-sidebar:255 255 255; --scrollbar-color:203 213 225;
-          --color-status-pass-bg:228 244 234; --color-status-pass-fg:23 113 73;
-          --color-status-fail-bg:252 234 234; --color-status-fail-fg:179 49 47;
-          --color-status-warn-bg:251 241 220; --color-status-warn-fg:150 97 10;
-          --color-status-info-bg:226 241 243; --color-status-info-fg:14 109 119;
-          --color-status-pending-bg:238 241 245; --color-status-pending-fg:85 100 122;
-          --color-status-tag-bg:238 236 248; --color-status-tag-fg:93 79 179;
-          --shadow-elevated:0 1px 2px rgb(14 31 51 / .05),0 4px 14px rgb(14 31 51 / .06);
-          --shadow-hover:0 2px 4px rgb(14 31 51 / .06),0 10px 24px rgb(14 31 51 / .09);
-          --shadow-overlay:0 12px 40px rgb(14 31 51 / .16);
-          --glass-bg:rgb(255 255 255 / .66); --glass-bg-hi:rgb(255 255 255 / .82); --glass-bd:rgb(255 255 255 / .75);
-          --card-bg:rgb(255 255 255 / .55); --card-bd:rgb(255 255 255 / .70); --card-blur:16px;
-          --field-bg:rgb(255 255 255 / .45); --field-bd:rgb(255 255 255 / .55); --field-bg-focus:rgb(255 255 255 / .80); --field-blur:12px;
-          --mesh-1:#9BD3B8; --mesh-2:#C5E4D2; --mesh-3:#DCEBF4; --mesh-4:#E8E4F5;
-        }
-      }
+        --color-brand-50:  236 229 245; --color-brand-100: 216 203 235;
+        --color-brand-200: 192 170 223; --color-brand-300: 170 140 212;
+        --color-brand-400: 145 107 199; --color-brand-500: 123  78 188;
+        --color-brand-600: 108  65 170; --color-brand-700:  91  55 144;
+        --color-brand-800:  47  30  72; --color-brand-900:  33  22  49;
+        --color-brand-on:  247 244 251;
+        --color-brand-ink: 199 175 233;
+        --color-brand-fill: 145 107 199;
+        --color-accent:     145 107 199;
+        --color-surface:          19  16  22;
+        --color-surface-raised:   26  23  31;
+        --color-surface-overlay:  35  31  41;
+        --color-surface-inset:    15  13  18;
+        --color-border:           50  44  58;
+        --color-border-subtle:    37  33  44;
+        --color-border-strong:    75  65  88;
+        --color-text-primary:    239 237 242;
+        --color-text-secondary:  205 200 213;
+        --color-text-muted:      172 164 182;
+        --color-text-faint:      146 138 158;
+        --color-text-inverse:     19  16  22;
+        --color-sidebar:          14  12  16;
+        --scrollbar-color:        67  59  79;
+        --sidebar-dark: rgb(12 11 15);
 
-      /* ── Mesh wash colours ──────────────────────────────────────────
-         DEDICATED colours, deeper than the button pastel. Glassmorphism
-         needs real depth behind it (2026 best practice); the button scale
-         is too near-white to register. A 4-blob mesh covers the whole
-         viewport, so there is no white centre on wide screens.
-         mesh-1 leans brand, the rest are harmonised neighbours. */
-      :root, [data-theme="light"], [data-theme="system"] {
-        --mesh-1: #9BD3B8;  /* brand-leaning green */
-        --mesh-2: #C5E4D2;  /* soft mint           */
-        --mesh-3: #DCEBF4;  /* cool blue tint      */
-        --mesh-4: #E8E4F5;  /* faint lilac         */
+        /* Status pills are SOLID deep tints with light ink (≥ 6:1). */
+        --color-status-pass-bg:  20  52  37; --color-status-pass-fg: 142 216 170;
+        --color-status-fail-bg:  64  27  30; --color-status-fail-fg: 246 170 168;
+        --color-status-warn-bg:  60  44  14; --color-status-warn-fg: 240 200 120;
+        --color-status-info-bg:  16  48  55; --color-status-info-fg: 140 210 220;
+        --color-status-pending-bg: 40 38 48; --color-status-pending-fg: 190 186 200;
+        --color-status-tag-bg:   44  36  76; --color-status-tag-fg:  196 184 244;
+
+        --shadow-elevated: 0 1px 2px rgb(0 0 0 / .35), 0 4px 14px rgb(0 0 0 / .3);
+        --shadow-hover:    0 2px 4px rgb(0 0 0 / .35), 0 10px 24px rgb(0 0 0 / .4);
+        --shadow-overlay:  0 16px 44px rgb(0 0 0 / .55);
+
+        /* Dark glass: tinted, translucent, blurred — over the dim hue wash,
+           so it never glows. Every composite stays dark, so light text keeps
+           ≥ 7:1 regardless of what is behind the card. */
+        --glass-bg:    rgb(var(--color-surface-raised) / .74);
+        --glass-bg-hi: rgb(var(--color-surface-raised) / .9);
+        --glass-bd:    rgb(255 255 255 / .08);
+        --glass-blur:  24px;
+        --overlay-blur: 28px;
+        --glass-hl:    inset 0 1px 0 rgb(255 255 255 / .07), inset 0 0 0 1px rgb(255 255 255 / .02);
+        --card-bg:     rgb(var(--color-surface-raised) / .62);
+        --card-bd:     rgb(255 255 255 / .07);
+        --card-blur:   24px;
+        --inset-bg:    rgb(255 255 255 / .035);
+        --inset-bd:    rgb(255 255 255 / .06);
+        --field-bg:      rgb(var(--color-surface-inset) / .5);
+        --field-bd:      rgb(255 255 255 / .1);
+        --field-bd-hover:rgb(255 255 255 / .2);
+        --field-bg-focus:rgb(var(--color-surface-inset) / .78);
+        --field-bg-in-overlay: rgb(var(--color-surface-inset) / .6);
+        --field-blur:    14px;
+        --field-shadow:  inset 0 1px 2px rgb(0 0 0 / .35), inset 0 -1px 0 rgb(255 255 255 / .04);
+        --field-shadow-focus: 0 0 0 3px rgb(var(--color-brand-400) / .25), inset 0 1px 2px rgb(0 0 0 / .3);
+        --button-glass-bg:       rgb(255 255 255 / .05);
+        --button-glass-bd:       rgb(255 255 255 / .1);
+        --button-glass-bg-hover: rgb(255 255 255 / .09);
+
+        /* Charts — lifted so series separate from a dark plot area. */
+        --chart-1:#4FB8C1; --chart-2:#8FA9D3; --chart-3:#3DDBB4; --chart-4:#E3A75C;
+        --chart-5:#B49BE0; --chart-6:#E08E99; --chart-7:#86B3DB; --chart-8:#B9BC8C;
+
+        --mesh-1: rgb(45 27 70); --mesh-2: rgb(33 24 45);
+        --mesh-3: rgb(49 27 52); --mesh-4: rgb(24 24 40);
+        }
       }
 
       /* ── Alias layer: short names used by policy styles, reports,
@@ -241,6 +319,9 @@
 
       * { box-sizing: border-box; margin: 0; padding: 0; }
       html, body, #root { height: 100%; }
+      html { color-scheme: light; }
+      html[data-theme="dark"] { color-scheme: dark; }
+      @media (prefers-color-scheme: dark) { html[data-theme="system"] { color-scheme: dark; } }
       body {
         font-family: 'Albert Sans', system-ui, sans-serif;
         background:
@@ -255,23 +336,24 @@
         font-feature-settings: 'tnum' 1;
       }
 
-      /* Dark theme: tighter, dimmer mesh so text-bearing centre stays dark.
-         Corner blobs only, fading fast, low spread. */
-      [data-theme="dark"] body,
+      /* Dark theme: four dim glows in the theme's own hue. Deep enough that
+         nothing glares; present enough that frosted glass reads as glass. */
       html[data-theme="dark"] body {
         background:
-          radial-gradient(38% 42% at 8% 4%,   var(--mesh-1), transparent 55%),
-          radial-gradient(34% 38% at 94% 10%, var(--mesh-3), transparent 52%),
-          radial-gradient(42% 46% at 78% 98%, var(--mesh-2), transparent 55%),
+          radial-gradient(48% 52% at 8% 4%,   var(--mesh-1), transparent 66%),
+          radial-gradient(42% 46% at 94% 12%, var(--mesh-3), transparent 64%),
+          radial-gradient(50% 55% at 76% 98%, var(--mesh-2), transparent 66%),
+          radial-gradient(38% 42% at 22% 86%, var(--mesh-4), transparent 62%),
           rgb(var(--color-surface));
         background-attachment: fixed;
       }
       @media (prefers-color-scheme: dark) {
-        [data-theme="system"] body {
+        html[data-theme="system"] body {
           background:
-            radial-gradient(38% 42% at 8% 4%,   var(--mesh-1), transparent 55%),
-            radial-gradient(34% 38% at 94% 10%, var(--mesh-3), transparent 52%),
-            radial-gradient(42% 46% at 78% 98%, var(--mesh-2), transparent 55%),
+            radial-gradient(48% 52% at 8% 4%,   var(--mesh-1), transparent 66%),
+            radial-gradient(42% 46% at 94% 12%, var(--mesh-3), transparent 64%),
+            radial-gradient(50% 55% at 76% 98%, var(--mesh-2), transparent 66%),
+            radial-gradient(38% 42% at 22% 86%, var(--mesh-4), transparent 62%),
             rgb(var(--color-surface));
           background-attachment: fixed;
         }
@@ -281,58 +363,70 @@
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: rgb(var(--scrollbar-color)); border-radius: 3px; }
-      ::-webkit-scrollbar-thumb:hover { background: rgb(var(--color-border)); }
+      ::-webkit-scrollbar-thumb:hover { background: rgb(var(--color-border-strong)); }
     </style>
     <script>
-      /* One-time theme migration — runs before ANY module (useTheme reads
-         localStorage at import time, so this must be an inline head script).
-
-         Bump VERSION to force a fresh reset for every user again later. */
       (function () {
+        /* One-time theme migration — runs before ANY module (useTheme reads
+           localStorage at import time, so this must be an inline head script).
+
+           Only a browser that carries PRE-v3 theme keys is reset. The old
+           version of this block also fired on every brand-new browser — so a
+           user signing in on a new laptop had the theme they had saved pushed
+           back to the defaults in the database. A fresh browser is now just
+           stamped with the current version. */
         var KEY = 'kashi_theme_migration', VERSION = 'v3-calm-2';
         try {
-          if (localStorage.getItem(KEY) !== VERSION) {
-            ['kashi_theme', 'kashi_sidebar_theme',
-             'kashi_brand_preset'].forEach(function (k) { localStorage.removeItem(k) });
+          var seen = localStorage.getItem(KEY);
+          if (seen !== VERSION) {
+            var legacy = seen !== null ||
+              localStorage.getItem('kashi_theme') !== null ||
+              localStorage.getItem('kashi_sidebar_theme') !== null;
+            if (legacy) {
+              ['kashi_theme', 'kashi_sidebar_theme',
+               'kashi_brand_preset'].forEach(function (k) { localStorage.removeItem(k) });
+              /* The DB holds pre-v3 prefs and bootstrap would restore them;
+                 this flag tells useUIConfig to PUSH the new defaults up once. */
+              localStorage.setItem('kashi_theme_reset_pending', '1');
+            }
             localStorage.setItem(KEY, VERSION);
-            /* Clearing localStorage is not enough: the DB holds pre-v3 prefs
-               (ui_app_theme etc.) and bootstrap would restore them ~300ms in.
-               This flag tells useUIConfig to PUSH the new defaults up once. */
-            localStorage.setItem('kashi_theme_reset_pending', '1');
           }
         } catch (e) {}
 
-        /* Paint the saved brand preset BEFORE React renders, to stop a flash of
-           the default sage/white sidebar + mesh on reload. Mirrors
-           scaleFromHex() + applyBrandPreset() in brandPresets.js. The bundle
-           re-applies the same values a moment later (idempotent). */
+        /* One-time brand reset for this release: everyone back to Kashi
+           Purple. Clears only this browser's cached COLOUR (not light/dark or
+           sidebar style); the matching server-side reset is
+           db/one-off/2026-10-22-reset-brand-colour-to-kashi-purple.sql.
+           A colour picked after this runs is saved normally and persists —
+           the version stamp means it is never cleared again. Bump
+           BRAND_RESET_VERSION to repeat this in a future release. */
+        var BRAND_RESET_KEY = 'kashi_brand_reset', BRAND_RESET_VERSION = 'kashi-purple-2026-10';
         try {
-          var PRESETS = {
-            sage:'#AFD8C0', mint:'#A9E2D2', seafoam:'#A5DDE0', sky:'#B9D4F0',
-            periwinkle:'#C0C8F2', lilac:'#D3C8F0', mauve:'#E2C4E6', blush:'#F2C3D2',
-            coral:'#F3C1B8', peach:'#F5CFA9', butter:'#F0DFA8', pistachio:'#CFE3A9'
-          };
+          if (localStorage.getItem(BRAND_RESET_KEY) !== BRAND_RESET_VERSION) {
+            ['kashi_brand_preset', 'kashi_sidebar_color', 'kashi_theme_css', 'kashi_theme_seed']
+              .forEach(function (k) { localStorage.removeItem(k) });
+            localStorage.setItem(BRAND_RESET_KEY, BRAND_RESET_VERSION);
+          }
+        } catch (e) {}
+
+        /* Paint the user's theme BEFORE React renders (no flash on reload).
+           src/lib/themeEngine.js caches the exact stylesheet it generated;
+           we inject it verbatim, so there is no second copy of the colour
+           maths to drift out of sync. No cache yet → the static Kashi Purple
+           defaults above apply until the bundle paints. */
+        try {
+          var css = localStorage.getItem('kashi_theme_css');
+          if (css) {
+            var el = document.createElement('style');
+            el.id = 'kashi-theme-vars';
+            el.textContent = css;
+            document.head.appendChild(el);
+          }
           var key = localStorage.getItem('kashi_brand_preset');
-          var hex = (key && PRESETS[key]) || localStorage.getItem('kashi_sidebar_color');
-          if (hex && /^#?[0-9a-fA-F]{6}$/.test(hex)) {
-            hex = hex.replace('#','');
-            var base = { r:parseInt(hex.slice(0,2),16), g:parseInt(hex.slice(2,4),16), b:parseInt(hex.slice(4,6),16) };
-            var white = { r:255,g:255,b:255 }, dark = { r:10,g:15,b:30 };
-            var lerp = function(a,b,t){ return Math.round(a+(b-a)*t) };
-            var mix = function(c1,c2,t){ return lerp(c1.r,c2.r,t)+' '+lerp(c1.g,c2.g,t)+' '+lerp(c1.b,c2.b,t) };
-            var scale = {
-              50:mix(base,white,0.92),100:mix(base,white,0.80),200:mix(base,white,0.65),
-              300:mix(base,white,0.45),400:mix(base,white,0.22),500:base.r+' '+base.g+' '+base.b,
-              600:mix(base,dark,0.18),700:mix(base,dark,0.36),800:mix(base,dark,0.54),900:mix(base,dark,0.70)
-            };
-            var root = document.documentElement;
-            for (var sh in scale) root.style.setProperty('--color-brand-'+sh, scale[sh]);
-            if (key) root.setAttribute('data-brand', key);
-            /* Light mesh follows the brand (same shades as applyBranding). */
-            root.style.setProperty('--mesh-1','rgb('+scale[400]+')');
-            root.style.setProperty('--mesh-2','rgb('+scale[200]+')');
-            root.style.setProperty('--mesh-3','rgb('+scale[300]+')');
-            root.style.setProperty('--mesh-4','rgb('+scale[100]+')');
+          if (key) document.documentElement.setAttribute('data-brand', key);
+          var t = localStorage.getItem('kashi_theme');
+          if (t === 'dark' || t === 'light' || t === 'system') {
+            document.documentElement.setAttribute('data-theme', t);
           }
         } catch (e) {}
       })();

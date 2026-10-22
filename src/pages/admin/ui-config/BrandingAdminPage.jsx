@@ -13,6 +13,7 @@ import { Card, CardHeader, CardBody } from '../../../components/ui/Card'
 import { Button }            from '../../../components/ui/Button'
 import { Input }             from '../../../components/ui/Input'
 import { cn }                from '../../../lib/cn'
+import { previewColors }     from '../../../lib/themeEngine'
 import toast                 from 'react-hot-toast'
 
 const SIDEBAR_THEMES = [
@@ -322,8 +323,8 @@ export default function BrandingAdminPage() {
                     </div>
                     {/* Button */}
                     <div className="h-4 rounded flex items-center justify-center"
-                      style={{ backgroundColor: form.primaryColor }}>
-                      <span className="text-[8px] text-on-dark font-medium">Action</span>
+                      style={{ backgroundColor: previewColors(form.primaryColor).solid }}>
+                      <span className="text-[8px] font-medium" style={{ color: previewColors(form.primaryColor).on }}>Action</span>
                     </div>
                   </div>
                 </div>
@@ -358,12 +359,14 @@ export default function BrandingAdminPage() {
 
               {/* Sample UI elements */}
               <div className="flex flex-col gap-2">
-                <div className="h-7 rounded-ctl flex items-center justify-center text-xs text-on-dark font-medium"
-                  style={{ backgroundColor: form.primaryColor }}>
+                {/* Same contrast-solved pair the theme engine will paint — the
+                    old white label vanished on every pastel preset. */}
+                <div className="h-7 rounded-ctl flex items-center justify-center text-xs font-medium"
+                  style={{ backgroundColor: previewColors(form.primaryColor).solid, color: previewColors(form.primaryColor).on }}>
                   Primary Button
                 </div>
                 <div className="h-7 rounded-ctl border flex items-center justify-center text-xs font-medium"
-                  style={{ borderColor: form.primaryColor, color: form.primaryColor }}>
+                  style={{ borderColor: form.primaryColor, color: previewColors(form.primaryColor).ink }}>
                   Secondary Button
                 </div>
                 <div className="h-7 rounded-ctl flex items-center px-3 text-xs"
@@ -399,7 +402,7 @@ function ColorPicker({ label, value, onChange }) {
             style={{ backgroundColor: value }} />
         </div>
         <input value={value} onChange={e => onChange(e.target.value)}
-          className="h-9 flex-1 rounded-card border border-border bg-surface-raised px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="h-9 flex-1 rounded-card border border-border glass-card px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
     </div>
   )

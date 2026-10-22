@@ -13,6 +13,7 @@ import { RoomModal } from '../../components/collab/Rooms'
 import { joinRoomCall } from '../../components/collab/call/callStore'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 /**
  * Collaboration › Room — a standing call room: who is in it now, its members,
@@ -144,9 +145,9 @@ function ScheduleModal({ open, room, onClose, onDone }) {
             <input type="time" value={f.end} onChange={set('end')} className={cn(input, 'mt-1 px-2')} /></label>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <select value={f.repeat} onChange={set('repeat')} className={input}>
+          <GlassSelect value={f.repeat} onChange={set('repeat')} className={input}>
             {REPEATS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          </select>
+          </GlassSelect>
           {f.repeat !== 'NONE' && (
             <label className="flex items-center gap-2"><span className="text-xs text-text-secondary whitespace-nowrap">until</span>
               <input type="date" value={f.until} onChange={set('until')} className={cn(input, 'px-2')} /></label>

@@ -84,7 +84,7 @@ export function MediaPicker({ open, onClose, onSelect, currentId = null }) {
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="flex w-full items-center justify-center gap-2 rounded-ctl border border-dashed border-border py-6 text-sm text-text-secondary transition-colors hover:border-brand-500 hover:text-brand-900"
+              className="flex w-full items-center justify-center gap-2 rounded-ctl border border-dashed border-border py-6 text-sm text-text-secondary transition-colors hover:border-brand-500 hover:text-brand-ink"
             >
               <Upload size={15} /> Choose an image or document
             </button>
@@ -110,7 +110,7 @@ export function MediaPicker({ open, onClose, onSelect, currentId = null }) {
                 <button
                   type="button"
                   onClick={() => inputRef.current?.click()}
-                  className="flex shrink-0 items-center gap-1 rounded-ctl border border-border px-2 py-1 text-[11.5px] text-text-secondary transition-colors hover:border-brand-500 hover:text-brand-900"
+                  className="flex shrink-0 items-center gap-1 rounded-ctl border border-border px-2 py-1 text-[11.5px] text-text-secondary transition-colors hover:border-brand-500 hover:text-brand-ink"
                 >
                   <Upload size={11} /> Replace file
                 </button>
@@ -240,7 +240,7 @@ function MediaTile({ asset, selected, onSelect, onDeleted, onUpdated }) {
 
   if (editing) {
     return (
-      <div className="col-span-2 flex flex-col gap-2 rounded-card border border-brand-800 p-2">
+      <div className="col-span-2 flex flex-col gap-2 rounded-card border border-brand-ink p-2">
         <Input label="Alt text" value={draft.altText} autoFocus
                onChange={(e) => setDraft({ ...draft, altText: e.target.value })} />
         <Input label="Caption" value={draft.caption}
@@ -259,7 +259,7 @@ function MediaTile({ asset, selected, onSelect, onDeleted, onUpdated }) {
       'group relative overflow-hidden rounded-card border',
       // The one already attached is marked. Opening the picker to replace
       // something showed a grid with nothing indicating your current choice.
-      selected ? 'border-brand-800 ring-1 ring-brand-800' : 'border-border'
+      selected ? 'border-brand-ink ring-1 ring-brand-ink' : 'border-border'
     )}>
       <button
         type="button"
@@ -278,7 +278,7 @@ function MediaTile({ asset, selected, onSelect, onDeleted, onUpdated }) {
       </button>
 
       {selected && (
-        <span className="absolute left-1 top-1 rounded-badge bg-brand-500 px-1.5 py-0.5 text-[10px] font-medium text-brand-900">
+        <span className="absolute left-1 top-1 rounded-badge bg-brand-500 px-1.5 py-0.5 text-[10px] font-medium text-brand-on">
           In use here
         </span>
       )}
@@ -288,7 +288,7 @@ function MediaTile({ asset, selected, onSelect, onDeleted, onUpdated }) {
         onClick={() => setEditing(true)}
         aria-label="Edit alt text"
         title="Edit alt text and caption"
-        className="absolute right-8 top-1 flex h-6 w-6 items-center justify-center rounded-badge bg-surface-overlay text-text-secondary opacity-0 transition-opacity group-hover:opacity-100 hover:text-brand-900"
+        className="absolute right-8 top-1 flex h-6 w-6 items-center justify-center rounded-badge bg-surface-overlay text-text-secondary opacity-0 transition-opacity group-hover:opacity-100 hover:text-brand-ink"
       >
         <Pencil size={11} />
       </button>

@@ -51,7 +51,7 @@ function ContributionPicker({ policyInstanceId, controlInstanceId, current, canE
         {cfg.label}{open?<ChevronUp size={7}/>:<ChevronDown size={7}/>}
       </button>
       {open && (
-        <div className="absolute top-full right-0 mt-1 w-32 bg-surface-raised border border-border rounded-card shadow-elevated z-50 py-1">
+        <div className="absolute top-full right-0 mt-1 w-32 glass-overlay border border-border rounded-card shadow-elevated z-50 py-1">
           {Object.entries(CONTRIBUTION).map(([k,v]) => (
             <button key={k} onClick={() => { mutate(k); setOpen(false) }}
               className={cn('w-full text-left px-3 py-1.5 text-[11px] hover:bg-surface-overlay', k===current?`${v.color} ${v.bg}`:'text-text-secondary')}>

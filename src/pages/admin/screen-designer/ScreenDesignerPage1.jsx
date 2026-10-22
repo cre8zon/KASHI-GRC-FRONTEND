@@ -58,6 +58,7 @@ import { cn }         from '../../../lib/cn'
 import api            from '../../../config/axios.config'
 import { useSelector } from 'react-redux'
 import toast          from 'react-hot-toast'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 // ─── Screen type definitions ──────────────────────────────────────────────────
 
@@ -516,7 +517,7 @@ export default function ScreenDesignerPage() {
         {/* Role simulator */}
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-[11px] text-text-muted">Preview as</span>
-          <select
+          <GlassSelect
             value={selectedRole}
             onChange={e => setSelectedRole(e.target.value)}
             className="h-7 px-2 text-[11px] bg-surface-overlay border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -535,7 +536,7 @@ export default function ScreenDesignerPage() {
               <option value="auditor">Auditor (REVIEW)</option>
               <option value="auditee">Auditee (FILL)</option>
             </optgroup>
-          </select>
+          </GlassSelect>
           {roleProfile?.sod && (
             <span className="text-[10px] px-2 py-0.5 rounded bg-status-fail-bg border border-status-fail-bd text-status-fail-fg font-medium">
               SoD active
@@ -594,7 +595,7 @@ export default function ScreenDesignerPage() {
                     className={cn(
                       'flex items-center gap-1.5 px-3 py-2.5 text-[11px] font-medium border-b-2 -mb-px transition-colors',
                       activeTab === key
-                        ? 'border-brand-400 text-brand-ink'
+                        ? 'border-brand-fill text-brand-ink'
                         : 'border-transparent text-text-muted hover:text-text-secondary'
                     )}>
                     <Icon size={11} />{label}
@@ -698,7 +699,7 @@ function Navigator({ screens, selectedKey, search, setSearch, typeFilter, setTyp
           <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search keys…"
-            className="w-full pl-6 pr-2 h-6 text-[10px] bg-surface-overlay border border-border rounded text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full pl-6 pr-2 h-6 text-[10px] glass-field border border-border rounded text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
 
@@ -789,7 +790,7 @@ function Canvas({ screen, screenType, selectedElement, onSelectElement, roleProf
       </div>
 
       {/* Canvas info bar */}
-      <div className="px-4 py-1.5 bg-brand-500/5 border-b border-brand-500/15 text-[10px] text-brand-600 flex items-center gap-2 shrink-0 font-medium">
+      <div className="px-4 py-1.5 bg-brand-500/5 border-b border-brand-500/15 text-[10px] text-brand-ink flex items-center gap-2 shrink-0 font-medium">
         <Info size={10} />
         Click any element below to configure it in the Inspector →
         <span className="ml-auto font-mono">{screenType?.hint}</span>
@@ -859,7 +860,7 @@ function SectionCanvas({ screen, selectedElement, onSelectElement, actions, layo
             <div className="flex items-center gap-2">
               <div className="text-xs text-text-secondary font-medium">0 / 3 items</div>
               <div className="w-16 h-1.5 bg-surface-overlay rounded-full overflow-hidden">
-                <div className="h-full bg-brand-500 rounded-full" style={{ width: '0%' }} />
+                <div className="h-full bg-brand-fill rounded-full" style={{ width: '0%' }} />
               </div>
             </div>
           </div>
@@ -952,10 +953,10 @@ function ItemCardCanvas({ screen, selectedElement, onSelectElement, actions }) {
             <div className="p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <label className="text-xs text-text-secondary font-medium w-24 shrink-0">Response</label>
-                <select className="flex-1 h-8 px-2 text-xs bg-surface-raised border border-border rounded text-text-primary text-sm focus:ring-1 focus:ring-brand-500 focus:outline-none">
+                <GlassSelect className="flex-1 h-8 px-2 text-xs bg-surface-raised border border-border rounded text-text-primary text-sm focus:ring-1 focus:ring-brand-500 focus:outline-none">
                   <option>Select response…</option>
                   <option>Yes</option><option>No</option><option>Partial</option><option>N/A</option>
-                </select>
+                </GlassSelect>
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-xs text-text-secondary font-medium w-24 shrink-0">Evidence</label>
@@ -965,7 +966,7 @@ function ItemCardCanvas({ screen, selectedElement, onSelectElement, actions }) {
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-xs text-text-secondary font-medium w-24 shrink-0">Notes</label>
-                <textarea className="flex-1 px-2 py-1.5 text-xs bg-surface-raised border border-border rounded text-text-primary text-sm resize-none focus:ring-1 focus:ring-brand-500 focus:outline-none" rows={2} placeholder="Add notes…" />
+                <textarea className="flex-1 px-2 py-1.5 text-xs glass-field border border-border rounded text-text-primary text-sm resize-none focus:ring-1 focus:ring-brand-500 focus:outline-none" rows={2} placeholder="Add notes…" />
               </div>
             </div>
           </CanvasCard>
@@ -1093,12 +1094,12 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
                 'flex items-center gap-1.5 h-7 px-3 rounded-ctl text-[10px] font-medium border transition-all hover:scale-105',
                 selectedElement?.id === action.id ? 'ring-2 ring-brand-500/60' : '',
                 {
-                  primary:   'bg-brand-500 text-brand-900 border-brand-600',
+                  primary:   'bg-brand-500 text-brand-on border-brand-600',
                   secondary: 'bg-surface-overlay border-border text-text-secondary',
                   danger:    'bg-status-fail-bg border-status-fail-bd text-status-fail-fg',
                   warning:   'bg-status-warn-bg border-status-warn-bd text-status-warn-fg',
                   ghost:     'bg-transparent border-border/40 text-text-muted',
-                }[action.variant] || 'bg-brand-500 text-brand-900 border-brand-600'
+                }[action.variant] || 'bg-brand-500 text-brand-on border-brand-600'
               )}>
               <Plus size={11} /> {action.label}
             </button>
@@ -1648,7 +1649,7 @@ function FormCanvas({ screen, selectedElement, onSelectElement, actions }) {
           <button
             onClick={() => onSelectElement({ type: 'form_submit_config', screenKey: screen.key, formId })}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-ctl text-xs font-medium bg-brand-500 text-brand-900 hover:bg-brand-600 transition-colors',
+              'flex items-center gap-2 px-4 py-2 rounded-ctl text-xs font-medium bg-brand-500 text-brand-on hover:bg-brand-600 transition-colors',
               selectedElement?.type === 'form_submit_config' ? 'ring-2 ring-brand-500/60' : ''
             )}>
             Submit
@@ -2067,7 +2068,7 @@ function ActionInspector({ initial, screenKey, onSave }) {
         <IField label="Extra payload (JSON)">
           <textarea value={form.payloadTemplateJson} onChange={e => set('payloadTemplateJson', e.target.value)}
             rows={2} placeholder='{"transition":"TRIAGE"}'
-            className="w-full px-2 py-1.5 text-[10px] font-mono bg-surface-overlay border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+            className="w-full px-2 py-1.5 text-[10px] font-mono glass-field border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
           <p className="text-[9px] text-text-muted mt-0.5">Merged with form data on submit. Do not set __formKey here — use the field above.</p>
         </IField>
       </InspectorSection>
@@ -2545,12 +2546,12 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
           <IField label="Validation rules (JSON)">
             <textarea value={form.validationRulesJson} onChange={e => set('validationRulesJson', e.target.value)}
               rows={2} placeholder='{"minLength":3,"maxLength":255}'
-              className="w-full px-2 py-1.5 text-[9px] font-mono bg-surface-overlay border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+              className="w-full px-2 py-1.5 text-[9px] font-mono glass-field border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
           </IField>
           <IField label="Conditional (dependsOnJson)">
             <textarea value={form.dependsOnJson} onChange={e => set('dependsOnJson', e.target.value)}
               rows={2} placeholder='{"field":"issue_type","operator":"eq","value":"INTERNAL"}'
-              className="w-full px-2 py-1.5 text-[9px] font-mono bg-surface-overlay border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+              className="w-full px-2 py-1.5 text-[9px] font-mono glass-field border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
             <p className="text-[9px] text-text-muted mt-0.5">Field only shows when condition is true</p>
           </IField>
         </InspectorSection>
@@ -2621,7 +2622,7 @@ function FormFieldInspector({ initial, formId, screenKey, onSave }) {
         )}
         <button onClick={() => saveMut.mutate()}
           disabled={saveMut.isPending}
-          className="flex-1 text-[10px] font-medium text-brand-900 bg-brand-500 hover:bg-brand-600 rounded py-1.5 transition-colors disabled:opacity-50">
+          className="flex-1 text-[10px] font-medium text-brand-on bg-brand-500 hover:bg-brand-600 rounded py-1.5 transition-colors disabled:opacity-50">
           {saveMut.isPending ? 'Saving…' : initial?.id ? 'Update field' : 'Add field'}
         </button>
       </div>
@@ -3484,11 +3485,11 @@ function ComponentQuickAdd({ screenKey }) {
       <div className="flex gap-1.5">
         <input value={key} onChange={e => setKey(e.target.value.toLowerCase().replace(/\s+/g,'_'))}
           placeholder="component_key"
-          className="flex-1 h-7 px-2 text-[10px] font-mono bg-surface-overlay border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
-        <select value={type} onChange={e => setType(e.target.value)}
+          className="flex-1 h-7 px-2 text-[10px] font-mono glass-field border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+        <GlassSelect value={type} onChange={e => setType(e.target.value)}
           className="h-7 px-1.5 text-[10px] bg-surface-overlay border border-border rounded text-text-primary focus:outline-none">
           {['DROPDOWN','BADGE','RADIO','MULTI_SELECT'].map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
+        </GlassSelect>
         <button onClick={() => { if (!key) return; createMut.mutate() }}
           className="h-7 px-2 bg-brand-500/20 text-brand-ink rounded border border-brand-500/30 text-[10px] hover:bg-brand-500/30 transition-colors">
           Add
@@ -3526,7 +3527,7 @@ function CreateScreenModal({ onClose, onCreate }) {
           <input value={key} onChange={e => setKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
             placeholder="e.g. vendor_question_item"
             autoFocus
-            className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 px-3 text-xs font-mono glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="text-xs font-medium text-text-secondary block mb-2">Screen type</label>
@@ -3541,7 +3542,7 @@ function CreateScreenModal({ onClose, onCreate }) {
                 <div>
                   <div className="text-xs font-medium text-text-primary">{t.label}</div>
                   <div className="text-[9px] text-text-muted mt-0.5">{t.desc}</div>
-                  <code className="text-[8px] font-mono text-text-muted/60 mt-1 block">{t.fieldName}</code>
+                  <code className="text-[8px] font-mono text-text-muted mt-1 block">{t.fieldName}</code>
                 </div>
               </button>
             ))}
@@ -3688,15 +3689,15 @@ function IField({ label, children }) {
 function IInp({ value, onChange, placeholder, mono, accent }) {
   return (
     <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      className={cn('w-full h-7 px-2 bg-surface-overlay border border-border rounded text-[10px] focus:outline-none focus:ring-1 focus:ring-brand-500', mono && 'font-mono', accent ? 'text-brand-ink' : 'text-text-primary')} />
+      className={cn('w-full h-7 px-2 glass-field border border-border rounded text-[10px] focus:outline-none focus:ring-1 focus:ring-brand-500', mono && 'font-mono', accent ? 'text-brand-ink' : 'text-text-primary')} />
   )
 }
 function ISel({ value, onChange, options }) {
   return (
-    <select value={value} onChange={e => onChange(e.target.value)}
+    <GlassSelect value={value} onChange={e => onChange(e.target.value)}
       className="w-full h-7 px-2 bg-surface-overlay border border-border rounded text-[10px] text-text-primary focus:outline-none">
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
+    </GlassSelect>
   )
 }
 
@@ -3734,7 +3735,7 @@ function KeyDifferentiatorBar({ screen, inline = false }) {
               <Copy size={9} />
             </button>
           ) : (
-            <span className="text-text-muted/40 font-mono">—</span>
+            <span className="text-text-faint font-mono">—</span>
           )}
         </div>
       ))}

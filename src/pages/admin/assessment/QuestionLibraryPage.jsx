@@ -15,6 +15,7 @@ import { Select } from '../../../components/ui/Select'
 import { Badge } from '../../../components/ui/Badge'
 import { cn } from '../../../lib/cn'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const RESPONSE_TYPES = [
@@ -400,17 +401,17 @@ export default function QuestionLibraryPage() {
             <input value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); setOptPage(1); setSecPage(1) }}
               placeholder={tab === 'questions' ? 'Search questions…' : tab === 'options' ? 'Search options…' : 'Search sections…'}
-              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
 
           {tab === 'questions' && (
             <div className="relative">
-              <select value={typeFilter}
+              <GlassSelect value={typeFilter}
                 onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
                 className="h-8 appearance-none pl-3 pr-8 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 <option value="">All types</option>
                 {RESPONSE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
+              </GlassSelect>
               <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             </div>
           )}
@@ -743,7 +744,7 @@ function QuestionForm({ form, setForm, errors, allOptions, selectedOpts, setSele
           onChange={e => setForm(f => ({ ...f, questionText: e.target.value }))}
           placeholder="Enter the question to ask vendors…"
           className={cn(
-            'w-full rounded-ctl border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-brand-500',
+            'w-full rounded-ctl border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-brand-500',
             errors.questionText ? 'border-status-fail-bd' : 'border-border'
           )} />
         {errors.questionText && <p className="text-xs text-status-fail-fg mt-1">{errors.questionText}</p>}
@@ -757,7 +758,7 @@ function QuestionForm({ form, setForm, errors, allOptions, selectedOpts, setSele
           value={form.questionTag || ''}
           onChange={e => setForm(f => ({ ...f, questionTag: e.target.value.toUpperCase() }))}
           placeholder="e.g. MFA, ENCRYPTION, IRP…"
-          className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono"
+          className="w-full h-9 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono"
         />
         <datalist id="q-tag-suggestions">
           {['MFA','ENCRYPTION','PEN_TEST','DATA_RETENTION','DPA','IRP','BCP','DRP',

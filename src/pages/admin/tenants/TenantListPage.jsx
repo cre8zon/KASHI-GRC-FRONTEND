@@ -13,9 +13,9 @@ import { CreateTenantModal } from '../../../components/tenant/CreateTenantModal'
 
 function StatCard({ icon: Icon, label, value, sub, color, onClick }) {
   return (
-    <div onClick={onClick} className={cn('bg-surface-raised border border-border rounded-card p-4 flex items-start gap-3', onClick && 'cursor-pointer hover:border-brand-500/30 transition-colors')}>
+    <div onClick={onClick} className={cn('glass-card border border-border rounded-card p-4 flex items-start gap-3', onClick && 'cursor-pointer hover:border-brand-500/30 transition-colors')}>
       <div className={cn('w-10 h-10 rounded-card flex items-center justify-center shrink-0', color)}>
-        <Icon size={18} strokeWidth={1.75} className="text-on-dark" />
+        <Icon size={18} strokeWidth={1.75} className={String(color || '').replace('bg-status-', 'text-status-').replace(/-bg\b/, '-fg') || 'text-brand-ink'} />
       </div>
       <div>
         <p className="text-xs text-text-muted font-medium uppercase tracking-wide">{label}</p>
@@ -107,7 +107,7 @@ export default function TenantListPage() {
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} placeholder="Search tenants…"
-              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
           <Button size="sm" icon={Plus} onClick={() => navigate('/tenants/new')}>Create Tenant</Button>
@@ -131,7 +131,7 @@ export default function TenantListPage() {
           {FILTER_TABS.map(tab => (
             <button key={tab.key} onClick={() => { setStatusFilter(tab.key); setPage(1) }}
               className={cn('px-3 py-1 rounded-ctl text-xs font-medium transition-colors',
-                statusFilter === tab.key ? 'bg-brand-500 text-brand-900' : 'bg-surface-overlay text-text-secondary hover:text-text-primary')}>
+                statusFilter === tab.key ? 'bg-brand-500 text-brand-on' : 'bg-surface-overlay text-text-secondary hover:text-text-primary')}>
               {tab.label}
             </button>
           ))}

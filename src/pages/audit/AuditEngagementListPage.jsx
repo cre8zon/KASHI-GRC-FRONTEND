@@ -18,6 +18,7 @@ import { EmptyState }     from '../../components/ui/EmptyState'
 import AuditProjectTemplatesPanel from './AuditProjectTemplatesPanel'
 import { formatDate }     from '../../utils/format'
 import toast              from 'react-hot-toast'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 const STATUS_COLOR = {
   PLANNING:            'gray',
@@ -84,20 +85,20 @@ function EngagementForm({ projectId, onSubmit, loading }) {
         <label className="block text-sm text-text-secondary mb-1">Engagement name *</label>
         <input value={form.name} onChange={e => set('name', e.target.value)}
           placeholder="e.g. ISO 27001 Surveillance Audit 2026"
-          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm text-text-secondary mb-1">Audit type *</label>
-          <select value={form.auditType} onChange={e => set('auditType', e.target.value)}
+          <GlassSelect value={form.auditType} onChange={e => set('auditType', e.target.value)}
             className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             <option value="INTERNAL">Internal</option>
             <option value="EXTERNAL">External</option>
-          </select>
+          </GlassSelect>
         </div>
         <div>
           <label className="block text-sm text-text-secondary mb-1">Template</label>
-          <select value={form.templateId} onChange={e => {
+          <GlassSelect value={form.templateId} onChange={e => {
             const t = templates?.find(t => String(t.id) === e.target.value)
             set('templateId', e.target.value)
             if (t?.frameworkRef) set('frameworkRef', t.frameworkRef)
@@ -105,7 +106,7 @@ function EngagementForm({ projectId, onSubmit, loading }) {
             className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             <option value="">— no template —</option>
             {(templates || []).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
+          </GlassSelect>
         </div>
       </div>
       {selectedTemplate && (
@@ -117,18 +118,18 @@ function EngagementForm({ projectId, onSubmit, loading }) {
         <label className="block text-sm text-text-secondary mb-1">Framework reference</label>
         <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)}
           placeholder="e.g. ISO 27001, SOC 2 Type II, PCI DSS 4.0"
-          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm text-text-secondary mb-1">Planned start</label>
           <input type="date" value={form.plannedStart} onChange={e => set('plannedStart', e.target.value)}
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="block text-sm text-text-secondary mb-1">Planned end</label>
           <input type="date" value={form.plannedEnd} onChange={e => set('plannedEnd', e.target.value)}
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <Button variant="primary" onClick={() => onSubmit(form)} loading={loading}
@@ -146,7 +147,7 @@ function ProgressBar({ tested, total }) {
   return (
     <div className="flex items-center gap-2 mt-1.5">
       <div className="flex-1 h-1.5 rounded-full bg-surface-overlay">
-        <div className="h-1.5 rounded-full bg-brand-500 transition-all" style={{ width: `${pct}%` }} />
+        <div className="h-1.5 rounded-full bg-brand-fill transition-all" style={{ width: `${pct}%` }} />
       </div>
       <span className="text-xs text-text-muted tabular-nums">{pct}%</span>
     </div>
@@ -199,7 +200,7 @@ export default function AuditEngagementListPage() {
           {engagements.map(eng => (
             <button key={eng.id}
               onClick={() => navigate(`/audit/engagements/${eng.id}`)}
-              className="w-full text-left rounded-card border border-border bg-surface-raised hover:bg-surface-overlay transition-colors p-4">
+              className="w-full text-left rounded-card border border-border glass-card hover:bg-surface-overlay transition-colors p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 min-w-0">
                   <ClipboardList size={18} className="text-text-muted mt-0.5 shrink-0" />

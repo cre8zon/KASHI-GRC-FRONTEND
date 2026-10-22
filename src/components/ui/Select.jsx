@@ -1,6 +1,6 @@
 import { forwardRef } from 'react'
 import { cn } from '../../lib/cn'
-import { ChevronDown } from 'lucide-react'
+import { GlassSelect } from './GlassSelect'
 
 /**
  * DynamicSelect — options come from DB via screenConfig.components[componentKey].options
@@ -33,26 +33,17 @@ export const DynamicSelect = forwardRef(function DynamicSelect(
           {resolvedLabel}
         </label>
       )}
-      <div className="relative">
-        <select
-          ref={ref}
-          className={cn(
-            'h-9 w-full appearance-none rounded-ctl border border-transparent',
-            'glass-field px-3 pr-8 text-sm text-text-primary',
-            'focus:outline-none focus:ring-2 focus:ring-brand-800/30',
-            'disabled:opacity-50 transition-all duration-150',
-            error && 'ring-2 ring-status-fail-fg/25',
-            className
-          )}
-          {...props}
-        >
-          <option value="">{placeholder || `Select ${component?.label || componentKey}…`}</option>
-          {options.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-        <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-      </div>
+      <GlassSelect
+        ref={ref}
+        className={cn('h-9 w-full', error && '!border-status-fail-fg/70 ring-2 ring-status-fail-fg/25', className)}
+        aria-invalid={error ? true : undefined}
+        {...props}
+      >
+        <option value="">{placeholder || `Select ${component?.label || componentKey}…`}</option>
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </GlassSelect>
       {error && <p className="text-xs text-status-fail-fg">{error}</p>}
     </div>
   )
@@ -64,23 +55,15 @@ export const Select = forwardRef(function Select({ label, error, options = [], c
       {label && label !== null && (
         <label className="text-xs font-medium text-text-secondary">{label}</label>
       )}
-      <div className="relative">
-        <select
-          ref={ref}
-          className={cn(
-            'h-8 w-full appearance-none rounded-ctl border border-border',
-            'bg-surface-raised px-3 pr-8 text-sm text-text-primary',
-            'focus:outline-none focus:ring-1 focus:ring-brand-500',
-            error && 'border-status-fail-bd',
-            className
-          )}
-          {...props}
-        >
-          {placeholder && <option value="">{placeholder}</option>}
-          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-      </div>
+      <GlassSelect
+        ref={ref}
+        className={cn('h-8 w-full', error && '!border-status-fail-fg/70 ring-2 ring-status-fail-fg/25', className)}
+        aria-invalid={error ? true : undefined}
+        {...props}
+      >
+        {placeholder && <option value="">{placeholder}</option>}
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </GlassSelect>
       {error && <p className="text-xs text-status-fail-fg">{error}</p>}
     </div>
   )

@@ -13,6 +13,7 @@ import { Modal, ConfirmDialog } from '../../components/ui/Modal'
 import { Skeleton } from '../../components/ui/EmptyState'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 /**
  * Clients — the FIRM side.
@@ -354,7 +355,7 @@ function AssignAuditorModal({ client, onClose, onDone }) {
     onError: (e) => toast.error(msg(e, 'Could not assign auditors')),
   })
 
-  const selectCls = 'h-10 w-full rounded-card border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500'
+  const selectCls = 'h-10 w-full rounded-card border border-border glass-card px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500'
 
   return (
     <Modal open onClose={onClose} title={`Assign auditors to ${client.clientName}`} size="lg">
@@ -381,7 +382,7 @@ function AssignAuditorModal({ client, onClose, onDone }) {
                       <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wide block mb-1.5">
                         Role *
                       </label>
-                      <select value={block.roleId} className={selectCls}
+                      <GlassSelect value={block.roleId} className={selectCls}
                         onChange={e => setBlock(block.key, { roleId: e.target.value, userIds: [] })}>
                         <option value="">Select a role…</option>
                         {roles.map(r => {
@@ -394,7 +395,7 @@ function AssignAuditorModal({ client, onClose, onDone }) {
                             </option>
                           )
                         })}
-                      </select>
+                      </GlassSelect>
                     </div>
                     {blocks.length > 1 && (
                       <div className="pt-[26px]">
@@ -529,7 +530,7 @@ function RequestAccessModal({ onClose, onDone }) {
     onError: (e) => toast.error(msg(e, 'Could not send request')),
   })
 
-  const inputCls = 'h-10 w-full rounded-card border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500'
+  const inputCls = 'h-10 w-full rounded-card border border-border glass-card px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500'
 
   return (
     <Modal open onClose={onClose} title="Request client access">

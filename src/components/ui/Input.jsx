@@ -2,7 +2,8 @@ import { cn } from '../../lib/cn'
 import { forwardRef } from 'react'
 
 /** Input — v3 soft: 8px radius, inset fill, gentle 2px focus ring. */
-export const Input = forwardRef(function Input({ label, error, helperText, className, ...props }, ref) {
+export const Input = forwardRef(function Input({ label, error, helperText, hint, className, ...props }, ref) {
+  helperText = helperText ?? hint
   return (
     <div className="flex flex-col gap-1">
       {label && <label className="text-xs font-medium text-text-secondary">{label}</label>}
@@ -11,12 +12,15 @@ export const Input = forwardRef(function Input({ label, error, helperText, class
         className={cn(
           'h-9 w-full rounded-ctl glass-field px-3 text-sm text-text-primary',
           'placeholder:text-text-muted',
-          'focus:outline-none focus:ring-2 focus:ring-brand-800/30',
+          'focus:outline-none focus:ring-2 focus:ring-brand-ink/30',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           'transition-all duration-150',
-          error && 'ring-2 ring-status-fail-fg/25 border-status-fail-fg/40',
+          // `!` because .glass-field sets its border outside Tailwind's layers
+          // and would otherwise win — the error border never showed.
+          error && 'ring-2 ring-status-fail-fg/25 !border-status-fail-fg/70',
           className
         )}
+        aria-invalid={error ? true : undefined}
         {...props}
       />
       {(error || helperText) && (
@@ -26,7 +30,8 @@ export const Input = forwardRef(function Input({ label, error, helperText, class
   )
 })
 
-export const Textarea = forwardRef(function Textarea({ label, error, helperText, className, ...props }, ref) {
+export const Textarea = forwardRef(function Textarea({ label, error, helperText, hint, className, ...props }, ref) {
+  helperText = helperText ?? hint
   return (
     <div className="flex flex-col gap-1">
       {label && <label className="text-xs font-medium text-text-secondary">{label}</label>}
@@ -36,11 +41,12 @@ export const Textarea = forwardRef(function Textarea({ label, error, helperText,
         className={cn(
           'w-full rounded-ctl glass-field px-3 py-2 text-sm text-text-primary',
           'placeholder:text-text-muted resize-none',
-          'focus:outline-none focus:bg-surface-raised focus:ring-2 focus:ring-brand-800/30 focus:border-brand-700/50',
+          'focus:outline-none focus:bg-surface-raised focus:ring-2 focus:ring-brand-ink/30 focus:border-brand-ink/50',
           'transition-all duration-150',
-          error && 'ring-2 ring-status-fail-fg/25',
+          error && 'ring-2 ring-status-fail-fg/25 !border-status-fail-fg/70',
           className
         )}
+        aria-invalid={error ? true : undefined}
         {...props}
       />
       {(error || helperText) && (

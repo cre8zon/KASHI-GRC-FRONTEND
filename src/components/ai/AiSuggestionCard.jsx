@@ -107,7 +107,7 @@ export default function AiSuggestionCard({
     )}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
-          <Sparkles className="h-3.5 w-3.5 text-brand-500" />
+          <Sparkles className="h-3.5 w-3.5 text-brand-ink" />
           {title}
         </div>
 
@@ -130,7 +130,7 @@ export default function AiSuggestionCard({
 
       {editing ? (
         <textarea
-          className="mt-2 w-full rounded-ctl border border-border bg-surface p-2 text-sm text-text-primary"
+          className="mt-2 w-full rounded-ctl border border-border glass-field p-2 text-sm text-text-primary"
           rows={5}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -148,7 +148,7 @@ export default function AiSuggestionCard({
       <div className="mt-3 flex items-center gap-1.5">
         <button
           onClick={accept}
-          className="inline-flex h-7 items-center gap-1.5 rounded-ctl bg-brand-500 px-3 text-xs font-medium text-brand-900 hover:bg-brand-600"
+          className="inline-flex h-7 items-center gap-1.5 rounded-ctl bg-brand-500 px-3 text-xs font-medium text-brand-on hover:bg-brand-600"
         >
           <Check className="h-3.5 w-3.5" />
           {editing ? 'Accept edit' : 'Accept'}

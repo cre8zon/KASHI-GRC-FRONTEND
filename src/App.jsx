@@ -11,6 +11,8 @@ import { ROLE_SIDES } from './config/constants'
 import { AppShell } from './components/layout/AppShell'
 import { ThemeProvider } from './providers/ThemeProvider'
 import { CallDock } from './components/collab/call/CallDock'
+import { SessionManager } from './components/layout/SessionManager'
+import { peekPostLoginTarget } from './lib/session'
 
 // ── Lazy page imports — each page only loads when its route is first visited ──
 // This eliminates the 280+ JS requests on cold load by splitting into chunks.
@@ -152,7 +154,8 @@ function RequireAuth({ children }) {
 
 function RedirectIfAuthed({ children }) {
   const isAuthenticated = useSelector(selectIsAuthenticated)
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />
+  // After a re-login, return to the page the session ended on (see lib/session).
+  if (isAuthenticated) return <Navigate to={peekPostLoginTarget() || '/dashboard'} replace />
   return children
 }
 
@@ -180,6 +183,8 @@ function AppShellWithTheme() {
       <AppShell />
       {/* In-app call window (Collaboration) — floats over every page while a call runs */}
       <CallDock />
+      {/* Token renewal, idle sign-out warning, cross-tab sign-out */}
+      <SessionManager />
     </ThemeProvider>
   )
 }

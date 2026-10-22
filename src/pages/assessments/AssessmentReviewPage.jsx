@@ -525,12 +525,12 @@ function RemediationModal({ questionText, questionInstanceId, assessmentId, onCl
           <label className="block text-xs font-medium text-text-secondary mb-1">Expected evidence (optional)</label>
           <textarea value={expected} onChange={e => setExpected(e.target.value)} rows={2}
             placeholder="e.g. Updated MFA policy, SOC 2 addendum, pen test report…"
-            className="w-full rounded-ctl border border-border bg-surface-raised px-2.5 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
+            className="w-full rounded-ctl border border-border glass-field px-2.5 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
         </div>
         <div>
           <label className="block text-xs font-medium text-text-secondary mb-1">Due date (optional)</label>
           <input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)}
-            className="w-full rounded-ctl border border-border bg-surface-raised px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"/>
+            className="w-full rounded-ctl border border-border glass-field px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"/>
         </div>
         <div className="flex gap-2 justify-end">
           <Button size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
@@ -582,7 +582,7 @@ function FlagQuestionModal({ questionInstanceId, assessmentId, onClose }) {
             <label className="block text-xs text-text-muted mb-1">Additional context (optional)</label>
             <textarea value={description} onChange={e => setDesc(e.target.value)} rows={2}
               placeholder="Describe the specific concern…"
-              className="w-full rounded-ctl border border-border bg-surface-raised px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
+              className="w-full rounded-ctl border border-border glass-field px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
           </div>
         )}
         <div className="flex gap-2 justify-end">
@@ -631,7 +631,7 @@ function BulkAssignAssistantsBar({ assessmentId, taskId, selectedIds, onClear })
         </span>
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search assistant by name or email (min 2 chars)…"
-          className="flex-1 min-w-[200px] rounded border border-border bg-surface-raised px-2.5 py-1 text-xs text-text-primary placeholder:text-text-muted focus:outline-none"/>
+          className="flex-1 min-w-[200px] rounded border border-border glass-field px-2.5 py-1 text-xs text-text-primary placeholder:text-text-muted focus:outline-none"/>
         <button onClick={onClear}
           className="text-[10px] text-text-muted hover:text-text-secondary shrink-0">
           Clear
@@ -705,7 +705,7 @@ function AssignToAssistantInline({ question, assessmentId, taskId, onAssigned })
       <p className="text-[10px] text-status-tag-fg font-medium">Assign to review assistant — inbox task created automatically</p>
       <input value={search} onChange={e => setSearch(e.target.value)} autoFocus
         placeholder="Search by name or email (min 2 chars)…"
-        className="w-full rounded border border-border bg-surface-raised px-2.5 py-1 text-xs text-text-primary placeholder:text-text-muted focus:outline-none"/>
+        className="w-full rounded border border-border glass-field px-2.5 py-1 text-xs text-text-primary placeholder:text-text-muted focus:outline-none"/>
       <div className="flex flex-wrap gap-1.5">
         {users.map(u => {
           const uid = u.id || u.userId; const name = u.fullName || u.email
@@ -894,7 +894,7 @@ function ReviewerQuestionCard({ question, assessmentId, taskId, evaluation, onEv
           )}
           {!canAct && onOpenDrawer && (
             <button onClick={() => onOpenDrawer(question)}
-              className="flex items-center gap-1 text-[11px] text-text-muted/60 hover:text-brand-ink transition-colors mt-1.5">
+              className="flex items-center gap-1 text-[11px] text-text-muted hover:text-brand-ink transition-colors mt-1.5">
               <MessageSquare size={10}/> Notes &amp; context
             </button>
           )}
@@ -1384,7 +1384,7 @@ function EvaluateQuestionsPanel({ assessment, taskId, activeTask, onDone, target
                   riskRating === r.value ? r.color : 'border-border text-text-muted hover:border-brand-500/30')}>
                 {r.value}
                 {r.value === suggested && riskRating !== r.value && (
-                  <span className="absolute -top-1.5 -right-1.5 text-[8px] bg-brand-500 text-brand-900 rounded-full w-3 h-3 flex items-center justify-center">✓</span>
+                  <span className="absolute -top-1.5 -right-1.5 text-[8px] bg-brand-500 text-brand-on rounded-full w-3 h-3 flex items-center justify-center">✓</span>
                 )}
               </button>
             ))}
@@ -1552,7 +1552,7 @@ function ConsolidateFindingsPanel({ assessment, taskId, onDone }) {
           onChange={e => setFindings(e.target.value)}
           rows={6}
           placeholder="Document key findings, risk observations, deficiencies, and recommendations…"
-          className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+          className="w-full rounded-ctl border border-border glass-field px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
         />
         <p className="text-[11px] text-text-muted">
           Submitting will consolidate all section scores and document your findings.
@@ -1609,7 +1609,7 @@ function FinalSignOffPanel({ assessment, taskId, onApprove, onSendBack, acting, 
   return (
     <div className="space-y-4">
       {/* Summary before final sign-off */}
-      <div className="rounded-card border border-border bg-surface-raised overflow-hidden">
+      <div className="rounded-card border border-border glass-card overflow-hidden">
         <div className="px-4 py-2.5 border-b border-border">
           <p className="text-xs font-medium text-text-muted uppercase tracking-wide">Assessment summary</p>
         </div>
@@ -1642,7 +1642,7 @@ function FinalSignOffPanel({ assessment, taskId, onApprove, onSendBack, acting, 
         <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">Remarks (optional)</label>
         <textarea value={remarks} onChange={e => setRemarks(e.target.value)} rows={3}
           placeholder="Add any final sign-off remarks…"
-          className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
+          className="w-full rounded-ctl border border-border glass-field px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
       </div>
       <div className="flex gap-2">
         {canSendBack && (
@@ -1723,7 +1723,7 @@ function ReportVersionPanel({ assessmentId, assessment }) {
   return (
     <div className="space-y-4">
       {/* Live assessment summary — always shown so CISO can review before sign-off */}
-      <div className="rounded-card border border-border bg-surface-raised overflow-hidden">
+      <div className="rounded-card border border-border glass-card overflow-hidden">
         <div className="px-4 py-3 border-b border-border flex items-center justify-between">
           <p className="text-sm font-semibold text-text-primary">Assessment summary</p>
           <span className="text-[10px] text-text-muted">Live data</span>
@@ -2066,7 +2066,7 @@ export default function AssessmentReviewPage() {
             </label>
             <textarea rows={3} value={modalRemarks} onChange={e => setModalRemarks(e.target.value)}
               placeholder="Add remarks…"
-              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
+              className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"/>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setActionModal(null)}>Cancel</Button>

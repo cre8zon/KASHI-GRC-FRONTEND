@@ -10,6 +10,7 @@ import { Modal, ConfirmDialog } from '../../components/ui/Modal'
 import { Skeleton } from '../../components/ui/EmptyState'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 /**
  * External Auditors — the CLIENT side.
@@ -250,7 +251,7 @@ function PendingRequestRow({ req, qc }) {
     onError: (e) => toast.error(msg(e, 'Could not decline')),
   })
 
-  const inputCls = 'h-9 w-full rounded-card border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500'
+  const inputCls = 'h-9 w-full rounded-card border border-border glass-card px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500'
 
   return (
     <div className="py-3">
@@ -334,7 +335,7 @@ function GrantFirmModal({ onClose, onDone }) {
     onError: (e) => toast.error(msg(e, 'Could not add firm')),
   })
 
-  const inputCls = 'h-10 w-full rounded-card border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500'
+  const inputCls = 'h-10 w-full rounded-card border border-border glass-card px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500'
 
   return (
     <Modal open onClose={onClose} title="Add audit firm">
@@ -351,10 +352,10 @@ function GrantFirmModal({ onClose, onDone }) {
                   No audit firms are registered on the platform yet.
                 </p>
               : (
-                <select value={firmTenantId} onChange={e => setFirmTenantId(e.target.value)} className={inputCls}>
+                <GlassSelect value={firmTenantId} onChange={e => setFirmTenantId(e.target.value)} className={inputCls}>
                   <option value="">Select a firm…</option>
                   {firms.map(f => <option key={f.tenantId} value={f.tenantId}>{f.name}</option>)}
-                </select>
+                </GlassSelect>
               )}
         </div>
 

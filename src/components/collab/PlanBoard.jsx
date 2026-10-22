@@ -6,6 +6,7 @@ import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../ui/GlassSelect'
 
 /**
  * PlanBoard — the workspace plan as a Gantt chart or a list. (Editing happens
@@ -206,10 +207,10 @@ function PlanList({ groups, today, onEdit, onHistory, onStatus }) {
                   <td className={cn('px-2 py-1.5 whitespace-nowrap', h === 'late' ? 'text-status-fail-fg font-medium' : 'text-text-secondary')}>{fmtDate(item.plannedEnd)}</td>
                   <td className="px-2 py-1.5">
                     {item.canUpdateStatus && manual && onStatus ? (
-                      <select value={item.status} onChange={e => onStatus(item, e.target.value)}
+                      <GlassSelect value={item.status} onChange={e => onStatus(item, e.target.value)}
                         className="text-[11px] h-6 rounded border border-border bg-surface-raised px-1 text-text-secondary">
                         {Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                      </select>
+                      </GlassSelect>
                     ) : (
                       <span className={HEALTH_TEXT[h]}>{h === 'late' ? `Late · ${STATUS_LABEL[item.status]}` : STATUS_LABEL[item.status]}</span>
                     )}
@@ -317,29 +318,29 @@ export function PlanItemModal({ open, onClose, workspaceId, item, items = [], pr
             <input value={form.title} onChange={set('title')} placeholder="Title" className={input} />
             <div className="grid grid-cols-3 gap-2">
               <label className="block"><span className={label}>Kind</span>
-                <select value={form.kind} onChange={set('kind')} className={input}>
+                <GlassSelect value={form.kind} onChange={set('kind')} className={input}>
                   {Object.entries(KIND_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
+                </GlassSelect>
               </label>
               <label className="block col-span-2"><span className={label}>Programme</span>
-                <select value={form.programmeId} onChange={set('programmeId')} className={input}>
+                <GlassSelect value={form.programmeId} onChange={set('programmeId')} className={input}>
                   <option value="">Workspace-wide (everyone sees it)</option>
                   {programmes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                </GlassSelect>
               </label>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <label className="block"><span className={label}>Under phase</span>
-                <select value={form.parentId} onChange={set('parentId')} className={input}>
+                <GlassSelect value={form.parentId} onChange={set('parentId')} className={input}>
                   <option value="">None</option>
                   {phases.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-                </select>
+                </GlassSelect>
               </label>
               <label className="block"><span className={label}>Owner</span>
-                <select value={form.ownerUserId} onChange={set('ownerUserId')} className={input}>
+                <GlassSelect value={form.ownerUserId} onChange={set('ownerUserId')} className={input}>
                   <option value="">No owner</option>
                   {owners.map(m => <option key={m.userId} value={m.userId}>{m.name}{m.side === 'FIRM' ? ' (audit firm)' : ''}</option>)}
-                </select>
+                </GlassSelect>
               </label>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -356,10 +357,10 @@ export function PlanItemModal({ open, onClose, workspaceId, item, items = [], pr
               <input value={form.reason} onChange={set('reason')} placeholder="Why are the dates moving? (recorded in the history)" className={input} />
             )}
             <label className="block"><span className={label}>Linked engagement (progress comes from it)</span>
-              <select value={form.linkedEngagementId} onChange={set('linkedEngagementId')} className={input}>
+              <GlassSelect value={form.linkedEngagementId} onChange={set('linkedEngagementId')} className={input}>
                 <option value="">Not linked — progress set by hand</option>
                 {engagements.map(e => <option key={e.id} value={e.id}>{e.ref ? `${e.ref} · ` : ''}{e.name}</option>)}
-              </select>
+              </GlassSelect>
             </label>
             {others.length > 0 && (
               <details className="rounded-ctl border border-border px-3 py-2">
@@ -385,9 +386,9 @@ export function PlanItemModal({ open, onClose, workspaceId, item, items = [], pr
         ) : (
           <div className="grid grid-cols-2 gap-2">
             <label className="block"><span className={label}>Status</span>
-              <select value={form.status} onChange={set('status')} className={input}>
+              <GlassSelect value={form.status} onChange={set('status')} className={input}>
                 {Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
+              </GlassSelect>
             </label>
             <label className="block"><span className={label}>Progress (%)</span>
               <input type="number" min={0} max={100} value={form.progress} onChange={set('progress')} className={input} />
@@ -395,7 +396,7 @@ export function PlanItemModal({ open, onClose, workspaceId, item, items = [], pr
           </div>
         )}
         <textarea value={form.description} onChange={set('description')} rows={3} placeholder="Notes"
-          className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary" />
+          className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary" />
 
         <div className="flex items-center justify-between gap-2 pt-1">
           <div>

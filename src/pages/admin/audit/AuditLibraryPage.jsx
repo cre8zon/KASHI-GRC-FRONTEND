@@ -47,6 +47,7 @@ import { useScreenConfig } from '../../../hooks/useUIConfig'
 import { selectAuth }  from '../../../store/slices/authSlice'
 import { DynamicSelect } from '../../../components/ui/Select'
 import toast           from 'react-hot-toast'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -518,29 +519,29 @@ function ControlForm({ initial, onSubmit, loading }) {
         <label className="block text-xs text-text-secondary mb-1">Control name *</label>
         <input value={form.name} onChange={e => set('name', e.target.value)}
           placeholder="e.g. User access management"
-          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Control code</label>
           <input value={form.controlCode} onChange={e => set('controlCode', e.target.value)}
             placeholder="e.g. A.9.1.1, CC6.1, AC-1"
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
           <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)}
             placeholder="e.g. ISO 27001, SOC 2"
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Test type</label>
-          <select value={form.testType} onChange={e => set('testType', e.target.value)}
+          <GlassSelect value={form.testType} onChange={e => set('testType', e.target.value)}
             className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
+          </GlassSelect>
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">
@@ -549,14 +550,14 @@ function ControlForm({ initial, onSubmit, loading }) {
           </label>
           <input value={form.controlTag} onChange={e => set('controlTag', e.target.value.toUpperCase())}
             placeholder="e.g. ENCRYPTION_AT_REST, MFA"
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <div>
         <label className="block text-xs text-text-secondary mb-1">Description</label>
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3}
           placeholder="What this control tests and what evidence is expected"
-          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full px-3 py-2 rounded-ctl border border-border glass-field text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div>
         <label className="block text-xs text-text-secondary mb-1">
@@ -573,7 +574,7 @@ function ControlForm({ initial, onSubmit, loading }) {
         <textarea value={form.evidenceGuidance} onChange={e => set('evidenceGuidance', e.target.value)} rows={3}
           onBlur={e => set('evidenceGuidance', normaliseGuidance(e.target.value))}
           placeholder={'e.g. Screenshot of MFA enforcement policy\nUser access review sign-off for the period\nExport of privileged accounts'}
-          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full px-3 py-2 rounded-ctl border border-border glass-field text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
         {(() => {
           const n = guidanceItemCount(form.evidenceGuidance)
           if (!n) return null
@@ -611,20 +612,20 @@ function SectionForm({ initial, allRootSections, onSubmit, loading }) {
         <label className="block text-xs text-text-secondary mb-1">Section name *</label>
         <input value={form.name} onChange={e => set('name', e.target.value)}
           placeholder="e.g. A.9 — Access Control"
-          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Section code</label>
           <input value={form.sectionCode} onChange={e => set('sectionCode', e.target.value)}
             placeholder="e.g. A.9, CC6, PR.AC"
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
           <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)}
             placeholder="e.g. ISO 27001"
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <div>
@@ -632,7 +633,7 @@ function SectionForm({ initial, allRootSections, onSubmit, loading }) {
           Parent section
           <span className="ml-1 text-text-muted font-normal">(leave blank for top-level)</span>
         </label>
-        <select value={form.parentId ?? ''} onChange={e => set('parentId', e.target.value || null)}
+        <GlassSelect value={form.parentId ?? ''} onChange={e => set('parentId', e.target.value || null)}
           className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
           <option value="">— Top-level section —</option>
           {(allRootSections ?? []).map(s => (
@@ -640,12 +641,12 @@ function SectionForm({ initial, allRootSections, onSubmit, loading }) {
               {s.sectionCode ? `${s.sectionCode} — ${s.name}` : s.name}
             </option>
           ))}
-        </select>
+        </GlassSelect>
       </div>
       <div>
         <label className="block text-xs text-text-secondary mb-1">Description</label>
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
-          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full px-3 py-2 rounded-ctl border border-border glass-field text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <Button variant="primary" onClick={() => onSubmit(form)} loading={loading} disabled={!form.name.trim()}>
         {initial ? 'Update section' : 'Add section'}
@@ -829,13 +830,13 @@ function StandaloneControlPickerModal({ open, sectionId, sectionName, existingCo
             <div className="relative flex-1">
               <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search controls…"
-                className="h-7 pl-8 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="h-7 pl-8 pr-3 w-full rounded-ctl border border-border glass-field text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
-            <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
+            <GlassSelect value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
               className="h-7 appearance-none pl-2 pr-6 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">All types</option>
               {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
+            </GlassSelect>
           </div>
           <div className="flex-1 overflow-y-auto rounded-card border border-border divide-y divide-border">
             {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>}
@@ -886,7 +887,7 @@ function StandaloneControlPickerModal({ open, sectionId, sectionName, existingCo
                 <div>
                   <label className="text-[11px] font-medium text-text-secondary uppercase tracking-wide block mb-1">Weight</label>
                   <input type="number" value={weight} onChange={e => setWeight(e.target.value)} placeholder="1.0"
-                    className="h-7 w-full rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="h-7 w-full rounded-ctl border border-border glass-field px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <button type="button" onClick={() => setMandatory(m => !m)}
@@ -980,7 +981,7 @@ function SectionToTemplateModal({ section, onClose }) {
             <div className="relative">
               <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search templates…"
-                className="h-8 pl-8 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="h-8 pl-8 pr-3 w-full rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div className="max-h-64 overflow-y-auto rounded-card border border-border divide-y divide-border">
               {isLoading && (
@@ -1076,7 +1077,7 @@ function SectionTreeRow({ section, depth, onEdit, onDelete, onAddChild }) {
                 'h-6 w-6 flex items-center justify-center rounded transition-colors',
                 isRoot
                   ? 'text-text-muted hover:text-brand-ink hover:bg-brand-500/10'
-                  : 'text-text-muted/30 cursor-not-allowed'
+                  : 'text-text-faint cursor-not-allowed'
               )}>
               <Link2 size={12} />
             </button>
@@ -1373,7 +1374,7 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
         </div>
         {mode === 'create' && (
           <div className="flex items-center gap-2 text-[11px] text-text-muted">
-            <span className="flex items-center justify-center h-4 w-4 rounded-full bg-brand-500 text-brand-900 text-[9px] font-bold">1</span>
+            <span className="flex items-center justify-center h-4 w-4 rounded-full bg-brand-500 text-brand-on text-[9px] font-bold">1</span>
             <span className="text-text-secondary font-medium">Fill details</span>
             <span>→</span>
             <span className="flex items-center justify-center h-4 w-4 rounded-full bg-surface-overlay border border-border text-[9px] font-bold">2</span>
@@ -1387,7 +1388,7 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
           <div className="relative">
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search sections…"
-              className="h-8 pl-8 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-full rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div className="max-h-72 overflow-y-auto rounded-card border border-border divide-y divide-border">
             {isLoading && <div className="flex items-center justify-center py-10"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>}
@@ -1421,18 +1422,18 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
           <div>
             <label className="block text-xs text-text-secondary mb-1">Section name *</label>
             <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. A — Organisational Controls"
-              className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-text-secondary mb-1">Section code</label>
               <input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="e.g. A, CC6"
-                className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
               <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
               <input value={newFw} onChange={e => setNewFw(e.target.value)} placeholder="e.g. ISO 27001"
-                className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
           <div className="flex items-start gap-2 p-3 bg-brand-500/5 border border-brand-500/20 rounded-card">
@@ -1610,7 +1611,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
           <div className="relative">
             <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={testSearch} onChange={e => setTestSearch(e.target.value)} placeholder="Search tests…"
-              className="h-6 pl-5 pr-2 w-full rounded border border-border bg-surface-raised text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-6 pl-5 pr-2 w-full rounded border border-border glass-field text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div className="max-h-32 overflow-y-auto rounded-card border border-border divide-y divide-border">
             {loadingAllTests && <div className="flex justify-center py-3"><Loader2 size={12} className="text-brand-ink animate-spin" /></div>}
@@ -1639,24 +1640,24 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
       {showCreateTestStep2 && (
         <div className="flex flex-col gap-2 p-2 rounded-card border border-border bg-surface-overlay">
           <input value={nt2Name} onChange={e => setNt2Name(e.target.value)} placeholder="Test name *"
-            className="h-6 px-2 w-full rounded border border-border bg-surface-raised text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="h-6 px-2 w-full rounded border border-border glass-field text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           <div className="grid grid-cols-2 gap-1.5">
             <input value={nt2Ref} onChange={e => setNt2Ref(e.target.value)} placeholder="Ref (e.g. T-01)"
-              className="h-6 px-2 rounded border border-border bg-surface-raised text-[11px] font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
-          <select value={nt2Freq} onChange={e => setNt2Freq(e.target.value)}
+              className="h-6 px-2 rounded border border-border glass-field text-[11px] font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          <GlassSelect value={nt2Freq} onChange={e => setNt2Freq(e.target.value)}
             className="h-6 px-2 rounded border border-border bg-surface-raised text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             <option value="">Frequency</option>
             {freqOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          </GlassSelect>
           </div>
-          <select value={nt2Auto} onChange={e => setNt2Auto(e.target.value)}
+          <GlassSelect value={nt2Auto} onChange={e => setNt2Auto(e.target.value)}
             className="h-6 px-2 rounded border border-border bg-surface-raised text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             <option value="MANUAL">Manual</option>
             <option value="AUTOMATED">Automated</option>
-          </select>
+          </GlassSelect>
           <button onClick={() => createAndLinkTestStep2({ name: nt2Name.trim(), testRef: nt2Ref.trim() || null, frequency: nt2Freq || null, automationType: nt2Auto })}
             disabled={!nt2Name.trim() || creatingTestStep2}
-            className="h-6 px-3 rounded text-[11px] font-medium bg-brand-500 text-brand-900 disabled:opacity-50 hover:bg-brand-600 transition-colors flex items-center justify-center gap-1">
+            className="h-6 px-3 rounded text-[11px] font-medium bg-brand-500 text-brand-on disabled:opacity-50 hover:bg-brand-600 transition-colors flex items-center justify-center gap-1">
             {creatingTestStep2 ? <Loader2 size={10} className="animate-spin" /> : <Plus size={10} />}
             Create &amp; Link
           </button>
@@ -1695,7 +1696,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
           <div className="relative">
             <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={polSearch} onChange={e => setPolSearch(e.target.value)} placeholder="Search policies…"
-              className="h-6 pl-5 pr-2 w-full rounded border border-border bg-surface-raised text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-6 pl-5 pr-2 w-full rounded border border-border glass-field text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div className="max-h-32 overflow-y-auto rounded-card border border-border divide-y divide-border">
             {loadingAllPolicies && <div className="flex justify-center py-3"><Loader2 size={12} className="text-brand-ink animate-spin" /></div>}
@@ -1749,7 +1750,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                 <div>
                   <label className="text-[11px] font-medium text-text-secondary uppercase tracking-wide block mb-1">Weight</label>
                   <input type="number" value={weight} onChange={e => setWeight(e.target.value)} placeholder="1.0"
-                    className="h-7 w-full rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="h-7 w-full rounded-ctl border border-border glass-field px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <button type="button" onClick={() => setMandatory(m => !m)}
@@ -1828,7 +1829,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
               <span className="flex items-center justify-center h-4 w-4 rounded-full bg-surface-overlay border border-border text-[9px] font-bold line-through opacity-50">1</span>
               <span className="line-through opacity-50">Fill details</span>
               <span>→</span>
-              <span className="flex items-center justify-center h-4 w-4 rounded-full bg-brand-500 text-brand-900 text-[9px] font-bold">2</span>
+              <span className="flex items-center justify-center h-4 w-4 rounded-full bg-brand-500 text-brand-on text-[9px] font-bold">2</span>
               <span className="text-text-secondary font-medium">Link tests &amp; policies</span>
             </div>
           </div>
@@ -1879,13 +1880,13 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                   <div className="relative flex-1">
                     <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                     <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search controls…"
-                      className="h-7 pl-8 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="h-7 pl-8 pr-3 w-full rounded-ctl border border-border glass-field text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
-                  <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
+                  <GlassSelect value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
                     className="h-7 appearance-none pl-2 pr-6 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                     <option value="">All types</option>
                     {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
+                  </GlassSelect>
                 </div>
                 <div className="flex-1 overflow-y-auto rounded-card border border-border divide-y divide-border">
                   {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>}
@@ -1928,38 +1929,38 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                 <div>
                   <label className="block text-xs text-text-secondary mb-1">Control name *</label>
                   <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. User access management"
-                    className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-text-secondary mb-1">Control code</label>
                     <input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="e.g. CC6.1, A.9.1.1"
-                      className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
                   <div>
                     <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
                     <input value={newFw} onChange={e => setNewFw(e.target.value)} placeholder="e.g. SOC 2, ISO 27001"
-                      className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-text-secondary mb-1">Test type</label>
-                    <select value={newType} onChange={e => setNewType(e.target.value)}
+                    <GlassSelect value={newType} onChange={e => setNewType(e.target.value)}
                       className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                       {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
+                    </GlassSelect>
                   </div>
                   <div>
                     <label className="block text-xs text-text-secondary mb-1">Guard tag</label>
                     <input value={newTag} onChange={e => setNewTag(e.target.value.toUpperCase())} placeholder="e.g. MFA, ENCRYPTION"
-                      className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs text-text-secondary mb-1">Description</label>
                   <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} rows={2}
-                    className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="w-full px-3 py-2 rounded-ctl border border-border glass-field text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <div>
                   <label className="block text-xs text-text-secondary mb-1">
@@ -1968,7 +1969,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                   </label>
                   <textarea value={newGuide} onChange={e => setNewGuide(e.target.value)} rows={2}
                     placeholder="What the auditor should ask for to test this control"
-                    className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="w-full px-3 py-2 rounded-ctl border border-border glass-field text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <div className="flex items-start gap-2 p-3 bg-brand-500/5 border border-brand-500/20 rounded-card">
                   <AlertCircle size={12} className="text-brand-ink mt-0.5 shrink-0" />
@@ -1982,7 +1983,7 @@ function ControlPickerModal({ open, sectionId, sectionName, templateId, existing
                     <div>
                       <label className="text-[11px] font-medium text-text-secondary uppercase tracking-wide block mb-1">Weight</label>
                       <input type="number" value={weight} onChange={e => setWeight(e.target.value)} placeholder="1.0"
-                        className="h-7 w-full rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                        className="h-7 w-full rounded-ctl border border-border glass-field px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                     </div>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <button type="button" onClick={() => setMandatory(m => !m)}
@@ -2055,7 +2056,7 @@ function EditSectionModal({ section, templateId, onClose }) {
           <label className="block text-xs text-text-secondary mb-1">Section name *</label>
           <input value={name} onChange={e => { setName(e.target.value); setError('') }}
             placeholder={displayName || 'Section name'}
-            className={cn('w-full h-9 px-3 rounded-ctl border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500',
+            className={cn('w-full h-9 px-3 rounded-ctl border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500',
               error ? 'border-status-fail-bd' : 'border-border')} />
           {error && <p className="text-xs text-status-fail-fg mt-1">{error}</p>}
         </div>
@@ -2063,12 +2064,12 @@ function EditSectionModal({ section, templateId, onClose }) {
           <div>
             <label className="block text-xs text-text-secondary mb-1">Section code</label>
             <input value={sectionCode} onChange={e => setCode(e.target.value)} placeholder="e.g. A.9"
-              className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
             <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
             <input value={frameworkRef} onChange={e => setFw(e.target.value)} placeholder="e.g. ISO 27001"
-              className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
         </div>
       </div>
@@ -2131,7 +2132,7 @@ function AddChildSectionModal({ open, parentSection, templateId, onClose }) {
             value={form.name}
             onChange={e => set('name', e.target.value)}
             placeholder="e.g. A.5.1 — IS Policies"
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -2141,7 +2142,7 @@ function AddChildSectionModal({ open, parentSection, templateId, onClose }) {
               value={form.sectionCode}
               onChange={e => set('sectionCode', e.target.value)}
               placeholder="e.g. A.5.1"
-              className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
           <div>
@@ -2150,7 +2151,7 @@ function AddChildSectionModal({ open, parentSection, templateId, onClose }) {
               value={form.frameworkRef}
               onChange={e => set('frameworkRef', e.target.value)}
               placeholder="e.g. ISO 27001"
-              className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
         </div>
@@ -2411,7 +2412,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
               <div>
                 <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Control name *</label>
                 <input value={libName} onChange={e => { setLibName(e.target.value); setLibErrors({}) }}
-                  className={cn('w-full h-9 px-3 rounded-ctl border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500',
+                  className={cn('w-full h-9 px-3 rounded-ctl border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500',
                     libErrors.libName ? 'border-status-fail-bd' : 'border-border')} />
                 {libErrors.libName && <p className="text-xs text-status-fail-fg mt-1">{libErrors.libName}</p>}
               </div>
@@ -2419,32 +2420,32 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                 <div>
                   <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Control code</label>
                   <input value={libCode} onChange={e => setLibCode(e.target.value)} placeholder="e.g. A.9.1.1"
-                    className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Framework ref</label>
                   <input value={libFw} onChange={e => setLibFw(e.target.value)} placeholder="e.g. ISO 27001"
-                    className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Test type</label>
-                  <select value={libTestType} onChange={e => setLibTestType(e.target.value)}
+                  <GlassSelect value={libTestType} onChange={e => setLibTestType(e.target.value)}
                     className="h-9 w-full appearance-none pl-3 pr-8 rounded-ctl border border-border text-sm text-text-primary bg-surface-raised focus:outline-none focus:ring-1 focus:ring-brand-500">
                     {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
+                  </GlassSelect>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Guard tag</label>
                   <input value={libTag} onChange={e => setLibTag(e.target.value.toUpperCase())} placeholder="e.g. MFA, ENCRYPTION"
-                    className="h-9 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="h-9 w-full rounded-ctl border border-border glass-field px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
               </div>
               <div>
                 <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Description</label>
                 <textarea rows={2} value={libDesc} onChange={e => setLibDesc(e.target.value)}
-                  className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </div>
               <div>
                 <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">
@@ -2455,7 +2456,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                 </label>
                 <textarea rows={3} value={libGuide} onChange={e => setLibGuide(e.target.value)}
                   placeholder={'e.g. Screenshot of MFA enforcement policy\nUser access review sign-off for the period'}
-                  className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </div>
             </div>
 
@@ -2470,7 +2471,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                 <div>
                   <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Weight</label>
                   <input type="number" value={mapWeight} onChange={e => setMapWeight(e.target.value)} placeholder="1.0"
-                    className="h-9 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="h-9 w-full rounded-ctl border border-border glass-field px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <label className="flex items-center gap-3 cursor-pointer pt-5">
                   <button type="button" onClick={() => setMapMandatory(m => !m)}
@@ -2527,20 +2528,20 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                         <div className="px-4 py-3 bg-surface-overlay flex flex-col gap-2">
                           <input value={etName} onChange={e => setEtName(e.target.value)}
                             placeholder="Test name *"
-                            className="w-full h-8 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                            className="w-full h-8 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                           <div className="grid grid-cols-3 gap-2">
                             <input value={etRef} onChange={e => setEtRef(e.target.value)} placeholder="Ref"
-                              className="h-7 px-2 rounded-ctl border border-border bg-surface-raised text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
-                            <select value={etFreq} onChange={e => setEtFreq(e.target.value)}
+                              className="h-7 px-2 rounded-ctl border border-border glass-field text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                            <GlassSelect value={etFreq} onChange={e => setEtFreq(e.target.value)}
                               className="h-7 px-2 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                               <option value="">Frequency</option>
                               {freqOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                            </select>
-                            <select value={etAuto} onChange={e => setEtAuto(e.target.value)}
+                            </GlassSelect>
+                            <GlassSelect value={etAuto} onChange={e => setEtAuto(e.target.value)}
                               className="h-7 px-2 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                               <option value="MANUAL">Manual</option>
                               <option value="AUTOMATED">Automated</option>
-                            </select>
+                            </GlassSelect>
                           </div>
                           <div className="flex gap-2 justify-end">
                             <button onClick={() => setEditingTestId(null)}
@@ -2550,7 +2551,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                             <button
                               onClick={() => updateTest({ id, data: { name: etName.trim(), testRef: etRef.trim() || null, frequency: etFreq || null, automationType: etAuto } })}
                               disabled={!etName.trim() || updatingTest}
-                              className="px-3 py-1 text-xs font-medium bg-brand-500 text-brand-900 rounded disabled:opacity-50 hover:bg-brand-600 transition-colors flex items-center gap-1">
+                              className="px-3 py-1 text-xs font-medium bg-brand-500 text-brand-on rounded disabled:opacity-50 hover:bg-brand-600 transition-colors flex items-center gap-1">
                               {updatingTest ? <Loader2 size={10} className="animate-spin" /> : null}
                               Save
                             </button>
@@ -2574,7 +2575,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                   <div className="relative">
                     <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                     <input value={testSearch} onChange={e => setTestSearch(e.target.value)} placeholder="Search library tests…"
-                      className="h-7 pl-7 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="h-7 pl-7 pr-3 w-full rounded-ctl border border-border glass-field text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
                   <div className="max-h-40 overflow-y-auto rounded-card border border-border divide-y divide-border">
                     {loadingAT && <div className="flex justify-center py-4"><Loader2 size={14} className="text-brand-ink animate-spin" /></div>}
@@ -2608,29 +2609,29 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                   <div>
                     <label className="block text-xs text-text-secondary mb-1">Test name *</label>
                     <input value={ntName} onChange={e => setNtName(e.target.value)} placeholder="e.g. Review access logs"
-                      className="w-full h-8 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="w-full h-8 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label className="block text-xs text-text-secondary mb-1">Test ref</label>
                       <input value={ntRef} onChange={e => setNtRef(e.target.value)} placeholder="e.g. T-01"
-                        className="w-full h-8 px-2 rounded-ctl border border-border bg-surface-raised text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                        className="w-full h-8 px-2 rounded-ctl border border-border glass-field text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                     </div>
                     <div>
                       <label className="block text-xs text-text-secondary mb-1">Frequency</label>
-                      <select value={ntFreq} onChange={e => setNtFreq(e.target.value)}
+                      <GlassSelect value={ntFreq} onChange={e => setNtFreq(e.target.value)}
                         className="w-full h-8 px-2 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                         <option value="">Frequency</option>
                         {freqOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </select>
+                      </GlassSelect>
                     </div>
                     <div>
                       <label className="block text-xs text-text-secondary mb-1">Automation</label>
-                      <select value={ntAuto} onChange={e => setNtAuto(e.target.value)}
+                      <GlassSelect value={ntAuto} onChange={e => setNtAuto(e.target.value)}
                         className="w-full h-8 px-2 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                         <option value="MANUAL">Manual</option>
                         <option value="AUTOMATED">Automated</option>
-                      </select>
+                      </GlassSelect>
                     </div>
                   </div>
                   <Button size="xs" loading={creatingTest} disabled={!ntName.trim()}
@@ -2682,7 +2683,7 @@ function ControlRow({ control, index, sectionId, templateId, isPublished }) {
                   <div className="relative">
                     <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                     <input value={polSearch} onChange={e => setPolSearch(e.target.value)} placeholder="Search library policies…"
-                      className="h-7 pl-7 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="h-7 pl-7 pr-3 w-full rounded-ctl border border-border glass-field text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   </div>
                   <div className="max-h-48 overflow-y-auto rounded-card border border-border divide-y divide-border">
                     {loadingAP && <div className="flex justify-center py-4"><Loader2 size={14} className="text-brand-ink animate-spin" /></div>}
@@ -2766,7 +2767,7 @@ function InteractiveChildSection({ node, depth, templateId, isPublished }) {
             <span className="font-mono text-[10px] text-text-muted">{section.sectionCode}</span>
           )}
           <span className="text-xs text-text-primary flex-1 font-medium">{section.name}</span>
-          <span className={cn('text-[10px] shrink-0', subtotal === 0 ? 'text-text-muted/50' : 'text-text-muted')}>
+          <span className={cn('text-[10px] shrink-0', subtotal === 0 ? 'text-text-faint' : 'text-text-muted')}>
             {subtotal} ctrl{subtotal !== 1 ? 's' : ''}
             {children.length > 0 && ` · ${children.length} sub`}
           </span>
@@ -2930,7 +2931,7 @@ function SectionBlock({ node, index, templateId, isPublished, expanded, onToggle
   const subtotalCount = countSubtreeControls(node)
 
   return (
-    <div className="rounded-card border border-border bg-surface-raised overflow-hidden">
+    <div className="rounded-card border border-border glass-card overflow-hidden">
       <div className="flex items-center">
         <button onClick={onToggle}
           className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-surface-overlay transition-colors text-left">
@@ -2945,7 +2946,7 @@ function SectionBlock({ node, index, templateId, isPublished, expanded, onToggle
             </div>
             <p className="text-xs text-text-muted">
               {subtotalCount} control{subtotalCount !== 1 ? 's' : ''}
-              {childCount > 0 && directCount > 0 && <span className="text-text-muted/60"> ({directCount} direct)</span>}
+              {childCount > 0 && directCount > 0 && <span className="text-text-muted"> ({directCount} direct)</span>}
               {childCount > 0 && <> · {childCount} subsection{childCount !== 1 ? 's' : ''}</>}
             </p>
           </div>
@@ -3252,26 +3253,26 @@ function TemplateMetaForm({ template, templateId, onClose }) {
       <div>
         <label className="block text-xs text-text-secondary mb-1">Template name *</label>
         <input value={form.templateName} onChange={e => set('templateName', e.target.value)}
-          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Audit type</label>
-          <select value={form.auditType} onChange={e => set('auditType', e.target.value)}
+          <GlassSelect value={form.auditType} onChange={e => set('auditType', e.target.value)}
             className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {AUDIT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
+          </GlassSelect>
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
           <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)} placeholder="ISO 27001, SOC 2…"
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <div>
         <label className="block text-xs text-text-secondary mb-1">Description</label>
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
-          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full px-3 py-2 rounded-ctl border border-border glass-field text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <Button variant="primary" loading={isPending} disabled={!form.templateName.trim()}
         onClick={() => update({ id: templateId, data: form })}>
@@ -3303,20 +3304,20 @@ function CreateTemplateForm({ onClose, onCreated }) {
       <div>
         <label className="block text-xs text-text-secondary mb-1">Template name *</label>
         <input value={form.templateName} onChange={e => set('templateName', e.target.value)} placeholder="e.g. ISO 27001 Full Audit"
-          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Audit type</label>
-          <select value={form.auditType} onChange={e => set('auditType', e.target.value)}
+          <GlassSelect value={form.auditType} onChange={e => set('auditType', e.target.value)}
             className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {AUDIT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
+          </GlassSelect>
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
           <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)} placeholder="ISO 27001, SOC 2…"
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <Button variant="primary" loading={isPending} disabled={!form.templateName.trim()} onClick={() => create(form)}>
@@ -3357,26 +3358,26 @@ function EditTemplateRowForm({ template, onClose }) {
       <div>
         <label className="block text-xs text-text-secondary mb-1">Template name *</label>
         <input value={form.templateName} onChange={e => set('templateName', e.target.value)}
-          className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-text-secondary mb-1">Audit type</label>
-          <select value={form.auditType} onChange={e => set('auditType', e.target.value)}
+          <GlassSelect value={form.auditType} onChange={e => set('auditType', e.target.value)}
             className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {AUDIT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
+          </GlassSelect>
         </div>
         <div>
           <label className="block text-xs text-text-secondary mb-1">Framework ref</label>
           <input value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)} placeholder="ISO 27001, SOC 2…"
-            className="w-full h-9 px-3 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-9 px-3 rounded-ctl border border-border glass-field text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
       <div>
         <label className="block text-xs text-text-secondary mb-1">Description</label>
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
-          className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full px-3 py-2 rounded-ctl border border-border glass-field text-sm text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
       <Button variant="primary" loading={isPending} disabled={!form.templateName.trim()}
         onClick={() => update({ id: template.id, data: form })}>
@@ -3558,7 +3559,7 @@ function AuditProjectBuilder({ projectId, onBack }) {
         <div className="px-6 py-3 border-b border-border bg-surface-raised">
           <textarea value={editForm?.description ?? ''} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
             rows={2} placeholder="Description (optional)"
-            className="w-full rounded-ctl border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+            className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
         </div>
       )}
       {!editMode && project?.description && (
@@ -3740,7 +3741,7 @@ function AuditProjectsLibraryTab({ onOpen }) {
             <RefreshCw size={14} />
           </button>
           <button onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-brand-500 hover:bg-brand-600 text-brand-900 rounded-ctl transition-colors">
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-brand-500 hover:bg-brand-600 text-brand-on rounded-ctl transition-colors">
             <Plus size={13} /> New project
           </button>
         </div>
@@ -3760,7 +3761,7 @@ function AuditProjectsLibraryTab({ onOpen }) {
         <div className="flex flex-col gap-2">
           {projects.map(p => (
             <button key={p.id} onClick={() => onOpen(p.id)}
-              className="w-full text-left rounded-card border border-border bg-surface-raised hover:bg-surface-overlay transition-colors px-4 py-3 flex items-center justify-between gap-3">
+              className="w-full text-left rounded-card border border-border glass-card hover:bg-surface-overlay transition-colors px-4 py-3 flex items-center justify-between gap-3">
               <div className="flex items-start gap-3 min-w-0">
                 <FolderKanban size={16} className="text-brand-ink mt-0.5 shrink-0" />
                 <div className="min-w-0">
@@ -3796,25 +3797,25 @@ function AuditProjectsLibraryTab({ onOpen }) {
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Name *</label>
             <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              className="w-full rounded-ctl border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
               placeholder="e.g. SOC 2 + ISO 27001 Annual Programme 2027" />
           </div>
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Description</label>
             <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              rows={2} className="w-full rounded-ctl border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+              rows={2} className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
               placeholder="Optional description" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">Planned Start</label>
               <input type="date" value={form.plannedStart} onChange={e => setForm(f => ({ ...f, plannedStart: e.target.value }))}
-                className="w-full rounded-ctl border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">Planned End</label>
               <input type="date" value={form.plannedEnd} onChange={e => setForm(f => ({ ...f, plannedEnd: e.target.value }))}
-                className="w-full rounded-ctl border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-1">
@@ -3824,7 +3825,7 @@ function AuditProjectsLibraryTab({ onOpen }) {
             </button>
             <button onClick={() => createMut.mutate()}
               disabled={!form.name || createMut.isPending}
-              className="px-3 py-1.5 text-xs font-medium bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-brand-900 rounded-ctl transition-colors">
+              className="px-3 py-1.5 text-xs font-medium bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-brand-on rounded-ctl transition-colors">
               {createMut.isPending ? 'Creating…' : 'Create Project'}
             </button>
           </div>
@@ -4066,18 +4067,18 @@ export default function AuditLibraryPage({ defaultTab = 'projects' }) {
                   tab === 'tests'     ? 'Search tests…'     :
                                         'Search policies…'
                 }
-              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
           )}
 
           {tab === 'controls' && (
             <div className="relative">
-              <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
+              <GlassSelect value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
                 className="h-8 appearance-none pl-3 pr-7 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 <option value="">All types</option>
                 {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
+              </GlassSelect>
               <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             </div>
           )}

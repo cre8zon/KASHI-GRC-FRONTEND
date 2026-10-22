@@ -215,7 +215,7 @@ export function ResponderActions({
               value={revisionNote}
               onChange={e => setRevisionNote(e.target.value)}
               placeholder="e.g. The answer is incomplete — please specify which controls are implemented."
-              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+              className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             />
             <div className="flex justify-end gap-2">
               <button type="button" onClick={closePanel}
@@ -265,7 +265,7 @@ export function ResponderActions({
                   value={overrideText}
                   onChange={e => setOverrideText(e.target.value)}
                   placeholder="Enter the correct answer…"
-                  className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+                  className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
                 />
               </div>
             ) : (
@@ -300,13 +300,13 @@ export function ResponderActions({
 
             <div className="space-y-1">
               <label className="text-[11px] font-medium text-text-muted block">
-                Reason for override <span className="text-text-muted/40">(optional)</span>
+                Reason for override <span className="text-text-faint">(optional)</span>
               </label>
               <input
                 value={overrideNote}
                 onChange={e => setOverrideNote(e.target.value)}
                 placeholder="e.g. Answer did not reflect the updated policy dated March 2025."
-                className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </div>
 

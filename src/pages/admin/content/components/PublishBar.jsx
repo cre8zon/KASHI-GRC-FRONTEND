@@ -108,7 +108,7 @@ export function PublishBar({
             type="datetime-local"
             value={when}
             onChange={(e) => setWhen(e.target.value)}
-            className="h-8 rounded-ctl border border-border bg-surface px-2.5 text-[13px] text-text-primary"
+            className="h-8 rounded-ctl border border-border glass-field px-2.5 text-[13px] text-text-primary"
           />
           <Button size="sm" variant="primary"
                   onClick={run('schedule', async () => { await onSchedule(when); setScheduling(false) })}

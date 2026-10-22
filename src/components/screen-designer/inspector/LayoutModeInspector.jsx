@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import { sdApi } from '../sdApi'
 import { InspectorSection } from '../shared/InspectorHelpers'
 import { LAYOUT_MODES } from '../constants'
+import { GlassSelect } from '../../ui/GlassSelect'
 
 function LayoutModeInspector({ screenKey }) {
   const qc = useQueryClient()
@@ -138,7 +139,7 @@ function LayoutModeInspector({ screenKey }) {
                   : 'border-border text-text-muted hover:border-border-strong'
               }`}>
               <span className={`mt-0.5 w-3 h-3 rounded-full border shrink-0 flex items-center justify-center ${
-                scope === s.value ? 'border-brand-400 bg-brand-400' : 'border-text-muted'
+                scope === s.value ? 'border-brand-fill bg-brand-fill' : 'border-text-muted'
               }`}>
                 {scope === s.value && <span className="w-1.5 h-1.5 rounded-full bg-surface-raised" />}
               </span>
@@ -153,7 +154,7 @@ function LayoutModeInspector({ screenKey }) {
         {/* Tenant picker — shown when scope = TENANT */}
         {scope === 'TENANT' && (
           <div className="mt-2">
-            <select
+            <GlassSelect
               value={targetTenantId || ''}
               onChange={e => setTargetTenantId(Number(e.target.value) || null)}
               className="w-full text-[10px] px-2 py-1.5 rounded border border-border bg-surface-overlay text-text-primary">
@@ -161,7 +162,7 @@ function LayoutModeInspector({ screenKey }) {
               {tenants.filter(t => t.id !== 1).map(t => (
                 <option key={t.id} value={t.id}>{t.name} (#{t.id})</option>
               ))}
-            </select>
+            </GlassSelect>
           </div>
         )}
 

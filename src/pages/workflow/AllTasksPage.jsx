@@ -142,7 +142,7 @@ function TaskDetailDrawer({ task, onClose }) {
               {history.slice(0, 20).map((entry, i) => {
                 const action = entry.action || entry.eventType || ''
                 const color = action.includes('APPROVED') || action.includes('COMPLETED') ? 'bg-status-pass-bg' :
-                              action.includes('REJECTED') || action.includes('CANCELLED') ? 'bg-status-fail-bg' : 'bg-brand-400'
+                              action.includes('REJECTED') || action.includes('CANCELLED') ? 'bg-status-fail-bg' : 'bg-brand-fill'
                 return (
                   <div key={entry.id ?? i} className="flex items-start gap-2">
                     <div className={cn('w-1.5 h-1.5 rounded-full mt-1.5 shrink-0', color)} />
@@ -231,7 +231,7 @@ export default function AllTasksPage() {
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
               <input value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search step or workflow…"
-                className="h-8 pl-8 pr-3 w-48 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="h-8 pl-8 pr-3 w-48 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <Button variant={showFilters ? 'secondary' : 'ghost'} size="sm" icon={SlidersHorizontal}
               onClick={() => setFilters(f => !f)}>

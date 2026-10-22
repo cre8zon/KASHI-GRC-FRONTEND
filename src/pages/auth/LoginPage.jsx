@@ -1,187 +1,124 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { Mail, ArrowRight } from 'lucide-react'
 import { useLoginWithRedirect } from '../../hooks/useAuth'
-import { useSelector } from 'react-redux'
-import { selectIsAuthenticated } from '../../store/slices/authSlice'
-import { ShieldCheck, ArrowRight, Eye, EyeOff, Mail, Lock } from 'lucide-react'
+import { AuthLayout, AuthHeading } from '../../components/auth/AuthLayout'
+import { TextField, PasswordField, FormAlert, SubmitButton } from '../../components/auth/AuthFields'
+import { consumeSessionEndReason, consumeReturnTo } from '../../lib/session'
+import { parseApiError } from '../../lib/passwordPolicy'
 
 const schema = z.object({
-  email:      z.string().email('Invalid email address'),
-  password:   z.string().min(1, 'Password is required'),
+  email:      z.string().trim().min(1, 'Enter your work email').email('Enter a valid email address'),
+  password:   z.string().min(1, 'Enter your password'),
   rememberMe: z.boolean().optional(),
 })
 
-export default function LoginPage() {
-  const navigate   = useNavigate()
-  const isAuth     = useSelector(selectIsAuthenticated)
-  const [showPwd, setShowPwd] = useState(false)
-  const { mutate: login, isPending, error } = useLoginWithRedirect()
+/** Why the user is looking at the sign-in page, if a session just ended. */
+const REASON_COPY = {
+  expired:              { tone: 'warn', title: 'Your session expired',  body: 'Sign in again to pick up where you left off.' },
+  idle:                 { tone: 'info', title: 'Signed out for inactivity', body: 'You were inactive for a while, so we signed you out to protect your account.' },
+  invalid:              { tone: 'warn', title: 'Please sign in again',  body: 'Your session is no longer valid.' },
+  signed_out:           { tone: 'pass', title: "You've signed out",     body: null },
+  signed_out_elsewhere: { tone: 'info', title: 'Signed out',            body: 'You signed out in another tab.' },
+  password_changed:     { tone: 'pass', title: 'Password updated',      body: 'Sign in with your new password.' },
+}
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+export default function LoginPage() {
+  const location = useLocation()
+  // Read once: these are one-shot notes left by endSession().
+  const [reason]   = useState(() => location.state?.reason || consumeSessionEndReason())
+  const [returnTo] = useState(() => {
+    const from = location.state?.from
+    const fromPath = from?.pathname ? from.pathname + (from.search || '') : null
+    return consumeReturnTo() || fromPath
+  })
+  const notice = reason ? REASON_COPY[reason] : null
+
+  const { mutate: login, isPending, error, reset } = useLoginWithRedirect()
+
+  const { register, handleSubmit, setFocus, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { email: '', password: '', rememberMe: false },
+    defaultValues: { email: location.state?.email || '', password: '', rememberMe: false },
+    mode: 'onTouched',
   })
 
-  useEffect(() => { if (isAuth) navigate('/dashboard') }, [isAuth, navigate])
+  useEffect(() => { setFocus(location.state?.email ? 'password' : 'email') }, [setFocus]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const onSubmit = (data) => login({ email: data.email, password: data.password })
+  const apiErr = useMemo(() => parseApiError(error, 'Sign-in failed. Please try again.'), [error])
+  const locked = apiErr.code === 'AUTH_ACCOUNT_LOCKED'
 
-  const errorMsg = error?.response?.data?.error?.message
-    || error?.message
-    || (error ? 'Login failed. Check your credentials.' : null)
+  const onSubmit = (data) => login({ ...data, redirectTo: returnTo })
 
   return (
-    <div className="min-h-screen bg-surface flex">
-      {/* Left panel — branding */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-sidebar border-r border-border relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5"
-          style={{ backgroundImage: 'radial-gradient(circle, rgb(var(--color-brand-500)) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+    <AuthLayout
+      footer={<>Trouble signing in? Contact your workspace administrator.</>}
+    >
+      <AuthHeading title="Sign in to KashiGRC">
+        Welcome back. Use your work email and password.
+      </AuthHeading>
 
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-9 h-9 rounded-card bg-brand-500/20 border border-brand-500/30 flex items-center justify-center">
-              <ShieldCheck size={18} className="text-brand-ink" />
-            </div>
-            <span className="text-lg font-bold text-text-primary tracking-tight">KashiGRC</span>
-          </div>
-          <h1 className="text-4xl font-bold text-text-primary leading-tight mb-4">
-            Governance.<br />Risk.<br />Compliance.
-          </h1>
-          <p className="text-text-secondary text-base leading-relaxed max-w-sm">
-            Enterprise-grade TPRM and GRC platform. Manage vendor risk, assessments, workflows and compliance from a single source of truth.
-          </p>
-        </div>
+      {notice && !error && (
+        <FormAlert tone={notice.tone} title={notice.title}>{notice.body}</FormAlert>
+      )}
 
-        <div className="relative z-10">
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: 'Vendors', value: '2,400+' },
-              { label: 'Assessments', value: '14k' },
-              { label: 'Risk Score', value: '99.2%' },
-            ].map(stat => (
-              <div key={stat.label} className="bg-on-dark/5 rounded-card p-3 border border-border/40">
-                <p className="font-mono text-xl font-bold text-brand-ink">{stat.value}</p>
-                <p className="text-xs text-text-muted mt-0.5">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-sm">
-          {/* Mobile logo */}
-          <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <ShieldCheck size={20} className="text-brand-ink" />
-            <span className="font-bold text-text-primary">KashiGRC</span>
-          </div>
-
-          <h2 className="text-2xl font-bold text-text-primary mb-1">Sign in</h2>
-          <p className="text-sm text-text-muted mb-8">Enter your credentials to continue</p>
-
-          {/* Error state */}
-          {errorMsg && (
-            <div className="mb-4 px-3 py-2.5 rounded-ctl bg-status-fail-bg border border-status-fail-bd text-xs text-status-fail-fg">
-              {errorMsg}
-            </div>
+      {apiErr.form && (
+        <FormAlert tone={locked ? 'warn' : 'fail'} title={locked ? 'Account temporarily locked' : null}>
+          {apiErr.form}
+          {locked && (
+            <> {' '}<Link to="/auth/forgot-password" className="font-semibold underline underline-offset-2">Reset password</Link></>
           )}
+        </FormAlert>
+      )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/* Email */}
-            <div className="flex flex-col gap-1">
-              <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary uppercase tracking-wide">
-                <Mail size={11} /> Email Address
-              </label>
-              <input
-                type="email"
-                placeholder="admin@kashigrc.com"
-                autoComplete="email"
-                className="h-10 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 transition-colors"
-                {...register('email')}
-              />
-              {errors.email && <p className="text-xs text-status-fail-fg">{errors.email.message}</p>}
-            </div>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4" onChange={() => error && reset()}>
+        <TextField
+          label="Work email"
+          type="email"
+          icon={Mail}
+          autoComplete="username"
+          inputMode="email"
+          placeholder="you@company.com"
+          error={errors.email?.message || apiErr.fields.email}
+          {...register('email')}
+        />
 
-            {/* Password */}
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary uppercase tracking-wide">
-                  <Lock size={11} /> Password
-                </label>
-                <a href="/auth/forgot-password" className="text-xs text-brand-ink hover:text-brand-ink transition-colors">
-                  Forgot password?
-                </a>
-              </div>
-              <div className="relative">
-                <input
-                  type={showPwd ? 'text' : 'password'}
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                  className="h-10 w-full rounded-ctl border border-border bg-surface-raised px-3 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 transition-colors"
-                  {...register('password')}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPwd(s => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary transition-colors"
-                >
-                  {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-              {errors.password && <p className="text-xs text-status-fail-fg">{errors.password.message}</p>}
-            </div>
+        <PasswordField
+          label="Password"
+          autoComplete="current-password"
+          placeholder="Your password"
+          error={errors.password?.message || apiErr.fields.password}
+          labelAside={
+            <Link to="/auth/forgot-password"
+              className="text-xs font-medium text-brand-ink underline-offset-2 hover:underline focus-visible:underline">
+              Forgot password?
+            </Link>
+          }
+          {...register('password')}
+        />
 
-            {/* Remember me — from Figma */}
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="rememberMe"
-                className="w-3.5 h-3.5 rounded border-border bg-surface-raised accent-brand-500"
-                {...register('rememberMe')}
-              />
-              <label htmlFor="rememberMe" className="text-xs text-text-secondary cursor-pointer select-none">
-                Remember me
-              </label>
-            </div>
+        <label className="flex cursor-pointer select-none items-start gap-2.5 pt-0.5">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border-strong accent-brand-500"
+            {...register('rememberMe')}
+          />
+          <span className="text-[13px] leading-snug text-text-secondary">
+            Keep me signed in
+            <span className="block text-xs text-text-muted">Only on a device you trust — you won't be signed out for inactivity.</span>
+          </span>
+        </label>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isPending}
-              className="w-full h-10 rounded-ctl bg-brand-500 text-brand-900 text-sm font-semibold hover:bg-brand-600 active:bg-brand-700 transition-all flex items-center justify-center gap-2 disabled:opacity-60 mt-2"
-            >
-              {isPending
-                ? <span className="w-4 h-4 border-2 border-on-dark/30 border-t-white rounded-full animate-spin" />
-                : <><span>Sign In</span><ArrowRight size={15} /></>
-              }
-            </button>
-          </form>
+        <SubmitButton loading={isPending} loadingText="Signing in…">
+          Sign in <ArrowRight size={15} />
+        </SubmitButton>
+      </form>
 
-          {/* Admin access notice — from Figma */}
-          <div className="mt-6 px-3 py-2.5 rounded-ctl bg-status-info-bg border border-status-info-bd flex items-start gap-2">
-            <div className="w-4 h-4 rounded-full bg-status-info-bg flex items-center justify-center shrink-0 mt-0.5">
-              <span className="text-on-dark text-[9px] font-bold">i</span>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-status-info-fg">Admin Access Required</p>
-              <p className="text-[11px] text-text-muted mt-0.5">
-                This portal is restricted to authorized administrators only. All login attempts are monitored and logged.
-              </p>
-            </div>
-          </div>
-
-          <p className="text-xs text-text-muted text-center mt-6">
-            Need help? <a href="#" className="text-brand-ink hover:text-brand-ink">Contact Support</a>
-          </p>
-          <p className="text-[10px] text-text-muted/50 text-center mt-2">
-            Secured by <span className="text-brand-ink/70">KashiGRC</span> · Enterprise GRC Platform
-          </p>
-        </div>
-      </div>
-    </div>
+      <p className="mt-6 border-t border-border-subtle pt-4 text-xs leading-relaxed text-text-muted">
+        This system is for authorised users only. Sign-in attempts are monitored and logged.
+      </p>
+    </AuthLayout>
   )
 }

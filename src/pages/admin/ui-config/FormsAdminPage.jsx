@@ -14,6 +14,7 @@ import { Input }       from '../../../components/ui/Input'
 import { cn }          from '../../../lib/cn'
 import { FormPreviewDrawer } from './FormPreviewDrawer'
 import toast           from 'react-hot-toast'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 const FIELD_TYPES = [
   'TEXT','EMAIL','PASSWORD','NUMBER','DECIMAL',
@@ -81,7 +82,7 @@ function FieldRow({ field, formId, onDelete }) {
 
   if (!editing) return (
     <div className="flex items-center gap-3 px-3 py-2.5 hover:bg-surface-overlay/50 group rounded transition-colors">
-      <GripVertical size={12} className="text-text-muted/40 shrink-0" />
+      <GripVertical size={12} className="text-text-faint shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono text-text-muted">{field.fieldKey}</span>
@@ -230,11 +231,11 @@ function FieldsPanel({ form }) {
         <div className="grid grid-cols-3 gap-2 mb-2">
           <div>
             <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Type *</label>
-            <select value={newField.fieldType}
+            <GlassSelect value={newField.fieldType}
               onChange={e => setNewField(f => ({ ...f, fieldType: e.target.value }))}
               className="w-full h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               {FIELD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
+            </GlassSelect>
           </div>
           <Input label="Sort Order" type="number" value={newField.sortOrder}
             onChange={e => setNewField(f => ({ ...f, sortOrder: parseInt(e.target.value) || 0 }))} />
@@ -394,10 +395,10 @@ function FormFormModal({ item, onSubmit, isPending, onClose }) {
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">
             HTTP Method
           </label>
-          <select value={form.httpMethod} onChange={e => set('httpMethod', e.target.value)}
+          <GlassSelect value={form.httpMethod} onChange={e => set('httpMethod', e.target.value)}
             className="w-full h-8 rounded-ctl border border-border bg-surface-raised px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
             {HTTP_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+          </GlassSelect>
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-2 border-t border-border">

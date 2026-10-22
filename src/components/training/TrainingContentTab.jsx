@@ -331,7 +331,7 @@ export function TrainingContentTab({ entity, canEdit = true }) {
                 isRequired: true,
               })
             }}
-            className="self-start px-3 py-1.5 text-xs font-medium rounded-ctl bg-brand-500 text-white disabled:opacity-60">
+            className="self-start px-3 py-1.5 text-xs font-medium rounded-ctl bg-brand-500 text-brand-on disabled:opacity-60">
             {isFileType
               ? `Add ${staged.length || ''} to course`.replace('  ', ' ')
               : (addMutation.isPending ? 'Adding…' : 'Add to course')}

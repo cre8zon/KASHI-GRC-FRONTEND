@@ -26,6 +26,7 @@ import { Button } from '../../components/ui/Button'
 import { Modal, ConfirmDialog } from '../../components/ui/Modal'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 /**
  * Chat — direct messages, groups and channels for the organisation's own
@@ -130,20 +131,20 @@ export default function ChatPage() {
   return (
     <PageLayout title="Chat" subtitle="Direct messages, groups and channels — your organisation only">
       <div className="px-6 pb-6 h-full min-h-0">
-        <div className="h-full min-h-[480px] flex rounded-card border border-border bg-surface-raised overflow-hidden">
+        <div className="h-full min-h-[480px] flex rounded-card border border-border glass-card overflow-hidden">
           {/* ── Conversations ── */}
           <aside className="w-72 shrink-0 border-r border-border flex flex-col min-h-0">
             <div className="p-2 flex items-center gap-1.5 border-b border-border-subtle relative">
               <div className="relative flex-1">
                 <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
                 <input value={q} onChange={e => setQ(e.target.value)} placeholder="Find a conversation"
-                  className="w-full h-8 pl-7 pr-2 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary" />
+                  className="w-full h-8 pl-7 pr-2 rounded-ctl border border-border glass-field text-xs text-text-primary" />
               </div>
               <Button size="icon-sm" icon={Plus} aria-label="New" onClick={() => setMenu(m => !m)} />
               {menu && (
                 <>
                   <div className="fixed inset-0 z-[30]" onClick={() => setMenu(false)} />
-                  <div className="absolute right-2 top-full mt-1 z-[31] w-52 rounded-ctl border border-border bg-surface-raised shadow-overlay py-1">
+                  <div className="absolute right-2 top-full mt-1 z-[31] w-52 rounded-ctl border border-border glass-overlay shadow-overlay py-1">
                     {[['DIRECT', MessageSquare, 'New message'], ['GROUP', Users, 'New group'], ['CHANNEL', Hash, 'New channel'], ['BROWSE', Globe, 'Browse channels']]
                       .map(([k, Icon, label]) => (
                         <button key={k} type="button" onClick={() => { setMenu(false); setStarting(k) }}
@@ -181,7 +182,7 @@ export default function ChatPage() {
                           )}
                         </div>
                         {c.unread > 0 && (
-                          <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-500 text-brand-900 text-[10px] font-semibold flex items-center justify-center">
+                          <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-500 text-brand-on text-[10px] font-semibold flex items-center justify-center">
                             {c.unread > 99 ? '99+' : c.unread}
                           </span>
                         )}
@@ -562,7 +563,7 @@ function Conversation({ id, me, onGone }) {
           }}>
           {dragging > 0 && (
             <div className="absolute inset-2 z-20 rounded-card border-2 border-dashed border-brand-500 bg-surface-raised/90 flex flex-col items-center justify-center pointer-events-none">
-              <Paperclip size={22} className="text-brand-900" />
+              <Paperclip size={22} className="text-brand-ink" />
               <p className="text-sm font-medium text-text-primary mt-1">Drop files to attach</p>
               <p className="text-xs text-text-muted">Up to {MAX_FILES} per message</p>
             </div>
@@ -752,7 +753,7 @@ function SearchPanel({ id, onClose, onJump }) {
         <div className="relative">
           <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Words in a message" autoFocus
-            className="w-full h-8 pl-7 pr-2 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary" />
+            className="w-full h-8 pl-7 pr-2 rounded-ctl border border-border glass-field text-xs text-text-primary" />
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">
@@ -792,7 +793,7 @@ function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, 
   const reactions = m.reactions || []
   const btn = 'p-1 text-text-muted hover:text-text-primary'
   const bar = !m.deleted && canAct && (
-    <div className={cn('absolute -top-3 z-10 items-center rounded-ctl border border-border bg-surface-raised shadow-elevated',
+    <div className={cn('absolute -top-3 z-10 items-center rounded-ctl border border-border glass-overlay shadow-elevated',
       picking ? 'flex' : 'hidden group-hover:flex', mine ? 'right-1' : 'left-11')}>
       {QUICK_REACTIONS.map(e => (
         <button key={e} type="button" onClick={() => onReact(e)} title={`React ${e}`}
@@ -818,7 +819,7 @@ function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, 
       {!mine && (
         <div className="w-8 shrink-0">
           {!grouped && (
-            <span className="relative w-8 h-8 rounded-full bg-brand-500/20 text-brand-900 text-[11px] font-semibold flex items-center justify-center"
+            <span className="relative w-8 h-8 rounded-full bg-brand-500/20 text-brand-ink text-[11px] font-semibold flex items-center justify-center"
               title={m.senderName}>
               {initials(m.senderName)}
               {online && <PresenceDot />}
@@ -838,12 +839,12 @@ function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, 
           )}
           <div className={cn('rounded-card px-3 py-1.5 min-w-0 max-w-full', m.pending && 'opacity-70',
             m.deleted ? 'bg-surface-overlay/60 border border-dashed border-border'
-              : mine ? 'bg-brand-500 text-brand-900'
+              : mine ? 'bg-brand-500 text-brand-on'
               : 'bg-surface-overlay border border-border-subtle text-text-primary')}>
             {m.replyTo && !m.deleted && (
               <button type="button" onClick={() => onJump(m.replyTo.id)} title="Go to the message"
                 className={cn('block w-full text-left mb-1 rounded-ctl border-l-2 px-2 py-1',
-                  mine ? 'bg-surface-raised/60 border-brand-900/40' : 'bg-surface-raised border-brand-500')}>
+                  mine ? 'bg-surface-raised/70 border-brand-on/50' : 'bg-surface-raised border-brand-500')}>
                 <span className="block text-[11px] font-semibold text-text-secondary truncate">{m.replyTo.senderName}</span>
                 <span className={cn('block text-xs truncate', m.replyTo.deleted ? 'italic text-text-muted' : 'text-text-secondary')}>{m.replyTo.preview}</span>
               </button>
@@ -857,7 +858,7 @@ function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, 
                 </div>
               )}
             <p className={cn('text-[10px] leading-none mt-1 text-right select-none',
-              mine && !m.deleted ? 'text-brand-900/70' : 'text-text-muted')}>
+              mine && !m.deleted ? 'text-brand-on/80' : 'text-text-muted')}>
               {/* The clock and "Sending…" moved into MessageReceipt, which owns
                   every delivery state including that one — two places showing it
                   meant the pending row said it twice. */}
@@ -871,7 +872,7 @@ function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, 
                 <button key={r.emoji} type="button" disabled={!canAct} onClick={() => onReact(r.emoji)}
                   title={(r.names || []).join(', ')}
                   className={cn('inline-flex items-center gap-1 h-6 px-1.5 rounded-badge border text-xs',
-                    r.mine ? 'border-brand-500 bg-brand-500/15 text-brand-900' : 'border-border bg-surface-raised text-text-secondary hover:bg-surface-overlay')}>
+                    r.mine ? 'border-brand-500 bg-brand-500/15 text-brand-ink' : 'border-border bg-surface-raised text-text-secondary hover:bg-surface-overlay')}>
                   <span className="text-sm leading-none">{r.emoji}</span>{r.count}
                 </button>
               ))}
@@ -1052,7 +1053,7 @@ function Composer({ id, members, meId, onSending, onSent, onFailed, replyingTo, 
   return (
     <div className="relative px-4 pt-1 pb-3 border-t border-border">
       {picker && options.length > 0 && (
-        <div className="absolute left-4 bottom-full mb-1 w-64 rounded-ctl border border-border bg-surface-raised shadow-overlay py-1 z-10">
+        <div className="absolute left-4 bottom-full mb-1 w-64 rounded-ctl border border-border glass-overlay shadow-overlay py-1 z-10">
           {options.map((p, i) => (
             <button key={p.userId} type="button" onMouseDown={(e) => { e.preventDefault(); choose(p) }}
               className={cn('w-full text-left px-3 py-1.5 text-xs flex items-center gap-2', i === pick ? 'bg-surface-overlay' : 'hover:bg-surface-overlay')}>
@@ -1134,7 +1135,7 @@ function Composer({ id, members, meId, onSending, onSent, onFailed, replyingTo, 
             if (e.key === 'Escape' && replyingTo) { onCancelReply(); return }
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit() }
           }}
-          className="flex-1 resize-none max-h-40 rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary" />
+          className="flex-1 resize-none max-h-40 rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary" />
         {/* Emoji sits by Send; its picker opens directly above the button. */}
         <div className="relative shrink-0">
           <button type="button" title="Emoji" aria-label="Emoji"
@@ -1168,7 +1169,7 @@ function EditMessageModal({ message, onClose, onDone }) {
         <Button size="sm" onClick={() => save.mutate()} loading={save.isPending} disabled={!text.trim() && !message?.attachments?.length}>Save</Button>
       </div>}>
       <textarea value={text} onChange={e => setText(e.target.value)} rows={5} autoFocus
-        className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary" />
+        className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary" />
     </Modal>
   )
 }
@@ -1204,7 +1205,7 @@ function PeopleModal({ open, onClose, title, subtitle, exclude = [], single, con
           </div>
         ) : (<>
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search people" autoFocus={single}
-          className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary" />
+          className="w-full h-9 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary" />
         <div className="max-h-72 overflow-y-auto rounded-ctl border border-border">
           {shown.length === 0 ? <p className="p-3 text-xs text-text-muted">Nobody found.</p> : shown.map(p => (
             <label key={p.userId} className="flex items-center gap-2 px-3 py-1.5 border-b border-border-subtle last:border-0 hover:bg-surface-overlay cursor-pointer"
@@ -1330,10 +1331,10 @@ function SettingsModal({ open, conv, onClose, onSave, saving, onRemove, meId }) 
         {channel && (
           <>
             <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Description" className={input} />
-            <select value={visibility} onChange={e => setVisibility(e.target.value)} className={input}>
+            <GlassSelect value={visibility} onChange={e => setVisibility(e.target.value)} className={input}>
               <option value="PUBLIC">Public — anyone in the organisation can join</option>
               <option value="PRIVATE">Private — invitation only</option>
-            </select>
+            </GlassSelect>
           </>
         )}
         <div>

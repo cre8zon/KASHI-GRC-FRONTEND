@@ -226,12 +226,12 @@ function renderToken(kind, m, ctx, id) {
       // On your own (brand) bubble a brand tint would vanish — use a light chip.
       return <span key={id} className={cn('rounded px-0.5 font-medium',
         you ? 'bg-status-warn-bg text-status-warn-fg'
-          : ctx.onBrand ? 'bg-surface-raised/70 text-brand-900' : 'bg-brand-500/15 text-brand-900')}>@{name}</span>
+          : ctx.onBrand ? 'bg-surface-raised/80 text-text-primary' : 'bg-brand-500/15 text-brand-ink')}>@{name}</span>
     }
     case 'link': {
       const href = m[0]
       const a = appLink(href)
-      const cls = cn('underline underline-offset-2 break-all', ctx.onBrand ? 'text-brand-900' : 'text-brand-900 hover:opacity-80')
+      const cls = cn('underline underline-offset-2 break-all', ctx.onBrand ? 'text-brand-on' : 'text-brand-ink hover:opacity-80')
       if (a) {
         const to = new URL(href, window.location.origin)
         return <a key={id} href={to.pathname + to.search + to.hash} className={cls}
@@ -322,7 +322,7 @@ function MeetingCard({ id }) {
         <span className="flex-1" />
         {live && (
           <button type="button" onClick={() => joinMeetingCall(m.id)}
-            className="inline-flex items-center gap-1 rounded-ctl bg-brand-500 text-brand-900 px-2 py-0.5 text-xs font-medium hover:opacity-90">
+            className="inline-flex items-center gap-1 rounded-ctl bg-brand-500 text-brand-on px-2 py-0.5 text-xs font-medium hover:opacity-90">
             <Video size={12} /> Join
           </button>
         )}

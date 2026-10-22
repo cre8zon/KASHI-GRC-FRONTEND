@@ -17,7 +17,7 @@ import { cn } from '../../lib/cn'
 
 function Section({ icon: Icon, label, hint, accent, children }) {
   return (
-    <div className="rounded-card border border-border bg-surface-raised overflow-hidden">
+    <div className="rounded-card border border-border glass-card overflow-hidden">
       <div className={cn('flex items-center gap-2 px-3 py-2 border-b border-border/60',
         accent === 'warn' ? 'bg-status-warn-bg/40' : accent === 'pass' ? 'bg-status-pass-bg/40' : 'bg-surface-inset')}>
         <Icon size={13} className={cn('shrink-0',

@@ -34,7 +34,7 @@ function SectionCanvas({ screen, selectedElement, onSelectElement, actions, layo
             <div className="flex items-center gap-2">
               <div className="text-xs text-text-secondary font-medium">0 / 3 items</div>
               <div className="w-16 h-1.5 bg-surface-overlay rounded-full overflow-hidden">
-                <div className="h-full bg-brand-500 rounded-full" style={{ width: '0%' }} />
+                <div className="h-full bg-brand-fill rounded-full" style={{ width: '0%' }} />
               </div>
             </div>
           </div>

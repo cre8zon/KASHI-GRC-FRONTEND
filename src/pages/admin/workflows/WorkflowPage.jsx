@@ -429,7 +429,7 @@ export default function WorkflowPage({ isPlatformAdmin = false, defaultTab }) {
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search…"
-              className="h-8 pl-8 pr-3 w-48 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-48 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw}
             onClick={tab === 'blueprints' ? bpRefetch : instRefetch} />
@@ -593,7 +593,7 @@ function InstanceProgressBar({ instanceId, status }) {
     <div className="flex items-center gap-2">
       <div className="flex-1 h-1.5 bg-surface-overlay rounded-full overflow-hidden w-16">
         <div
-          className="h-full rounded-full bg-brand-500 transition-all"
+          className="h-full rounded-full bg-brand-fill transition-all"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -695,7 +695,7 @@ function InstanceDetail({ instanceId, onBack, isPlatformAdmin }) {
               <div className="divide-y divide-border max-h-72 overflow-y-auto">
                 {history.map(h => (
                   <div key={h.id} className="flex items-start gap-3 px-4 py-2.5 hover:bg-surface-overlay">
-                    <div className="w-2 h-2 rounded-full bg-brand-400 shrink-0 mt-1.5" />
+                    <div className="w-2 h-2 rounded-full bg-brand-fill shrink-0 mt-1.5" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-text-primary">{h.eventType.replace(/_/g, ' ')}</span>
@@ -847,7 +847,7 @@ function TaskActionModal({ taskId, stepInstance, onClose, onSubmit, isPending })
           </label>
           <textarea rows={2} value={remarks} onChange={e => setRemarks(e.target.value)}
             placeholder="Add remarks or justification…"
-            className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         {needsTargetUser && (
           <Input label="Target User ID *" type="number" value={targetUserId}

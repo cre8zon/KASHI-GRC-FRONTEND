@@ -162,7 +162,7 @@ function SectionCard({ section, taskInstanceId, viewContext, entityType, entityI
       >
         {section.completed
           ? <CheckCircle2 size={16} className="text-status-pass-fg shrink-0" />
-          : <Circle size={16} className={cn('shrink-0', section.required ? 'text-text-muted' : 'text-text-muted/40')} />
+          : <Circle size={16} className={cn('shrink-0', section.required ? 'text-text-muted' : 'text-text-faint')} />
         }
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -189,7 +189,7 @@ function SectionCard({ section, taskInstanceId, viewContext, entityType, entityI
               {section.itemsCompleted}/{section.itemsTotal}
             </span>
             <div className="w-16 h-1.5 rounded-full bg-surface-overlay overflow-hidden">
-              <div className="h-full rounded-full bg-brand-500 transition-all" style={{ width: `${pct}%` }} />
+              <div className="h-full rounded-full bg-brand-fill transition-all" style={{ width: `${pct}%` }} />
             </div>
           </div>
         )}
@@ -524,7 +524,7 @@ function UserSearchInput({ onSelect, loading, onCancel }) {
         onChange={e => search(e.target.value)}
         placeholder="Search users…"
         autoFocus
-        className="w-full h-7 px-2.5 text-xs bg-surface-raised border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+        className="w-full h-7 px-2.5 text-xs glass-field border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
       />
       {searching && <Loader2 size={13} className="animate-spin text-text-muted" />}
       {results.map(u => (

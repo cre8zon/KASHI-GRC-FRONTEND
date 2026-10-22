@@ -15,13 +15,15 @@ import { Loader2, ChevronDown } from 'lucide-react'
  */
 
 const variants = {
-  primary:   'bg-brand-500 text-brand-900 hover:bg-brand-600 active:bg-brand-700 shadow-elevated hover:shadow-hover focus-visible:ring-brand-800/40',
-  secondary: 'bg-surface-raised text-text-primary border border-border hover:bg-surface-overlay shadow-elevated',
+  primary:   'bg-brand-500 text-brand-on hover:bg-brand-600 active:bg-brand-700 shadow-elevated hover:shadow-hover focus-visible:ring-brand-ink/40',
+  // Frosted, like the cards it sits on. glass-button supplies fill, blur, rim
+  // and highlight; the utilities here only add colour and lift.
+  secondary: 'glass-button text-text-primary hover:shadow-hover',
   danger:    'bg-status-fail-bg text-status-fail-fg hover:brightness-[0.97]',
   warning:   'bg-status-warn-bg text-status-warn-fg hover:brightness-[0.97]',
   success:   'bg-status-pass-bg text-status-pass-fg hover:brightness-[0.97]',
   ghost:     'text-text-secondary hover:text-text-primary hover:bg-surface-overlay',
-  link:      'text-brand-900 hover:text-brand-800 hover:underline underline-offset-2 p-0 h-auto',
+  link:      'text-brand-ink hover:text-brand-ink hover:underline underline-offset-2 p-0 h-auto',
 }
 
 const sizes = {

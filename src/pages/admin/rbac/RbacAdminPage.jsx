@@ -15,6 +15,7 @@ import { useSelector } from 'react-redux'
 import { selectTenantId } from '../../../store/slices/authSlice'
 import toast from 'react-hot-toast'
 import { rbacApi } from '../../../api/rbac.api'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
@@ -197,17 +198,17 @@ function PermissionsTab() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search permissions…"
-            className="w-full pl-8 pr-3 h-8 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="w-full pl-8 pr-3 h-8 text-xs glass-field border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
-        <select
+        <GlassSelect
           value={moduleFilter}
           onChange={e => setModuleFilter(e.target.value)}
           className="h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand-500"
         >
           <option value="">All modules</option>
           {MODULES.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
+        </GlassSelect>
         {permissions.length > 0 && (
           <span className="text-xs text-text-muted shrink-0">
             <span className="font-semibold text-text-primary">{permissions.length}</span> permissions
@@ -302,29 +303,29 @@ function PermissionModal({ open, onClose, initial, onSave, loading }) {
           <label className="text-xs font-medium text-text-secondary block mb-1">Permission code <span className="text-status-fail-fg">*</span></label>
           <input value={form.code} onChange={e => set('code', e.target.value)}
             placeholder="risk.approve"
-            className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 px-3 text-xs font-mono glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           <p className="text-xs text-text-muted mt-1">Use dot notation: module.action — e.g. risk.approve, vendor.edit</p>
         </div>
         <div>
           <label className="text-xs font-medium text-text-secondary block mb-1">Display name <span className="text-status-fail-fg">*</span></label>
           <input value={form.name} onChange={e => set('name', e.target.value)}
             placeholder="Approve risk treatment"
-            className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 px-3 text-xs glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Module</label>
-            <select value={form.module} onChange={e => set('module', e.target.value)}
+            <GlassSelect value={form.module} onChange={e => set('module', e.target.value)}
               className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">Select…</option>
               {MODULES.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
+            </GlassSelect>
           </div>
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Resource type</label>
             <input value={form.resourceType} onChange={e => set('resourceType', e.target.value)}
               placeholder="RISK_RECORD"
-              className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full h-8 px-3 text-xs glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
         </div>
       </div>
@@ -637,7 +638,7 @@ function GrantsTab({ tenantId }) {
                         className={cn(
                           'px-2 py-0.5 rounded text-[10px] font-medium border transition-colors',
                           allGranted || bulkPending
-                            ? 'border-border/50 text-text-muted/40 cursor-not-allowed'
+                            ? 'border-border/50 text-text-faint cursor-not-allowed'
                             : 'border-border text-text-muted hover:text-status-pass-fg hover:bg-status-pass-bg'
                         )}>
                         Select all
@@ -648,7 +649,7 @@ function GrantsTab({ tenantId }) {
                         className={cn(
                           'px-2 py-0.5 rounded text-[10px] font-medium border transition-colors',
                           noneGranted || bulkPending
-                            ? 'border-border/50 text-text-muted/40 cursor-not-allowed'
+                            ? 'border-border/50 text-text-faint cursor-not-allowed'
                             : 'border-border text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg'
                         )}>
                         Clear
@@ -744,7 +745,7 @@ function RoleCreateModal({ open, onClose, defaultSide, isSystemTenant, loading, 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">Side</label>
-            <select value={form.side} onChange={e => set('side', e.target.value)}
+            <GlassSelect value={form.side} onChange={e => set('side', e.target.value)}
               className="h-8 px-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               {/* SYSTEM only offered on the Kashi System Tenant — the
                   backend rejects it anywhere else. */}
@@ -752,14 +753,14 @@ function RoleCreateModal({ open, onClose, defaultSide, isSystemTenant, loading, 
                 ? ['SYSTEM']
                 : ['ORGANIZATION', 'VENDOR', 'AUDITEE', 'AUDITOR']
               ).map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+            </GlassSelect>
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">Level</label>
-            <select value={form.level} onChange={e => set('level', e.target.value)}
+            <GlassSelect value={form.level} onChange={e => set('level', e.target.value)}
               className="h-8 px-2 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               {['L1', 'L2', 'L3', 'L4'].map(l => <option key={l} value={l}>{l}</option>)}
-            </select>
+            </GlassSelect>
           </div>
         </div>
 
@@ -811,7 +812,7 @@ function OverridesTab() {
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search by user or permission…"
-            className="w-full pl-8 pr-3 h-8 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full pl-8 pr-3 h-8 text-xs glass-field border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <Button icon={Plus} size="sm" onClick={() => setModalOpen(true)}>New override</Button>
       </div>
@@ -905,13 +906,13 @@ function OverrideModal({ open, onClose, onSave, loading }) {
           <label className="text-xs font-medium text-text-secondary block mb-1">User ID or email <span className="text-status-fail-fg">*</span></label>
           <input value={form.userId} onChange={e => set('userId', e.target.value)}
             placeholder="user@company.com or user ID"
-            className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 px-3 text-xs glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="text-xs font-medium text-text-secondary block mb-1">Permission code <span className="text-status-fail-fg">*</span></label>
           <input value={form.permissionCode} onChange={e => set('permissionCode', e.target.value)}
             placeholder="risk.approve"
-            className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 px-3 text-xs font-mono glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
           <label className="text-xs font-medium text-text-secondary block mb-1">Override type</label>
@@ -932,12 +933,12 @@ function OverrideModal({ open, onClose, onSave, loading }) {
           <label className="text-xs font-medium text-text-secondary block mb-1">Justification <span className="text-status-fail-fg">*</span></label>
           <textarea value={form.reason} onChange={e => set('reason', e.target.value)}
             rows={2} placeholder="Why is this override needed?"
-            className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+            className="w-full px-3 py-2 text-xs glass-field border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
         </div>
         <div>
           <label className="text-xs font-medium text-text-secondary block mb-1">Expiry date (leave blank for permanent)</label>
           <input type="date" value={form.expiresAt} onChange={e => set('expiresAt', e.target.value)}
-            className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 px-3 text-xs glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
     </Modal>
@@ -1098,7 +1099,7 @@ function SodRuleModal({ open, onClose, initial, onSave, loading, allRoles }) {
           <label className="text-xs font-medium text-text-secondary block mb-1">Rule name <span className="text-status-fail-fg">*</span></label>
           <input value={form.ruleName} onChange={e => set('ruleName', e.target.value)}
             placeholder="Auditor cannot be Control Owner"
-            className="w-full h-8 px-3 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full h-8 px-3 text-xs glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         {/* Rule type toggle */}
         <div>
@@ -1122,19 +1123,19 @@ function SodRuleModal({ open, onClose, initial, onSave, loading, allRoles }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">Role 1 <span className="text-status-fail-fg">*</span></label>
-              <select value={form.role1Id} onChange={e => set('role1Id', e.target.value)}
+              <GlassSelect value={form.role1Id} onChange={e => set('role1Id', e.target.value)}
                 className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 <option value="">Select role…</option>
                 {(allRoles || []).map(r => <option key={r.id} value={r.id}>{r.name} ({r.side})</option>)}
-              </select>
+              </GlassSelect>
             </div>
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">Role 2 <span className="text-status-fail-fg">*</span></label>
-              <select value={form.role2Id} onChange={e => set('role2Id', e.target.value)}
+              <GlassSelect value={form.role2Id} onChange={e => set('role2Id', e.target.value)}
                 className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 <option value="">Select role…</option>
                 {(allRoles || []).map(r => <option key={r.id} value={r.id}>{r.name} ({r.side})</option>)}
-              </select>
+              </GlassSelect>
             </div>
           </div>
         ) : (
@@ -1143,13 +1144,13 @@ function SodRuleModal({ open, onClose, initial, onSave, loading, allRoles }) {
               <label className="text-xs font-medium text-text-secondary block mb-1">Permission A <span className="text-status-fail-fg">*</span></label>
               <input value={form.permissionA} onChange={e => set('permissionA', e.target.value)}
                 placeholder="risk.create"
-                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-8 px-3 text-xs font-mono glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
               <label className="text-xs font-medium text-text-secondary block mb-1">Permission B <span className="text-status-fail-fg">*</span></label>
               <input value={form.permissionB} onChange={e => set('permissionB', e.target.value)}
                 placeholder="risk.approve"
-                className="w-full h-8 px-3 text-xs font-mono bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-8 px-3 text-xs font-mono glass-field border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
         )}
@@ -1157,23 +1158,23 @@ function SodRuleModal({ open, onClose, initial, onSave, loading, allRoles }) {
           <label className="text-xs font-medium text-text-secondary block mb-1">Description</label>
           <textarea value={form.description} onChange={e => set('description', e.target.value)}
             rows={2} placeholder="Why this conflict matters…"
-            className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+            className="w-full px-3 py-2 text-xs glass-field border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Conflict type</label>
-            <select value={form.conflictType} onChange={e => set('conflictType', e.target.value)}
+            <GlassSelect value={form.conflictType} onChange={e => set('conflictType', e.target.value)}
               className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               {CONFLICT_TYPES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-            </select>
+            </GlassSelect>
           </div>
           <div>
             <label className="text-xs font-medium text-text-secondary block mb-1">Framework reference</label>
-            <select value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)}
+            <GlassSelect value={form.frameworkRef} onChange={e => set('frameworkRef', e.target.value)}
               className="w-full h-8 px-2 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">None</option>
               {FRAMEWORKS.map(f => <option key={f} value={f}>{f}</option>)}
-            </select>
+            </GlassSelect>
           </div>
         </div>
       </div>

@@ -104,7 +104,7 @@ export function PeopleMultiSelect({ people = [], value = [], onChange, loading, 
               <>
                 {shown.length > 1 && (
                   <button type="button" onClick={toggleShown}
-                    className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-brand-900 hover:bg-surface-overlay border-b border-border-subtle">
+                    className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-brand-ink hover:bg-surface-overlay border-b border-border-subtle">
                     {allShownOn ? 'Clear these' : `Select all ${q.trim() ? 'matching' : ''} (${shown.length})`}
                   </button>
                 )}
@@ -115,7 +115,7 @@ export function PeopleMultiSelect({ people = [], value = [], onChange, loading, 
                     <button key={p.userId} type="button" onClick={() => toggle(p.userId)} disabled={fixed}
                       className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-overlay border-b border-border-subtle last:border-0 disabled:cursor-default">
                       <span className={cn('w-4 h-4 rounded border flex items-center justify-center shrink-0',
-                        on ? 'bg-brand-500 border-brand-500 text-brand-900' : 'border-border')}>
+                        on ? 'bg-brand-500 border-brand-500 text-brand-on' : 'border-border')}>
                         {on && <Check size={11} strokeWidth={3} />}
                       </span>
                       <span className="text-sm text-text-primary flex-1 truncate">{p.name}{fixed ? ' (always in)' : ''}</span>

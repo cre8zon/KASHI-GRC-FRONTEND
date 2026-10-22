@@ -100,7 +100,7 @@ export default function TenantDetailPage() {
       <button onClick={() => navigate('/tenants')} className="text-xs text-text-muted hover:text-brand-ink transition-colors shrink-0">
         Tenants
       </button>
-      <span className="text-text-muted/40 shrink-0">/</span>
+      <span className="text-text-faint shrink-0">/</span>
       <span className="truncate font-medium">{tenant.name}</span>
       <StatusPill status={tenant.status} />
       {tenant.isAuditFirm && <StatusPill status="APPROVED" label="Audit firm" tone="tag" />}

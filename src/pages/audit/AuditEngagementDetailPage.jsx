@@ -38,6 +38,7 @@ import { CommentFeed }       from '../../components/comments/CommentFeed'
 import { cn }                from '../../lib/cn'
 import { formatDate, formatDateTime } from '../../utils/format'
 import toast                 from 'react-hot-toast'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -242,7 +243,7 @@ function ControlRow({ control, engagementId }) {
           </div>
 
           {/* Result selector */}
-          <select
+          <GlassSelect
             value={control.testResult ?? 'NOT_TESTED'}
             onChange={e => handleResultChange(e.target.value)}
             disabled={saving}
@@ -251,7 +252,7 @@ function ControlRow({ control, engagementId }) {
             {Object.entries(RESULT_CFG).map(([v, c]) => (
               <option key={v} value={v}>{c.label}</option>
             ))}
-          </select>
+          </GlassSelect>
         </div>
       </div>
     </div>
@@ -264,7 +265,7 @@ function OverviewTab({ engagement, stats, workflowProgress }) {
   const breakdown = stats?.resultBreakdown ?? {}
   const total     = engagement?.totalControls ?? 0
   const StatCard  = ({ label, value, color }) => (
-    <div className="rounded-card border border-border bg-surface-raised p-3">
+    <div className="rounded-card border border-border glass-card p-3">
       <div className={cn('text-2xl font-medium tabular-nums', color ?? 'text-text-primary')}>{value ?? 0}</div>
       <div className="text-xs text-text-muted mt-0.5">{label}</div>
     </div>
@@ -284,7 +285,7 @@ function OverviewTab({ engagement, stats, workflowProgress }) {
             <span>{stats?.progressPct ?? 0}%</span>
           </div>
           <div className="h-2 rounded-full bg-surface-overlay">
-            <div className="h-2 rounded-full bg-brand-500 transition-all"
+            <div className="h-2 rounded-full bg-brand-fill transition-all"
               style={{ width: `${stats?.progressPct ?? 0}%` }} />
           </div>
         </div>
@@ -359,7 +360,7 @@ export default function AuditEngagementDetailPage() {
         )}
 
         {tab === 'Sections' && (
-          <div className="rounded-card border border-border bg-surface-raised divide-y divide-border overflow-hidden">
+          <div className="rounded-card border border-border glass-card divide-y divide-border overflow-hidden">
             {tree.length === 0 ? (
               <p className="p-4 text-sm text-text-muted">No sections. Did you select a template?</p>
             ) : (
@@ -371,7 +372,7 @@ export default function AuditEngagementDetailPage() {
         )}
 
         {tab === 'Controls' && (
-          <div className="rounded-card border border-border bg-surface-raised overflow-hidden">
+          <div className="rounded-card border border-border glass-card overflow-hidden">
             {!controls?.length ? (
               <p className="p-4 text-sm text-text-muted">No controls. Create an engagement with a template.</p>
             ) : (

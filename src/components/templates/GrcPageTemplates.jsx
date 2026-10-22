@@ -29,6 +29,7 @@ import { cn } from '../../lib/cn'
 import { formatDate } from '../../utils/format'
 import api from '../../config/axios.config'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../ui/GlassSelect'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. LIST PAGE TEMPLATE
@@ -111,7 +112,7 @@ export function ListPageTemplate({
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search…"
-              className="h-7 pl-8 pr-3 w-44 text-xs bg-surface-overlay border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-7 pl-8 pr-3 w-44 text-xs glass-field border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           {filters.length > 0 && (
             <button onClick={() => setShowFilters(f => !f)}
@@ -122,7 +123,7 @@ export function ListPageTemplate({
               <ListFilter size={12} />
               Filters
               {Object.keys(activeFilters).length > 0 && (
-                <span className="text-[10px] bg-brand-500 text-brand-900 rounded-full w-3.5 h-3.5 flex items-center justify-center">
+                <span className="text-[10px] bg-brand-500 text-brand-on rounded-full w-3.5 h-3.5 flex items-center justify-center">
                   {Object.keys(activeFilters).length}
                 </span>
               )}
@@ -202,11 +203,11 @@ function FilterControl({ filter, value, onChange }) {
     return (
       <div className="flex items-center gap-1.5">
         <label className="text-[10px] text-text-muted">{filter.label}</label>
-        <select value={value || ''} onChange={e => onChange(e.target.value || undefined)}
+        <GlassSelect value={value || ''} onChange={e => onChange(e.target.value || undefined)}
           className="h-6 px-2 text-xs bg-surface-raised border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
           <option value="">All</option>
           {(filter.options || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        </GlassSelect>
       </div>
     )
   }
@@ -479,14 +480,14 @@ export function SplitReviewTemplate({
             <div className="relative flex-1">
               <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
-                className="w-full h-6 pl-6 pr-2 text-[11px] bg-surface-overlay border border-border rounded text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-6 pl-6 pr-2 text-[11px] glass-field border border-border rounded text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             {filterOptions.length > 0 && (
-              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+              <GlassSelect value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
                 className="h-6 px-1.5 text-[11px] bg-surface-overlay border border-border rounded text-text-primary focus:outline-none">
                 <option value="">All</option>
                 {filterOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              </GlassSelect>
             )}
           </div>
         )}
@@ -673,7 +674,7 @@ export function ApprovalQueueTemplate({
                 <label className="text-xs font-medium text-text-secondary block mb-1">Remarks (optional for approval, required for rejection)</label>
                 <textarea value={remarks} onChange={e => setRemarks(e.target.value)}
                   rows={3} placeholder="Add context for your decision…"
-                  className="w-full px-3 py-2 text-xs bg-surface-overlay border border-border rounded-card text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+                  className="w-full px-3 py-2 text-xs glass-field border border-border rounded-card text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
               </div>
 
               {/* Actions */}

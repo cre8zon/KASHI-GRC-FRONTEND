@@ -283,7 +283,7 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
                   <span className={cn(
                     'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 border',
                     done   && 'bg-status-pass-bg border-status-pass-bd text-status-pass-fg',
-                    active && 'bg-brand-500 border-brand-500 text-white',
+                    active && 'bg-brand-500 border-brand-500 text-brand-on',
                     !done && !active && 'bg-surface-raised border-border text-text-muted'
                   )}>
                     {done ? <Check size={12} /> : i + 1}
@@ -466,7 +466,7 @@ function FormField({ field, register, control, error, config, isEditable = true,
     return (
       <FieldWrapper label={label} isRequired={false} helperText={helperText} error={null} type={type}>
         <p className="text-sm text-text-primary px-3 py-1.5 rounded-ctl bg-surface-overlay/50 min-h-[36px] flex items-center">
-          {field.defaultValue ?? <span className="text-text-muted/50 italic text-xs">—</span>}
+          {field.defaultValue ?? <span className="text-text-faint italic text-xs">—</span>}
         </p>
       </FieldWrapper>
     )
@@ -479,7 +479,7 @@ function FormField({ field, register, control, error, config, isEditable = true,
           <input
             placeholder={placeholder}
             type={type === 'NUMBER' || type === 'DECIMAL' ? 'number' : type === 'EMAIL' ? 'email' : 'text'}
-            className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="w-full h-9 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             {...register(key)}
           />
         </FieldWrapper>
@@ -490,7 +490,7 @@ function FormField({ field, register, control, error, config, isEditable = true,
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
           <textarea
             placeholder={placeholder} rows={field.rowsCount || 3}
-            className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+            className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             {...register(key)}
           />
         </FieldWrapper>
@@ -589,7 +589,7 @@ function FormField({ field, register, control, error, config, isEditable = true,
       return (
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
           <input type="date"
-            className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="w-full h-9 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
             {...register(key)} />
         </FieldWrapper>
       )
@@ -669,7 +669,7 @@ function FormField({ field, register, control, error, config, isEditable = true,
                     </dt>
                     <dd className="text-xs text-text-primary truncate flex-1 text-right">
                       {shown === undefined || shown === null || shown === ''
-                        ? <span className="text-text-muted/60 italic">not set</span>
+                        ? <span className="text-text-muted italic">not set</span>
                         : String(shown)}
                     </dd>
                   </div>
@@ -683,7 +683,7 @@ function FormField({ field, register, control, error, config, isEditable = true,
       return (
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
           <input type="tel" placeholder={placeholder || '+91 00000 00000'}
-            className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="w-full h-9 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             {...register(key)} />
         </FieldWrapper>
       )
@@ -692,7 +692,7 @@ function FormField({ field, register, control, error, config, isEditable = true,
       return (
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
           <input type="url" placeholder={placeholder || 'https://'}
-            className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="w-full h-9 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             {...register(key)} />
         </FieldWrapper>
       )
@@ -702,11 +702,11 @@ function FormField({ field, register, control, error, config, isEditable = true,
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
           <div className="flex items-center gap-2">
             <input type="date"
-              className="flex-1 h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="flex-1 h-9 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
               {...register(key + '_start')} />
             <span className="text-text-muted text-xs shrink-0">to</span>
             <input type="date"
-              className="flex-1 h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="flex-1 h-9 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
               {...register(key + '_end')} />
           </div>
         </FieldWrapper>
@@ -847,7 +847,7 @@ function FormField({ field, register, control, error, config, isEditable = true,
               {field.currencyCode || 'USD'}
             </span>
             <input type="number" step="0.01" placeholder={placeholder || '0.00'}
-              className="flex-1 h-9 rounded-r-md border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="flex-1 h-9 rounded-r-md border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
               {...register(key)} />
           </div>
         </FieldWrapper>
@@ -920,7 +920,7 @@ function FormField({ field, register, control, error, config, isEditable = true,
                 {items.map((item, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <input value={item} onChange={e => { const next = [...items]; next[i] = e.target.value; f.onChange(next) }}
-                      className="flex-1 h-8 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                      className="flex-1 h-8 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                     <button type="button" onClick={() => f.onChange(items.filter((_, j) => j !== i))}
                       className="text-text-muted hover:text-status-fail-fg transition-colors text-xs px-1">✕</button>
                   </div>
@@ -928,7 +928,7 @@ function FormField({ field, register, control, error, config, isEditable = true,
                 <div className="flex items-center gap-2">
                   <input value={input} onChange={e => setInput(e.target.value)} placeholder={placeholder || 'Add item…'}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (input.trim()) { f.onChange([...items, input.trim()]); setInput('') } } }}
-                    className="flex-1 h-8 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="flex-1 h-8 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   <button type="button" onClick={() => { if (input.trim()) { f.onChange([...items, input.trim()]); setInput('') } }}
                     className="text-xs px-2.5 py-1 rounded bg-surface-overlay border border-border text-text-secondary hover:text-text-primary transition-colors">Add</button>
                 </div>
@@ -956,7 +956,7 @@ function FormField({ field, register, control, error, config, isEditable = true,
             placeholder={placeholder || '{\n  \n}'}
             rows={field.rowsCount || 8}
             spellCheck={false}
-            className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-y"
+            className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-y"
             {...register(key)} />
         </FieldWrapper>
       )
@@ -967,7 +967,7 @@ function FormField({ field, register, control, error, config, isEditable = true,
           <textarea
             placeholder={placeholder}
             rows={field.rowsCount || 6}
-            className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-y"
+            className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-y"
             {...register(key)} />
           <p className="text-[10px] text-text-muted">Rich text editor — TipTap integration pending</p>
         </FieldWrapper>
@@ -977,7 +977,7 @@ function FormField({ field, register, control, error, config, isEditable = true,
       return (
         <FieldWrapper label={label} isRequired={isRequired} helperText={helperText} error={error} type={type}>
           <input placeholder={placeholder}
-            className="w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="w-full h-9 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             {...register(key)} />
         </FieldWrapper>
       )
@@ -1364,7 +1364,7 @@ function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityT
             onBlur={() => { if (!open) onBlur?.() }}
             placeholder={placeholder || defaultPlaceholder}
             autoComplete="off" data-lpignore="true" name={`lookup-${cfg.path}`}
-            className={cn('w-full h-9 rounded-ctl border bg-surface-raised pl-8 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1', error ? 'border-status-fail-bd focus:ring-status-fail-bd' : 'border-border focus:ring-brand-500')}
+            className={cn('w-full h-9 rounded-ctl border glass-field pl-8 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1', error ? 'border-status-fail-bd focus:ring-status-fail-bd' : 'border-border focus:ring-brand-500')}
           />
         </div>
       )}
@@ -1405,7 +1405,7 @@ function EntityLookupField({ value, onChange, onBlur, placeholder, lookupEntityT
                 {multi && (
                   <span className={cn('w-4 h-4 rounded border flex items-center justify-center shrink-0',
                     chosen ? 'bg-brand-500 border-brand-500' : 'border-border')}>
-                    {chosen && <Check size={11} className="text-white" />}
+                    {chosen && <Check size={11} className="text-brand-on" />}
                   </span>
                 )}
                 <div className="w-6 h-6 rounded-full bg-brand-500/20 text-brand-ink text-[9px] font-semibold flex items-center justify-center shrink-0">

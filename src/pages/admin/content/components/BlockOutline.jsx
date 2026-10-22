@@ -42,7 +42,7 @@ export function BlockOutline({ outline, activeId, onJump, stats }) {
               )}
             >
               <Icon size={12} className={cn('shrink-0',
-                isHeading ? 'text-brand-900' : 'text-text-faint')} />
+                isHeading ? 'text-brand-ink' : 'text-text-faint')} />
               <span className={cn(
                 'truncate text-[12px]',
                 isHeading ? 'font-medium text-text-primary' : 'text-text-secondary'

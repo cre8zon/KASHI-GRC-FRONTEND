@@ -303,7 +303,7 @@ function TPRMPanel({ module }) {
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"/>
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search vendor or template…"
-            className="w-full pl-8 pr-3 py-2 text-sm bg-surface border border-border rounded-card
+            className="w-full pl-8 pr-3 py-2 text-sm glass-field border border-border rounded-card
               text-text-primary placeholder-text-muted focus:outline-none focus:border-brand-500/50"/>
         </div>
         <div className="flex items-center gap-1">
@@ -323,7 +323,7 @@ function TPRMPanel({ module }) {
       </div>
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <Shield size={32} className="text-text-muted/40 mb-3"/>
+          <Shield size={32} className="text-text-faint mb-3"/>
           <p className="text-sm font-medium text-text-secondary mb-1">No reports found</p>
           <p className="text-xs text-text-muted">Try adjusting your search or filter</p>
         </div>
@@ -428,7 +428,7 @@ function AuditEngagementCard({ engagement, detailRoute }) {
       <div className="px-4 pb-3 flex items-center gap-4">
         <span className="text-[10px] text-text-muted">
           <span className="text-status-pass-fg font-mono font-semibold">{passed}</span>
-          <span className="text-text-muted/60">/{total}</span> passed
+          <span className="text-text-muted">/{total}</span> passed
         </span>
         {failed > 0 && (
           <span className="text-[10px] text-status-fail-fg font-mono font-semibold">{failed} failed</span>
@@ -491,7 +491,7 @@ function AuditPanel({ module }) {
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"/>
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search engagement or framework…"
-            className="w-full pl-8 pr-3 py-2 text-sm bg-surface border border-border rounded-card
+            className="w-full pl-8 pr-3 py-2 text-sm glass-field border border-border rounded-card
               text-text-primary placeholder-text-muted focus:outline-none focus:border-status-tag-bd"/>
         </div>
         {frameworks.length > 0 && (
@@ -526,7 +526,7 @@ function AuditPanel({ module }) {
       {/* Grid */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <BookOpen size={32} className="text-text-muted/40 mb-3"/>
+          <BookOpen size={32} className="text-text-faint mb-3"/>
           <p className="text-sm font-medium text-text-secondary mb-1">No audit engagements found</p>
           <p className="text-xs text-text-muted">Create an engagement under Compliance → SOC 2 Engagements</p>
         </div>
@@ -586,7 +586,7 @@ function ModuleTab({ module, active, onClick }) {
             </span>
           )}
           {module.status === 'live' && (
-            <span className="w-1.5 h-1.5 rounded-full bg-status-pass-bg shrink-0"/>
+            <span className="w-1.5 h-1.5 rounded-full bg-status-pass-fg shrink-0"/>
           )}
         </div>
         <p className="text-[10px] text-text-muted truncate">{module.sublabel}</p>
@@ -652,7 +652,7 @@ function ProgrammeInstanceCard({ instance, module }) {
             <span className={cn('text-[11px] font-bold tabular-nums', pct >= 80 ? 'text-status-pass-fg' : pct >= 50 ? 'text-status-warn-fg' : 'text-status-fail-fg')}>{pct}%</span>
           </div>
           <div className="h-1.5 bg-surface-overlay rounded-full overflow-hidden">
-            <div className={cn('h-full rounded-full transition-all', pct >= 80 ? 'bg-status-pass-bg' : pct >= 50 ? 'bg-status-warn-bg' : 'bg-status-fail-bg')}
+            <div className={cn('h-full rounded-full transition-all', pct >= 80 ? 'bg-status-pass-fg' : pct >= 50 ? 'bg-status-warn-fg' : 'bg-status-fail-fg')}
               style={{ width: `${pct}%` }}/>
           </div>
         </div>
@@ -735,7 +735,7 @@ function ProgrammesPanel({ module }) {
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"/>
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search programme…"
-            className="w-full pl-8 pr-3 py-2 text-sm bg-surface border border-border rounded-card
+            className="w-full pl-8 pr-3 py-2 text-sm glass-field border border-border rounded-card
               text-text-primary placeholder-text-muted focus:outline-none focus:border-status-tag-bd"/>
         </div>
         <span className="text-[11px] text-text-muted ml-auto shrink-0">
@@ -745,7 +745,7 @@ function ProgrammesPanel({ module }) {
 
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <FolderKanban size={32} className="text-text-muted/40 mb-3"/>
+          <FolderKanban size={32} className="text-text-faint mb-3"/>
           <p className="text-sm font-medium text-text-secondary mb-1">No programme instances found</p>
           <p className="text-xs text-text-muted">Start a project from Audit Programmes → Projects</p>
         </div>
@@ -792,7 +792,7 @@ export default function ReportsPage() {
           ))}
         </div>
         <div className="px-4 py-3 border-t border-border">
-          <p className="text-[9px] text-text-muted/60 uppercase tracking-wide">KashiGRC Platform</p>
+          <p className="text-[9px] text-text-muted uppercase tracking-wide">KashiGRC Platform</p>
         </div>
       </aside>
 

@@ -10,6 +10,7 @@ import { Input, Textarea } from '../../../../../components/ui/Input'
 import { Select } from '../../../../../components/ui/Select'
 import { Button } from '../../../../../components/ui/Button'
 import { cn } from '../../../../../lib/cn'
+import { GlassSelect } from '../../../../../components/ui/GlassSelect'
 
 /**
  * One editor component per block type.
@@ -65,7 +66,7 @@ function ItemList({ items, onChange, placeholder, min = 1, renderItem }) {
       <button
         type="button"
         onClick={add}
-        className="flex w-fit items-center gap-1.5 text-xs text-text-secondary hover:text-brand-900"
+        className="flex w-fit items-center gap-1.5 text-xs text-text-secondary hover:text-brand-ink"
       >
         <Plus size={13} /> Add
       </button>
@@ -129,7 +130,7 @@ function HeadingBlock({ block, patch, flow = {} }) {
     // items-start, not items-center: once the heading wraps to three lines the
     // level selector belongs beside the first line, not floating in the middle.
     <div className="flex items-start gap-3">
-      <select
+      <GlassSelect
         value={level}
         onChange={(e) => patch({ level: Number(e.target.value) })}
         className="mt-0.5 h-8 shrink-0 rounded-ctl border border-border bg-surface px-2 text-xs text-text-secondary"
@@ -138,7 +139,7 @@ function HeadingBlock({ block, patch, flow = {} }) {
         <option value={2}>H2</option>
         <option value={3}>H3</option>
         <option value={4}>H4</option>
-      </select>
+      </GlassSelect>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <AutoTextarea
@@ -192,7 +193,7 @@ function QuoteBlock({ block, patch }) {
         value={block.text || ''}
         onChange={(e) => patch({ text: e.target.value })}
         placeholder="The most quotable line in the piece"
-        className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[17px] leading-relaxed text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-800/40"
+        className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[17px] leading-relaxed text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-ink/40"
       />
       <Input
         value={block.attribution || ''}
@@ -214,7 +215,7 @@ function TldrBlock({ block, patch }) {
   const items = block.items || ['', '', '']
   return (
     <div className="rounded-card border border-brand-500 bg-brand-50 p-4">
-      <p className="mb-1 text-sm font-semibold text-brand-900">Key takeaways</p>
+      <p className="mb-1 text-sm font-semibold text-brand-ink">Key takeaways</p>
       <p className="mb-3 text-xs text-text-secondary">
         Each bullet has to survive on its own — in a search result, in an AI summary,
         in a screenshot. State a conclusion, not a topic.
@@ -311,7 +312,7 @@ function TableBlock({ block, patch }) {
   const addRow = () => patch({ rows: [...rows, Array(headers.length).fill('')] })
   const removeRow = (i) => rows.length > 1 && patch({ rows: rows.filter((_, n) => n !== i) })
 
-  const cell = 'h-9 w-full border-0 bg-transparent px-2.5 text-[13px] text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-800/40'
+  const cell = 'h-9 w-full border-0 bg-transparent px-2.5 text-[13px] text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-ink/40'
 
   return (
     <div className="flex flex-col gap-3">
@@ -339,7 +340,7 @@ function TableBlock({ block, patch }) {
               ))}
               <th className="w-9 border-b border-border">
                 <button type="button" onClick={addColumn}
-                        className="flex h-9 w-9 items-center justify-center text-text-faint hover:text-brand-900"
+                        className="flex h-9 w-9 items-center justify-center text-text-faint hover:text-brand-ink"
                         aria-label="Add column">
                   <Plus size={14} />
                 </button>
@@ -368,7 +369,7 @@ function TableBlock({ block, patch }) {
       </div>
       <div className="flex items-center gap-4">
         <button type="button" onClick={addRow}
-                className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-brand-900">
+                className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-brand-ink">
           <Plus size={13} /> Add row
         </button>
         <label className="flex items-center gap-2 text-xs text-text-secondary">
@@ -405,7 +406,7 @@ function FaqBlock({ block, patch }) {
               value={item.a}
               onChange={(e) => set({ ...item, a: e.target.value })}
               placeholder="Lead with the answer, then the qualification. Two to four sentences."
-              className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[13px] text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-800/40"
+              className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[13px] text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-ink/40"
             />
           </div>
         )}
@@ -456,7 +457,7 @@ function CodeBlock({ block, patch }) {
         rows={8}
         spellCheck={false}
         onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = `${e.target.scrollHeight}px` }}
-        className="reg-code w-full rounded-card border border-border bg-surface-inset p-3 font-mono text-[13px] leading-relaxed text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-800/40"
+        className="reg-code w-full rounded-card border border-border glass-field p-3 font-mono text-[13px] leading-relaxed text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-ink/40"
       />
     </div>
   )
@@ -504,7 +505,7 @@ function ImageBlock({ block, patch, onPickMedia, media }) {
         <button
           type="button"
           onClick={onPickMedia}
-          className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-card border border-dashed border-border text-text-faint transition-colors hover:border-brand-500 hover:text-brand-900"
+          className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-card border border-dashed border-border text-text-faint transition-colors hover:border-brand-500 hover:text-brand-ink"
         >
           <ImageIcon size={20} />
           <span className="text-sm">Choose an image</span>
@@ -540,7 +541,7 @@ function CtaBlock({ block, patch }) {
           <button key={v} type="button" onClick={() => patch({ variant: v })}
                   className={cn('rounded-badge px-2.5 py-0.5 text-[11px] capitalize transition-colors',
                     (block.variant || 'inline') === v
-                      ? 'bg-brand-500 text-brand-900'
+                      ? 'bg-brand-500 text-brand-on'
                       : 'text-text-secondary hover:bg-surface-overlay')}>
             {v}
           </button>
@@ -550,7 +551,7 @@ function CtaBlock({ block, patch }) {
              placeholder="Heading" className="font-medium" />
       <AutoTextarea value={block.body || ''} onChange={(e) => patch({ body: e.target.value })}
                 placeholder="One sentence. This is a nudge, not a pitch."
-                className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[13px] text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-800/40" />
+                className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[13px] text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-ink/40" />
       <div className="flex gap-3">
         <Input value={block.buttonText || ''} onChange={(e) => patch({ buttonText: e.target.value })}
                placeholder="Button text" className="flex-1" />
@@ -572,7 +573,7 @@ function DownloadBlock({ block, patch, onPickMedia, media }) {
       </div>
       <AutoTextarea value={block.description || ''} onChange={(e) => patch({ description: e.target.value })}
                 placeholder="One line on why it is worth having"
-                className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[13px] text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-800/40" />
+                className="w-full rounded-ctl border border-border bg-surface px-2.5 py-2 text-[13px] text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-brand-ink/40" />
       <div className="flex items-center gap-3">
         {asset ? (
           <>
@@ -639,7 +640,7 @@ function ComparisonBlock({ block, patch, competitors = [] }) {
           <button key={c.id} type="button" onClick={() => toggle(c.id)}
                   className={cn('rounded-badge px-3 py-1 text-xs transition-colors',
                     selected.includes(c.id)
-                      ? 'bg-brand-500 text-brand-900'
+                      ? 'bg-brand-500 text-brand-on'
                       : 'bg-surface-inset text-text-secondary hover:bg-surface-overlay')}>
             {c.competitorName}
           </button>

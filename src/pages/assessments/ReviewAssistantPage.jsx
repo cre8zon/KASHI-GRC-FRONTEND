@@ -510,7 +510,7 @@ export default function ReviewAssistantPage() {
             {/* Progress */}
             <div className="mb-4 flex items-center gap-3 text-xs text-text-muted">
               <div className="flex-1 h-1.5 rounded-full bg-surface-overlay overflow-hidden">
-                <div className="h-full bg-brand-500 rounded-full transition-all"
+                <div className="h-full bg-brand-fill rounded-full transition-all"
                   style={{ width: totalQs > 0 ? `${(evaluatedQs / totalQs) * 100}%` : '0%' }} />
               </div>
               <span className="shrink-0">{evaluatedQs}/{totalQs} evaluated</span>

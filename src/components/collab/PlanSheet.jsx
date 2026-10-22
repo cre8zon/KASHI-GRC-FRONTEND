@@ -10,6 +10,8 @@ import { Button } from '../ui/Button'
 import { cn } from '../../lib/cn'
 import { STATUS_LABEL, KIND_LABEL, health, useRows } from './PlanBoard'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../ui/GlassSelect'
+import { useFitToViewport } from '../../hooks/useFitToViewport'
 
 /**
  * PlanSheet — the plan as a spreadsheet you configure like one.
@@ -78,6 +80,7 @@ function patchCache(qc, workspaceId, fn) {
 }
 
 export function PlanSheet({ workspaceId, items, allItems, programmes, members, columns = [], today, canEditPlan,
+                            canEditColumns = false,
                             programmeFilter, ownerFilter, onDetails, onHistory, onChanged }) {
   const treeGroups = useRows(items, programmes)
   const [deleting, setDeleting] = useState(null)
@@ -90,6 +93,10 @@ export function PlanSheet({ workspaceId, items, allItems, programmes, members, c
   const [focusId, setFocusId] = useState(null)
   const root = useRef(null)
   const qc = useQueryClient()
+  // The sheet scrolls inside itself (both ways) with its header pinned; the
+  // page no longer scrolls the column names away on a long plan.
+  const sheetHeight = useFitToViewport(root, { min: 280, reserve: canEditPlan ? 44 : 0,
+    deps: [items.length, programmes.length, canEditPlan, programmeFilter, ownerFilter] })
 
   const visible = columns.filter(c => !c.hidden)
   const w = (c) => widths[c.key] ?? widthOf(c)
@@ -470,21 +477,23 @@ export function PlanSheet({ workspaceId, items, allItems, programmes, members, c
         current={sel && selItem ? (sel.col ? (selItem.format?.cells?.[sel.col] || {}) : (selItem.format?.row || {})) : {}}
         onApply={applyFormat} onClear={clearFormat} />
     )}
-    <div ref={root} onKeyDownCapture={onKeys} className="rounded-card border border-border overflow-x-auto bg-surface-raised">
+    <div className="rounded-card border border-border glass-card overflow-hidden">
+    <div ref={root} onKeyDownCapture={onKeys} className="overflow-auto overscroll-contain"
+      style={sheetHeight ? { maxHeight: sheetHeight } : undefined}>
       <table className="text-xs text-text-primary border-collapse table-fixed" style={{ width: Math.max(tableWidth, 600) }}>
         <colgroup>
           <col style={{ width: 44 }} />
           {visible.map(c => <col key={c.key} style={{ width: w(c) }} />)}
           {canEditPlan && <col style={{ width: 72 }} />}
         </colgroup>
-        <thead className="bg-surface-secondary/60 text-[10px] uppercase tracking-wide text-text-muted sticky top-0 z-[2]">
+        <thead className="bg-surface-raised shadow-[0_1px_0_0_rgb(var(--color-border,148_163_184)/0.6)] text-[10px] uppercase tracking-wide text-text-muted sticky top-0 z-[3]">
           <tr>
             <th className={cn(th, 'text-center')}>#</th>
             {visible.map(c => (
               <th key={c.key} className={cn(th, c.key === 'progress' && 'text-right', 'group/th')}>
                 <div className="flex items-center gap-1 min-w-0">
                   <span className="truncate" title={c.builtIn ? c.label : `${c.label} · ${TYPE_LABEL[c.type] || c.type}`}>{c.label}</span>
-                  {canEditPlan && (
+                  {canEditColumns && (
                     <button type="button" aria-label={`${c.label} options`} onClick={(e) => setMenu({ kind: 'col', key: c.key, rect: e.currentTarget.getBoundingClientRect() })}
                       className="ml-auto shrink-0 p-0.5 rounded opacity-0 group-hover/th:opacity-100 hover:bg-surface-overlay text-text-muted">
                       <ChevronDown size={11} />
@@ -500,7 +509,7 @@ export function PlanSheet({ workspaceId, items, allItems, programmes, members, c
                     {!c.builtIn && <MenuItem icon={Trash2} danger onClick={() => { setMenu(null); setColDelete(c) }}>Delete column</MenuItem>}
                   </Popover>
                 )}
-                {canEditPlan && (
+                {canEditColumns && (
                   <span onMouseDown={(e) => startResize(e, c)} title="Drag to resize"
                     className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize hover:bg-brand-500/40 z-[1]" />
                 )}
@@ -508,10 +517,12 @@ export function PlanSheet({ workspaceId, items, allItems, programmes, members, c
             ))}
             {canEditPlan && (
               <th className="px-1 whitespace-nowrap text-right normal-case">
+                {canEditColumns && (<>
                 <button type="button" onClick={() => setColEdit({})} title="Add a column"
                   className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay"><Plus size={13} /></button>
                 <button type="button" onClick={() => setManaging(true)} title="Show, hide and order columns"
                   className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay"><Settings size={13} /></button>
+                </>)}
               </th>
             )}
           </tr>
@@ -604,11 +615,14 @@ export function PlanSheet({ workspaceId, items, allItems, programmes, members, c
           )
         })}
       </table>
+    </div>
       {canEditPlan && (
         <p className="px-3 py-2 text-[11px] text-text-muted border-t border-border/60">
           Type in the last row of a section and press Enter to add a task, or paste rows from Excel there (Task, Type,
-          Owner, Start, End, Status). ⋮ on a row inserts, moves and indents it. Hover a header for its options; drag its
-          edge to resize; + adds a column.
+          Owner, Start, End, Status). ⋮ on a row inserts, moves and indents it.
+          {canEditColumns
+            ? ' Hover a header for its options; drag its edge to resize; + adds a column.'
+            : ' Columns are set by the workspace owner.'}
         </p>
       )}
 
@@ -649,14 +663,14 @@ function FormatBar({ sel, item, columns, canFormat, current, onApply, onClear })
   const btn = (on) => cn('h-7 w-7 flex items-center justify-center rounded-ctl border text-text-secondary disabled:opacity-40',
     on ? 'border-brand-500 bg-brand-500/15 text-text-primary' : 'border-border bg-surface-raised hover:bg-surface-overlay')
   return (
-    <div className="flex flex-wrap items-center gap-1.5 rounded-card border border-border bg-surface-raised px-2 py-1.5">
+    <div className="flex flex-wrap items-center gap-1.5 rounded-card border border-border glass-card px-2 py-1.5">
       <button type="button" className={btn(current.b)} disabled={!canFormat} onClick={() => onApply({ b: !current.b })} title="Bold (Ctrl+B)"><Bold size={13} /></button>
       <button type="button" className={btn(current.i)} disabled={!canFormat} onClick={() => onApply({ i: !current.i })} title="Italic (Ctrl+I)"><Italic size={13} /></button>
       <button type="button" className={btn(current.u)} disabled={!canFormat} onClick={() => onApply({ u: !current.u })} title="Underline (Ctrl+U)"><Underline size={13} /></button>
-      <select value={current.size || 'm'} disabled={!canFormat} onChange={e => onApply({ size: e.target.value })} title="Text size"
+      <GlassSelect value={current.size || 'm'} disabled={!canFormat} onChange={e => onApply({ size: e.target.value })} title="Text size"
         className="h-7 rounded-ctl border border-border bg-surface-raised px-1.5 text-xs text-text-secondary disabled:opacity-40">
         <option value="s">Small</option><option value="m">Normal</option><option value="l">Large</option>
-      </select>
+      </GlassSelect>
       <button type="button" className={btn(!!current.color)} disabled={!canFormat} title="Text colour"
         onClick={(e) => setPick({ kind: 'color', rect: e.currentTarget.getBoundingClientRect() })}>
         <span className="flex flex-col items-center leading-none"><Palette size={12} />
@@ -735,7 +749,7 @@ function ColumnModal({ column, onClose, onSave, saving }) {
             {form.type === 'SELECT' && (
               <textarea value={form.options} onChange={e => setForm(f => ({ ...f, options: e.target.value }))} rows={5}
                 placeholder={'One option per line\nHigh\nMedium\nLow'}
-                className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary" />
+                className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary" />
             )}
             {!isNew && column.type !== form.type && (
               <p className="text-[11px] text-status-warn-fg">Values that don't fit the new type are kept but may show oddly until edited.</p>
@@ -802,7 +816,7 @@ function Popover({ children, onClose, rect, align = 'right' }) {
   return (
     <>
       <div className="fixed inset-0 z-[60]" onClick={onClose} onWheel={onClose} />
-      <div style={style} className="fixed z-[61] rounded-ctl border border-border bg-surface-raised shadow-overlay py-1 normal-case tracking-normal text-left font-normal">
+      <div style={style} className="fixed z-[61] rounded-ctl border border-border glass-overlay shadow-overlay py-1 normal-case tracking-normal text-left font-normal">
         {children}
       </div>
     </>
@@ -978,11 +992,11 @@ function DateCell({ value, onCommit, disabled, col, item, onEnter, className }) 
 
 function SelectCell({ value, options, onCommit, disabled, col, item, className }) {
   return (
-    <select value={value ?? ''} disabled={disabled} data-col={col} data-item={item}
+    <GlassSelect value={value ?? ''} disabled={disabled} data-col={col} data-item={item}
       onChange={e => onCommit(e.target.value)}
       className={cn(cellCls, 'appearance-none pr-1 truncate', !disabled && 'cursor-pointer', className)}>
       {options.map(([k, label]) => <option key={String(k)} value={k}>{label}</option>)}
-    </select>
+    </GlassSelect>
   )
 }
 

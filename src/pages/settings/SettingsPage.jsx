@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { useSelector, useDispatch } from 'react-redux'
 import { useMutation } from '@tanstack/react-query'
 import { selectBranding, applyBrandingLive, applyBranding } from '../../store/slices/uiConfigSlice'
-import { BRAND_PRESETS } from '../../config/brandPresets'
+import { BRAND_PRESETS, DEFAULT_BRAND_HEX, isChosenHex } from '../../config/brandPresets'
 import { selectAuth }    from '../../store/slices/authSlice'
 import { PageLayout }    from '../../components/layout/PageLayout'
 import { Card, CardHeader, CardBody } from '../../components/ui/Card'
@@ -20,6 +23,8 @@ import { usersApi }      from '../../api/users.api'
 import toast             from 'react-hot-toast'
 import IntegrationsPage  from './IntegrationsPage'
 import { NotificationsTab } from './NotificationPreferencesPage'
+import { PasswordField, PasswordStrength, PasswordChecklist, FormAlert } from '../../components/auth/AuthFields'
+import { newPasswordSchema, parseApiError } from '../../lib/passwordPolicy'
 
 const TABS = [
   { id: 'profile',      label: 'Profile',      icon: User    },
@@ -39,8 +44,8 @@ const PRESET_PALETTES = BRAND_PRESETS.map((p, i, arr) => ({
   accent:  arr[(i + 1) % arr.length].hex,
 }))
 
-/** Fallback when no personal/org colour is set — pastel Sage. */
-const DEFAULT_HEX = BRAND_PRESETS[0].hex
+/** Fallback when no personal/org colour is set — Kashi Purple. */
+const DEFAULT_HEX = DEFAULT_BRAND_HEX
 
 // ── Shared tab bar ────────────────────────────────────────────────────────────
 function Tabs({ active, onChange }) {
@@ -141,7 +146,7 @@ function ProfileTab({ auth, branding, userColor }) {
               {userColor && userColor !== branding?.primaryColor && (
                 <div className="flex flex-col items-center gap-1">
                   <div className="w-10 h-10 rounded-card border border-border shadow-sm opacity-60"
-                    style={{ background: branding?.primaryColor || DEFAULT_HEX }} />
+                    style={{ background: isChosenHex(branding?.primaryColor) ? branding.primaryColor : DEFAULT_HEX }} />
                   <span className="text-[9px] text-text-muted">Workspace</span>
                 </div>
               )}
@@ -155,7 +160,7 @@ function ProfileTab({ auth, branding, userColor }) {
             {/* Live color scale — reflects currently applied color */}
             <div className="flex gap-0.5 h-4 rounded-ctl overflow-hidden">
               {[50,100,200,300,400,500,600,700,800,900].map(s => (
-                <div key={s} className={`flex-1 bg-brand-${s}`} />
+                <div key={s} className="flex-1" style={{ backgroundColor: `rgb(var(--color-brand-${s}))` }} />
               ))}
             </div>
             <p className="text-[10px] text-text-muted leading-relaxed">
@@ -186,7 +191,7 @@ function ColorPicker({ label, value, onChange }) {
             style={{ backgroundColor: value }} />
         </div>
         <input value={value} onChange={e => onChange(e.target.value)}
-          className="h-9 flex-1 rounded-card border border-border bg-surface-raised px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="h-9 flex-1 rounded-card border border-border glass-card px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
       </div>
     </div>
   )
@@ -197,14 +202,18 @@ function DisplayTab({ branding }) {
   const { theme, setTheme } = useTheme()
 
   const [selApp,     setSelApp]     = useState(
-    () => { try { return localStorage.getItem('kashi_theme') || 'dark' } catch { return 'dark' } }
+    () => { try { return localStorage.getItem('kashi_theme') || 'light' } catch { return 'light' } }
   )
   const [selSidebar, setSelSidebar] = useState(
     () => { try { return localStorage.getItem('kashi_sidebar_theme') || branding?.sidebarTheme || 'dark' } catch { return 'dark' } }
   )
   // User's personal primary color — saved independently of org branding
   const [selColor, setSelColor] = useState(
-    () => { try { return localStorage.getItem('kashi_sidebar_color') || branding?.primaryColor || DEFAULT_HEX } catch { return branding?.primaryColor || DEFAULT_HEX } }
+    () => {
+      // The legacy #1e40af backend fallback is not a choice — show the default.
+      try { const c = localStorage.getItem('kashi_sidebar_color'); if (isChosenHex(c)) return c } catch {}
+      return isChosenHex(branding?.primaryColor) ? branding.primaryColor : DEFAULT_HEX
+    }
   )
   const [saving, setSaving] = useState(false)
   const [saved,  setSaved]  = useState(false)
@@ -375,7 +384,7 @@ function DisplayTab({ branding }) {
               'flex items-center gap-2 px-4 py-2 rounded-card text-sm font-semibold transition-all disabled:opacity-60',
               saved
                 ? 'bg-status-pass-bg text-status-pass-fg border border-status-pass-bd'
-                : 'bg-brand-500 text-brand-900 hover:bg-brand-600'
+                : 'bg-brand-500 text-brand-on hover:bg-brand-600'
             )}>
             {saving ? 'Saving...' : saved ? '✓ Saved!' : 'Save Preferences'}
           </button>
@@ -403,7 +412,7 @@ function DisplayTab({ branding }) {
                     <div key={i} className={cn(
                       'w-5 h-1.5 rounded-full',
                       i === 1
-                        ? (selSidebar === 'brand' ? 'bg-surface-raised' : 'bg-brand-400')
+                        ? (selSidebar === 'brand' ? 'bg-surface-raised' : 'bg-brand-fill')
                         : (selSidebar === 'light' ? 'bg-surface-inset' : 'bg-on-dark/20')
                     )} />
                   ))}
@@ -430,7 +439,7 @@ function DisplayTab({ branding }) {
                       )}>
                         <div className={cn('h-1.5 rounded-full mb-1.5',
                           i === 1
-                            ? (selApp === 'light' ? 'bg-surface-inset w-2/3' : 'bg-brand-500 w-2/3')
+                            ? (selApp === 'light' ? 'bg-surface-inset w-2/3' : 'bg-brand-fill w-2/3')
                             : (selApp === 'light' ? 'bg-surface-inset w-full' : 'bg-border w-full')
                         )} />
                         <div className={cn('h-1 rounded-full', selApp === 'light' ? 'bg-surface-overlay' : 'bg-border/50')} />
@@ -439,8 +448,10 @@ function DisplayTab({ branding }) {
                   </div>
                   {/* Action button */}
                   <div className="p-2">
-                    <div className="h-5 rounded-ctl flex items-center justify-center" style={{ backgroundColor: selColor }}>
-                      <span className="text-[8px] text-on-dark font-semibold">Primary Action</span>
+                    {/* Live-painted by the theme engine, so the label uses the
+                        contrast-solved on-brand ink rather than assuming white. */}
+                    <div className="h-5 rounded-ctl flex items-center justify-center bg-brand-500">
+                      <span className="text-[8px] text-brand-on font-semibold">Primary Action</span>
                     </div>
                   </div>
                 </div>
@@ -452,7 +463,7 @@ function DisplayTab({ branding }) {
               <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">Brand Scale</p>
               <div className="flex gap-0.5 h-4 rounded-ctl overflow-hidden">
                 {[50,100,200,300,400,500,600,700,800,900].map(s => (
-                  <div key={s} className={`flex-1 bg-brand-${s}`} />
+                  <div key={s} className="flex-1" style={{ backgroundColor: `rgb(var(--color-brand-${s}))` }} />
                 ))}
               </div>
             </div>
@@ -466,7 +477,7 @@ function DisplayTab({ branding }) {
               </div>
               <div className="flex flex-col items-center gap-1">
                 <div className="w-8 h-8 rounded-card border border-border"
-                  style={{ background: branding?.primaryColor || DEFAULT_HEX }} />
+                  style={{ background: isChosenHex(branding?.primaryColor) ? branding.primaryColor : DEFAULT_HEX }} />
                 <span className="text-[9px] text-text-muted">Workspace</span>
               </div>
             </div>
@@ -482,52 +493,75 @@ function DisplayTab({ branding }) {
 }
 
 // ── Security tab ──────────────────────────────────────────────────────────────
-function SecurityTab() {
-  const [form, setForm] = useState({ current: '', next: '', confirm: '' })
-  const [show, setShow] = useState({ current: false, next: false, confirm: false })
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  const tog = (k)    => setShow(p => ({ ...p, [k]: !p[k] }))
+const securitySchema = z.object({
+  current: z.string().min(1, 'Enter your current password'),
+  next:    newPasswordSchema,
+  confirm: z.string().min(1, 'Re-enter the new password'),
+})
+  .refine(d => d.next === d.confirm, { message: "Passwords don't match", path: ['confirm'] })
+  .refine(d => !d.current || d.next !== d.current, { message: 'Choose a password different from your current one', path: ['next'] })
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: () => usersApi.changePassword({ currentPassword: form.current, newPassword: form.next }),
-    onSuccess: () => { toast.success('Password changed'); setForm({ current: '', next: '', confirm: '' }) },
-    onError: (e) => toast.error(e?.response?.data?.error?.message || 'Failed to change password'),
+/**
+ * Change own password. Same policy, components and error handling as the
+ * reset screens: the requirement checklist is live, and the server's verdict
+ * ("Current password is incorrect", reuse, policy) lands on the right field
+ * instead of a generic toast. The old form allowed 8 characters while the
+ * server required 12, so most attempts failed with "Request validation failed".
+ */
+function SecurityTab() {
+  const { register, handleSubmit, watch, reset, setError, formState: { errors } } = useForm({
+    resolver: zodResolver(securitySchema),
+    defaultValues: { current: '', next: '', confirm: '' },
+    mode: 'onTouched',
+  })
+  const next = watch('next') || ''
+
+  const { mutate, isPending, error, reset: resetMutation } = useMutation({
+    mutationFn: (d) => usersApi.changePassword({ currentPassword: d.current, newPassword: d.next }),
+    onSuccess: () => {
+      toast.success('Password updated')
+      reset()
+    },
+    // Handled inline below — suppress the global mutation toast.
+    onError: (err) => {
+      const map = { currentPassword: 'current', newPassword: 'next' }
+      const { fields } = parseApiError(err)
+      Object.entries(fields).forEach(([k, msg]) => {
+        if (map[k]) setError(map[k], { type: 'server', message: msg })
+      })
+    },
+    meta: { silent: true },
   })
 
-  const submit = () => {
-    if (!form.current)              return toast.error('Enter your current password')
-    if (form.next.length < 8)       return toast.error('New password must be at least 8 characters')
-    if (form.next !== form.confirm)  return toast.error('Passwords do not match')
-    mutate()
-  }
+  const apiErr = useMemo(() => {
+    if (!error) return null
+    const { form } = parseApiError(error, "We couldn't update your password. Please try again.")
+    return form
+  }, [error])
 
   return (
-    <div className="max-w-md flex flex-col gap-5">
+    <div className="max-w-lg flex flex-col gap-5">
       <Card>
-        <CardHeader title="Change Password" icon={Key}
-          subtitle="Use a strong password with at least 8 characters" />
-        <CardBody className="flex flex-col gap-3">
-          {['current', 'next', 'confirm'].map((field) => (
-            <div key={field} className="relative">
-              <Input
-                label={field === 'current' ? 'Current Password' : field === 'next' ? 'New Password' : 'Confirm New Password'}
-                type={show[field] ? 'text' : 'password'}
-                value={form[field]}
-                onChange={e => set(field, e.target.value)}
-                hint={field === 'next' ? 'Minimum 8 characters' : undefined}
-              />
-              <button type="button" onClick={() => tog(field)}
-                className="absolute right-3 bottom-2.5 text-text-muted hover:text-text-secondary transition-colors">
-                {show[field] ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
+        <CardHeader title="Change password" icon={Key}
+          subtitle="You'll stay signed in on this device after changing it." />
+        <CardBody>
+          {apiErr && <FormAlert tone="fail">{apiErr}</FormAlert>}
+          <form onSubmit={handleSubmit(d => { resetMutation(); mutate(d) })} noValidate className="flex flex-col gap-4">
+            <PasswordField label="Current password" autoComplete="current-password"
+              error={errors.current?.message} {...register('current')} />
+            <div>
+              <PasswordField label="New password" autoComplete="new-password"
+                placeholder="At least 12 characters"
+                error={errors.next?.message} {...register('next')} />
+              <PasswordStrength value={next} />
+              <PasswordChecklist value={next} />
             </div>
-          ))}
-          {form.next && form.confirm && form.next !== form.confirm && (
-            <p className="text-xs text-status-fail-fg">Passwords do not match</p>
-          )}
-          <div className="flex justify-end pt-1">
-            <Button size="sm" loading={isPending} onClick={submit}>Update Password</Button>
-          </div>
+            <PasswordField label="Confirm new password" autoComplete="new-password"
+              error={errors.confirm?.message} {...register('confirm')} />
+            <div className="flex justify-end pt-1">
+              <Button type="submit" size="md" loading={isPending}>Update password</Button>
+            </div>
+          </form>
         </CardBody>
       </Card>
     </div>

@@ -44,7 +44,7 @@ export default function TaxonomyPage() {
         {['categories', 'tags', 'authors'].map((t) => (
           <button key={t} type="button" onClick={() => setTab(t)}
                   className={cn('rounded-badge px-3 py-1.5 text-[12.5px] capitalize transition-colors',
-                    tab === t ? 'bg-brand-500 text-brand-900'
+                    tab === t ? 'bg-brand-500 text-brand-on'
                               : 'text-text-secondary hover:bg-surface-overlay')}>
             {t}
           </button>

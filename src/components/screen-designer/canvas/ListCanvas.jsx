@@ -71,7 +71,7 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
                           const color = col.type === 'badge' ? 'blue' : 'purple'
                           return <span className={`px-1.5 py-0.5 rounded bg-${color}-500/10 text-${color}-400 text-[9px]`}>{r[col.key] || 'VALUE'}</span>
                         }
-                        return <span className="text-text-muted/70">{r[col.key] ? String(r[col.key]) : <span className="italic opacity-50">{col.key}</span>}</span>
+                        return <span className="text-text-muted">{r[col.key] ? String(r[col.key]) : <span className="italic opacity-50">{col.key}</span>}</span>
                       })()}
                     </td>
                   ))}
@@ -97,12 +97,12 @@ function ListCanvas({ screen, selectedElement, onSelectElement, layout, actions 
                 'flex items-center gap-1.5 h-7 px-3 rounded-ctl text-[10px] font-medium border transition-all hover:scale-105',
                 selectedElement?.id === action.id ? 'ring-2 ring-brand-500/60' : '',
                 {
-                  primary:   'bg-brand-500 text-brand-900 border-brand-600',
+                  primary:   'bg-brand-500 text-brand-on border-brand-600',
                   secondary: 'bg-surface-overlay border-border text-text-secondary',
                   danger:    'bg-status-fail-bg border-status-fail-bd text-status-fail-fg',
                   warning:   'bg-status-warn-bg border-status-warn-bd text-status-warn-fg',
                   ghost:     'bg-transparent border-border/40 text-text-muted',
-                }[action.variant] || 'bg-brand-500 text-brand-900 border-brand-600'
+                }[action.variant] || 'bg-brand-500 text-brand-on border-brand-600'
               )}>
               <Plus size={11} /> {action.label}
             </button>

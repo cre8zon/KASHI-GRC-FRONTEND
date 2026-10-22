@@ -41,6 +41,7 @@ import TemplateSelectionPanel from './TemplateSelectionPanel'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
 import { useStanding, unwrapList } from './vendorShared'
+import { GlassSelect } from '../ui/GlassSelect'
 
 // One map. The hardcoded app carries three copies of this with different
 // wording; when these move to ui_options as an assessment_status component,
@@ -124,7 +125,7 @@ function AssessmentRow({ row, expanded, onToggle, onOpen, onCancel, canCancel, b
             <div className="h-1.5 rounded-full bg-surface-overlay overflow-hidden">
               <div
                 className={cn('h-full rounded-full transition-all',
-                  pct >= 100 ? 'bg-status-pass-fg' : 'bg-brand-500')}
+                  pct >= 100 ? 'bg-status-pass-fg' : 'bg-brand-fill')}
                 style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
               />
             </div>
@@ -307,7 +308,7 @@ export default function VendorAssessmentsTab({ entity, vc = {} }) {
                 starts a fresh cycle. You choose the questionnaire next.
               </p>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <select
+                <GlassSelect
                   value={restartWorkflowId}
                   onChange={(e) => setRestartWorkflowId(e.target.value)}
                   className="h-7 rounded-ctl border border-border bg-surface-raised px-2 text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
@@ -317,7 +318,7 @@ export default function VendorAssessmentsTab({ entity, vc = {} }) {
                       {w.name}{w.version ? ` (v${w.version})` : ''}
                     </option>
                   ))}
-                </select>
+                </GlassSelect>
                 <button
                   type="button"
                   disabled={!restartWorkflowId || restart.isPending}
@@ -325,7 +326,7 @@ export default function VendorAssessmentsTab({ entity, vc = {} }) {
                   className={cn(
                     'inline-flex items-center gap-1 px-2.5 py-1 rounded-ctl text-[11px] font-medium transition-colors',
                     restartWorkflowId
-                      ? 'bg-brand-500 text-white hover:opacity-90'
+                      ? 'bg-brand-500 text-brand-on hover:opacity-90'
                       : 'bg-surface-overlay text-text-muted cursor-not-allowed',
                     restart.isPending && 'opacity-60 cursor-wait')}>
                   {restart.isPending ? 'Restarting…' : 'Restart workflow'}
@@ -391,7 +392,7 @@ export default function VendorAssessmentsTab({ entity, vc = {} }) {
                 starts a fresh cycle. You choose the questionnaire next.
               </p>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <select
+                <GlassSelect
                   value={restartWorkflowId}
                   onChange={(e) => setRestartWorkflowId(e.target.value)}
                   className="h-7 rounded-ctl border border-border bg-surface-raised px-2 text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
@@ -401,7 +402,7 @@ export default function VendorAssessmentsTab({ entity, vc = {} }) {
                       {w.name}{w.version ? ` (v${w.version})` : ''}
                     </option>
                   ))}
-                </select>
+                </GlassSelect>
                 <button
                   type="button"
                   disabled={!restartWorkflowId || restart.isPending}
@@ -409,7 +410,7 @@ export default function VendorAssessmentsTab({ entity, vc = {} }) {
                   className={cn(
                     'inline-flex items-center gap-1 px-2.5 py-1 rounded-ctl text-[11px] font-medium transition-colors',
                     restartWorkflowId
-                      ? 'bg-brand-500 text-white hover:opacity-90'
+                      ? 'bg-brand-500 text-brand-on hover:opacity-90'
                       : 'bg-surface-overlay text-text-muted cursor-not-allowed',
                     restart.isPending && 'opacity-60 cursor-wait')}>
                   {restart.isPending ? 'Restarting…' : 'Restart workflow'}

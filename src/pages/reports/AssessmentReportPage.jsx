@@ -567,7 +567,7 @@ function ReportHeader({ assessment, onDownload, generatingPDF }) {
           {pct != null && (
             <div className="flex-1 max-w-xs">
               <div className="h-1.5 rounded-full bg-surface-overlay overflow-hidden">
-                <div className={cn('h-full rounded-full', pct >= 80 ? 'bg-status-pass-bg' : pct >= 60 ? 'bg-status-warn-bg' : 'bg-status-fail-bg')}
+                <div className={cn('h-full rounded-full', pct >= 80 ? 'bg-status-pass-fg' : pct >= 60 ? 'bg-status-warn-fg' : 'bg-status-fail-fg')}
                   style={{ width: `${Math.min(pct, 100)}%` }}/>
               </div>
             </div>
@@ -647,9 +647,9 @@ function SectionBreakdown({ sections }) {
               </div>
             </div>
             <div className="ml-7 h-1.5 rounded-full bg-surface-overlay overflow-hidden flex">
-              <div className="h-full bg-status-pass-bg" style={{ width: `${r.total > 0 ? r.pass/r.total*100 : 0}%` }}/>
-              <div className="h-full bg-status-warn-bg" style={{ width: `${r.total > 0 ? r.partial/r.total*100 : 0}%` }}/>
-              <div className="h-full bg-status-fail-bg"   style={{ width: `${r.total > 0 ? r.fail/r.total*100 : 0}%` }}/>
+              <div className="h-full bg-status-pass-fg" style={{ width: `${r.total > 0 ? r.pass/r.total*100 : 0}%` }}/>
+              <div className="h-full bg-status-warn-fg" style={{ width: `${r.total > 0 ? r.partial/r.total*100 : 0}%` }}/>
+              <div className="h-full bg-status-fail-fg"   style={{ width: `${r.total > 0 ? r.fail/r.total*100 : 0}%` }}/>
             </div>
           </div>
         ))}
@@ -726,7 +726,7 @@ function Findings({ assessment, isAdmin, onUpdate }) {
             Use <code className="bg-surface-overlay px-1 rounded">--- Reviewer Name · Date ---</code> headers to separate reviewers.
           </p>
           <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={12}
-            className="w-full text-sm bg-surface border border-border rounded-card px-4 py-3 text-text-primary
+            className="w-full text-sm glass-field border border-border rounded-card px-4 py-3 text-text-primary
               placeholder-text-muted focus:outline-none focus:border-brand-500/50 resize-y leading-relaxed"
             placeholder="Document key findings, risk observations, deficiencies, and recommendations..."/>
           <div className="flex items-center gap-2 justify-end">

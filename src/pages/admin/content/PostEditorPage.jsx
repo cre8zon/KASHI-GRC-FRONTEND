@@ -404,7 +404,7 @@ function PostEditor({ postId, initialPost }) {
                 className={cn(
                   'flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[12.5px] transition-colors',
                   tab === key
-                    ? 'border-b-2 border-brand-800 text-text-primary'
+                    ? 'border-b-2 border-brand-ink text-text-primary'
                     : 'text-text-secondary hover:text-text-primary'
                 )}
               >

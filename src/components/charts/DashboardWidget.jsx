@@ -11,6 +11,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
 } from 'recharts'
+import { GlassSelect } from '../ui/GlassSelect'
 
 // Categorical data-viz palette — never status colours (see DESIGN.md rule 11)
 // One tooltip style, defined once. It was repeated inline at every chart, so
@@ -342,15 +343,15 @@ function WidgetContent({ widget, data, config, onSliceClick }) {
           <AreaChart data={series} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="rgb(var(--color-brand-500))" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="rgb(var(--color-brand-500))" stopOpacity={0} />
+                <stop offset="5%" stopColor="rgb(var(--color-brand-fill))" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="rgb(var(--color-brand-fill))" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-border) / 0.5)" />
             <XAxis dataKey={config.xAxis || 'name'} tick={{ fontSize: 10, fill: 'rgb(var(--color-text-muted))' }} />
             <YAxis tick={{ fontSize: 10, fill: 'rgb(var(--color-text-muted))' }} />
             <Tooltip {...TOOLTIP} />
-            <Area type="monotone" dataKey={config.yAxis || 'value'} stroke="rgb(var(--color-brand-500))" fill="url(#colorGrad)" strokeWidth={2} />
+            <Area type="monotone" dataKey={config.yAxis || 'value'} stroke="rgb(var(--color-brand-fill))" fill="url(#colorGrad)" strokeWidth={2} />
           </AreaChart>
         </ResponsiveContainer>
       )
@@ -410,7 +411,7 @@ function WidgetContent({ widget, data, config, onSliceClick }) {
             <span className="font-mono text-text-primary">{pct}%</span>
           </div>
           <div className="h-2 bg-surface-overlay rounded-full overflow-hidden">
-            <div className="h-full bg-brand-500 rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
+            <div className="h-full bg-brand-fill rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
           </div>
         </div>
       )
@@ -544,7 +545,7 @@ export function DashboardGrid({
 
                 {/* Width in twelfths, as plain fractions — "8" means nothing
                     without knowing the grid is twelve wide. */}
-                <select
+                <GlassSelect
                   value={widget.gridCols || 6}
                   onChange={e => onResize?.(widget, Number(e.target.value))}
                   onClick={e => e.stopPropagation()}
@@ -555,12 +556,12 @@ export function DashboardGrid({
                   <option value={4}>⅓</option>
                   <option value={6}>½</option>
                   <option value={12}>Full</option>
-                </select>
+                </GlassSelect>
 
                 <button
                   title="Remove from this dashboard"
                   onClick={e => { e.stopPropagation(); onRemove?.(widget) }}
-                  className="w-5 h-5 rounded-full bg-status-fail-fg text-white flex items-center
+                  className="w-5 h-5 rounded-full bg-status-fail-fg text-text-inverse flex items-center
                              justify-center shadow-sm hover:brightness-110"
                 >
                   <Icons.X size={11} />

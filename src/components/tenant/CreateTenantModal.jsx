@@ -97,8 +97,8 @@ function TenantCodeField({ value, onChange, onBlur, values }) {
             onBlur={onBlur}
             placeholder={manual ? 'ACME_FS' : 'Generated from the organisation name'}
             maxLength={20}
-            className={cn('w-full h-9 rounded-md border border-border px-3 pr-8 text-sm font-mono tracking-wide focus:outline-none focus:ring-1 focus:ring-brand-500',
-              manual ? 'bg-surface-raised text-text-primary' : 'bg-surface-overlay text-text-secondary cursor-default')}
+            className={cn('w-full h-9 rounded-ctl border border-border px-3 pr-8 text-sm font-mono tracking-wide focus:outline-none focus:ring-1 focus:ring-brand-500',
+              manual ? 'glass-field text-text-primary' : ' text-text-secondary cursor-default')}
           />
           <span className="absolute right-2.5 top-1/2 -translate-y-1/2">
             {status.state === 'checking' && <Loader2 size={13} className="animate-spin text-text-muted" />}
@@ -108,11 +108,11 @@ function TenantCodeField({ value, onChange, onBlur, values }) {
         </div>
         {manual
           ? <button type="button" onClick={() => { setManual(false); seq.current++ }}
-              className="flex items-center gap-1 px-2.5 rounded-md border border-border text-xs text-text-secondary hover:bg-surface-overlay">
+              className="flex items-center gap-1 px-2.5 rounded-ctl border border-border text-xs text-text-secondary hover:bg-surface-overlay">
               <RotateCcw size={12} /> Auto
             </button>
           : <button type="button" onClick={() => setManual(true)}
-              className="flex items-center gap-1 px-2.5 rounded-md border border-border text-xs text-text-secondary hover:bg-surface-overlay">
+              className="flex items-center gap-1 px-2.5 rounded-ctl border border-border text-xs text-text-secondary hover:bg-surface-overlay">
               <Pencil size={12} /> Edit
             </button>}
       </div>
@@ -172,7 +172,7 @@ function PlanPicker({ value, onChange, onBlur, plans, loading }) {
               </div>
               <span className={cn('w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5',
                 selected ? 'bg-brand-500 border-brand-500' : 'border-border')}>
-                {selected && <Check size={10} className="text-white" strokeWidth={3} />}
+                {selected && <Check size={10} className="text-brand-on" strokeWidth={3} />}
               </span>
             </div>
             <p className="text-sm font-mono text-text-primary">
@@ -271,7 +271,7 @@ function CreatedResult({ result, onOpen, onWelcome, onAnother }) {
         </div>
       </div>
 
-      <div className="rounded-card border border-border bg-surface-raised px-4 py-1">
+      <div className="rounded-card border border-border glass-card px-4 py-1">
         <CopyRow label="Tenant code" value={result.code} mono />
         <CopyRow label="Owner" value={adminName} />
         <CopyRow label="Owner email" value={admin.email} />

@@ -212,7 +212,7 @@ export default function AssessmentChatTab({
               value={draft}
               onChange={e => setDraft(e.target.value)}
               placeholder={`Write to ${thread.label.toLowerCase()}…`}
-              className="flex-1 bg-surface-overlay border border-border rounded-ctl px-2 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted outline-none focus:border-border-strong resize-none"
+              className="flex-1 glass-field border border-border rounded-ctl px-2 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted outline-none focus:border-border-strong resize-none"
             />
             <button
               onClick={() => draft.trim() && post.mutate(draft.trim())}

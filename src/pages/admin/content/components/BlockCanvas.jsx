@@ -183,7 +183,7 @@ export function BlockCanvas({
                 className={cn(
                   'flex h-5 w-5 items-center justify-center rounded-badge transition-colors',
                   pickerFor === block._id
-                    ? 'bg-brand-500 text-brand-900'
+                    ? 'bg-brand-500 text-brand-on'
                     : 'text-text-faint hover:bg-surface-overlay hover:text-text-primary'
                 )}
               >
@@ -267,7 +267,7 @@ export function BlockCanvas({
           // Straight into a paragraph. Opening the picker here asked the writer
           // to categorise their first sentence before writing it.
           onClick={() => setFocusId(insertAt(0, factories.paragraph('')))}
-          className="rounded-card border border-dashed border-border px-6 py-12 text-center text-sm text-text-faint transition-colors hover:border-brand-500 hover:text-brand-900"
+          className="rounded-card border border-dashed border-border px-6 py-12 text-center text-sm text-text-faint transition-colors hover:border-brand-500 hover:text-brand-ink"
         >
           Start writing — press / for a block, or the plus to insert one
         </button>

@@ -37,11 +37,11 @@ const fmt = (dt) => dt
 const pct = (n, d) => d > 0 ? Math.round((n / d) * 100) : 0
 
 const STATUS_CFG = {
-  IN_PROGRESS:  { label: 'In progress', color: 'text-brand-ink',  dot: 'bg-brand-400'  },
+  IN_PROGRESS:  { label: 'In progress', color: 'text-brand-ink',  dot: 'bg-brand-fill'  },
   COMPLETED:    { label: 'Completed',   color: 'text-status-pass-fg',  dot: 'bg-status-pass-fg'  },
   ON_HOLD:      { label: 'On hold',     color: 'text-status-warn-fg',  dot: 'bg-status-warn-fg'  },
   PLANNING:     { label: 'Planning',    color: 'text-text-muted', dot: 'bg-text-muted/40' },
-  FIELDWORK:    { label: 'Fieldwork',   color: 'text-brand-ink',  dot: 'bg-brand-400'  },
+  FIELDWORK:    { label: 'Fieldwork',   color: 'text-brand-ink',  dot: 'bg-brand-fill'  },
   DRAFT_REPORT: { label: 'Draft',       color: 'text-status-warn-fg',  dot: 'bg-status-warn-fg'  },
   CLOSED:       { label: 'Closed',      color: 'text-status-pass-fg',  dot: 'bg-status-pass-fg'  },
   FINAL_REPORT: { label: 'Final report',color: 'text-status-tag-fg', dot: 'bg-status-tag-fg' },
@@ -385,7 +385,7 @@ export default function AuditProjectDashboardPage() {
           </h2>
           {engagements.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 border border-dashed border-border rounded-card text-center">
-              <BookOpen size={28} className="text-text-muted/40 mb-3" />
+              <BookOpen size={28} className="text-text-faint mb-3" />
               <p className="text-sm font-medium text-text-secondary mb-1">No engagements yet</p>
               <p className="text-xs text-text-muted">Engagements are created when the project is started</p>
             </div>

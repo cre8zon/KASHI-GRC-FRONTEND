@@ -8,6 +8,7 @@ import { Modal } from '../ui/Modal'
 import EvidenceUploader from '../ui/EvidenceUploader'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../ui/GlassSelect'
 
 /**
  * Workspace › Requests — what one side asks the other for: a document, an
@@ -68,12 +69,12 @@ export function WorkspaceRequestsTab({ workspaceId, archived, programmes = [], o
               {label} <span className="text-text-muted">{counts[k]}</span>
             </button>
           ))}
-          <select value={mine} onChange={e => setMine(e.target.value)}
+          <GlassSelect value={mine} onChange={e => setMine(e.target.value)}
             className="ml-2 h-7 rounded-ctl border border-border bg-surface-raised px-1.5 text-xs text-text-secondary">
             <option value="">Everyone</option>
             <option value="for">For me</option>
             <option value="by">I can review</option>
-          </select>
+          </GlassSelect>
         </div>
         {canRaise && (
           <div className="flex items-center gap-2">
@@ -83,7 +84,7 @@ export function WorkspaceRequestsTab({ workspaceId, archived, programmes = [], o
         )}
       </div>
 
-      <div className="rounded-card border border-border bg-surface-raised">
+      <div className="rounded-card border border-border glass-card">
         {isLoading ? <p className="p-4 text-xs text-text-muted">Loading…</p>
           : shown.length === 0 ? <p className="px-4 py-6 text-xs text-text-muted text-center">No requests here.</p>
           : shown.map(r => {
@@ -125,12 +126,12 @@ function AssigneeSelect({ workspaceId, programmeId, value, onChange, enabled }) 
   })
   const people = unwrapList(raw)
   return (
-    <select value={value || ''} onChange={e => onChange(e.target.value)} className={input} disabled={isLoading}>
+    <GlassSelect value={value || ''} onChange={e => onChange(e.target.value)} className={input} disabled={isLoading}>
       <option value="">{isLoading ? 'Loading…' : 'Who is it for?'}</option>
       {people.map(p => (
         <option key={p.userId} value={p.userId}>{p.name}{p.side === 'FIRM' ? ' (audit firm)' : ''}</option>
       ))}
-    </select>
+    </GlassSelect>
   )
 }
 
@@ -156,13 +157,13 @@ function RaiseRequestModal({ open, onClose, workspaceId, programmes, onDone }) {
       <div className="space-y-3">
         <input value={form.title} onChange={set('title')} placeholder="What do you need? e.g. Access review for Q2" className={input} />
         <textarea value={form.description} onChange={set('description')} rows={3} placeholder="Details (optional)"
-          className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary" />
+          className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary" />
         <div className="grid grid-cols-2 gap-2">
           {programmes.length > 0 && (
-            <select value={form.programmeId} onChange={e => setForm(f => ({ ...f, programmeId: e.target.value, assigneeUserId: '' }))} className={input}>
+            <GlassSelect value={form.programmeId} onChange={e => setForm(f => ({ ...f, programmeId: e.target.value, assigneeUserId: '' }))} className={input}>
               <option value="">Whole workspace</option>
               {programmes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </GlassSelect>
           )}
           <AssigneeSelect workspaceId={workspaceId} programmeId={form.programmeId} enabled={open}
             value={form.assigneeUserId} onChange={v => setForm(f => ({ ...f, assigneeUserId: v }))} />
@@ -216,14 +217,14 @@ function BulkRequestsModal({ open, onClose, workspaceId, programmes, onDone }) {
       }>
       <div className="space-y-3">
         {programmes.length > 0 && (
-          <select value={programmeId} onChange={e => setProgrammeId(e.target.value)} className={cn(input, 'w-64')}>
+          <GlassSelect value={programmeId} onChange={e => setProgrammeId(e.target.value)} className={cn(input, 'w-64')}>
             <option value="">Whole workspace</option>
             {programmes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </GlassSelect>
         )}
         <textarea value={text} onChange={e => setText(e.target.value)} rows={8}
           placeholder={'Title\tAssignee email\tDue date\tDescription\nAccess review Q2\tjane@client.com\t2026-11-15\tExport from the IAM tool'}
-          className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-xs font-mono text-text-primary" />
+          className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-xs font-mono text-text-primary" />
         {rows.length > 0 && (
           <div className="max-h-56 overflow-y-auto rounded-ctl border border-border text-xs">
             <table className="w-full">
@@ -295,7 +296,7 @@ function RequestModal({ request: r, workspaceId, archived, programmes, onClose, 
           <div className="space-y-2">
             <input value={edit.title} onChange={e => setEdit(x => ({ ...x, title: e.target.value }))} className={input} />
             <textarea value={edit.description} onChange={e => setEdit(x => ({ ...x, description: e.target.value }))} rows={3}
-              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary" />
+              className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary" />
             <div className="flex items-center gap-2">
               <input type="date" value={edit.dueDate} onChange={e => setEdit(x => ({ ...x, dueDate: e.target.value }))} className={cn(input, 'w-44 px-2')} />
               <div className="ml-auto flex gap-2">
@@ -327,7 +328,7 @@ function RequestModal({ request: r, workspaceId, archived, programmes, onClose, 
           <div className="space-y-2 border-t border-border-subtle pt-3">
             <textarea value={note} onChange={e => setNote(e.target.value)} rows={2}
               placeholder={r.canAnswer ? 'Your answer (attach files above)' : 'A note (optional)'}
-              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary" />
+              className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary" />
             <div className="flex flex-wrap justify-end gap-2">
               {r.canDecide && (
                 <Button variant="ghost" size="sm" icon={X} disabled={busy} onClick={() => decide.mutate('withdraw')}>Withdraw</Button>

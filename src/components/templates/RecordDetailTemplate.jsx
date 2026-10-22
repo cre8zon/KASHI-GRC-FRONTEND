@@ -203,7 +203,7 @@ export function RecordDetailTemplate({
                 <span>{owner.name || owner.email}</span>
                 {dueDate && (
                   <>
-                    <span className="text-text-muted/40">·</span>
+                    <span className="text-text-faint">·</span>
                     <Calendar size={11} />
                     <span className={cn(new Date(dueDate) < new Date() ? 'text-status-fail-fg' : '')}>
                       Due {formatDate(dueDate)}

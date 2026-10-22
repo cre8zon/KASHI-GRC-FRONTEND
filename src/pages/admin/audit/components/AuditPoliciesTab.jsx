@@ -130,7 +130,7 @@ function PolicyContentModal({ policyInstance, engagementId, onClose }) {
           </div>
         ) : (
           /* RICH_TEXT */
-          <div className="max-h-[50vh] overflow-y-auto rounded-card border border-border p-4 bg-surface-raised">
+          <div className="max-h-[50vh] overflow-y-auto rounded-card border border-border p-4 glass-card">
             <div
               className="prose prose-sm prose-invert max-w-none text-sm text-text-secondary leading-relaxed"
               dangerouslySetInnerHTML={{
@@ -306,7 +306,7 @@ function PolicyRow({ policy, engagementId, access }) {
                   onChange={e => { setAuditorNotes(e.target.value); setDirty(true) }}
                   rows={2}
                   placeholder="Notes on policy adequacy…"
-                  className="w-full px-3 py-2 rounded-ctl border border-border bg-surface-raised text-xs
+                  className="w-full px-3 py-2 rounded-ctl border border-border glass-field text-xs
                              text-text-primary placeholder:text-text-muted resize-none
                              focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />

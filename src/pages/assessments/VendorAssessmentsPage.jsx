@@ -18,6 +18,7 @@ import { Modal } from '../../components/ui/Modal'
 import { cn } from '../../lib/cn'
 import { formatDate } from '../../utils/format'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -132,7 +133,7 @@ export default function VendorAssessmentsPage() {
           <div className="flex items-center gap-2">
             <div className="flex-1 h-1.5 bg-surface-overlay rounded-full overflow-hidden">
               <div
-                className={cn('h-full rounded-full transition-all', pct === 100 ? 'bg-status-pass-bg' : 'bg-brand-500')}
+                className={cn('h-full rounded-full transition-all', pct === 100 ? 'bg-status-pass-fg' : 'bg-brand-fill')}
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -176,10 +177,10 @@ export default function VendorAssessmentsPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search vendor or template…"
-              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
-          <select
+          <GlassSelect
             value={statusFilter}
             onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
             className="h-8 appearance-none pl-3 pr-8 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -187,7 +188,7 @@ export default function VendorAssessmentsPage() {
             <option value="">All statuses</option>
             {Object.entries(STATUS_META).map(([v, m]) =>
               <option key={v} value={v}>{m.label}</option>)}
-          </select>
+          </GlassSelect>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
         </div>
       }
@@ -297,7 +298,7 @@ function AssessmentDetailModal({ detail, onClose }) {
           {/* Overall progress bar */}
           <div className="h-1.5 bg-surface-overlay rounded-full overflow-hidden">
             <div
-              className={cn('h-full rounded-full transition-all', pct === 100 ? 'bg-status-pass-bg' : 'bg-brand-500')}
+              className={cn('h-full rounded-full transition-all', pct === 100 ? 'bg-status-pass-fg' : 'bg-brand-fill')}
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -333,7 +334,7 @@ function AssessmentDetailModal({ detail, onClose }) {
                         <div className="flex items-center gap-2 mr-2">
                           <div className="w-16 h-1 bg-surface-overlay rounded-full overflow-hidden">
                             <div
-                              className={cn('h-full rounded-full', answeredInSection === totalInSection ? 'bg-status-pass-bg' : 'bg-brand-500')}
+                              className={cn('h-full rounded-full', answeredInSection === totalInSection ? 'bg-status-pass-fg' : 'bg-brand-fill')}
                               style={{ width: `${(answeredInSection / totalInSection) * 100}%` }}
                             />
                           </div>

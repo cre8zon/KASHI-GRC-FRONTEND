@@ -1,8 +1,9 @@
 import { useMutation } from '@tanstack/react-query'
 import { useDispatch, useSelector } from 'react-redux'
 import { authApi } from '../api/auth.api'
-import { loginSuccess, logout, tenantSwitched, selectAuth } from '../store/slices/authSlice'
+import { loginSuccess, tenantSwitched, selectAuth } from '../store/slices/authSlice'
 import { queryClient } from '../config/queryClient'
+import { endSession, setPostLoginTarget } from '../lib/session'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
@@ -75,60 +76,85 @@ export const useLogin = () => {
 }
 
 /**
+ * Normalises a raw-axios failure into the same shape the app's interceptor
+ * produces ({ code, message, status, fieldErrors, details }), so pages can use
+ * parseApiError() on it.
+ */
+function normaliseAuthError(err) {
+  const body = err?.response?.data
+  const apiError = body?.error
+  const status = err?.response?.status ?? null
+  if (apiError) return { ...apiError, status }
+  if (!err?.response) {
+    return { code: 'NETWORK_ERROR', status: null,
+             message: "Can't reach the server. Check your connection and try again." }
+  }
+  return { code: 'HTTP_' + status, status, message: 'Sign-in failed. Please try again.' }
+}
+
+/**
  * useLoginWithRedirect — handles all login outcomes:
- *   SUCCESS              → navigate to /dashboard
- *   PASSWORD_RESET_REQUIRED → navigate to /auth/reset-password with userId
- *   ERROR                → toast error
+ *   SUCCESS                 → back to where the user was (or /dashboard)
+ *   PASSWORD_RESET_REQUIRED → /auth/set-password with the one-time token
+ *   ERROR                   → returned to the page as a normalised error
+ *                             (shown inline next to the form, not as a toast)
+ *
+ * The old version also console.log'ed the full login response — access and
+ * refresh tokens included — on every sign-in. Removed.
  */
 export const useLoginWithRedirect = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
   return useMutation({
-    mutationFn: async ({ email, password }) => {
-      // Bypass the Axios response interceptor's unwrapping for this call
-      // so we can read the top-level status field
+    mutationFn: async ({ email, password, rememberMe }) => {
+      // Bypass the app instance: we need the top-level `status` field
+      // (SUCCESS vs PASSWORD_RESET_REQUIRED), which its interceptor unwraps.
       const { default: axios } = await import('axios')
-      const baseURL = import.meta.env.VITE_API_BASE_URL || ''
-      const response = await axios.post(`${baseURL}/v1/auth/login`, { email, password })
-      return response.data  // returns full { status, data }
+      const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+      try {
+        const response = await axios.post(`${baseURL}/v1/auth/login`,
+          { email: email.trim(), password, rememberMe: !!rememberMe }, { timeout: 30_000 })
+        return response.data  // { status, data }
+      } catch (err) {
+        throw normaliseAuthError(err)
+      }
     },
     onSuccess: (response, variables) => {
-      console.log('LOGIN RESPONSE:', JSON.stringify(response, null, 2))
       if (response.status === 'PASSWORD_RESET_REQUIRED') {
-        // First login — force password change.
-        // Pass email in state so ForcePasswordChangePage can auto-login after reset.
         navigate('/auth/set-password', {
           state: {
             userId:    response.data?.userId,
             tempToken: response.data?.tempToken,
-            email:     variables?.email,
+            email:     variables?.email?.trim(),
+            rememberMe: !!variables?.rememberMe,
           },
           replace: true,
         })
         return
       }
       if (response.status === 'SUCCESS') {
-        dispatch(loginSuccess(response.data))
-        toast.success('Welcome back!')
-        navigate('/dashboard', { replace: true })
+        queryClient.clear()   // never render a previous user's cached data
+        const target = variables?.redirectTo
+        // RedirectIfAuthed (wrapping the login route) reacts to the store flip
+        // too; the post-login target makes it agree with this navigate().
+        setPostLoginTarget(target)
+        navigate(target && target.startsWith('/') && !target.startsWith('/auth') ? target : '/dashboard',
+                 { replace: true })
+        dispatch(loginSuccess({ ...response.data, rememberMe: !!variables?.rememberMe }))
       }
     },
-    onError: (err) => {
-      const msg = err?.response?.data?.error?.message || err?.message || 'Login failed'
-      toast.error(msg)
-    },
+    // Shown inline by LoginPage; overrides the global "toast every mutation
+    // error" default so the message doesn't appear twice.
+    onError: () => {},
   })
 }
 
 export const useLogout = () => {
-  const dispatch = useDispatch()
-  const { userId } = useSelector(selectAuth)
   return useMutation({
-    mutationFn: () => authApi.logout(userId),
-    onSettled: () => {
-      dispatch(logout())
-      queryClient.clear()
-    },
+    // endSession revokes the refresh token on the server, clears the store and
+    // the query cache, tells other open tabs to sign out too, and leaves a
+    // "you've signed out" note for the login page.
+    mutationFn: async () => { endSession('signed_out') },
   })
 }

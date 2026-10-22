@@ -21,8 +21,15 @@ export default {
           700: 'rgb(var(--color-brand-700) / <alpha-value>)',
           800: 'rgb(var(--color-brand-800) / <alpha-value>)',
           900: 'rgb(var(--color-brand-900) / <alpha-value>)',
-          // Theme-aware brand text/icon colour — use this, never brand-300/400.
+          // Theme-aware brand text/icon colour on NEUTRAL surfaces — use this,
+          // never brand-300/400/500/600 as text.
           ink: 'rgb(var(--color-brand-ink) / <alpha-value>)',
+          // Text/icons ON a solid brand surface (bg-brand-500/600). White for
+          // saturated seeds, deep same-hue ink for pastels — solved per theme
+          // by themeEngine. Never pair bg-brand-500 with text-white/brand-900.
+          on:   'rgb(var(--color-brand-on) / <alpha-value>)',
+          // Progress fills, dots, indicators: ≥ 3:1 against the track.
+          fill: 'rgb(var(--color-brand-fill) / <alpha-value>)',
         },
         surface: {
           DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',

@@ -103,7 +103,7 @@ export function PolicyContentTab({ entity, vc = {} }) {
                 <ExternalLink size={10}/> Open
               </a>
             </div>
-            <div className="relative rounded-card border border-border overflow-hidden bg-surface-raised"
+            <div className="relative rounded-card border border-border overflow-hidden glass-card"
               style={{ height: '60vh' }}>
               <iframe src={externalUrl} title="Policy document preview"
                 className="w-full h-full"

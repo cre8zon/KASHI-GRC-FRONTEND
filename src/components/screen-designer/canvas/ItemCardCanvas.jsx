@@ -9,6 +9,7 @@ import { CanvasCard } from '../shared/CanvasCard'
 import { InspectorSection, IField, IInp, ISel, Row } from '../shared/InspectorHelpers'
 import { MOCK_ITEMS, MOCK_RECORDS, CAPABILITY_TABS, isCapabilityTab,
          LAYOUT_MODES, FIELD_TYPES, FIELD_TYPE_GROUPS, SIDES } from '../constants'
+import { GlassSelect } from '../../ui/GlassSelect'
 
 
 function ItemCardCanvas({ screen, selectedElement, onSelectElement, actions }) {
@@ -37,10 +38,10 @@ function ItemCardCanvas({ screen, selectedElement, onSelectElement, actions }) {
             <div className="p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <label className="text-xs text-text-secondary font-medium w-24 shrink-0">Response</label>
-                <select className="flex-1 h-8 px-2 text-xs bg-surface-raised border border-border rounded text-text-primary text-sm focus:ring-1 focus:ring-brand-500 focus:outline-none">
+                <GlassSelect className="flex-1 h-8 px-2 text-xs bg-surface-raised border border-border rounded text-text-primary text-sm focus:ring-1 focus:ring-brand-500 focus:outline-none">
                   <option>Select response…</option>
                   <option>Yes</option><option>No</option><option>Partial</option><option>N/A</option>
-                </select>
+                </GlassSelect>
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-xs text-text-secondary font-medium w-24 shrink-0">Evidence</label>
@@ -50,7 +51,7 @@ function ItemCardCanvas({ screen, selectedElement, onSelectElement, actions }) {
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-xs text-text-secondary font-medium w-24 shrink-0">Notes</label>
-                <textarea className="flex-1 px-2 py-1.5 text-xs bg-surface-raised border border-border rounded text-text-primary text-sm resize-none focus:ring-1 focus:ring-brand-500 focus:outline-none" rows={2} placeholder="Add notes…" />
+                <textarea className="flex-1 px-2 py-1.5 text-xs glass-field border border-border rounded text-text-primary text-sm resize-none focus:ring-1 focus:ring-brand-500 focus:outline-none" rows={2} placeholder="Add notes…" />
               </div>
             </div>
           </CanvasCard>

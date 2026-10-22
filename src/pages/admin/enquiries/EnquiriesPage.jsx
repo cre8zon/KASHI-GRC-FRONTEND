@@ -85,7 +85,7 @@ export default function EnquiriesPage() {
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Name, email, company, ref…"
-              className="h-8 pl-8 pr-3 w-56 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-56 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={() => refetch()} loading={isFetching} aria-label="Refresh" />
         </div>
@@ -103,7 +103,7 @@ export default function EnquiriesPage() {
           {QUEUES.map(x => (
             <button key={x.key} onClick={() => { setQueue(x.key); setPage(1) }}
               className={cn('px-3 py-1 rounded-ctl text-xs font-medium transition-colors flex items-center gap-1.5',
-                queue === x.key ? 'bg-brand-500 text-brand-900' : 'bg-surface-overlay text-text-secondary hover:text-text-primary')}>
+                queue === x.key ? 'bg-brand-500 text-brand-on' : 'bg-surface-overlay text-text-secondary hover:text-text-primary')}>
               {x.label}
               {queueCount[x.key] > 0 && <span className="text-[10px] opacity-75">{queueCount[x.key]}</span>}
             </button>

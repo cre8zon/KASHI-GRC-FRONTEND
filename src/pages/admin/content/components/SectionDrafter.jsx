@@ -132,7 +132,7 @@ export function SectionDrafter({ postId, heading, outline, onAccept, className }
         className={cn(
           'flex h-5 w-5 items-center justify-center rounded-badge transition-colors',
           open
-            ? 'bg-brand-500 text-brand-900'
+            ? 'bg-brand-500 text-brand-on'
             : 'text-text-faint hover:bg-surface-overlay hover:text-text-primary',
           className
         )}

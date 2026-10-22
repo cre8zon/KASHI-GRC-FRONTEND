@@ -11,6 +11,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Skeleton, EmptyState } from '../../components/ui/EmptyState'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 /**
  * Collaboration › Workspaces — every workspace the caller can see in the active
@@ -173,11 +174,11 @@ function CreateWorkspaceModal({ open, onClose, options, onCreated }) {
           ) : (
             <label className="block">
               <span className="text-xs font-medium text-text-secondary">Audit firm</span>
-              <select value={firmTenantId} onChange={e => setFirmTenantId(e.target.value)}
+              <GlassSelect value={firmTenantId} onChange={e => setFirmTenantId(e.target.value)}
                 className="mt-1 w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary">
                 <option value="">Choose a firm…</option>
                 {available.map(f => <option key={f.firmTenantId} value={f.firmTenantId}>{f.name}</option>)}
-              </select>
+              </GlassSelect>
             </label>
           )
         )}
@@ -185,12 +186,12 @@ function CreateWorkspaceModal({ open, onClose, options, onCreated }) {
         <label className="block">
           <span className="text-xs font-medium text-text-secondary">Name</span>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Acme × Digio Security"
-            className="mt-1 w-full h-9 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary" />
+            className="mt-1 w-full h-9 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary" />
         </label>
         <label className="block">
           <span className="text-xs font-medium text-text-secondary">Description (optional)</span>
           <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
-            className="mt-1 w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary" />
+            className="mt-1 w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary" />
         </label>
 
         <div className="flex justify-end gap-2 pt-1">

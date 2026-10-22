@@ -6,9 +6,17 @@ import tabsReducer, { loadTabs, saveTabs } from './slices/tabsSlice'   // ← NE
 
 const AUTH_KEY = 'kashi_auth'
 
+/**
+ * Where the session lives:
+ *   sessionStorage — default. Per tab, gone when the browser closes.
+ *   localStorage   — only when the user ticked "Keep me signed in". Survives a
+ *                    restart; still bounded by the refresh-token lifetime.
+ * Reads prefer the tab's own copy, so an explicit sign-in in this tab always
+ * wins over a remembered one.
+ */
 function loadAuth() {
   try {
-    const raw = sessionStorage.getItem(AUTH_KEY)
+    const raw = sessionStorage.getItem(AUTH_KEY) || localStorage.getItem(AUTH_KEY)
     return raw ? JSON.parse(raw) : undefined
   } catch {
     return undefined
@@ -17,8 +25,16 @@ function loadAuth() {
 
 function saveAuth(state) {
   try {
-    sessionStorage.setItem(AUTH_KEY, JSON.stringify(state))
+    const json = JSON.stringify(state)
+    sessionStorage.setItem(AUTH_KEY, json)
+    if (state.rememberMe) localStorage.setItem(AUTH_KEY, json)
+    else localStorage.removeItem(AUTH_KEY)
   } catch {}
+}
+
+function clearAuth() {
+  try { sessionStorage.removeItem(AUTH_KEY) } catch {}
+  try { localStorage.removeItem(AUTH_KEY) } catch {}
 }
 
 const preloadedAuth = loadAuth()
@@ -47,7 +63,7 @@ store.subscribe(() => {
     if (currentAuth.isAuthenticated) {
       saveAuth(currentAuth)
     } else {
-      sessionStorage.removeItem(AUTH_KEY)
+      clearAuth()
     }
   }
   const currentTabs = store.getState().tabs

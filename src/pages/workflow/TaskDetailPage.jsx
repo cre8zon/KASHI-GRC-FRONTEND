@@ -75,7 +75,7 @@ function MetaGrid({ items }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
       {items.map(({ label, value, mono }) => (
-        <div key={label} className="p-3 rounded-card border border-border bg-surface-raised">
+        <div key={label} className="p-3 rounded-card border border-border glass-card">
           <p className="text-[10px] text-text-muted uppercase tracking-wide font-medium mb-0.5">{label}</p>
           <p className={cn('text-sm text-text-primary truncate', mono && 'font-mono')}>{value || '—'}</p>
         </div>
@@ -271,7 +271,7 @@ export default function TaskDetailPage() {
 
         {/* Remarks */}
         {task.remarks && (
-          <div className="p-4 rounded-card border border-border bg-surface-raised">
+          <div className="p-4 rounded-card border border-border glass-card">
             <p className="text-[10px] text-text-muted uppercase tracking-wide font-medium mb-1.5">Remarks</p>
             <p className="text-sm text-text-secondary italic">"{task.remarks}"</p>
           </div>

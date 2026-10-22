@@ -62,71 +62,83 @@ function getSidebarTokens(theme) {
 
   if (theme === 'light') return {
     // Nav panel carries a faint brand wash so the whole light sidebar hints the
-    // selected preset (not just the active pill).
-    panelBg:   'bg-brand-500/8',
+    // selected theme (not just the active pill).
+    // Frosted chrome over the wash; the theme hue shows through the glass.
+    panelBg:   'glass-chrome',
     cardBg:    'bg-surface-raised',
-    textBase:  'text-text-secondary', textActive: 'text-brand-900',
+    textBase:  'text-text-secondary', textActive: 'text-brand-on',
     textHover: 'text-text-primary',   bgActive:   'bg-brand-500',
     bgHover:   'hover:bg-surface-raised', iconBase: 'text-text-muted',
-    iconActive:'text-brand-900',      indicator:  'bg-brand-900',
-    badge:     'bg-brand-500/30 text-brand-900',
+    iconActive:'text-brand-on',       indicator:  'bg-brand-fill',
+    badge:     'bg-brand-500/15 text-brand-ink',
     section:   'text-text-muted',     divider:    'border-border-subtle',
     toggle:    'text-text-muted hover:text-text-primary hover:bg-surface-raised',
     name:      'text-text-primary',   subtext:    'text-text-muted',
     searchBg:  'bg-surface-overlay',
+    searchField: 'glass-field',
+    wsGlass:   true,
     wsCard:    'bg-brand-500/15 border-brand-500/25',
     border:    'border-border-subtle',
   }
+  // Brand sidebar in LIGHT app mode: painted brand-500. Its ink is
+  // --color-brand-on, which the theme engine solves per colour — white on the
+  // Kashi purple, a deep same-hue ink on the pastels. The active item is a
+  // near-white pill, so its ink is the deep brand-900 in every theme.
   if (theme === 'brand') return {
     panelBg:   '',
-    cardBg:    'bg-on-dark/20',
-    textBase:  'text-brand-900/85',   textActive: 'text-brand-900',
-    textHover: 'text-brand-900',      bgActive:   'bg-on-dark/80',
-    bgHover:   'hover:bg-on-dark/30',  iconBase:  'text-brand-900/72',
+    cardBg:    'bg-on-dark/15',
+    textBase:  'text-brand-on',       textActive: 'text-brand-900',
+    textHover: 'text-brand-on',       bgActive:   'bg-on-dark/90',
+    bgHover:   'hover:bg-on-dark/20', iconBase:   'text-brand-on/90',
     iconActive:'text-brand-900',      indicator:  'bg-brand-900',
-    badge:     'bg-on-dark/70 text-brand-900',
-    section:   'text-brand-900/72',   divider:    'border-brand-900/10',
-    toggle:    'text-brand-900/72 hover:text-brand-900 hover:bg-on-dark/30',
-    name:      'text-brand-900',      subtext:    'text-brand-900/75',
-    searchBg:  'bg-on-dark/25',
-    wsCard:    'bg-on-dark/25 border-on-dark/20',
-    border:    'border-brand-900/10',
+    badge:     'bg-on-dark/90 text-brand-900',
+    section:   'text-brand-on',       divider:    'border-brand-on/15',
+    toggle:    'text-brand-on/90 hover:text-brand-on hover:bg-on-dark/20',
+    name:      'text-brand-on',       subtext:    'text-brand-on/85',
+    searchBg:  'bg-on-dark/20',
+    searchField: 'bg-on-dark/15 border border-brand-on/20 focus-within:bg-on-dark/25',
+    wsCard:    'bg-on-dark/15 border-brand-on/15',
+    border:    'border-brand-on/15',
   }
-  // Brand sidebar in DARK app mode: deep brand-800 background, so ink is the
-  // LIGHT end of the scale (brand-100) — the mirror of the pastel variant.
-  // Backgrounds use brand-100 at low alpha (a light tint that reads on the deep
-  // bg) instead of on-dark/white, so hover/active/cards stay in-hue.
+  // Brand sidebar in DARK app mode: deep brand-800 background with the LIGHT
+  // end of the scale (brand-100) as ink. In dark mode themeEngine builds the
+  // scale so 800 is a deep tone and 100 a light tint of the SAME hue (≥ 7.6:1
+  // across every preset).
   if (theme === 'brand-dark') return {
     panelBg:   '',
     cardBg:    'bg-brand-100/10',
-    // Nav text is LIGHT (brand-100) on the deep brand-800 sidebar. But the
-    // ACTIVE pill is a light brand-100 tile, so its ink flips back to DARK
-    // (brand-900) — contrast 7.0+ across all presets.
-    textBase:  'text-brand-100/85',   textActive: 'text-brand-900',
-    textHover: 'text-brand-50',       bgActive:   'bg-brand-100/90',
-    bgHover:   'hover:bg-brand-100/12', iconBase:  'text-brand-100/75',
-    iconActive:'text-brand-900',      indicator:  'bg-brand-100',
+    // Active item is a soft tint + white-ish ink + indicator bar, not a
+    // light tile — a bright pill was the loudest thing on a dark screen.
+    textBase:  'text-brand-100',      textActive: 'text-brand-50',
+    textHover: 'text-brand-50',       bgActive:   'bg-brand-100/15',
+    bgHover:   'hover:bg-brand-100/10', iconBase:  'text-brand-100/85',
+    iconActive:'text-brand-50',       indicator:  'bg-brand-100',
     badge:     'bg-brand-100/15 text-brand-100',
-    section:   'text-brand-100/65',   divider:    'border-brand-100/12',
-    toggle:    'text-brand-100/75 hover:text-brand-50 hover:bg-brand-100/12',
-    name:      'text-brand-50',       subtext:    'text-brand-100/70',
+    section:   'text-brand-100/80',   divider:    'border-brand-100/12',
+    toggle:    'text-brand-100/80 hover:text-brand-50 hover:bg-brand-100/10',
+    name:      'text-brand-50',       subtext:    'text-brand-100/80',
     searchBg:  'bg-brand-100/10',
-    wsCard:    'bg-brand-100/12 border-brand-100/20',
+    searchField: 'bg-brand-100/8 border border-brand-100/15 focus-within:bg-brand-100/12',
+    wsCard:    'bg-brand-100/10 border-brand-100/15',
     border:    'border-brand-100/12',
   }
+  // Dark sidebar. It is dark in BOTH app themes, so its ink must be the
+  // constant on-dark white — the app's text tokens are dark-on-light in light
+  // mode and measured ~3:1 on this panel.
   return {
     panelBg:   'bg-[var(--sidebar-dark)]',
     cardBg:    'bg-on-dark/5',
-    textBase:  'text-text-muted',     textActive: 'text-brand-900',
-    textHover: 'text-text-primary',   bgActive:   'bg-brand-500',
-    bgHover:   'hover:bg-on-dark/8',   iconBase:  'text-text-muted',
-    iconActive:'text-brand-900',      indicator:  'bg-brand-900',
+    textBase:  'text-on-dark/80',     textActive: 'text-brand-on',
+    textHover: 'text-on-dark',        bgActive:   'bg-brand-500',
+    bgHover:   'hover:bg-on-dark/8',  iconBase:   'text-on-dark/65',
+    iconActive:'text-brand-on',       indicator:  'bg-brand-fill',
     badge:     'bg-status-warn-bg text-status-warn-fg',
-    section:   'text-text-faint',     divider:    'border-on-dark/8',
-    toggle:    'text-text-muted hover:text-text-primary hover:bg-on-dark/8',
-    name:      'text-text-primary',   subtext:    'text-text-muted',
+    section:   'text-on-dark/60',     divider:    'border-on-dark/8',
+    toggle:    'text-on-dark/65 hover:text-on-dark hover:bg-on-dark/8',
+    name:      'text-on-dark',        subtext:    'text-on-dark/60',
     searchBg:  'bg-on-dark/8',
-    wsCard:    'bg-brand-500/15 border-brand-500/25',
+    searchField: 'bg-on-dark/8 border border-on-dark/10 focus-within:bg-on-dark/12',
+    wsCard:    'bg-on-dark/8 border-on-dark/10',
     border:    'border-on-dark/8',
   }
 }
@@ -136,7 +148,7 @@ function KashiLogo({ size = 28, className }) {
   return (
     <div className={cn(
       'flex items-center justify-center rounded-card shrink-0',
-      'bg-brand-500 text-brand-900 font-black ring-1 ring-brand-700/25 shadow-elevated',
+      'bg-brand-500 text-brand-on font-black ring-1 ring-brand-ink/25 shadow-elevated',
       className
     )} style={{ width: size, height: size, fontSize: size * 0.45 }}>
       K
@@ -376,7 +388,7 @@ function NavItem({ item, depth = 0, collapsed = false, t, forceOpen = false }) {
           </span>
         )}
         {badgeCount > 0 && collapsed && (
-          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-status-warn-bg" />
+          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-status-warn-fg" />
         )}
       </>
     </NavLink>
@@ -433,7 +445,7 @@ function SidebarUserPanel({ collapsed, t, auth, branding }) {
         )}>
         {/* Avatar */}
         <div className={cn(
-          'rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-brand-500 text-brand-900 ring-1 ring-brand-700/20',
+          'rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-brand-500 text-brand-900 ring-1 ring-brand-ink/20',
           collapsed ? 'w-8 h-8' : 'w-7 h-7'
         )}>
           {initials(fullName)}
@@ -771,7 +783,12 @@ export function Sidebar({ collapsed, onToggle }) {
         ) : (
           <div
             className={cn(
-              'flex items-center gap-2.5 p-1.5 rounded-card border glass-chrome',
+              // Frosted glass only on the LIGHT sidebar. glass-chrome paints a
+              // white/78% fill that outranks t.wsCard, which put white
+              // workspace text on a near-white card in the dark and brand
+              // sidebars.
+              'flex items-center gap-2.5 p-1.5 rounded-card border',
+              t.wsGlass && 'glass-chrome',
               t.wsCard
             )}
             title={`${displayName} · ${auth?.tenantName || 'Workspace'}`}
@@ -804,7 +821,7 @@ export function Sidebar({ collapsed, onToggle }) {
               fallback and a solid print rule — and it makes this read as a
               sibling of the workspace card above it instead of a painted
               rectangle sitting on the panel. */}
-          <div className="glass-field flex items-center gap-2 h-8 px-2.5 rounded-ctl">
+          <div className={cn('flex items-center gap-2 h-8 px-2.5 rounded-ctl', t.searchField)}>
             <Search size={13} className={cn('shrink-0', t.subtext)} />
             <input
               ref={searchRef}
@@ -824,7 +841,7 @@ export function Sidebar({ collapsed, onToggle }) {
               aria-label="Search navigation"
               className={cn(
                 'w-full min-w-0 bg-transparent border-0 p-0 text-[12.5px] focus:outline-none focus:ring-0',
-                t.textBase, 'placeholder:opacity-60'
+                t.textBase, 'placeholder:text-current placeholder:opacity-80'
               )}
             />
             {searching && (

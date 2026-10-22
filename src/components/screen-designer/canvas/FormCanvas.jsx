@@ -230,7 +230,7 @@ function FormCanvas({ screen, selectedElement, onSelectElement, actions }) {
           <button
             onClick={() => onSelectElement({ type: 'form_submit_config', screenKey: screen.key, formId })}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-ctl text-xs font-medium bg-brand-500 text-brand-900 hover:bg-brand-600 transition-colors',
+              'flex items-center gap-2 px-4 py-2 rounded-ctl text-xs font-medium bg-brand-500 text-brand-on hover:bg-brand-600 transition-colors',
               selectedElement?.type === 'form_submit_config' ? 'ring-2 ring-brand-500/60' : ''
             )}>
             Submit

@@ -46,11 +46,11 @@ export default function AiGapPanel({ policyId, framework, controlCodes = [], onI
     <div className="rounded-ctl border border-border bg-surface-raised">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <div className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
-          <Sparkles size={13} className="text-brand-500" />
+          <Sparkles size={13} className="text-brand-ink" />
           Coverage against {framework}
         </div>
         <button onClick={run} disabled={busy}
-          className="flex h-6 items-center gap-1 rounded-ctl px-2 text-[11px] text-brand-800 hover:bg-brand-500/10 disabled:opacity-50">
+          className="flex h-6 items-center gap-1 rounded-ctl px-2 text-[11px] text-brand-ink hover:bg-brand-500/10 disabled:opacity-50">
           {busy ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
           {result ? 'Re-check' : 'Check'}
         </button>
@@ -58,7 +58,7 @@ export default function AiGapPanel({ policyId, framework, controlCodes = [], onI
 
       {busy && (
         <div className="flex items-center gap-2 px-3 py-6 text-xs text-text-secondary">
-          <Loader2 size={13} className="animate-spin text-brand-500" />
+          <Loader2 size={13} className="animate-spin text-brand-ink" />
           Comparing the policy against the control requirements…
         </div>
       )}
@@ -123,7 +123,7 @@ export default function AiGapPanel({ policyId, framework, controlCodes = [], onI
                         <div className="rounded-ctl bg-surface p-2">
                           <p className="text-text-primary">{g.suggestedText}</p>
                           <button onClick={() => onInsert?.(g.suggestedText, g)}
-                            className="mt-1.5 flex h-6 items-center gap-1 rounded-ctl bg-brand-500 px-2 text-[10px] font-medium text-brand-ink hover:bg-brand-600">
+                            className="mt-1.5 flex h-6 items-center gap-1 rounded-ctl bg-brand-500 px-2 text-[10px] font-medium text-brand-on hover:bg-brand-600">
                             <Plus size={10} /> Insert into policy
                           </button>
                         </div>

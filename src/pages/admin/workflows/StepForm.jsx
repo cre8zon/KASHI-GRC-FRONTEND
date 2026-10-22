@@ -14,6 +14,7 @@ import { Plus, Trash2, X, ChevronDown, Zap, AlertCircle, GripVertical } from 'lu
 import { StepSectionEditor } from '../../../components/workflow/StepSectionEditor'
 import { cn } from '../../../lib/cn'
 import { Button } from '../../../components/ui/Button'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 // ─── Nav Key Picker — loads all nav items from DB, admin picks by key + label ─
 
@@ -83,7 +84,7 @@ function NavKeyPicker({ value, onChange }) {
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-ctl border border-border bg-surface-raised shadow-lg overflow-hidden">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-ctl border border-border glass-overlay shadow-lg overflow-hidden">
           {/* Search */}
           <div className="p-2 border-b border-border bg-surface-raised">
             <input
@@ -91,7 +92,7 @@ function NavKeyPicker({ value, onChange }) {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by key, label or route…"
-              className="h-7 w-full rounded border border-border bg-surface px-2.5 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="h-7 w-full rounded border border-border glass-field px-2.5 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
           {/* Options */}
@@ -266,10 +267,10 @@ function UserSelector({ side, selectedUsers, onChange }) {
       <div className="relative">
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search by name or email (min 2 chars)…"
-          className="w-full h-7 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          className="w-full h-7 rounded-ctl border border-border glass-field px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
 
         {search.length >= 2 && (
-          <div className="absolute top-8 left-0 right-0 z-50 rounded-ctl border border-border bg-surface-raised shadow-lg max-h-40 overflow-y-auto">
+          <div className="absolute top-8 left-0 right-0 z-50 rounded-ctl border border-border glass-overlay shadow-lg max-h-40 overflow-y-auto">
             {isLoading && <p className="px-3 py-2 text-xs text-text-muted">Searching…</p>}
             {!isLoading && users.length === 0 && (
               <p className="px-3 py-2 text-xs text-text-muted">No users found</p>
@@ -359,13 +360,13 @@ function AutomatedActionSelector({ value, onChange }) {
 
       {!useCustom ? (
         // Dropdown of registered keys
-        <select value={value || ''} onChange={e => onChange(e.target.value)}
+        <GlassSelect value={value || ''} onChange={e => onChange(e.target.value)}
           className="h-7 w-full rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
           <option value="">No automated action (step stays IN_PROGRESS)</option>
           {registeredKeys.map(key => (
             <option key={key} value={key}>{key}</option>
           ))}
-        </select>
+        </GlassSelect>
       ) : (
         // Freetext for custom / future action key
         <div className="flex flex-col gap-1">
@@ -373,7 +374,7 @@ function AutomatedActionSelector({ value, onChange }) {
             value={value || ''}
             onChange={e => onChange(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '_'))}
             placeholder="e.g. SEND_COMPLIANCE_REPORT"
-            className="h-7 w-full rounded-ctl border border-status-warn-bd bg-surface-raised px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-status-warn-bd font-mono"
+            className="h-7 w-full rounded-ctl border border-status-warn-bd glass-field px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-status-warn-bd font-mono"
           />
           <div className="flex items-start gap-1.5">
             <AlertCircle size={10} className="text-status-warn-fg mt-0.5 shrink-0" />
@@ -751,7 +752,7 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
         </div>
         <input value={step.name} onChange={e => set('name', e.target.value)}
           placeholder="Step name e.g. Legal Review"
-          className={cn('flex-1 rounded-ctl border bg-surface-raised px-3 py-1.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500',
+          className={cn('flex-1 rounded-ctl border glass-field px-3 py-1.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500',
             errors[`step_${index}`] ? 'border-status-fail-bd' : 'border-border')} />
         <button type="button" onClick={() => setExpanded(e => !e)}
           className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-text-primary transition-colors">
@@ -774,21 +775,21 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
                 Assigned Side
                 <span className="text-text-muted ml-1 font-normal">(who acts)</span>
               </label>
-              <select value={step.side || ''}
+              <GlassSelect value={step.side || ''}
                 onChange={e => set('side', e.target.value)}
                 className="w-full h-7 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
                 <option value="">Any side</option>
                 {STEP_SIDES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-              </select>
+              </GlassSelect>
             </div>
             <div>
               <label className="text-[10px] text-text-muted block mb-1">Approval Type</label>
-              <select value={step.approvalType}
+              <GlassSelect value={step.approvalType}
                 onChange={e => set('approvalType', e.target.value)}
                 disabled={isSystem}
                 className="w-full h-7 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary disabled:opacity-40 focus:outline-none focus:ring-1 focus:ring-brand-500">
                 {APPROVAL_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
+              </GlassSelect>
             </div>
             <div>
               <label className="text-[10px] text-text-muted block mb-1">Min Approvals</label>
@@ -796,14 +797,14 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
                 onChange={e => set('minApprovalsRequired', e.target.value)}
                 disabled={step.approvalType !== 'THRESHOLD' || isSystem}
                 placeholder="1"
-                className="w-full h-7 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary disabled:opacity-40 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-7 rounded-ctl border border-border glass-field px-2 text-xs text-text-primary disabled:opacity-40 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
               <label className="text-[10px] text-text-muted block mb-1">SLA Hours</label>
               <input type="number" min="1" value={step.slaHours}
                 onChange={e => set('slaHours', e.target.value)}
                 placeholder="optional"
-                className="w-full h-7 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full h-7 rounded-ctl border border-border glass-field px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
 
@@ -989,7 +990,7 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
                       <div className="flex gap-2">
                         <div className="flex-1">
                           <label className="text-[10px] text-text-muted mb-1 block">Side</label>
-                          <select
+                          <GlassSelect
                             value={step.assignableSide || ''}
                             onChange={e => set('assignableSide', e.target.value || null)}
                             className="w-full bg-surface-overlay border border-border rounded-ctl px-2 py-1.5 text-xs text-text-primary"
@@ -998,7 +999,7 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
                             <option value="AUDITOR">AUDITOR</option>
                             <option value="AUDITEE">AUDITEE</option>
                             <option value="ORGANIZATION">ORGANIZATION</option>
-                          </select>
+                          </GlassSelect>
                         </div>
                         <div className="flex-1">
                           <label className="text-[10px] text-text-muted mb-1 block">Role ID (optional)</label>
@@ -1007,7 +1008,7 @@ export function StepFormCard({ step, index, total, errors, onChange, onRemove, d
                             value={step.assignableRoleId || ''}
                             onChange={e => set('assignableRoleId', e.target.value ? Number(e.target.value) : null)}
                             placeholder="null = all of that side"
-                            className="w-full bg-surface-overlay border border-border rounded-ctl px-2 py-1.5 text-xs text-text-primary placeholder:text-text-muted"
+                            className="w-full glass-field border border-border rounded-ctl px-2 py-1.5 text-xs text-text-primary placeholder:text-text-muted"
                           />
                         </div>
                       </div>
@@ -1241,7 +1242,7 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
 
               {/* Format hints */}
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="p-3 rounded-card border border-border bg-surface-raised">
+                <div className="p-3 rounded-card border border-border glass-card">
                   <p className="font-semibold text-text-secondary mb-1">DB Export format</p>
                   <p className="text-text-muted font-mono text-[10px] leading-relaxed">
                     id, workflow_id, step_order, name, side,<br/>
@@ -1252,7 +1253,7 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
                     Add actorRoles/assignerRoles/observerRoles columns to include roles.
                   </p>
                 </div>
-                <div className="p-3 rounded-card border border-border bg-surface-raised">
+                <div className="p-3 rounded-card border border-border glass-card">
                   <p className="font-semibold text-text-secondary mb-1">Template format</p>
                   <p className="text-text-muted font-mono text-[10px] leading-relaxed">
                     order, name, side, stepAction,<br/>
@@ -1274,7 +1275,7 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
                   Cancel
                 </button>
                 <button onClick={runImport} disabled={!selectedFile}
-                  className="px-4 py-1.5 rounded-ctl bg-brand-500 text-brand-900 text-xs font-semibold hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                  className="px-4 py-1.5 rounded-ctl bg-brand-500 text-brand-on text-xs font-semibold hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                   Upload & Import
                 </button>
               </div>
@@ -1373,7 +1374,7 @@ function CsvImportModal({ workflowId, tenantId, onClose, onSuccess }) {
                 </button>
                 <button
                   onClick={() => result.fatalError ? onClose() : (onSuccess ? onSuccess() : onClose())}
-                  className="px-4 py-1.5 rounded-ctl bg-brand-500 text-brand-900 text-xs font-semibold hover:bg-brand-600 transition-colors">
+                  className="px-4 py-1.5 rounded-ctl bg-brand-500 text-brand-on text-xs font-semibold hover:bg-brand-600 transition-colors">
                   {result.fatalError ? 'Close' : 'Done'}
                 </button>
               </div>

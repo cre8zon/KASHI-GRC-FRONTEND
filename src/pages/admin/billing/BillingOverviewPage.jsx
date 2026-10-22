@@ -160,7 +160,7 @@ function MetricsTab() {
         </section>
         <section>
           <SectionTitle>CAC — {o.cac.window}</SectionTitle>
-          <div className="rounded-card border border-border p-4 bg-surface-raised space-y-2 text-xs">
+          <div className="rounded-card border border-border p-4 glass-card space-y-2 text-xs">
             <Row k="Fully loaded spend" v={formatMoney(o.cac.spendMinor, cur)} />
             <Row k="Customers won" v={o.cac.customersWon} />
             <Row k="CAC" v={o.cac.cacMinor === null ? '—' : formatMoney(o.cac.cacMinor, cur)} />
@@ -182,14 +182,14 @@ function Split({ data = {}, cur, total }) {
   const entries = Object.entries(data).sort((a, b) => b[1] - a[1])
   if (!entries.length) return <p className="text-xs text-text-muted">No revenue yet.</p>
   return (
-    <div className="rounded-card border border-border p-4 bg-surface-raised space-y-2.5">
+    <div className="rounded-card border border-border p-4 glass-card space-y-2.5">
       {entries.map(([k, v]) => {
         const p = total ? Math.round((v / total) * 100) : 0
         return (
           <div key={k}>
             <div className="flex justify-between text-xs"><span className="text-text-secondary">{humanize(k)}</span>
               <span className="font-mono text-text-primary">{formatMoney(v, cur, { compact: true })} <span className="text-text-muted">· {p}%</span></span></div>
-            <div className="mt-1 h-1.5 rounded-full bg-surface-overlay overflow-hidden"><div className="h-full rounded-full bg-brand-500" style={{ width: `${p}%` }} /></div>
+            <div className="mt-1 h-1.5 rounded-full bg-surface-overlay overflow-hidden"><div className="h-full rounded-full bg-brand-fill" style={{ width: `${p}%` }} /></div>
           </div>
         )
       })}
@@ -200,7 +200,7 @@ function Split({ data = {}, cur, total }) {
 const TOOLTIP = {
   contentStyle: {
     background: 'rgb(var(--color-surface-raised))', border: '1px solid rgb(var(--color-border))',
-    borderRadius: '8px', fontSize: 12, boxShadow: '0 4px 16px rgb(0 0 0 / 0.08)',
+    borderRadius: '8px', fontSize: 12, boxShadow: 'var(--shadow-overlay)',
   },
   labelStyle: { color: 'rgb(var(--color-text-muted))' },
 }
@@ -211,14 +211,14 @@ function MrrTrend({ trend = [], cur }) {
     return <p className="text-xs text-text-muted rounded-card border border-dashed border-border p-3">No snapshots yet — the first one is written on the 1st of next month, or run it from Snapshots.</p>
   }
   return (
-    <div className="rounded-card border border-border p-3 bg-surface-raised h-64">
+    <div className="rounded-card border border-border p-3 glass-card h-64">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-border) / 0.5)" vertical={false} />
           <XAxis dataKey="month" tick={{ fontSize: 10, fill: 'rgb(var(--color-text-muted))' }} tickLine={false} axisLine={false} />
           <YAxis tickFormatter={(v) => formatMoney(v, cur, { compact: true })} tick={{ fontSize: 10, fill: 'rgb(var(--color-text-muted))' }} tickLine={false} axisLine={false} width={64} />
           <Tooltip {...TOOLTIP} formatter={(v, _n, p) => [`${formatMoney(v, cur)} · ${p.payload.customers ?? '—'} paying`, 'MRR']} />
-          <Line type="monotone" dataKey="mrr" stroke="rgb(var(--color-brand-500))" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} connectNulls={false} />
+          <Line type="monotone" dataKey="mrr" stroke="rgb(var(--color-brand-fill))" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} connectNulls={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -234,7 +234,7 @@ function Movements({ mv, cur }) {
     ['Churned', -mv.churnedMinor, mv.churnedCount, 'bad'],
   ]
   return (
-    <div className="rounded-card border border-border p-4 bg-surface-raised space-y-2 text-xs">
+    <div className="rounded-card border border-border p-4 glass-card space-y-2 text-xs">
       {rows.map(([k, v, n, t]) => (
         <div key={k} className="flex justify-between">
           <span className="text-text-secondary">{k}{n !== null ? <span className="text-text-muted"> · {n}</span> : ''}</span>
@@ -286,7 +286,7 @@ function AcquisitionTab() {
         Fully loaded: salaries, commissions, ads, events, tools — and founder time spent selling, at an honest hourly value.
         CAC that counts ad spend alone makes every channel look profitable.
       </Callout>
-      <div className="rounded-card border border-border p-4 bg-surface-raised grid grid-cols-6 gap-3 items-end">
+      <div className="rounded-card border border-border p-4 glass-card grid grid-cols-6 gap-3 items-end">
         <FormRow label="Month"><TextIn type="month" value={f.periodMonth} onChange={e => set('periodMonth', e.target.value)} /></FormRow>
         <FormRow label="Channel"><SelectIn value={f.channel} onChange={e => set('channel', e.target.value)} options={cfg?.acquisitionChannels || []} /></FormRow>
         <FormRow label="Cost type"><SelectIn value={f.costType} onChange={e => set('costType', e.target.value)} options={cfg?.costTypes || []} /></FormRow>

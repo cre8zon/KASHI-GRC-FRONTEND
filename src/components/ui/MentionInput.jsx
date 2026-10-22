@@ -196,12 +196,12 @@ export function MentionInput({
         placeholder={placeholder}
         disabled={disabled}
         autoFocus={autoFocus}
-        className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none disabled:opacity-50"
+        className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none disabled:opacity-50"
       />
 
       {/* @mention indicator when active */}
       {mentionQuery !== null && (
-        <span className="absolute right-2 top-2 text-[10px] text-brand-ink/60 flex items-center gap-0.5 pointer-events-none">
+        <span className="absolute right-2 top-2 text-[10px] text-brand-ink flex items-center gap-0.5 pointer-events-none">
           <AtSign size={10} />
           {mentionQuery || 'mention someone'}
         </span>
@@ -219,7 +219,7 @@ export function MentionInput({
             transform: 'translateY(-100%)',
             zIndex:   9999,
           }}
-          className="bg-surface-raised border border-border rounded-card shadow-elevated overflow-hidden">
+          className="glass-card border border-border rounded-card shadow-elevated overflow-hidden">
           <div className="max-h-52 overflow-y-auto">
             {suggestions.map((user, i) => (
               <button
@@ -243,7 +243,7 @@ export function MentionInput({
             ))}
           </div>
           <div className="px-3 py-1 border-t border-border">
-            <p className="text-[9px] text-text-muted/50">↑↓ navigate · Enter to select · Esc to close</p>
+            <p className="text-[9px] text-text-faint">↑↓ navigate · Enter to select · Esc to close</p>
           </div>
         </div>,
         document.body

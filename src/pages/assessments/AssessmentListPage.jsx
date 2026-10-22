@@ -98,7 +98,7 @@ function AssessmentRow({ assessment, onView, isOrgSide }) {
         <div className="flex items-center gap-2">
           <div className="w-14 h-1.5 rounded-full bg-surface-overlay overflow-hidden">
             <div className={cn('h-full rounded-full transition-all',
-              pct === 100 ? 'bg-status-pass-bg' : 'bg-brand-500')}
+              pct === 100 ? 'bg-status-pass-fg' : 'bg-brand-fill')}
               style={{ width: `${pct}%` }} />
           </div>
           <span className="text-xs font-mono text-text-muted">{pct}%</span>
@@ -178,7 +178,7 @@ export default function AssessmentListPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search vendor or template…"
-              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
           <Button variant={showFilters ? 'secondary' : 'ghost'} size="sm" icon={SlidersHorizontal}

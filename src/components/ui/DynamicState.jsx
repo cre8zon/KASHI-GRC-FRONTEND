@@ -87,7 +87,7 @@ export function DynamicState({
           {ctaLabel && (
             <button
               onClick={handleCta}
-              className="h-8 px-4 rounded-ctl bg-brand-500 text-brand-900 text-sm font-medium hover:bg-brand-600 transition-colors"
+              className="h-8 px-4 rounded-ctl bg-brand-500 text-brand-on text-sm font-medium hover:bg-brand-600 transition-colors"
             >
               {ctaLabel}
             </button>

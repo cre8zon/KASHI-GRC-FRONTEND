@@ -58,11 +58,11 @@ export default function AiMappingPanel({ policyId, templateId, frameworks = [], 
     <div className="rounded-ctl border border-border bg-surface-raised">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <div className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
-          <Sparkles size={13} className="text-brand-500" />
+          <Sparkles size={13} className="text-brand-ink" />
           Suggested control mappings
         </div>
         <button onClick={run} disabled={busy}
-          className="flex h-6 items-center gap-1 rounded-ctl px-2 text-[11px] text-brand-800 hover:bg-brand-500/10 disabled:opacity-50">
+          className="flex h-6 items-center gap-1 rounded-ctl px-2 text-[11px] text-brand-ink hover:bg-brand-500/10 disabled:opacity-50">
           {busy ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
           {result ? 'Re-run' : 'Suggest'}
         </button>
@@ -78,7 +78,7 @@ export default function AiMappingPanel({ policyId, templateId, frameworks = [], 
 
       {busy && (
         <div className="flex items-center gap-2 px-3 py-6 text-xs text-text-secondary">
-          <Loader2 size={13} className="animate-spin text-brand-500" />
+          <Loader2 size={13} className="animate-spin text-brand-ink" />
           Reading the policy and comparing against your controls…
         </div>
       )}
@@ -86,7 +86,7 @@ export default function AiMappingPanel({ policyId, templateId, frameworks = [], 
       {result && (
         <>
           <div className="flex items-center gap-1.5 border-b border-border px-3 py-1.5 text-[10px] text-text-muted">
-            <ShieldCheck size={11} className="text-brand-600" />
+            <ShieldCheck size={11} className="text-brand-ink" />
             {result.candidatesConsidered} controls considered
             {templateId && ' from this audit template'}
           </div>
@@ -122,7 +122,7 @@ export default function AiMappingPanel({ policyId, templateId, frameworks = [], 
 
                   <div className="flex shrink-0 items-center gap-0.5">
                     <button onClick={() => decide(s, 'ACCEPTED')} title="Accept"
-                      className="flex h-6 w-6 items-center justify-center rounded-ctl text-brand-800 hover:bg-brand-500/10">
+                      className="flex h-6 w-6 items-center justify-center rounded-ctl text-brand-ink hover:bg-brand-500/10">
                       <Check size={13} />
                     </button>
                     <button onClick={() => decide(s, 'REJECTED', 'NOT_APPLICABLE')} title="Not applicable"

@@ -23,7 +23,7 @@ function EmptyPicker({ children, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-1.5 rounded-ctl border border-dashed border-border px-2.5 py-2 text-left text-[12.5px] text-text-secondary transition-colors hover:border-brand-500 hover:text-brand-900"
+      className="flex w-full items-center gap-1.5 rounded-ctl border border-dashed border-border px-2.5 py-2 text-left text-[12.5px] text-text-secondary transition-colors hover:border-brand-500 hover:text-brand-ink"
     >
       <Plus size={12} className="shrink-0" />
       {children}
@@ -47,7 +47,7 @@ function PickerWithAdd({ children, onAdd, label }) {
         onClick={onAdd}
         aria-label={label}
         title={label}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-ctl border border-border text-text-secondary transition-colors hover:border-brand-500 hover:text-brand-900"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-ctl border border-border text-text-secondary transition-colors hover:border-brand-500 hover:text-brand-ink"
       >
         <Plus size={13} />
       </button>
@@ -115,7 +115,7 @@ export function SettingsPanel({ post, patch, taxonomy, media, onPickHero, onPick
             rows={3}
             value={post.definitionSummary || ''}
             onChange={(e) => patch({ definitionSummary: e.target.value })}
-            className="w-full rounded-ctl border border-border bg-surface p-2.5 text-[13px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-800/40"
+            className="w-full rounded-ctl border border-border glass-field p-2.5 text-[13px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-ink/40"
           />
         </Field>
       )}
@@ -168,7 +168,7 @@ export function SettingsPanel({ post, patch, taxonomy, media, onPickHero, onPick
                 // on a printed screenshot.
                 'flex items-center gap-1 rounded-badge border px-2.5 py-1 text-[11.5px] transition-colors',
                 selectedTags.includes(t.id)
-                  ? 'border-brand-800 bg-brand-500 font-medium text-brand-900'
+                  ? 'border-brand-ink bg-brand-500 font-medium text-brand-on'
                   : 'border-transparent bg-surface-inset text-text-secondary hover:bg-surface-overlay'
               )}
             >
@@ -183,7 +183,7 @@ export function SettingsPanel({ post, patch, taxonomy, media, onPickHero, onPick
                 kind: 'tag',
                 apply: (t) => patch({ tagIds: [...(post.tagIds || []), t.id] }),
               })}
-              className="flex items-center gap-1 rounded-badge border border-dashed border-border px-2.5 py-1 text-[11.5px] text-text-secondary transition-colors hover:border-brand-500 hover:text-brand-900"
+              className="flex items-center gap-1 rounded-badge border border-dashed border-border px-2.5 py-1 text-[11.5px] text-text-secondary transition-colors hover:border-brand-500 hover:text-brand-ink"
             >
               <Plus size={11} /> New
             </button>
@@ -218,7 +218,7 @@ export function SettingsPanel({ post, patch, taxonomy, media, onPickHero, onPick
           content this is the cheapest trust signal available, and the buyer is
           a professional skeptic. */}
       <Field
-        label={<><ShieldCheck size={12} className="inline text-brand-900" /> Reviewed by</>}
+        label={<><ShieldCheck size={12} className="inline text-brand-ink" /> Reviewed by</>}
         hint="Shown above the fold. Use it on anything making a regulatory claim."
       >
         {loadedAuthors && authors.length === 0 ? (
@@ -331,7 +331,7 @@ export function SettingsPanel({ post, patch, taxonomy, media, onPickHero, onPick
           order — the things you do not need mid-draft. */}
       <Link
         to="/admin/content/taxonomy"
-        className="text-[11px] text-text-faint underline-offset-2 hover:text-brand-900 hover:underline"
+        className="text-[11px] text-text-faint underline-offset-2 hover:text-brand-ink hover:underline"
       >
         Manage all categories, tags and authors
       </Link>
@@ -355,7 +355,7 @@ function ImageSlot({ asset, onPick, onRemove, fallbackLabel = 'None chosen' }) {
       <button
         type="button"
         onClick={onPick}
-        className="flex h-20 w-full items-center justify-center gap-2 rounded-card border border-dashed border-border text-xs text-text-faint transition-colors hover:border-brand-500 hover:text-brand-900"
+        className="flex h-20 w-full items-center justify-center gap-2 rounded-card border border-dashed border-border text-xs text-text-faint transition-colors hover:border-brand-500 hover:text-brand-ink"
       >
         <ImageIcon size={15} /> {fallbackLabel}
       </button>
@@ -368,7 +368,7 @@ function ImageSlot({ asset, onPick, onRemove, fallbackLabel = 'None chosen' }) {
       <img src={asset.url} alt={asset.altText} className="h-20 w-full object-cover" />
       <div className="absolute inset-0 flex items-center justify-center gap-2 bg-surface-overlay opacity-0 transition-opacity group-hover:opacity-95">
         <button type="button" onClick={onPick}
-                className="rounded-ctl bg-surface px-2 py-1 text-[11px] text-text-primary hover:text-brand-900">
+                className="rounded-ctl bg-surface px-2 py-1 text-[11px] text-text-primary hover:text-brand-ink">
           Replace
         </button>
         {onRemove && (

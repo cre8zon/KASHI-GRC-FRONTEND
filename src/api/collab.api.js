@@ -17,6 +17,8 @@ export const collabApi = {
   addMember:     (id, body)      => api.post(`/v1/collab/workspaces/${id}/members`, body),
   changeRole:    (id, mid, role) => api.patch(`/v1/collab/workspaces/${id}/members/${mid}`, { role }),
   removeMember:  (id, mid)       => api.delete(`/v1/collab/workspaces/${id}/members/${mid}`),
+  // Hand the workspace to another member. The current owner becomes a MEMBER.
+  transferOwnership: (id, mid)   => api.post(`/v1/collab/workspaces/${id}/members/${mid}/transfer-ownership`),
 
   createProgramme: (id, body)          => api.post(`/v1/collab/workspaces/${id}/programmes`, body),
   updateProgramme: (id, pid, body)     => api.patch(`/v1/collab/workspaces/${id}/programmes/${pid}`, body),

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import api from '../../config/axios.config'
 import { Card, CardHeader, CardBody } from '../../components/ui/Card'
 import { cn } from '../../lib/cn'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 /**
  * The trust page editor.
@@ -108,7 +109,7 @@ export default function TrustCenterPage() {
             ) : (
               <button onClick={() => publish.mutate()} disabled={publish.isPending}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-ctl
-                           bg-brand-500 text-white disabled:opacity-60">
+                           bg-brand-500 text-brand-on disabled:opacity-60">
                 <Eye size={12} /> {publish.isPending ? 'Publishing…' : 'Publish'}
               </button>
             )}
@@ -181,7 +182,7 @@ export default function TrustCenterPage() {
           <div className="pt-1">
             <button onClick={() => save.mutate(center || {})} disabled={save.isPending || !center?.slug}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-ctl
-                         bg-brand-500 text-white disabled:opacity-50">
+                         bg-brand-500 text-brand-on disabled:opacity-50">
               <Save size={12} /> {save.isPending ? 'Saving…' : exists ? 'Save changes' : 'Create page'}
             </button>
           </div>
@@ -262,18 +263,18 @@ function SectionEditor({ sections, onSave, onDelete }) {
             <div className="grid grid-cols-2 gap-2">
               <input value={title} onChange={e => setTitle(e.target.value)}
                 placeholder="Section title" className={INPUT} />
-              <select value={type} onChange={e => setType(e.target.value)} className={INPUT}>
+              <GlassSelect value={type} onChange={e => setType(e.target.value)} className={INPUT}>
                 <option value="CERTIFICATIONS">Certifications</option>
                 <option value="CONTROLS">Controls</option>
                 <option value="SUBPROCESSORS">Subprocessors</option>
                 <option value="FAQ">FAQ</option>
                 <option value="CUSTOM">Custom</option>
-              </select>
+              </GlassSelect>
             </div>
             <textarea rows={3} value={body} onChange={e => setBody(e.target.value)}
               placeholder="Body text (Markdown)" className={INPUT} />
             <div className="flex gap-2">
-              <button onClick={submit} className="px-3 py-1 text-xs rounded-ctl bg-brand-500 text-white">Add</button>
+              <button onClick={submit} className="px-3 py-1 text-xs rounded-ctl bg-brand-500 text-brand-on">Add</button>
               <button onClick={() => setAdding(false)} className="px-3 py-1 text-xs rounded-ctl border border-border text-text-muted">Cancel</button>
             </div>
           </div>
@@ -305,7 +306,7 @@ function DocumentEditor({ documents, onSave, onDelete }) {
             {/* The gate, changeable in place. It is the field people revisit —
                 a report that was NDA-only during a deal often becomes email-
                 gated afterwards. */}
-            <select
+            <GlassSelect
               value={d.accessLevel}
               onChange={e => onSave({ id: d.id, accessLevel: e.target.value })}
               className="text-[11px] rounded-ctl border border-border bg-surface-raised px-1.5 py-1">
@@ -313,7 +314,7 @@ function DocumentEditor({ documents, onSave, onDelete }) {
               <option value="EMAIL_GATED">Email required</option>
               <option value="NDA_REQUIRED">NDA required</option>
               <option value="ON_REQUEST">On request only</option>
-            </select>
+            </GlassSelect>
             <button onClick={() => onDelete(d.id)}
               className="text-text-muted hover:text-status-fail-fg"><Trash2 size={13} /></button>
           </div>

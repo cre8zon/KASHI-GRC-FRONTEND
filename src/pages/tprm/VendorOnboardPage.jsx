@@ -12,6 +12,7 @@ import { Input, Textarea } from '../../components/ui/Input'
 import { Card, CardHeader, CardBody } from '../../components/ui/Card'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../../components/ui/GlassSelect'
 
 // ─── Risk factor options ──────────────────────────────────────────────────────
 const RISK_CLASSIFICATIONS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
@@ -78,7 +79,7 @@ function SelectField({ label, value, onChange, options, error, required }) {
       <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">
         {label}{required && <span className="text-status-fail-fg ml-1">*</span>}
       </label>
-      <select value={value} onChange={e => onChange(e.target.value)}
+      <GlassSelect value={value} onChange={e => onChange(e.target.value)}
         className={cn(
           'h-8 w-full rounded-ctl border bg-surface-raised px-3 text-sm text-text-primary',
           'focus:outline-none focus:ring-1 focus:ring-brand-500 appearance-none',
@@ -88,7 +89,7 @@ function SelectField({ label, value, onChange, options, error, required }) {
         {options.map(o => (
           <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>
         ))}
-      </select>
+      </GlassSelect>
       {error && <p className="text-xs text-status-fail-fg">{error}</p>}
     </div>
   )

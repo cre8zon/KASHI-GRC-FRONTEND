@@ -18,6 +18,7 @@ import { EmptyState } from '../../../components/ui/EmptyState'
 import { cn } from '../../../lib/cn'
 import { formatDate } from '../../../utils/format'
 import toast from 'react-hot-toast'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STATUS_COLOR = { DRAFT: 'amber', PUBLISHED: 'green' }
@@ -272,7 +273,7 @@ export default function AssessmentTemplatesPage() {
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search templates…"
-              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-52 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
           <Button variant="secondary" size="sm" icon={Upload} onClick={() => setShowImport(true)}>Import CSV</Button>
@@ -735,7 +736,7 @@ function SectionBlock({ section, index, templateId, isPublished, expanded, onTog
   const totalWeight   = section.questions?.reduce((s, q) => s + (q.weight || 0), 0) || 0
 
   return (
-    <div className="rounded-card border border-border bg-surface-raised overflow-hidden">
+    <div className="rounded-card border border-border glass-card overflow-hidden">
       <div className="flex items-center">
         <button onClick={onToggle}
           className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-surface-overlay transition-colors text-left">
@@ -1001,7 +1002,7 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
               <textarea rows={2} value={libText}
                 onChange={e => setLibText(e.target.value)}
                 className={cn(
-                  'w-full rounded-ctl border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-brand-500',
+                  'w-full rounded-ctl border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-brand-500',
                   libErrors.libText ? 'border-status-fail-bd' : 'border-border'
                 )} />
               {libErrors.libText && <p className="text-xs text-status-fail-fg mt-1">{libErrors.libText}</p>}
@@ -1010,14 +1011,14 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-medium text-text-secondary uppercase tracking-wide block mb-1">Response Type</label>
-                <select value={libType} onChange={e => setLibType(e.target.value)}
+                <GlassSelect value={libType} onChange={e => setLibType(e.target.value)}
                   className={cn(
                     'h-9 w-full appearance-none pl-3 pr-8 rounded-ctl border text-sm text-text-primary bg-surface-raised focus:outline-none focus:ring-1 focus:ring-brand-500',
                     libErrors.libType ? 'border-status-fail-bd' : 'border-border'
                   )}>
                   <option value="">Select type…</option>
                   {Object.entries(TYPE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
+                </GlassSelect>
                 {libErrors.libType && <p className="text-xs text-status-fail-fg mt-1">{libErrors.libType}</p>}
               </div>
               <div>
@@ -1027,7 +1028,7 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
                   value={libTag}
                   onChange={e => setLibTag(e.target.value.toUpperCase())}
                   placeholder="e.g. MFA, IRP…"
-                  className="h-9 w-full rounded-ctl border border-border bg-surface-raised px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="h-9 w-full rounded-ctl border border-border glass-field px-3 text-sm font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
                 <datalist id="q-tag-suggestions-builder">
                   {['MFA','ENCRYPTION','PEN_TEST','DATA_RETENTION','DPA','IRP','BCP','DRP',
@@ -1089,14 +1090,14 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
                       value={newOptVal}
                       onChange={e => setNewOptVal(e.target.value)}
                       placeholder="Option text…"
-                      className="flex-1 h-7 rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      className="flex-1 h-7 rounded-ctl border border-border glass-field px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                     <input
                       type="number"
                       value={newOptScore}
                       onChange={e => setNewOptScore(e.target.value)}
                       placeholder="Score"
-                      className="w-20 h-7 rounded-ctl border border-border bg-surface-raised px-2 text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      className="w-20 h-7 rounded-ctl border border-border glass-field px-2 text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                     <Button size="xs" loading={creatingOpt} disabled={!newOptVal.trim()} onClick={handleCreateOption}>
                       Add
@@ -1148,7 +1149,7 @@ function QuestionRow({ question, index, sectionId, templateId, isPublished }) {
                             <span className="font-mono text-brand-ink">{opt.score}pt</span>
                           )}
                           <button onClick={() => toggleOpt(opt.optionId)}
-                            className="ml-0.5 text-brand-ink/60 hover:text-status-fail-fg transition-colors">
+                            className="ml-0.5 text-brand-ink hover:text-status-fail-fg transition-colors">
                             ×
                           </button>
                         </span>
@@ -1227,7 +1228,7 @@ function SectionPickerModal({ open, templateId, existingSectionIds, nextOrder, o
         <div className="relative">
           <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search sections…"
-            className="h-8 pl-8 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="h-8 pl-8 pr-3 w-full rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div className="max-h-72 overflow-y-auto rounded-card border border-border divide-y divide-border">
           {isLoading && <div className="flex items-center justify-center py-10"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>}
@@ -1297,13 +1298,13 @@ function QuestionPickerModal({ open, sectionId, templateId, existingQuestionIds,
             <div className="relative flex-1">
               <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search questions…"
-                className="h-7 pl-8 pr-3 w-full rounded-ctl border border-border bg-surface-raised text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="h-7 pl-8 pr-3 w-full rounded-ctl border border-border glass-field text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
-            <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
+            <GlassSelect value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
               className="h-7 appearance-none pl-2 pr-6 rounded-ctl border border-border bg-surface-raised text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">All types</option>
               {Object.entries(TYPE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
+            </GlassSelect>
           </div>
           <div className="flex-1 overflow-y-auto rounded-card border border-border divide-y divide-border">
             {isLoading && <div className="flex items-center justify-center py-12"><Loader2 size={18} className="text-brand-ink animate-spin" /></div>}
@@ -1348,7 +1349,7 @@ function QuestionPickerModal({ open, sectionId, templateId, existingQuestionIds,
                 <div>
                   <label className="text-[11px] font-medium text-text-secondary uppercase tracking-wide block mb-1">Weight</label>
                   <input type="number" value={weight} onChange={e => setWeight(e.target.value)} placeholder="e.g. 10"
-                    className="h-7 w-full rounded-ctl border border-border bg-surface-raised px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="h-7 w-full rounded-ctl border border-border glass-field px-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <button type="button" onClick={() => setMandatory(m => !m)}

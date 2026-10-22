@@ -119,7 +119,7 @@ function ActionInspector({ initial, screenKey, onSave }) {
         <IField label="Extra payload (JSON)">
           <textarea value={form.payloadTemplateJson} onChange={e => set('payloadTemplateJson', e.target.value)}
             rows={2} placeholder='{"transition":"TRIAGE"}'
-            className="w-full px-2 py-1.5 text-[10px] font-mono bg-surface-overlay border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+            className="w-full px-2 py-1.5 text-[10px] font-mono glass-field border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
           <p className="text-[9px] text-text-muted mt-0.5">Merged with form data on submit. Do not set __formKey here — use the field above.</p>
         </IField>
       </InspectorSection>

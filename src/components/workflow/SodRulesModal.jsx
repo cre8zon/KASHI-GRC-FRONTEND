@@ -198,7 +198,7 @@ export function SodRulesModal({ open, onClose, value, onChange }) {
                     value={newRoleId}
                     onChange={e => setNewRoleId(e.target.value)}
                     placeholder="e.g. 29"
-                    className="mt-1 w-full px-3 py-1.5 text-xs rounded-ctl bg-surface-overlay border border-border text-text-primary focus:outline-none focus:border-brand-500"
+                    className="mt-1 w-full px-3 py-1.5 text-xs rounded-ctl glass-field border border-border text-text-primary focus:outline-none focus:border-brand-500"
                   />
                 </div>
               )}
@@ -210,14 +210,14 @@ export function SodRulesModal({ open, onClose, value, onChange }) {
                   value={newReason}
                   onChange={e => setNewReason(e.target.value)}
                   placeholder="e.g. Cannot validate own remediation"
-                  className="mt-1 w-full px-3 py-1.5 text-xs rounded-ctl bg-surface-overlay border border-border text-text-primary focus:outline-none focus:border-brand-500"
+                  className="mt-1 w-full px-3 py-1.5 text-xs rounded-ctl glass-field border border-border text-text-primary focus:outline-none focus:border-brand-500"
                 />
               </div>
 
               <div className="flex gap-2">
                 <button
                   onClick={addRule}
-                  className="flex-1 px-3 py-1.5 text-xs font-medium rounded-ctl bg-status-warn-bg text-on-dark hover:bg-status-warn-bg transition-colors"
+                  className="flex-1 px-3 py-1.5 text-xs font-medium rounded-ctl bg-status-warn-fg text-text-inverse hover:bg-status-warn-fg transition-colors"
                 >
                   Add rule
                 </button>
@@ -246,7 +246,7 @@ export function SodRulesModal({ open, onClose, value, onChange }) {
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-1.5 text-xs font-medium rounded-ctl bg-brand-500 text-brand-900 hover:bg-brand-600 transition-colors"
+              className="px-4 py-1.5 text-xs font-medium rounded-ctl bg-brand-500 text-brand-on hover:bg-brand-600 transition-colors"
             >
               Save rules
             </button>

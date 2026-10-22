@@ -42,6 +42,7 @@ import toast from 'react-hot-toast'
 import { selectAuth } from '../../store/slices/authSlice'
 import { useEntityActionItems } from '../../hooks/useActionItems'
 import { actionItemsApi } from '../../api/actionItems.api'
+import { GlassSelect } from '../ui/GlassSelect'
 
 // entityType → the instance endpoint segment.
 const KIND = {
@@ -168,7 +169,7 @@ function DelegateForm({ kind, entityId, sides, onDone }) {
 
       <label className="flex flex-col gap-1">
         <span className="text-[9px] uppercase tracking-wide text-text-muted">Delegate to</span>
-        <select value={assignedTo} onChange={e => setAssign(e.target.value)} disabled={candLoading}
+        <GlassSelect value={assignedTo} onChange={e => setAssign(e.target.value)} disabled={candLoading}
           className="text-xs bg-surface border border-border rounded-ctl px-2 py-1.5 text-text-primary
                      focus:outline-none focus:ring-1 focus:ring-brand-500">
           <option value="">{candLoading ? 'Loading people…' : 'Choose a colleague'}</option>
@@ -177,7 +178,7 @@ function DelegateForm({ kind, entityId, sides, onDone }) {
               {userLabel(u)}{u.roleName ? ` — ${String(u.roleName).replace(/_/g, ' ')}` : ''}
             </option>
           ))}
-        </select>
+        </GlassSelect>
         {!candLoading && candidates.length === 0 && (
           <span className="text-[9px] text-text-muted">
             Nobody else here holds the permission for {sideLabel(side).toLowerCase()} work.
@@ -191,7 +192,7 @@ function DelegateForm({ kind, entityId, sides, onDone }) {
           placeholder={side === 'EVIDENCE'
             ? 'e.g. Upload the Q3 access review export and the sign-off email'
             : 'e.g. Re-perform the sample of 25 joiners and record the result'}
-          className="text-xs bg-surface border border-border rounded-ctl px-2 py-1.5 text-text-primary
+          className="text-xs glass-field border border-border rounded-ctl px-2 py-1.5 text-text-primary
                      placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
       </label>
 
@@ -199,16 +200,16 @@ function DelegateForm({ kind, entityId, sides, onDone }) {
         <label className="flex flex-col gap-1">
           <span className="text-[9px] uppercase tracking-wide text-text-muted">Due (optional)</span>
           <input type="date" value={dueAt} onChange={e => setDueAt(e.target.value)}
-            className="text-xs bg-surface border border-border rounded-ctl px-2 py-1.5 text-text-primary
+            className="text-xs glass-field border border-border rounded-ctl px-2 py-1.5 text-text-primary
                        focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-[9px] uppercase tracking-wide text-text-muted">Priority</span>
-          <select value={priority} onChange={e => setPriority(e.target.value)}
+          <GlassSelect value={priority} onChange={e => setPriority(e.target.value)}
             className="text-xs bg-surface border border-border rounded-ctl px-2 py-1.5 text-text-primary
                        focus:outline-none focus:ring-1 focus:ring-brand-500">
             {PRIORITIES.map(p => <option key={p} value={p}>{p.charAt(0) + p.slice(1).toLowerCase()}</option>)}
-          </select>
+          </GlassSelect>
         </label>
       </div>
 
@@ -217,7 +218,7 @@ function DelegateForm({ kind, entityId, sides, onDone }) {
           They can work on this {kind.label} until they finish it or you revoke it.
         </span>
         <button onClick={() => mutate()} disabled={!assignedTo || isPending}
-          className="shrink-0 flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-ctl bg-brand-500 text-white
+          className="shrink-0 flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-ctl bg-brand-500 text-brand-on
                      hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed font-medium">
           <Send size={11} /> {isPending ? 'Delegating…' : 'Delegate'}
         </button>
@@ -257,14 +258,14 @@ function ReassignInline({ item, onDone }) {
 
   return (
     <div className="flex items-center gap-2 pt-1">
-      <select value={assignedTo} onChange={e => setAssign(e.target.value)} disabled={candLoading}
+      <GlassSelect value={assignedTo} onChange={e => setAssign(e.target.value)} disabled={candLoading}
         className="flex-1 min-w-0 text-[11px] bg-surface border border-border rounded-ctl px-2 py-1 text-text-primary
                    focus:outline-none focus:ring-1 focus:ring-brand-500">
         <option value="">{candLoading ? 'Loading people…' : 'Reassign to…'}</option>
         {candidates.map(u => <option key={u.id} value={u.id}>{userLabel(u)}</option>)}
-      </select>
+      </GlassSelect>
       <button onClick={() => mutate()} disabled={!assignedTo || isPending}
-        className="shrink-0 text-[10px] px-2.5 py-1 rounded-ctl bg-brand-500 text-white hover:bg-brand-600
+        className="shrink-0 text-[10px] px-2.5 py-1 rounded-ctl bg-brand-500 text-brand-on hover:bg-brand-600
                    disabled:opacity-40 disabled:cursor-not-allowed font-medium">
         {isPending ? 'Reassigning…' : 'Reassign'}
       </button>

@@ -1,18 +1,24 @@
 /**
- * KashiGRC pastel brand presets — v3.
- * Wire into ThemeSwitcher / Settings. Each preset = pastel family:
- * the seed hex generates the full --color-brand-* scale via the SAME
- * lerp logic already in useTheme.js, and data-brand switches the
- * matching pastel wash (defined in tokens.css).
+ * KashiGRC brand presets — v4.
  *
- * Tonal-button note: seeds are TRUE pastels. Primary buttons render
- * pastel bg (brand-500) with deep same-hue text (brand-900); links,
- * focus rings, and indicators use brand-800/900. Nothing renders
- * white-on-pastel.
+ * The first preset, Kashi Purple (#936EC8), is the product's own brand colour
+ * and the DEFAULT for every user who has not chosen a theme of their own. The
+ * twelve pastels follow it unchanged.
+ *
+ * A preset is only a seed hex. themeEngine.js turns it into the complete light
+ * AND dark token sets (brand scale, on-brand ink, brand ink, fill, wash, and
+ * the hue-tinted dark neutrals), with contrast solved there — so a saturated
+ * seed like the Kashi purple gets white button text while the pastels keep
+ * their deep same-hue ink. Components never pick the text colour themselves:
+ * solid brand surfaces use `text-brand-on`.
  */
+import { applyThemeColor, isValidHex } from '../lib/themeEngine'
+
+export const DEFAULT_PRESET_KEY = 'kashi'
 
 export const BRAND_PRESETS = [
-  { key: 'sage', name: 'Sage', hex: '#AFD8C0' },   // default
+  { key: 'kashi', name: 'Kashi Purple', hex: '#936EC8' },   // default — brand colour
+  { key: 'sage', name: 'Sage', hex: '#AFD8C0' },
   { key: 'mint', name: 'Mint', hex: '#A9E2D2' },
   { key: 'seafoam', name: 'Seafoam', hex: '#A5DDE0' },
   { key: 'sky', name: 'Sky', hex: '#B9D4F0' },
@@ -26,100 +32,95 @@ export const BRAND_PRESETS = [
   { key: 'pistachio', name: 'Pistachio', hex: '#CFE3A9' },
 ]
 
-const BRAND_KEY = 'kashi_brand_preset'
+export const DEFAULT_BRAND_HEX = BRAND_PRESETS[0].hex
 
-/** Mirrors the scale generator in useTheme.js (RGB triplets). */
-function scaleFromHex(hex) {
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  if (!m) return null
-  const base  = { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) }
-  const white = { r: 255, g: 255, b: 255 }
-  const dark  = { r: 10,  g: 15,  b: 30  }
-  const lerp  = (a, b, t) => Math.round(a + (b - a) * t)
-  const mix   = (c1, c2, t) => `${lerp(c1.r, c2.r, t)} ${lerp(c1.g, c2.g, t)} ${lerp(c1.b, c2.b, t)}`
-  return {
-    50:  mix(base, white, 0.92), 100: mix(base, white, 0.80),
-    200: mix(base, white, 0.65), 300: mix(base, white, 0.45),
-    400: mix(base, white, 0.22), 500: `${base.r} ${base.g} ${base.b}`,
-    600: mix(base, dark, 0.18),  700: mix(base, dark, 0.36),
-    800: mix(base, dark, 0.54),  900: mix(base, dark, 0.70),
-  }
+/**
+ * Colours that mean "nobody chose this". The backend has always fallen back to
+ * #1e40af when a tenant has no branding row, and the old client cached that
+ * fallback into the user's personal colour slot — so it is not a choice and
+ * must not block the Kashi default.
+ */
+const LEGACY_DEFAULT_HEXES = ['#1e40af']
+
+export function isLegacyDefaultHex(hex) {
+  return !!hex && LEGACY_DEFAULT_HEXES.includes(String(hex).trim().toLowerCase())
 }
 
+/** A hex that represents a real, deliberate colour choice. */
+export function isChosenHex(hex) {
+  return isValidHex(hex) && !isLegacyDefaultHex(hex)
+}
+
+const BRAND_KEY = 'kashi_brand_preset'
+
 /** Apply a preset now + persist. Also keeps kashi_sidebar_color in sync
- *  so the existing boot-time injector paints the right color pre-React. */
+ *  so the personal colour and the named preset never disagree. */
 export function applyBrandPreset(key, { persist = true } = {}) {
   const preset = BRAND_PRESETS.find(p => p.key === key) || BRAND_PRESETS[0]
-  const scale = scaleFromHex(preset.hex)
-  if (!scale) return
-  const root = document.documentElement
-  Object.entries(scale).forEach(([shade, v]) =>
-    root.style.setProperty(`--color-brand-${shade}`, v))
-  root.setAttribute('data-brand', preset.key)
-
-  // Derive the LIGHT mesh wash from the brand scale so the background follows
-  // the chosen preset. mesh-1 leans full brand; the others are lighter tints
-  // of the same hue plus one neutral cool note, kept subtle. Dark theme has
-  // its own fixed dim mesh (see [data-theme="dark"] body in index.html), so we
-  // only set these — the dark body rule ignores them.
-  root.style.setProperty('--mesh-1', `rgb(${scale[400]})`)
-  root.style.setProperty('--mesh-2', `rgb(${scale[200]})`)
-  root.style.setProperty('--mesh-3', `rgb(${scale[300]})`)
-  root.style.setProperty('--mesh-4', `rgb(${scale[100]})`)
+  if (!applyThemeColor(preset.hex)) return
+  document.documentElement.setAttribute('data-brand', preset.key)
   // Persist ONLY on an explicit user choice. Defaulting must stay silent, or
   // tenant white-label branding can never apply (it checks for a chosen preset).
   if (persist) {
     try {
       localStorage.setItem(BRAND_KEY, preset.key)
-      localStorage.setItem('kashi_sidebar_color', preset.hex) // boot-injector compat
+      localStorage.setItem('kashi_sidebar_color', preset.hex)
     } catch {}
   }
 }
 
 /**
- * Paint the brand scale + mesh from a raw hex, without a named preset.
- * Used at boot when the user's colour lives in kashi_sidebar_color (the hex,
- * e.g. synced from the DB) rather than as a named preset key.
+ * Paint the theme from a raw hex, without a named preset.
+ * Used when the user's colour lives in kashi_sidebar_color (the hex, e.g.
+ * synced from the DB or picked with the colour picker).
  */
 export function applyBrandScaleFromHex(hex) {
-  const scale = scaleFromHex(hex)
-  if (!scale) return
-  const root = document.documentElement
-  Object.entries(scale).forEach(([shade, v]) =>
-    root.style.setProperty(`--color-brand-${shade}`, v))
-  root.style.setProperty('--mesh-1', `rgb(${scale[400]})`)
-  root.style.setProperty('--mesh-2', `rgb(${scale[200]})`)
-  root.style.setProperty('--mesh-3', `rgb(${scale[300]})`)
-  root.style.setProperty('--mesh-4', `rgb(${scale[100]})`)
+  if (!applyThemeColor(hex)) return
+  const match = BRAND_PRESETS.find(p => p.hex.toLowerCase() === String(hex).toLowerCase())
+  if (match) document.documentElement.setAttribute('data-brand', match.key)
+  else document.documentElement.removeAttribute('data-brand')
 }
 
-/** Call once on module load (alongside applyAppTheme in useTheme.js). */
+/** Paint the product default (Kashi Purple) without recording a choice. */
+export function applyDefaultBrand() {
+  applyBrandPreset(DEFAULT_PRESET_KEY, { persist: false })
+}
+
+/** Call once on module load, before first render (main.jsx). */
 export function applySavedBrandPreset() {
   let key = null
   let hex = null
   try { key = localStorage.getItem(BRAND_KEY) } catch {}
   try { hex = localStorage.getItem('kashi_sidebar_color') } catch {}
 
-  // Priority: a named preset the user picked > the saved hex colour (set via
-  // the colour picker or synced from the DB on a prior load) > sage default.
-  // Previously this only read the preset KEY, so a user whose colour lived in
-  // kashi_sidebar_color (the hex) always booted to sage until the DB fetch
-  // corrected it — a visible flash, and a hard reset if the fetch was blocked.
-  if (key) {
+  // Priority: a named preset the user picked > a deliberate saved hex (colour
+  // picker / synced from the DB) > the Kashi Purple default.
+  if (key && BRAND_PRESETS.some(p => p.key === key)) {
     applyBrandPreset(key, { persist: true })
-  } else if (hex && /^#?[0-9a-fA-F]{6}$/.test(hex)) {
+  } else if (isChosenHex(hex)) {
     applyBrandScaleFromHex(hex)
   } else {
-    applyBrandPreset('sage', { persist: false })
+    if (isLegacyDefaultHex(hex)) {
+      try { localStorage.removeItem('kashi_sidebar_color') } catch {}
+    }
+    applyDefaultBrand()
   }
 }
 
-/** True only when the user explicitly picked a preset (BrandPicker click). */
+/** True only when the user explicitly picked a preset or colour. */
 export function hasUserChosenPreset() {
-  try { return !!localStorage.getItem(BRAND_KEY) } catch { return false }
+  try {
+    return !!localStorage.getItem(BRAND_KEY) || isChosenHex(localStorage.getItem('kashi_sidebar_color'))
+  } catch { return false }
 }
 
-/** Current saved preset key (defaults to sage). */
+/** Current saved preset key (defaults to Kashi Purple). */
 export function getSavedBrandPreset() {
-  try { return localStorage.getItem(BRAND_KEY) || 'sage' } catch { return 'sage' }
+  try {
+    const key = localStorage.getItem(BRAND_KEY)
+    if (key && BRAND_PRESETS.some(p => p.key === key)) return key
+    const hex = localStorage.getItem('kashi_sidebar_color')
+    const match = hex && BRAND_PRESETS.find(p => p.hex.toLowerCase() === hex.toLowerCase())
+    return match ? match.key : (isChosenHex(hex) ? null : DEFAULT_PRESET_KEY)
+  } catch { return DEFAULT_PRESET_KEY }
 }

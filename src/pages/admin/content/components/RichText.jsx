@@ -202,7 +202,7 @@ export function RichText({
 
   const btn = (active) => cn(
     'flex h-7 w-7 items-center justify-center rounded-ctl transition-colors',
-    active ? 'bg-brand-500 text-brand-900' : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
+    active ? 'bg-brand-500 text-brand-on' : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
   )
 
   const toggleLink = () => {

@@ -11,6 +11,7 @@ import { cn } from '../../../lib/cn'
 import { emailTemplatesApi } from '../../../api/emailTemplates.api'
 import toast from 'react-hot-toast'
 import { useMutation } from '@tanstack/react-query'
+import { GlassSelect } from '../../../components/ui/GlassSelect'
 
 // ── Variable chip ──────────────────────────────────────────────────────────
 function VariableChip({ variable, onClick }) {
@@ -121,7 +122,7 @@ function TemplateEditor({ template, onClose, onSaved }) {
                 <label className="text-xs font-semibold text-text-muted uppercase tracking-wide">Template Key</label>
                 <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. user-invitation"
-                  className="h-8 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  className="h-8 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 <p className="text-[10px] text-text-muted">Used in code: <code className="font-mono">mailService.send("user-invitation", email)</code></p>
               </div>
             )}
@@ -129,28 +130,28 @@ function TemplateEditor({ template, onClose, onSaved }) {
               <label className="text-xs font-semibold text-text-muted uppercase tracking-wide">Description</label>
               <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="When is this email sent?"
-                className="h-8 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="h-8 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-text-muted uppercase tracking-wide">Subject Line</label>
               <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
                 placeholder="Welcome to KashiGRC — {{firstName}}"
-                className="h-8 rounded-ctl border border-border bg-surface-raised px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="h-8 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-text-muted uppercase tracking-wide">Email Body</label>
-              <select value={form.mimeType} onChange={e => setForm(f => ({ ...f, mimeType: e.target.value }))}
+              <GlassSelect value={form.mimeType} onChange={e => setForm(f => ({ ...f, mimeType: e.target.value }))}
                 className="h-6 rounded border border-border bg-surface-raised px-2 text-xs text-text-secondary focus:outline-none">
                 <option value="text/html">HTML</option>
                 <option value="text/plain">Plain text</option>
-              </select>
+              </GlassSelect>
             </div>
             <textarea
               value={form.content}
               onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
               rows={10}
               placeholder={`Hello {{firstName}},\n\nWelcome to KashiGRC...`}
-              className="w-full rounded-ctl border border-border bg-surface-raised px-3 py-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+              className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             />
           </div>
 
@@ -178,13 +179,13 @@ function TemplateEditor({ template, onClose, onSaved }) {
                           setPreviewVars(pv => ({ ...pv, [v]: e.target.value }))
                         }}
                         placeholder={`Sample ${v}`}
-                        className="flex-1 h-6 rounded border border-border bg-surface-raised px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+                        className="flex-1 h-6 rounded border border-border glass-field px-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
                   ))}
                 </div>
               )}
-              <div className="flex-1 bg-surface-raised rounded-card border border-border/50 overflow-hidden min-h-[120px]">
+              <div className="flex-1 glass-card rounded-card border border-border/50 overflow-hidden min-h-[120px]">
                 <LivePreview
                   subject={Object.entries(previewVars).reduce((acc, [k, v]) => acc.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), v || `{{${k}}}`), form.subject)}
                   content={Object.entries(previewVars).reduce((acc, [k, v]) => acc.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), v || `<span style="background:var(--status-warn-bg);padding:0 2px">{{${k}}}</span>`), form.content)}
@@ -202,7 +203,7 @@ function TemplateEditor({ template, onClose, onSaved }) {
             <span className="text-text-muted text-xs">Subject: </span>
             <span className="text-text-primary">{previewData.renderedSubject}</span>
           </div>
-          <div className="flex-1 bg-surface-raised rounded-card border border-border/50 overflow-hidden">
+          <div className="flex-1 glass-card rounded-card border border-border/50 overflow-hidden">
             <LivePreview content={previewData.renderedBody} mimeType={previewData.mimeType} />
           </div>
         </div>
@@ -243,7 +244,7 @@ export default function EmailTemplateManagerPage() {
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search templates…"
-              className="h-8 pl-8 pr-3 w-48 rounded-ctl border border-border bg-surface-raised text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="h-8 pl-8 pr-3 w-48 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
           <Button size="sm" icon={Plus} onClick={() => setShowCreate(true)}>New Template</Button>

@@ -39,7 +39,7 @@ function IconPicker({ value, onChange }) {
         value={value || ''}
         onChange={e => onChange(e.target.value)}
         placeholder="Or type any Lucide icon name…"
-        className="w-full h-7 px-2 text-[11px] font-mono bg-surface-raised border border-border rounded text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-500/50"
+        className="w-full h-7 px-2 text-[11px] font-mono glass-field border border-border rounded text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-500/50"
       />
       {value && !COMMON_TAB_ICONS.includes(value) && (
         <p className="text-[9px] text-status-warn-fg">

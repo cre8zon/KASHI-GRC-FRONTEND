@@ -34,7 +34,7 @@ export default function VerifyAuditFirmPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface p-4">
-      <div className="w-full max-w-lg rounded-card border border-border bg-surface-raised shadow-elevated p-6 space-y-5">
+      <div className="w-full max-w-lg rounded-card border border-border glass-card shadow-elevated p-6 space-y-5">
         <p className="text-xs font-semibold tracking-wide text-text-muted uppercase">KashiGRC · Audit-firm verification</p>
 
         {state.phase === 'loading' && <p className="text-sm text-text-muted flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Checking link…</p>}
@@ -80,7 +80,7 @@ export default function VerifyAuditFirmPage() {
             <div className="flex items-center justify-between gap-3">
               <p className="text-[11px] text-text-muted">If anything is wrong, don't confirm — reply to the email instead.</p>
               <button onClick={confirm} disabled={state.busy}
-                className="h-9 px-4 rounded-ctl bg-brand-500 text-brand-900 text-sm font-medium hover:bg-brand-600 disabled:opacity-60 flex items-center gap-2">
+                className="h-9 px-4 rounded-ctl bg-brand-500 text-brand-on text-sm font-medium hover:bg-brand-600 disabled:opacity-60 flex items-center gap-2">
                 {state.busy && <Loader2 size={14} className="animate-spin" />} Confirm details
               </button>
             </div>

@@ -187,7 +187,7 @@ export default function VendorAssessmentAcknowledgePage() {
               onChange={e => setRemarks(e.target.value)}
               rows={2}
               placeholder="Optional remarks…"
-              className="w-full rounded-ctl border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+              className="w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
             />
             <Button
               variant="primary"

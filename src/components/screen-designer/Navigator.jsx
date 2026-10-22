@@ -33,7 +33,7 @@ function Navigator({ screens, selectedKey, search, setSearch, typeFilter, setTyp
           <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search keys…"
-            className="w-full pl-6 pr-2 h-6 text-[10px] bg-surface-overlay border border-border rounded text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full pl-6 pr-2 h-6 text-[10px] glass-field border border-border rounded text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
       </div>
 
