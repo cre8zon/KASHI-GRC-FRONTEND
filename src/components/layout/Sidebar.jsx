@@ -195,7 +195,7 @@ function writeNavOpen(navKey, value) {
   navOpenListeners.forEach((fn) => fn())
 }
 
-function useNavOpen(navKey, forceOpen) {
+function useNavOpen(navKey, forceOpen, defaultOpen = true) {
   // Returns the raw stored value — boolean or undefined — so the snapshot is a
   // primitive and useSyncExternalStore never sees a new object identity.
   const stored = useSyncExternalStore(
@@ -203,7 +203,12 @@ function useNavOpen(navKey, forceOpen) {
     () => navOpenState[navKey],
     () => undefined,
   )
-  const open = stored === undefined ? true : stored
+  // defaultOpen only decides the UNTOUCHED case. Row groups pass nothing and
+  // keep opening, as they always have; modules pass whether they are the one
+  // being worked in. Either way an explicit toggle outranks it — the stored
+  // boolean is checked first, so a module you closed stays closed even when
+  // you are standing inside it.
+  const open = stored === undefined ? defaultOpen : stored
 
   const setOpen = (next) =>
     writeNavOpen(navKey, typeof next === 'function' ? next(open) : next)
@@ -211,6 +216,43 @@ function useNavOpen(navKey, forceOpen) {
   // Search forces every matching group open without touching what was saved,
   // so clearing the box restores exactly the shape the user left behind.
   return [forceOpen || open, setOpen]
+}
+
+/**
+ * Module headers share the nav-open store, under their own key space.
+ *
+ * A module is a LABEL, not a nav row, so it has no navKey of its own and
+ * nothing stops a module being called the same thing as one. The prefix keeps
+ * the two from ever writing over each other in one localStorage object, and
+ * makes a stored key readable when you are staring at it in devtools.
+ *
+ * Open by default, for the same reason groups are: an absent key means "never
+ * touched". Only a module the user has actually collapsed is written down, so
+ * changing which modules ship open stays possible later.
+ */
+const MODULE_KEY_PREFIX = 'module:'
+const moduleKey = (module) => MODULE_KEY_PREFIX + module
+
+/**
+ * The module containing the row that is currently lit up, or null.
+ *
+ * Walks children too, because the active row is often nested — a Policies row
+ * two levels down still belongs to the 'compliance' module at the top. Matches
+ * on navKey first (the resolver's own answer) and falls back to route, which
+ * covers the scope-less URLs where resolveNav returns an openKey but no single
+ * winning row.
+ */
+function moduleOfActive(grouped, openKey, route) {
+  const hits = (item) =>
+    (openKey && item.navKey === openKey)
+    || (route && item.route === route)
+    || (item.children || []).some(hits)
+
+  for (const [module, items] of Object.entries(grouped)) {
+    if (module === '_root') continue
+    if (items.some(hits)) return module
+  }
+  return null
 }
 
 /**
@@ -462,6 +504,85 @@ function NavErrorState({ collapsed, t, effectiveTheme, onRetry }) {
 }
 
 // ── Main Sidebar ──────────────────────────────────────────────────────────────
+/**
+ * One module and its rows, with the header as the collapse control.
+ *
+ * ── WHY THE MODULE AND NOT THE ROWS ────────────────────────────
+ * NavItem already collapses a row's own children. That does nothing for a
+ * tenant with every module switched on, where the long tail is not depth but
+ * the number of top-level rows: Risk, Exception and TPRM alone put a dozen
+ * links on screen before anything is expanded. Collapsing at the module is the
+ * only cut that shortens that list.
+ *
+ * ── WHY _root AND THE COLLAPSED RAIL ARE UNCHANGED ─────────────
+ * _root is the ungrouped set at the top and has no header to click. The
+ * collapsed rail is 56px of icons with no room for one, and hiding rows behind
+ * an invisible toggle there would lose them entirely. Both render exactly what
+ * they rendered before.
+ *
+ * Search passes forceOpen, so a query reveals matches inside collapsed modules
+ * without writing anything; clearing the box restores what the user left.
+ */
+function ModuleSection({ module, items, collapsed, t, searching, activeModule }) {
+  // CLOSED BY DEFAULT, EXCEPT WHERE YOU ARE.
+  //
+  // Opening everything on first load defeats the point: the nav is long
+  // because every module is switched on, and a tenant would have to collapse
+  // seven of them by hand before seeing any benefit. Closed by default makes
+  // the short list the starting state.
+  //
+  // The exception is the module holding the row you are on. Without it you
+  // land on a page and the sidebar shows no trace of where that page lives.
+  //
+  // This is a DEFAULT, not a force — unlike search below. Force-opening the
+  // active module would make its header refuse to close while you worked in
+  // it, which is the one place you are most likely to want the space.
+  const [open, setOpen] = useNavOpen(
+    moduleKey(module), searching, module === activeModule)
+
+  const rows = (
+    <div className="space-y-0.5">
+      {items.map(item => (
+        <NavItem key={item.navKey} item={item} collapsed={collapsed} t={t} forceOpen={searching} />
+      ))}
+    </div>
+  )
+
+  if (collapsed || module === '_root') return <div>{rows}</div>
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        title={open ? `Collapse ${module}` : `Expand ${module}`}
+        className={cn(
+          'w-full flex items-center gap-1.5 px-3 pb-1 rounded-card',
+          'text-[10px] font-semibold uppercase tracking-widest text-left',
+          'opacity-80 hover:opacity-100 transition-opacity',
+          'focus:outline-none focus-visible:ring-1 focus-visible:ring-current',
+          t.section
+        )}
+      >
+        <ChevronRight
+          size={10}
+          className={cn('shrink-0 transition-transform duration-200', open && 'rotate-90')}
+        />
+        <span className="flex-1 truncate">{module}</span>
+        {/* The count only while closed — it says what was put away, and
+            disappears when the rows themselves answer the question. */}
+        {!open && (
+          <span className="shrink-0 tabular-nums font-medium normal-case tracking-normal opacity-70">
+            {items.length}
+          </span>
+        )}
+      </button>
+      {open && rows}
+    </div>
+  )
+}
+
 export function Sidebar({ collapsed, onToggle }) {
   const qc = useQueryClient()
   const { data: navItems = [], isLoading, isError } = useNavigation()
@@ -612,6 +733,20 @@ export function Sidebar({ collapsed, onToggle }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nav, activeNavRoute])
 
+  /**
+   * The module holding the active row — ModuleSection opens it by default.
+   *
+   * Deliberately NOT written to the store. Persisting it would mean every
+   * module you ever visited ends up recorded as open, and the nav creeps back
+   * to the length this change set out to cut. Derived each render instead, so
+   * only the module you are in right now opens itself, and only until you go
+   * somewhere else.
+   */
+  const activeModule = useMemo(
+    () => moduleOfActive(grouped, nav?.openKey, activeNavRoute),
+    [grouped, nav, activeNavRoute],
+  )
+
   return (
     <aside
       className={cn(
@@ -747,18 +882,15 @@ export function Sidebar({ collapsed, onToggle }) {
         {!isLoading && !isError && (
           <ActiveNavRouteContext.Provider value={activeNavRoute}>
             {Object.entries(visible).map(([module, items]) => (
-              <div key={module}>
-                {!collapsed && module !== '_root' && (
-                  <p className={cn('px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest', t.section)}>
-                    {module}
-                  </p>
-                )}
-                <div className="space-y-0.5">
-                  {items.map(item => (
-                    <NavItem key={item.navKey} item={item} collapsed={collapsed} t={t} forceOpen={searching} />
-                  ))}
-                </div>
-              </div>
+              <ModuleSection
+                key={module}
+                module={module}
+                items={items}
+                collapsed={collapsed}
+                t={t}
+                searching={searching}
+                activeModule={activeModule}
+              />
             ))}
           </ActiveNavRouteContext.Provider>
         )}
