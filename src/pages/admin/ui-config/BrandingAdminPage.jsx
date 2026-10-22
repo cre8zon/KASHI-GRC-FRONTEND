@@ -172,7 +172,7 @@ export default function BrandingAdminPage() {
             <CardBody className="flex flex-col gap-4">
               <Input label="Company Name" value={form.companyName}
                 onChange={e => set('companyName', e.target.value)}
-                placeholder="Kashi GRC" />
+                placeholder="KashiGuard" />
               <div className="grid grid-cols-2 gap-3">
                 <Input label="Logo URL" value={form.logoUrl}
                   onChange={e => set('logoUrl', e.target.value)}
@@ -267,7 +267,7 @@ export default function BrandingAdminPage() {
               </div>
               <Input label="Footer Text" value={form.footerText}
                 onChange={e => set('footerText', e.target.value)}
-                placeholder="© 2025 Kashi GRC. All rights reserved." />
+                placeholder="© 2025 KashiGuard. All rights reserved." />
             </CardBody>
           </Card>
         </div>
