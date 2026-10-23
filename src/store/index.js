@@ -2,7 +2,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer     from './slices/authSlice'
 import uiConfigReducer from './slices/uiConfigSlice'
-import tabsReducer, { loadTabs, saveTabs } from './slices/tabsSlice'   // ← NEW
+import tabsReducer, { loadTabs, saveTabs, claimTabs } from './slices/tabsSlice'   // ← NEW
 
 const AUTH_KEY = 'kashi_auth'
 
@@ -54,6 +54,9 @@ export const store = configureStore({
     getDefaultMiddleware({ serializableCheck: { ignoredActions: ['auth/loginSuccess'] } }),
 })
 
+// Already signed in at load (a refresh): record whose tabs these are.
+if (store.getState().auth.isAuthenticated) store.dispatch(claimTabs(store.getState().auth.userId))
+
 let lastAuth = store.getState().auth
 let lastTabs = store.getState().tabs
 store.subscribe(() => {
@@ -62,6 +65,8 @@ store.subscribe(() => {
     lastAuth = currentAuth
     if (currentAuth.isAuthenticated) {
       saveAuth(currentAuth)
+      // Tabs belong to whoever opened them (see tabsSlice.claimTabs).
+      if (String(store.getState().tabs.owner) !== String(currentAuth.userId)) store.dispatch(claimTabs(currentAuth.userId))
     } else {
       clearAuth()
     }

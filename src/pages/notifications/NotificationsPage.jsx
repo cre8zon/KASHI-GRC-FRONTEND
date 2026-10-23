@@ -13,7 +13,7 @@ import { PageLayout }                        from '../../components/layout/PageL
 import { Button }                            from '../../components/ui/Button'
 import { cn }                               from '../../lib/cn'
 import { formatDateTime }                    from '../../utils/format'
-import { useNotifications, useMarkRead }     from '../../hooks/useNotifications'
+import { useNotifications, useMarkRead, useUnreadCount, useMarkAllRead } from '../../hooks/useNotifications'
 import { notificationsApi }                 from '../../api/notifications.api'
 import toast                                from 'react-hot-toast'
 
@@ -220,9 +220,12 @@ export default function NotificationsPage() {
   const [filter, setFilter]        = useState('ALL')
   const { data: notifData, isLoading } = useNotifications({})
   const { mutate: markRead }       = useMarkRead()
+  const { mutate: readAll }        = useMarkAllRead()
 
   const notifications = notifData?.items || []
-  const unreadCount   = notifications.filter(n => !n.readAt).length
+  // Every unread notification, not just those on the loaded page — the same
+  // number the bell and the sidebar show.
+  const unreadCount   = useUnreadCount()
 
   const filtered = notifications.filter(n => {
     if (filter === 'UNREAD')       return !n.readAt
@@ -231,10 +234,11 @@ export default function NotificationsPage() {
     return true
   })
 
-  const markAllRead = () => {
-    notifications.filter(n => !n.readAt).forEach(n => markRead(n.notificationId))
-    toast.success('All marked as read')
-  }
+  // All of them on the server — this used to mark only the loaded page.
+  const markAllRead = () => readAll(undefined, {
+    onSuccess: () => toast.success('All marked as read'),
+    onError: () => toast.error('Could not mark them as read'),
+  })
 
   return (
     <PageLayout

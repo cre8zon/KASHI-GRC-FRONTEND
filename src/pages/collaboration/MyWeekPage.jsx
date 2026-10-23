@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { RefreshCw, CheckCircle2 } from 'lucide-react'
@@ -10,6 +11,34 @@ import { STATUS_LABEL, fmtDate, health } from '../../components/collab/PlanBoard
 import { MeetingRow } from '../../components/collab/Meetings'
 import { fmtDue } from '../../components/collab/WorkspaceRequestsTab'
 import { cn } from '../../lib/cn'
+import { useFitToViewport } from '../../hooks/useFitToViewport'
+
+/** True from Tailwind's xl breakpoint up — where the four lists sit in a 2×2 grid. */
+function useWide() {
+  const q = '(min-width: 1280px)'
+  const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches)
+  useEffect(() => {
+    const mq = window.matchMedia(q)
+    const on = () => setWide(mq.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+  return wide
+}
+
+/**
+ * One of the four lists: the header stays, the rows scroll inside the card.
+ * On wide screens the grid is fitted to the window and each card takes half
+ * its height; on narrow ones the cards stack and each list is capped.
+ */
+function ListCard({ title, subtitle, children }) {
+  return (
+    <Card className="flex flex-col min-h-0 overflow-hidden">
+      <CardHeader title={title} subtitle={subtitle} className="shrink-0" />
+      <CardBody className="p-0 flex-1 min-h-0 overflow-y-auto max-h-80 xl:max-h-none">{children}</CardBody>
+    </Card>
+  )
+}
 
 /**
  * Collaboration › My week — across every workspace I can see in this
@@ -39,40 +68,34 @@ export default function MyWeekPage() {
   const toReview = Array.isArray(extras.toReview) ? extras.toReview : []
   const openRequest = (r) => navigate(`/collaboration/workspaces/${r.workspaceId}?tab=requests&request=${r.id}`)
 
+  const gridRef = useRef(null)
+  const wide = useWide()
+  const gridH = useFitToViewport(gridRef, { min: 460, disabled: !wide, deps: [isLoading, xLoading] })
+
   return (
     <PageLayout title="My week" subtitle="Your plan items, meetings and requests for the next 14 days, and anything overdue"
       actions={<Button variant="ghost" size="sm" icon={RefreshCw} onClick={() => { refetch(); xRefetch() }} />}>
-      <div className="px-6 pb-6 grid gap-4 xl:grid-cols-2 overflow-y-auto">
+      <div ref={gridRef} className="px-6 pb-6 grid gap-4 xl:grid-cols-2 xl:grid-rows-2"
+        style={gridH ? { height: gridH } : undefined}>
         {isLoading ? <><Skeleton className="h-48" /><Skeleton className="h-48" /></> : (
           <>
-            <Card>
-              <CardHeader title="My items" subtitle={`${mine.length} open`} />
-              <CardBody className="p-0">
+            <ListCard title="My items" subtitle={`${mine.length} open`}>
                 {mine.length === 0
                   ? <p className="px-4 py-6 text-xs text-text-muted text-center flex items-center justify-center gap-1.5"><CheckCircle2 size={13} /> Nothing due in the next two weeks.</p>
                   : mine.map(i => <Row key={`m${i.id}`} item={i} today={today} onOpen={() => open(i)} />)}
-              </CardBody>
-            </Card>
-            <Card>
-              <CardHeader title="Milestones" subtitle="Next 14 days and overdue" />
-              <CardBody className="p-0">
+            </ListCard>
+            <ListCard title="Milestones" subtitle="Next 14 days and overdue">
                 {milestones.length === 0
                   ? <p className="px-4 py-6 text-xs text-text-muted text-center">No milestones coming up.</p>
                   : milestones.map(i => <Row key={`ms${i.id}`} item={i} today={today} onOpen={() => open(i)} showOwner />)}
-              </CardBody>
-            </Card>
-            <Card>
-              <CardHeader title="Meetings" subtitle="Next 14 days" />
-              <CardBody className="p-0">
+            </ListCard>
+            <ListCard title="Meetings" subtitle="Next 14 days">
                 {xLoading ? <p className="px-4 py-6 text-xs text-text-muted text-center">Loading…</p>
                   : meetings.length === 0
                     ? <p className="px-4 py-6 text-xs text-text-muted text-center">No meetings coming up.</p>
                     : meetings.map(m => <MeetingRow key={`mt${m.id}`} m={m} showWorkspace onOpen={() => navigate(`/collaboration/meetings/${m.id}`)} />)}
-              </CardBody>
-            </Card>
-            <Card>
-              <CardHeader title="Requests" subtitle={`${assigned.length} for you · ${toReview.length} answered, waiting for your review`} />
-              <CardBody className="p-0">
+            </ListCard>
+            <ListCard title="Requests" subtitle={`${assigned.length} for you · ${toReview.length} answered, waiting for your review`}>
                 {xLoading ? <p className="px-4 py-6 text-xs text-text-muted text-center">Loading…</p>
                   : assigned.length + toReview.length === 0
                     ? <p className="px-4 py-6 text-xs text-text-muted text-center flex items-center justify-center gap-1.5"><CheckCircle2 size={13} /> No requests waiting on you.</p>
@@ -80,8 +103,7 @@ export default function MyWeekPage() {
                         {assigned.map(r => <RequestRow key={`ra${r.id}`} r={r} label="For you" onOpen={() => openRequest(r)} />)}
                         {toReview.map(r => <RequestRow key={`rr${r.id}`} r={r} label="To review" onOpen={() => openRequest(r)} />)}
                       </>}
-              </CardBody>
-            </Card>
+            </ListCard>
           </>
         )}
       </div>

@@ -144,6 +144,13 @@ api.interceptors.response.use(
     // interceptor. Anything that wants to react to the status (offer a tenant
     // switch on a 403, retry on a 502) needs it here.
     const status = error.response?.status ?? null
+    // No answer at all, or nginx saying the app behind it is gone: ask
+    // useServerStatus to check now. Its health check otherwise runs only at
+    // start-up and on browser offline/online, so a server that died mid-session
+    // went unnoticed and every page just showed "No data".
+    if (!error.response || status === 502 || status === 503 || status === 504) {
+      try { window.dispatchEvent(new Event('kashi:api-unreachable')) } catch { /* not in a browser */ }
+    }
     // apiError already carries `details` when the server attached any (see
     // BusinessException), so spreading it forwards them untouched.
     const rejected = apiError

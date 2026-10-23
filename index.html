@@ -433,7 +433,43 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Boot skeleton: the app's shape (sidebar, top bar, tabs, page blocks),
+         drawn before any JavaScript runs, so a refresh never shows a blank
+         screen while the bundle loads. React replaces it on its first render.
+         Signed-in app pages only — the login and guest join pages draw their
+         own. Colours come from the theme variables painted above. -->
+    <style>
+      #boot{position:fixed;inset:0;display:flex;gap:8px;padding:8px;box-sizing:border-box}
+      #boot .b{background:rgb(var(--color-surface-raised)/.62);border:1px solid rgb(var(--color-border)/.7);border-radius:var(--radius-card)}
+      #boot .s{width:240px;flex:none}
+      #boot.brand .s{background:rgb(var(--color-brand-500));border-color:transparent}
+      #boot .m{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}
+      #boot .t{height:48px;flex:none}
+      #boot .tabs{height:30px;width:42%;flex:none;opacity:.7}
+      #boot .p{flex:1;padding:22px;display:flex;flex-direction:column;gap:14px}
+      #boot .l{height:14px;border-radius:6px;background:rgb(var(--color-surface-overlay));animation:bootp 1.4s ease-in-out infinite}
+      #boot .row{display:flex;gap:12px}
+      #boot .k{flex:1;height:84px;border-radius:var(--radius-card);background:rgb(var(--color-surface-overlay));animation:bootp 1.4s ease-in-out infinite}
+      @keyframes bootp{50%{opacity:.55}}
+      @media (prefers-reduced-motion:reduce){#boot .l,#boot .k{animation:none}}
+      @media (max-width:768px){#boot .s{display:none}}
+    </style>
+    <div id="root"><script>
+      (function () {
+        try {
+          var p = location.pathname;
+          var signedIn = !!(sessionStorage.getItem('kashi_auth') || localStorage.getItem('kashi_auth'));
+          if (!signedIn || p.indexOf('/auth/') === 0 || p.indexOf('/join/') === 0 || p === '/verify-audit-firm') return;
+          var brand = localStorage.getItem('kashi_sidebar_theme') === 'brand';
+          document.write('<div id="boot" aria-hidden="true"' + (brand ? ' class="brand"' : '') + '>'
+            + '<div class="b s"></div><div class="m"><div class="b t"></div><div class="b tabs"></div>'
+            + '<div class="b p"><div class="l" style="width:28%;height:20px"></div>'
+            + '<div class="row"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>'
+            + '<div class="l" style="width:92%"></div><div class="l" style="width:84%"></div><div class="l" style="width:70%"></div>'
+            + '<div class="k" style="flex:none;height:200px"></div></div></div></div>');
+        } catch (e) {}
+      })();
+    </script></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

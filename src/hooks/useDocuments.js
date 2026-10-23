@@ -119,9 +119,16 @@ export function useDocumentUpload() {
       title,
       notes,
       silent    = false,
+      // Skip the image → WebP route and send the file as it is (chat: large
+      // photos at full quality, GIFs with their animation).
+      asDocument = false,
+      // Per-call progress (0–100), for callers uploading several files at
+      // once — the hook's own `progress` is one value shared by all of them.
+      onProgress,
       onSuccess,
       onError,
     } = opts
+    const report = (p) => { setProgress(p); onProgress?.(p) }
 
     if (!file) throw new Error('No file provided')
 
@@ -133,10 +140,10 @@ export function useDocumentUpload() {
       let documentId
 
       // ── IMAGE: server converts to WebP in one call ─────────────────────
-      if (isImageFile(file.type)) {
+      if (isImageFile(file.type) && !asDocument) {
         const result = await documentsApi.uploadImage(file, {
           entityType, entityId, linkType, title,
-          onProgress: setProgress,
+          onProgress: report,
         })
         documentId = result.documentId
         if (!silent) toast.success(`Uploaded as WebP (${result.contentLength != null
@@ -146,7 +153,7 @@ export function useDocumentUpload() {
       // ── NON-IMAGE: 3-step presigned flow ──────────────────────────────
       } else {
         // Step 1 — get presigned PUT URL (fast — no data transferred)
-        setProgress(5)
+        report(5)
         const { presignedUrl, documentId: id, requiredHeaders } =
           await documentsApi.requestUpload({
             fileName:      file.name,
@@ -159,19 +166,15 @@ export function useDocumentUpload() {
             title,
           })
         documentId = id
-        // TEMP DEBUG
-        console.log('presignedUrl:', presignedUrl)
-        console.log('requiredHeaders:', requiredHeaders)
-        console.log('documentId:', documentId)
         // Step 2 — PUT directly to S3 (this is where bandwidth goes)
-        setProgress(10)
+        report(10)
         await documentsApi.uploadToS3(
           presignedUrl, file, requiredHeaders,
-          (pct) => setProgress(10 + Math.round(pct * 0.80)) // maps to 10–90%
+          (pct) => report(10 + Math.round(pct * 0.80)) // maps to 10–90%
         )
 
         // Step 3 — confirm with server (fast — just a HeadObject check)
-        setProgress(92)
+        report(92)
         await documentsApi.confirmUpload(documentId, {
           entityType, entityId, linkType, notes,
         })
@@ -179,7 +182,7 @@ export function useDocumentUpload() {
         if (!silent) toast.success(`${file.name} uploaded`)
       }
 
-      setProgress(100)
+      report(100)
 
       // Invalidate entity document lists so they refresh automatically
       if (entityType && entityId) {

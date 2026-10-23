@@ -7,7 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   selectTabs, selectActiveTabId,
-  navigateActiveTab, openTab,
+  navigateActiveTab, openTab, refreshTabMeta,
 } from '../../store/slices/tabsSlice'
 import { useNavigation } from '../../hooks/useUIConfig'
 import { resolveNav } from '../../lib/navRoute'
@@ -70,10 +70,36 @@ export function RouteSync() {
     }
   }, [activeTabId]) // eslint-disable-line
 
+  // First render of the shell: the address and the active tab must agree.
+  // Signing in (and a refresh after it) lands on the default /dashboard while
+  // the remembered tabs still have, say, Chat active — the tab said "Chat"
+  // and the page was the dashboard, for good, because the address now was
+  // /dashboard. A landing on the default page is not a choice, so go back to
+  // the active tab's page instead. Any other address IS a choice (a link, a
+  // bookmark, the page a session ended on): the mount effect below opens or
+  // activates a tab for it, as before.
+  const firstSync = useRef(true)
+
   // When browser URL changes → update active tab's route + title + icon from nav tree
   useEffect(() => {
+    if (firstSync.current) {
+      firstSync.current = false
+      const active = tabs.find(t => t.id === activeTabId)
+      const landedOnDefault = location.pathname === '/dashboard' || location.pathname === '/'
+      if (landedOnDefault && active && (active.route || '').split('?')[0] !== '/dashboard') {
+        isSyncing.current = true
+        navigate(active.route, { replace: true })
+        setTimeout(() => { isSyncing.current = false }, 150)
+        return
+      }
+    }
     if (isSyncing.current) return
     const route = location.pathname + location.search
+    // Already on this address and the menu has not loaded (server down, or
+    // still starting): keep the tab's title. Without the menu the fallback
+    // name is the last piece of the address — "Chat" became "5".
+    const current = tabs.find(t => t.id === activeTabId)
+    if (current && current.route === route && navItems.length === 0) return
     const { title, icon } = getNavInfo(location.pathname, location.search)
     dispatch(navigateActiveTab({ route, title, icon }))
   }, [location.pathname, location.search]) // eslint-disable-line
@@ -86,7 +112,10 @@ export function RouteSync() {
     tabs.forEach(tab => {
       const [tabPath, tabQuery = ''] = tab.route.split('?')
       const { title, icon } = getNavInfo(tabPath, tabQuery ? `?${tabQuery}` : '')
-      dispatch(navigateActiveTab({ route: tab.route, title, icon }))
+      // Per tab, by id. This used navigateActiveTab, which writes the ACTIVE
+      // tab — so every tab's route was copied onto it in turn, and the active
+      // tab ended up showing the last tab's page once nav data loaded.
+      dispatch(refreshTabMeta({ id: tab.id, title, icon }))
     })
   }, [navItems]) // eslint-disable-line
 

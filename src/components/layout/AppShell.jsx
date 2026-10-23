@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useNotificationToast } from '../../hooks/useNotifications'
+import { useLocation } from 'react-router-dom'
+import { useNotificationToast, useReadOnVisit } from '../../hooks/useNotifications'
 import { useNotificationSocket } from '../../hooks/useNotificationSocket'
 import { NotificationPermissionPrompt } from '../ui/NotificationPermissionPrompt'
 import { Sidebar }            from './Sidebar'
@@ -20,6 +21,8 @@ export function AppShell() {
   // the person on whatever screen they are on.
   useNotificationSocket()  // Push: refetch the instant the server saves one
   useNotificationToast()   // Toast + chime + desktop banner on anything new
+  const location = useLocation()
+  useReadOnVisit(location.pathname, location.search)   // seen the page → its notifications are read
   useChatPresenceFeed()   // Chat socket on every page: who is online, live unread badge
   const { status, retryNow, nextRetryIn, retryCount } = useServerStatus()
 
@@ -51,7 +54,7 @@ export function AppShell() {
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
           <TopNav onMenuToggle={() => setCollapsed(o => !o)} />
           <TabBar />
-          {isLoading ? <PageSkeleton /> : <TabContentRenderer />}
+          {isLoading ? <PageSkeleton /> : <TabContentRenderer serverStatus={status} onRetry={retryNow} nextRetryIn={nextRetryIn} />}
         </div>
       </div>
     </div>

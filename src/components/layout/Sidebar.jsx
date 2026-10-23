@@ -20,6 +20,7 @@ import { Skeleton } from '../ui/EmptyState'
 import { initials } from '../../utils/format'
 import api from '../../config/axios.config'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useUnreadCount } from '../../hooks/useNotifications'
 
 function NavIcon({ name, size = 16, ...props }) {
   const Icon = Icons[name] || Icons.Circle
@@ -27,10 +28,15 @@ function NavIcon({ name, size = 16, ...props }) {
 }
 
 function useBadgeCount(endpoint) {
+  // A notifications badge shows THE unread count (the bell's and the page's),
+  // whatever endpoint the nav row was configured with — it showed a third,
+  // differently counted number, refreshed on its own minute-long clock.
+  const isNotifications = !!endpoint && endpoint.startsWith('/v1/notifications')
+  const unread = useUnreadCount()
   const { data } = useQuery({
     queryKey: ['nav-badge', endpoint],
     queryFn:  () => api.get(endpoint),
-    enabled:  !!endpoint,
+    enabled:  !!endpoint && !isNotifications,
     refetchInterval: 60_000,
     // Two unwraps, not one. queryFn returns the axios RESPONSE, so d.data is
     // the ApiResponse envelope and d.data.data is the value. Checking only
@@ -49,7 +55,7 @@ function useBadgeCount(endpoint) {
       return 0
     },
   })
-  return data ?? 0
+  return isNotifications ? unread : (data ?? 0)
 }
 
 // ── Fixed color tokens per sidebar theme ─────────────────────────────────────

@@ -59,7 +59,9 @@ export function useNotificationSocket() {
         // The same topic carries workflow events and action-item events. Only
         // ours should cost a notifications refetch — the others have their own
         // hooks already invalidating their own queries.
-        if (event?.type !== 'NOTIFICATION_CREATED') return
+        // NOTIFICATIONS_READ: read in another tab, by reading a chat, or by
+        // visiting the page — every open tab's bell, page and badge follow.
+        if (event?.type !== 'NOTIFICATION_CREATED' && event?.type !== 'NOTIFICATIONS_READ') return
         qc.invalidateQueries({ queryKey: QUERY_KEYS.NOTIFICATIONS })
       } catch {
         // A malformed frame is not worth taking the subscription down for.

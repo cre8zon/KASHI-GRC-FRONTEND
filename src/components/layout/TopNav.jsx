@@ -5,7 +5,7 @@ import { useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { selectAuth } from '../../store/slices/authSlice'
 import { useLogout, useSwitchTenant } from '../../hooks/useAuth'
-import { useNotifications } from '../../hooks/useNotifications'
+import { useUnreadCount } from '../../hooks/useNotifications'
 import { useNavigation } from '../../hooks/useUIConfig'
 import { initials } from '../../utils/format'
 import { ThemeSwitcher } from '../ui/ThemeSwitcher'
@@ -147,10 +147,8 @@ export function TopNav({ onMenuToggle }) {
   const navigate                = useNavigate()
   const [showUser, setShowUser] = useState(false)
   const userMenuRef = useClickOutside(() => setShowUser(false), showUser)
-  const { data: notifData }     = useNotifications({ read: false })
+  const unread                  = useUnreadCount()   // all unread — the same number as the page and sidebar
   const { data: navItems = [] } = useNavigation()
-  const notifications           = notifData?.items || []
-  const unread                  = notifications.filter(n => !n.readAt).length
   const crumbs                  = useBreadcrumb(navItems)
 
   const primaryRole  = roles?.[0]
