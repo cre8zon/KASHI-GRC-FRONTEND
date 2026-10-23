@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { FileText, Download, Eye, Video, ExternalLink, Loader2, Image as ImageIcon } from 'lucide-react'
+import { FileText, Download, Eye, Video, ExternalLink, Loader2, Image as ImageIcon, FileSpreadsheet, FileArchive, FileAudio, FileVideo, Presentation, FileCode } from 'lucide-react'
 import api from '../../config/axios.config'
 import { collabApi, unwrapOne } from '../../api/collab.api'
 import { useDocumentDownload } from '../../hooks/useDocuments'
@@ -382,11 +382,31 @@ export const fmtSize = (n) => n == null ? '' : n < 1024 ? `${n} B` : n < 1048576
 const isImg = (mime) => /^image\//.test(mime || '')
 
 /** Images as thumbnails, everything else as a file card. */
+/** An icon for the kind of file — the card should say what it is at a glance. */
+function fileIcon(f) {
+  const m = (f.mimeType || '').toLowerCase()
+  const e = (/\.([^.]+)$/.exec(f.fileName || '') || [])[1]?.toLowerCase() || ''
+  if (m.startsWith('video/') || ['mp4', 'mov', 'mkv', 'avi', 'webm', '3gp', 'm4v'].includes(e)) return FileVideo
+  if (m.startsWith('audio/') || ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'opus', 'amr', 'flac'].includes(e)) return FileAudio
+  if (m.startsWith('image/')) return ImageIcon
+  if (/spreadsheet|excel|csv/.test(m) || ['xls', 'xlsx', 'csv', 'ods', 'numbers'].includes(e)) return FileSpreadsheet
+  if (/presentation|powerpoint/.test(m) || ['ppt', 'pptx', 'odp', 'key'].includes(e)) return Presentation
+  if (/zip|rar|7z|tar|gzip|compressed/.test(m) || ['zip', 'rar', '7z', 'tar', 'gz', 'tgz', 'bz2'].includes(e)) return FileArchive
+  if (/json|xml|yaml/.test(m) || ['json', 'xml', 'yml', 'yaml', 'sql', 'log'].includes(e)) return FileCode
+  return FileText
+}
+
+// A large picture sent at full quality shows as a file, not a thumbnail: the
+// thumbnail would pull the whole file through the app server to draw it.
+const THUMB_MAX = 10 * 1024 * 1024
+/** A picture shown in an album (a thumbnail), rather than as a file of its own. */
+export const asThumb = (f) => isImg(f.mimeType) && !(f.size > THUMB_MAX)
+
 export function Attachments({ files, onPreview, onBrand }) {
   const { openDocument } = useDocumentDownload()
   if (!files?.length) return null
-  const images = files.filter(f => isImg(f.mimeType))
-  const others = files.filter(f => !isImg(f.mimeType))
+  const images = files.filter(asThumb)
+  const others = files.filter(f => !asThumb(f))
   return (
     <div className="space-y-1.5">
       {images.length > 0 && (
@@ -397,7 +417,7 @@ export function Attachments({ files, onPreview, onBrand }) {
       {others.map(f => (
         <div key={f.documentId} className={cn('flex items-center gap-2 rounded-ctl px-2 py-1.5 w-64 max-w-full',
           onBrand ? 'bg-surface-raised/80' : 'bg-surface-raised border border-border-subtle')}>
-          <FileText size={18} className="text-text-muted shrink-0" />
+          {(() => { const Icon = fileIcon(f); return <Icon size={18} className="text-text-muted shrink-0" /> })()}
           <button type="button" onClick={() => onPreview(f)} className="min-w-0 flex-1 text-left">
             <p className="text-xs font-medium text-text-primary truncate" title={f.fileName}>{f.fileName}</p>
             <p className="text-[10px] text-text-muted">{fmtSize(f.size)}</p>

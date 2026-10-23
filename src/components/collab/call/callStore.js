@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react'
 import toast from 'react-hot-toast'
 import { collabApi, unwrapOne, errMsg } from '../../../api/collab.api'
 import { store } from '../../../store'
-import { openTab, closeTab, activateTab } from '../../../store/slices/tabsSlice'
+import { openTab, closeTab, activateTab, setCallLock } from '../../../store/slices/tabsSlice'
 
 /**
  * The one call this browser tab is in.
@@ -89,11 +89,13 @@ export function startCall({ url, token, room, title, meetingId }, { focus = true
   })
   if (meetingId != null) persist({ meetingId, title, micOn })
   if (focus || !hasCallTab()) showCallTab()
+  store.dispatch(setCallLock(true))          // the call tab now stays put until Leave
 }
 
 export function endCall() {
   const wasActive = state.active
   set({ active: false, url: null, token: null, room: null, title: null, meetingId: null, miniHidden: false, rejoining: false })
+  store.dispatch(setCallLock(false))         // before closing the tab: the lock would refuse it
   if (unloading) return                     // a reload: keep it, the next page rejoins
   persist(null)
   const t = findCallTab()

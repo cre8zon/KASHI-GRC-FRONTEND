@@ -18,7 +18,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
+        {/* v7_startTransition: navigations run as React transitions, so while
+            the next page's code loads the CURRENT page stays on screen instead
+            of being swapped for a loading state — no flash between pages. */}
+        <BrowserRouter future={{ v7_startTransition: true }}>
           {/* Inside the Router and the Provider, because it reads both the
               location and the auth state. Renders nothing. */}
           <AnalyticsBridge />

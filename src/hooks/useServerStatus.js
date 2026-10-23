@@ -107,6 +107,16 @@ export function useServerStatus() {
     const handleOnline  = () => runPing()  // browser says online, verify with ping
     window.addEventListener('offline', handleOffline)
     window.addEventListener('online',  handleOnline)
+    // An API call got no answer (axios.config): check now, at most every 3 s,
+    // instead of waiting for a reload to notice the server is gone.
+    let lastSuspect = 0
+    const handleSuspect = () => {
+      const now = Date.now()
+      if (now - lastSuspect < 3_000) return
+      lastSuspect = now
+      runPing()
+    }
+    window.addEventListener('kashi:api-unreachable', handleSuspect)
 
     // Initial ping — check on mount
     runPing()
@@ -122,6 +132,7 @@ export function useServerStatus() {
     return () => {
       window.removeEventListener('offline', handleOffline)
       window.removeEventListener('online',  handleOnline)
+      window.removeEventListener('kashi:api-unreachable', handleSuspect)
       clearInterval(intervalRef.current)
       clearInterval(countdownRef.current)
     }

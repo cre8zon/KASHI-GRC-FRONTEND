@@ -19,7 +19,19 @@ const HOME_TAB = {
 const initialState = {
   tabs:        [HOME_TAB],
   activeTabId: 'home',
+  // True while an in-app call runs (set by the call store). The call has its
+  // own tab ("/call"); while it is on, nothing may navigate THAT tab away —
+  // a nav click from it opens the page in another tab instead. Never
+  // persisted: after a reload it is set again only if the call rejoins.
+  callLock:    false,
+  // Who these tabs belong to. Tabs survive signing out (sessionStorage), so
+  // the same person signing back in returns to where they were — but a
+  // DIFFERENT person signing in on this browser tab must not inherit them.
+  owner:       null,
 }
+
+const CALL_ROUTE = '/call'
+const pathOf = (route) => (route || '').split('?')[0]
 
 const tabsSlice = createSlice({
   name: 'tabs',
@@ -58,6 +70,22 @@ const tabsSlice = createSlice({
     navigateActiveTab: (state, { payload: { route, title, icon } }) => {
       const tab = state.tabs.find(t => t.id === state.activeTabId)
       if (!tab) return
+      // The running call's tab keeps the call: leaving it means going to
+      // another tab — the one already showing that page, or a new one.
+      if (state.callLock && pathOf(tab.route) === CALL_ROUTE && pathOf(route) !== CALL_ROUTE) {
+        const existing = state.tabs.find(t => t.route === route) || state.tabs.find(t => pathOf(t.route) === pathOf(route) && pathOf(route) !== '/dashboard')
+        if (existing) {
+          existing.route = route
+          if (title) existing.title = title
+          if (icon) existing.icon = icon
+          state.activeTabId = existing.id
+          return
+        }
+        const id = newId()
+        state.tabs.push({ id, title: title || route, route, icon: icon || null, subTab: null })
+        state.activeTabId = id
+        return
+      }
       tab.route = route
       tab.title = title || route
       if (icon) tab.icon = icon
@@ -78,6 +106,8 @@ const tabsSlice = createSlice({
     closeTab: (state, { payload: id }) => {
       const tab = state.tabs.find(t => t.id === id)
       if (!tab || tab.isPinned) return
+      // The running call's tab closes only when the call ends (Leave).
+      if (state.callLock && pathOf(tab.route) === CALL_ROUTE) return
       const idx = state.tabs.findIndex(t => t.id === id)
       state.tabs.splice(idx, 1)
       // If closing the active tab, activate the nearest one
@@ -85,6 +115,29 @@ const tabsSlice = createSlice({
         const next = state.tabs[Math.min(idx, state.tabs.length - 1)]
         state.activeTabId = next?.id || 'home'
       }
+    },
+
+    // Correct a tab's label and icon (nav data arriving after the tab opened),
+    // without touching its route — unlike navigateActiveTab.
+    refreshTabMeta: (state, { payload: { id, title, icon } }) => {
+      const tab = state.tabs.find(t => t.id === id)
+      if (!tab) return
+      if (title) tab.title = title
+      if (icon) tab.icon = icon
+    },
+
+    setCallLock: (state, { payload }) => { state.callLock = !!payload },
+
+    // Signed in as `userId`: keep the tabs if they are theirs, otherwise start
+    // from a clean Dashboard (tabs from before ownership was recorded are
+    // kept — they can only be from this browser tab's own session).
+    claimTabs: (state, { payload: userId }) => {
+      if (userId == null) return
+      if (state.owner != null && String(state.owner) !== String(userId)) {
+        state.tabs = [HOME_TAB]
+        state.activeTabId = 'home'
+      }
+      state.owner = userId
     },
 
     // Update a tab's title (called when page resolves entity name)
@@ -95,14 +148,16 @@ const tabsSlice = createSlice({
 
     // Close all tabs except pinned + active
     closeOtherTabs: (state, { payload: id }) => {
-      state.tabs = state.tabs.filter(t => t.isPinned || t.id === id)
+      state.tabs = state.tabs.filter(t => t.isPinned || t.id === id
+        || (state.callLock && pathOf(t.route) === CALL_ROUTE))
       state.activeTabId = id
     },
 
     // Close all tabs to the right of the given tab
     closeTabsToRight: (state, { payload: id }) => {
       const idx = state.tabs.findIndex(t => t.id === id)
-      state.tabs = state.tabs.filter((t, i) => i <= idx || t.isPinned)
+      state.tabs = state.tabs.filter((t, i) => i <= idx || t.isPinned
+        || (state.callLock && pathOf(t.route) === CALL_ROUTE))
       if (!state.tabs.find(t => t.id === state.activeTabId)) {
         state.activeTabId = id
       }
@@ -113,6 +168,7 @@ const tabsSlice = createSlice({
 export const {
   openTab, newTab, navigateActiveTab, activateTab, closeTab,
   updateTabTitle, closeOtherTabs, closeTabsToRight, saveSubTab,
+  refreshTabMeta, setCallLock, claimTabs,
 } = tabsSlice.actions
 
 export const selectTabs        = s => s.tabs.tabs
@@ -143,7 +199,7 @@ export function loadTabs() {
       sessionStorage.removeItem(TABS_KEY)
       return null
     }
-    return parsed
+    return parsed ? { ...parsed, callLock: false } : parsed
   } catch { return null }
 }
 

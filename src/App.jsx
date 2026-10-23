@@ -14,127 +14,154 @@ import { CallDock } from './components/collab/call/CallDock'
 import { SessionManager } from './components/layout/SessionManager'
 import { peekPostLoginTarget } from './lib/session'
 
+// ── Page preloading ───────────────────────────────────────────────────────────
+// Pages stay code-split (a fast first load), but once the app is up and idle
+// their code is fetched in the background, one at a time, so opening a page
+// or switching tabs later has nothing to wait for. Cached by the browser
+// after that.
+const pageLoaders = []
+function lazyPage(load) {
+  pageLoaders.push(load)
+  return lazy(load)
+}
+let preloadStarted = false
+function preloadPages() {
+  if (preloadStarted) return
+  preloadStarted = true
+  // Not on a metered or very slow connection — the pages still load on demand.
+  const net = typeof navigator !== 'undefined' ? navigator.connection : null
+  if (net && (net.saveData || /(^|-)2g$/.test(net.effectiveType || ''))) return
+  const idle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 2000 }) : setTimeout(fn, 300))
+  const queue = [...pageLoaders]
+  const next = () => {
+    const load = queue.shift()
+    if (!load) return
+    load().catch(() => {}).finally(() => idle(next))
+  }
+  setTimeout(() => idle(next), 1500)   // after the first page has had the network to itself
+}
+
 // ── Lazy page imports — each page only loads when its route is first visited ──
 // This eliminates the 280+ JS requests on cold load by splitting into chunks.
 
 // Auth — small, loads fast, frequently needed
-const LoginPage               = lazy(() => import('./pages/auth/LoginPage'))
-const ForcePasswordChangePage = lazy(() => import('./pages/auth/ForcePasswordChangePage'))
-const ForgotPasswordPage      = lazy(() => import('./pages/auth/ForgotPasswordPage'))
-const ResetPasswordPage       = lazy(() => import('./pages/auth/ResetPasswordPage'))
-const PasswordChangedPage     = lazy(() => import('./pages/auth/PasswordChangedPage'))
+const LoginPage               = lazyPage(() => import('./pages/auth/LoginPage'))
+const ForcePasswordChangePage = lazyPage(() => import('./pages/auth/ForcePasswordChangePage'))
+const ForgotPasswordPage      = lazyPage(() => import('./pages/auth/ForgotPasswordPage'))
+const ResetPasswordPage       = lazyPage(() => import('./pages/auth/ResetPasswordPage'))
+const PasswordChangedPage     = lazyPage(() => import('./pages/auth/PasswordChangedPage'))
 
 // Core — high-traffic pages, loaded early
-const DashboardPage     = lazy(() => import('./pages/dashboard/DashboardPage'))
-const TrustCenterPage   = lazy(() => import('./pages/trust/TrustCenterPage'))
-const SettingsPage      = lazy(() => import('./pages/settings/SettingsPage'))
-const WorkflowInboxPage = lazy(() => import('./pages/workflow/WorkflowInboxPage'))
-const AllTasksPage      = lazy(() => import('./pages/workflow/AllTasksPage'))
-const TaskDetailPage    = lazy(() => import('./pages/workflow/TaskDetailPage'))
-const ActionItemsPage   = lazy(() => import('./pages/action-items/ActionItemsPage'))
-const NotificationsPage = lazy(() => import('./pages/notifications/NotificationsPage'))
+const DashboardPage     = lazyPage(() => import('./pages/dashboard/DashboardPage'))
+const TrustCenterPage   = lazyPage(() => import('./pages/trust/TrustCenterPage'))
+const SettingsPage      = lazyPage(() => import('./pages/settings/SettingsPage'))
+const WorkflowInboxPage = lazyPage(() => import('./pages/workflow/WorkflowInboxPage'))
+const AllTasksPage      = lazyPage(() => import('./pages/workflow/AllTasksPage'))
+const TaskDetailPage    = lazyPage(() => import('./pages/workflow/TaskDetailPage'))
+const ActionItemsPage   = lazyPage(() => import('./pages/action-items/ActionItemsPage'))
+const NotificationsPage = lazyPage(() => import('./pages/notifications/NotificationsPage'))
 
 // Universal Module Page — the main audit/GRC module renderer
-const UniversalModulePage = lazy(() => import('./pages/module/UniversalModulePage'))
+const UniversalModulePage = lazyPage(() => import('./pages/module/UniversalModulePage'))
 
 // Users & Roles
-const UserManagementPage  = lazy(() => import('./pages/users/UserManagementPage'))
-const UsersHubPage        = lazy(() => import('./pages/users/UsersHubPage'))
-const RolesPermissionsPage = lazy(() => import('./pages/roles/RolesPermissionsPage'))
-const UserListPage         = lazy(() => import('./pages/users/UserListPage'))
+const UserManagementPage  = lazyPage(() => import('./pages/users/UserManagementPage'))
+const UsersHubPage        = lazyPage(() => import('./pages/users/UsersHubPage'))
+const RolesPermissionsPage = lazyPage(() => import('./pages/roles/RolesPermissionsPage'))
+const UserListPage         = lazyPage(() => import('./pages/users/UserListPage'))
 
 // Reports
-const ReportsPage            = lazy(() => import('./pages/reports/ReportsPage'))
-const AssessmentReportPage   = lazy(() => import('./pages/reports/AssessmentReportPage'))
-const AuditReportPage        = lazy(() => import('./pages/reports/AuditReportPage'))
-const AuditProgrammeReportPage = lazy(() => import('./pages/reports/AuditProgrammeReportPage'))
+const ReportsPage            = lazyPage(() => import('./pages/reports/ReportsPage'))
+const AssessmentReportPage   = lazyPage(() => import('./pages/reports/AssessmentReportPage'))
+const AuditReportPage        = lazyPage(() => import('./pages/reports/AuditReportPage'))
+const AuditProgrammeReportPage = lazyPage(() => import('./pages/reports/AuditProgrammeReportPage'))
 
 // TPRM / Vendor — org side
-const VendorListPage        = lazy(() => import('./pages/tprm/VendorListPage'))
-const VendorDetailPage      = lazy(() => import('./pages/tprm/VendorDetailPage'))
-const VendorOnboardPage     = lazy(() => import('./pages/tprm/VendorOnboardPage'))
-const OrgTemplatesPage      = lazy(() => import('./pages/assessments/OrgTemplatesPage'))
-const VendorAssessmentsPage = lazy(() => import('./pages/assessments/VendorAssessmentsPage'))
-const AssessmentListPage    = lazy(() => import('./pages/assessments/AssessmentListPage'))
-const AssessmentDetailPage  = lazy(() => import('./pages/assessments/AssessmentDetailPage'))
-const AssessmentReviewPage  = lazy(() => import('./pages/assessments/AssessmentReviewPage'))
-const ReviewAssistantPage   = lazy(() => import('./pages/assessments/ReviewAssistantPage'))
+const VendorListPage        = lazyPage(() => import('./pages/tprm/VendorListPage'))
+const VendorDetailPage      = lazyPage(() => import('./pages/tprm/VendorDetailPage'))
+const VendorOnboardPage     = lazyPage(() => import('./pages/tprm/VendorOnboardPage'))
+const OrgTemplatesPage      = lazyPage(() => import('./pages/assessments/OrgTemplatesPage'))
+const VendorAssessmentsPage = lazyPage(() => import('./pages/assessments/VendorAssessmentsPage'))
+const AssessmentListPage    = lazyPage(() => import('./pages/assessments/AssessmentListPage'))
+const AssessmentDetailPage  = lazyPage(() => import('./pages/assessments/AssessmentDetailPage'))
+const AssessmentReviewPage  = lazyPage(() => import('./pages/assessments/AssessmentReviewPage'))
+const ReviewAssistantPage   = lazyPage(() => import('./pages/assessments/ReviewAssistantPage'))
 
 // Vendor side pages
-const VendorAssessmentFillPage            = lazy(() => import('./pages/vendor/VendorAssessmentFillPage'))
-const VendorAssessmentAssignPage          = lazy(() => import('./pages/vendor/VendorAssessmentAssignPage'))
-const VendorAssessmentResponderReviewPage = lazy(() => import('./pages/vendor/VendorAssessmentResponderReviewPage'))
-const VendorAssessmentAcknowledgePage     = lazy(() => import('./pages/vendor/VendorAssessmentAcknowledgePage'))
+const VendorAssessmentFillPage            = lazyPage(() => import('./pages/vendor/VendorAssessmentFillPage'))
+const VendorAssessmentAssignPage          = lazyPage(() => import('./pages/vendor/VendorAssessmentAssignPage'))
+const VendorAssessmentResponderReviewPage = lazyPage(() => import('./pages/vendor/VendorAssessmentResponderReviewPage'))
+const VendorAssessmentAcknowledgePage     = lazyPage(() => import('./pages/vendor/VendorAssessmentAcknowledgePage'))
 
 // Audit
-const AuditProjectListPage      = lazy(() => import('./pages/audit/AuditProjectListPage'))
-const AuditProjectDashboardPage = lazy(() => import('./pages/dashboard/AuditProjectDashboardPage'))
-const AuditEngagementListPage   = lazy(() => import('./pages/audit/AuditEngagementListPage'))
-const AuditEngagementDetailPage = lazy(() => import('./pages/audit/AuditEngagementDetailPage'))
-const OrgAuditLibraryPage       = lazy(() => import('./pages/audit/AuditLibraryPage'))
-const KashiLinkPage             = lazy(() => import('./pages/audit/KashiLinkPage'))
-const PolicyEditorPage          = lazy(() => import('./pages/policies/PolicyEditorPage'))
+const AuditProjectListPage      = lazyPage(() => import('./pages/audit/AuditProjectListPage'))
+const AuditProjectDashboardPage = lazyPage(() => import('./pages/dashboard/AuditProjectDashboardPage'))
+const AuditEngagementListPage   = lazyPage(() => import('./pages/audit/AuditEngagementListPage'))
+const AuditEngagementDetailPage = lazyPage(() => import('./pages/audit/AuditEngagementDetailPage'))
+const OrgAuditLibraryPage       = lazyPage(() => import('./pages/audit/AuditLibraryPage'))
+const KashiLinkPage             = lazyPage(() => import('./pages/audit/KashiLinkPage'))
+const PolicyEditorPage          = lazyPage(() => import('./pages/policies/PolicyEditorPage'))
 
 // Auditor portal
-const AuditorPortalPage = lazy(() => import('./pages/auditor/AuditorPortalPage'))
+const AuditorPortalPage = lazyPage(() => import('./pages/auditor/AuditorPortalPage'))
 
 // Workflow admin
-const WorkflowPage             = lazy(() => import('./pages/admin/workflows/WorkflowPage'))
-const WorkflowBlueprintDesigner = lazy(() => import('./pages/admin/workflows/WorkflowBlueprintDesigner'))
+const WorkflowPage             = lazyPage(() => import('./pages/admin/workflows/WorkflowPage'))
+const WorkflowBlueprintDesigner = lazyPage(() => import('./pages/admin/workflows/WorkflowBlueprintDesigner'))
 
 // Platform Admin — only loaded by SYSTEM role users
-const EmailTemplateManagerPage   = lazy(() => import('./pages/admin/email-templates/EmailTemplateManagerPage'))
-const ExternalAuditorsPage       = lazy(() => import('./pages/auditor/ExternalAuditorsPage'))
-const FirmClientsPage            = lazy(() => import('./pages/auditor/FirmClientsPage'))
+const EmailTemplateManagerPage   = lazyPage(() => import('./pages/admin/email-templates/EmailTemplateManagerPage'))
+const ExternalAuditorsPage       = lazyPage(() => import('./pages/auditor/ExternalAuditorsPage'))
+const FirmClientsPage            = lazyPage(() => import('./pages/auditor/FirmClientsPage'))
 // Collaboration — workspaces shared with an audit firm (phase 1)
-const CollabWorkspacesPage       = lazy(() => import('./pages/collaboration/WorkspacesPage'))
-const CollabWorkspaceDetailPage  = lazy(() => import('./pages/collaboration/WorkspaceDetailPage'))
-const CollabMyWeekPage           = lazy(() => import('./pages/collaboration/MyWeekPage'))
-const CollabMeetingsPage         = lazy(() => import('./pages/collaboration/MeetingsPage'))
-const CollabMeetingPage          = lazy(() => import('./pages/collaboration/MeetingPage'))
-const CollabRoomPage             = lazy(() => import('./pages/collaboration/RoomPage'))
-const CollabCallPage             = lazy(() => import('./pages/collaboration/CallPage'))
-const JoinCallPage               = lazy(() => import('./pages/collaboration/JoinCallPage'))
+const CollabWorkspacesPage       = lazyPage(() => import('./pages/collaboration/WorkspacesPage'))
+const CollabWorkspaceDetailPage  = lazyPage(() => import('./pages/collaboration/WorkspaceDetailPage'))
+const CollabMyWeekPage           = lazyPage(() => import('./pages/collaboration/MyWeekPage'))
+const CollabMeetingsPage         = lazyPage(() => import('./pages/collaboration/MeetingsPage'))
+const CollabMeetingPage          = lazyPage(() => import('./pages/collaboration/MeetingPage'))
+const CollabRoomPage             = lazyPage(() => import('./pages/collaboration/RoomPage'))
+const CollabCallPage             = lazyPage(() => import('./pages/collaboration/CallPage'))
+const JoinCallPage               = lazyPage(() => import('./pages/collaboration/JoinCallPage'))
 // Internal chat — the organisation's own staff
-const ChatPage                   = lazy(() => import('./pages/chat/ChatPage'))
-const TenantListPage             = lazy(() => import('./pages/admin/tenants/TenantListPage'))
-const TenantDetailPage           = lazy(() => import('./pages/admin/tenants/TenantDetailPage'))
-const SendWelcomeEmailPage       = lazy(() => import('./pages/admin/tenants/SendWelcomeEmailPage'))
-const BillingOverviewPage        = lazy(() => import('./pages/admin/billing/BillingOverviewPage'))
-const SubscriptionsPage          = lazy(() => import('./pages/admin/billing/SubscriptionsPage'))
-const PricingPlansPage           = lazy(() => import('./pages/admin/billing/PricingPlansPage'))
-const InvoicesPage               = lazy(() => import('./pages/admin/billing/InvoicesPage'))
-const FirmVerificationsPage      = lazy(() => import('./pages/admin/firm-verification/FirmVerificationsPage'))
-const EnquiriesPage              = lazy(() => import('./pages/admin/enquiries/EnquiriesPage'))
-const VerifyAuditFirmPage        = lazy(() => import('./pages/auth/VerifyAuditFirmPage'))
-const QuestionLibraryPage        = lazy(() => import('./pages/admin/assessment/QuestionLibraryPage'))
-const AssessmentTemplatesPage    = lazy(() => import('./pages/admin/assessment/AssessmentTemplatesPage'))
-const RiskMappingPage            = lazy(() => import('./pages/admin/assessment/RiskMappingPage'))
-const NavigationAdminPage        = lazy(() => import('./pages/admin/ui-config/NavigationAdminPage'))
-const BlueprintsAdminPage        = lazy(() => import('./pages/admin/kashiguard/BlueprintsAdminPage'))
-const GuardRulesAdminPage        = lazy(() => import('./pages/admin/kashiguard/GuardRulesAdminPage'))
-const ComponentsAdminPage        = lazy(() => import('./pages/admin/ui-config/ComponentsAdminPage'))
-const UiActionsAdminPage         = lazy(() => import('./pages/admin/ui-config/UiActionsAdminPage'))
-const FormsAdminPage             = lazy(() => import('./pages/admin/ui-config/FormsAdminPage'))
-const FeatureFlagsAdminPage      = lazy(() => import('./pages/admin/ui-config/FeatureFlagsAdminPage'))
-const BrandingAdminPage          = lazy(() => import('./pages/admin/ui-config/BrandingAdminPage'))
-const RbacAdminPage              = lazy(() => import('./pages/admin/rbac/RbacAdminPage'))
-const ModuleBlueprintAdminPage   = lazy(() => import('./pages/admin/modules/ModuleBlueprintAdminPage'))
-const NotificationTemplateAdminPage = lazy(() => import('./pages/admin/notifications/NotificationTemplateAdminPage'))
-const NotificationEmailRulesPage = lazy(() => import('./pages/admin/notifications/NotificationEmailRulesPage'))
-const NotificationPreferencesPage = lazy(() => import('./pages/settings/NotificationPreferencesPage'))
-const DesignSystemPage           = lazy(() => import('./pages/admin/design-system/DesignSystemPage'))
-const ScreenDesignerPage         = lazy(() => import('./pages/admin/screen-designer/ScreenDesignerPage'))
-const DashboardAdminPage         = lazy(() => import('./pages/admin/dashboard/DashboardAdminPage'))
-const ControlsLibraryPage        = lazy(() => import('./pages/admin/audit/ControlsLibraryPage'))
-const AuditTemplatesPage         = lazy(() => import('./pages/admin/audit/AuditTemplatesPage'))
-const ControlFrameworksPage      = lazy(() => import('./pages/admin/audit/ControlFrameworksPage'))
-const AdminAuditLibraryPage      = lazy(() => import('./pages/admin/audit/AuditLibraryPage'))
+const ChatPage                   = lazyPage(() => import('./pages/chat/ChatPage'))
+const TenantListPage             = lazyPage(() => import('./pages/admin/tenants/TenantListPage'))
+const TenantDetailPage           = lazyPage(() => import('./pages/admin/tenants/TenantDetailPage'))
+const SendWelcomeEmailPage       = lazyPage(() => import('./pages/admin/tenants/SendWelcomeEmailPage'))
+const BillingOverviewPage        = lazyPage(() => import('./pages/admin/billing/BillingOverviewPage'))
+const SubscriptionsPage          = lazyPage(() => import('./pages/admin/billing/SubscriptionsPage'))
+const PricingPlansPage           = lazyPage(() => import('./pages/admin/billing/PricingPlansPage'))
+const InvoicesPage               = lazyPage(() => import('./pages/admin/billing/InvoicesPage'))
+const FirmVerificationsPage      = lazyPage(() => import('./pages/admin/firm-verification/FirmVerificationsPage'))
+const EnquiriesPage              = lazyPage(() => import('./pages/admin/enquiries/EnquiriesPage'))
+const VerifyAuditFirmPage        = lazyPage(() => import('./pages/auth/VerifyAuditFirmPage'))
+const QuestionLibraryPage        = lazyPage(() => import('./pages/admin/assessment/QuestionLibraryPage'))
+const AssessmentTemplatesPage    = lazyPage(() => import('./pages/admin/assessment/AssessmentTemplatesPage'))
+const RiskMappingPage            = lazyPage(() => import('./pages/admin/assessment/RiskMappingPage'))
+const NavigationAdminPage        = lazyPage(() => import('./pages/admin/ui-config/NavigationAdminPage'))
+const BlueprintsAdminPage        = lazyPage(() => import('./pages/admin/kashiguard/BlueprintsAdminPage'))
+const GuardRulesAdminPage        = lazyPage(() => import('./pages/admin/kashiguard/GuardRulesAdminPage'))
+const ComponentsAdminPage        = lazyPage(() => import('./pages/admin/ui-config/ComponentsAdminPage'))
+const UiActionsAdminPage         = lazyPage(() => import('./pages/admin/ui-config/UiActionsAdminPage'))
+const FormsAdminPage             = lazyPage(() => import('./pages/admin/ui-config/FormsAdminPage'))
+const FeatureFlagsAdminPage      = lazyPage(() => import('./pages/admin/ui-config/FeatureFlagsAdminPage'))
+const BrandingAdminPage          = lazyPage(() => import('./pages/admin/ui-config/BrandingAdminPage'))
+const RbacAdminPage              = lazyPage(() => import('./pages/admin/rbac/RbacAdminPage'))
+const ModuleBlueprintAdminPage   = lazyPage(() => import('./pages/admin/modules/ModuleBlueprintAdminPage'))
+const NotificationTemplateAdminPage = lazyPage(() => import('./pages/admin/notifications/NotificationTemplateAdminPage'))
+const NotificationEmailRulesPage = lazyPage(() => import('./pages/admin/notifications/NotificationEmailRulesPage'))
+const NotificationPreferencesPage = lazyPage(() => import('./pages/settings/NotificationPreferencesPage'))
+const DesignSystemPage           = lazyPage(() => import('./pages/admin/design-system/DesignSystemPage'))
+const ScreenDesignerPage         = lazyPage(() => import('./pages/admin/screen-designer/ScreenDesignerPage'))
+const DashboardAdminPage         = lazyPage(() => import('./pages/admin/dashboard/DashboardAdminPage'))
+const ControlsLibraryPage        = lazyPage(() => import('./pages/admin/audit/ControlsLibraryPage'))
+const AuditTemplatesPage         = lazyPage(() => import('./pages/admin/audit/AuditTemplatesPage'))
+const ControlFrameworksPage      = lazyPage(() => import('./pages/admin/audit/ControlFrameworksPage'))
+const AdminAuditLibraryPage      = lazyPage(() => import('./pages/admin/audit/AuditLibraryPage'))
 
 // Content platform — its own route subtree rather than a page per screen.
 // Everything under /admin/content is served by ContentRoutes, so adding a
 // screen there does not touch this file. See pages/admin/content/ContentRoutes.
-const ContentRoutes              = lazy(() => import('./pages/admin/content/ContentRoutes'))
+const ContentRoutes              = lazyPage(() => import('./pages/admin/content/ContentRoutes'))
 
 // ─── Loading fallback ─────────────────────────────────────────────────────────
 // Shown while a lazy chunk is being fetched — only happens on first visit to a route.
@@ -180,6 +207,8 @@ function RequireSystem({ children }) {
 function AppShellWithTheme() {
   // Entitlement: redirect on FEATURE_NOT_LICENSED 403 from any gated endpoint.
   useFeatureGuard()
+  // Signed in and the shell is up: warm the other pages' code in the background.
+  useEffect(() => { preloadPages() }, [])
   return (
     <ThemeProvider>
       <AppShell />

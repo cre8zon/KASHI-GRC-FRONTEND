@@ -5,6 +5,7 @@ import {
   MessageSquare, Hash, Lock, Search, Plus, Users, BellOff, Pencil, Trash2, X,
   Send, Globe, Archive, Paperclip, Smile, SmilePlus, Reply, Pin, PinOff, Video, Loader2,
   Bold, Italic, Strikethrough, Code, List, FileText, Image as ImageIcon, Info,
+  ChevronDown, Copy, Forward, CheckSquare, Check,
 } from 'lucide-react'
 import { useDraft } from '../../hooks/useDraft'
 import { chatApi, one, list, errMsg } from '../../api/chat.api'
@@ -12,7 +13,7 @@ import { collabApi, unwrapOne } from '../../api/collab.api'
 import { useChatSocket } from '../../hooks/useChatSocket'
 import { useDocumentUpload } from '../../hooks/useDocuments'
 import { EmojiPicker, QUICK_REACTIONS } from '../../components/chat/EmojiPicker'
-import { MessageText, Attachments, LinkCard, linkCards, stripCardLinks, fmtSize } from '../../components/chat/ChatMessageParts'
+import { MessageText, Attachments, LinkCard, linkCards, stripCardLinks, fmtSize, asThumb } from '../../components/chat/ChatMessageParts'
 import { DocumentPreviewDrawer } from '../../components/ui/DocumentPreviewDrawer'
 import { startCall } from '../../components/collab/call/callStore'
 import { useCallOptions } from '../../components/collab/Meetings'
@@ -26,6 +27,7 @@ import { Button } from '../../components/ui/Button'
 import { Modal, ConfirmDialog } from '../../components/ui/Modal'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
+import { MAX_FILES, isPhoto, refusal, fmtBytes } from '../../components/chat/chatFiles'
 import { GlassSelect } from '../../components/ui/GlassSelect'
 
 /**
@@ -237,7 +239,6 @@ function ConvIcon({ c }) {
 
 // ── One conversation ─────────────────────────────────────────────────────────
 
-const MAX_FILES = 10
 const CALL_MAX_PEOPLE = 50
 
 function Conversation({ id, me, onGone }) {
@@ -245,6 +246,23 @@ function Conversation({ id, me, onGone }) {
   const [older, setOlder] = useState([])           // pages loaded with "earlier messages"
   const [hasOlder, setHasOlder] = useState(null)
   const [editing, setEditing] = useState(null)     // message
+  const [forwarding, setForwarding] = useState(null) // [message, …] being forwarded
+  // Selecting messages to forward together: null, or the picked ids. Esc or
+  // Cancel leaves it; it also ends with the conversation (keyed by id).
+  const [selected, setSelected] = useState(null)
+  const selecting = selected !== null
+  const toggleSelected = (m) => setSelected(sel => {
+    const cur = sel || []
+    if (cur.includes(m.id)) return cur.filter(x => x !== m.id)
+    if (cur.length >= FORWARD_MAX_MESSAGES) { toast.error(`You can forward up to ${FORWARD_MAX_MESSAGES} messages at a time`, { id: 'fwd-max' }); return cur }
+    return [...cur, m.id]
+  })
+  useEffect(() => {
+    if (!selecting) return undefined
+    const key = (e) => { if (e.key === 'Escape') setSelected(null) }
+    document.addEventListener('keydown', key)
+    return () => document.removeEventListener('keydown', key)
+  }, [selecting])
   const [adding, setAdding] = useState(false)
   const [settings, setSettings] = useState(false)
   const [leaving, setLeaving] = useState(false)
@@ -565,7 +583,7 @@ function Conversation({ id, me, onGone }) {
             <div className="absolute inset-2 z-20 rounded-card border-2 border-dashed border-brand-500 bg-surface-raised/90 flex flex-col items-center justify-center pointer-events-none">
               <Paperclip size={22} className="text-brand-ink" />
               <p className="text-sm font-medium text-text-primary mt-1">Drop files to attach</p>
-              <p className="text-xs text-text-muted">Up to {MAX_FILES} per message</p>
+              <p className="text-xs text-text-muted">Up to {MAX_FILES} per message · photos up to 10 MB, other files up to 100 MB</p>
             </div>
           )}
 
@@ -624,6 +642,10 @@ function Conversation({ id, me, onGone }) {
                       onReply={() => { setReplyingTo(m); composer.current?.focus() }}
                       onReact={(emoji) => react.mutate({ mid: m.id, emoji })}
                       onPin={() => pin.mutate({ mid: m.id, pinned: !m.pinnedAt })}
+                      onForward={() => setForwarding([m])}
+                      onSelect={() => setSelected([m.id])}
+                      selecting={selecting} selected={!!selected?.includes(m.id)}
+                      onToggleSelect={() => toggleSelected(m)}
                       onJump={jumpTo} onPreview={setPreviewDoc} />
                   </div>
                 )
@@ -637,7 +659,24 @@ function Conversation({ id, me, onGone }) {
               : typingNames.length === 2 ? `${typingNames[0]} and ${typingNames[1]} are typing…` : 'Several people are typing…'}
           </p>
 
-          {conv.member ? (
+          {selecting ? (
+            <div className="px-4 py-3 border-t border-border flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <button type="button" onClick={() => setSelected(null)} aria-label="Cancel selection" title="Cancel (Esc)"
+                  className="h-8 w-8 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-surface-overlay">
+                  <X size={16} />
+                </button>
+                <span className="text-sm text-text-primary">
+                  {selected.length === 0 ? 'Select messages' : `${selected.length} selected`}
+                </span>
+                <span className="text-xs text-text-muted hidden sm:inline">· up to {FORWARD_MAX_MESSAGES}</span>
+              </div>
+              <Button size="sm" disabled={!selected.length}
+                onClick={() => setForwarding(shown.filter(m => selected.includes(m.id)))}>
+                <Forward size={14} /> Forward
+              </Button>
+            </div>
+          ) : conv.member ? (
             conv.archived
               ? <p className="px-4 py-3 border-t border-border text-xs text-text-muted">This conversation is archived — read only.</p>
               : <Composer id={id} members={others} apiRef={composer} meId={me.userId}
@@ -670,6 +709,8 @@ function Conversation({ id, me, onGone }) {
 
       <DocumentPreviewDrawer document={previewDoc} open={!!previewDoc} onClose={() => setPreviewDoc(null)} />
       <EditMessageModal message={editing} onClose={() => setEditing(null)} onDone={refresh} />
+      <ForwardModal messages={forwarding} fromId={id} onClose={() => setForwarding(null)}
+        onDone={() => { setForwarding(null); setSelected(null); refresh() }} />
       <PeopleModal open={adding} onClose={() => setAdding(false)} title="Add people" exclude={members.map(p => p.userId)}
         confirmLabel="Add" onConfirm={(ids) => chatApi.addMembers(id, ids).then(() => { toast.success('Added'); refresh(); setAdding(false) })
           .catch(e => toast.error(errMsg(e, 'Could not add')))} />
@@ -771,6 +812,18 @@ function SearchPanel({ id, onClose, onJump }) {
   )
 }
 
+/** Close a popover on a click outside it or Escape. */
+function useDismiss(ref, open, close) {
+  useEffect(() => {
+    if (!open) return undefined
+    const down = (e) => { if (ref.current && !ref.current.contains(e.target)) close() }
+    const key = (e) => { if (e.key === 'Escape') close() }
+    document.addEventListener('mousedown', down)
+    document.addEventListener('keydown', key)
+    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key) }
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+}
+
 /**
  * One message as a chat bubble. Your own: right-aligned, brand bubble, no
  * avatar or name. Everyone else: left-aligned, neutral bubble, avatar and (in
@@ -778,44 +831,97 @@ function SearchPanel({ id, onClose, onJump }) {
  * carries its time, so messages minutes apart are told apart; consecutive
  * messages of one block sit tight together.
  *
- * Hovering shows quick reactions, more emoji, reply, pin, and (your own)
- * edit / delete. Under the bubble: link cards, reaction chips, "Seen".
+ * Actions stay out of the way until asked for, like WhatsApp / Telegram:
+ *   • a smiley beside the bubble (on hover) opens the reaction tray — quick
+ *     emoji, + for all of them;
+ *   • a chevron inside the bubble's corner (on hover) opens the menu —
+ *     Reply, Copy, Pin, and on your own messages Edit and Delete.
+ * Both also show on keyboard focus, and stay while their popover is open.
+ * Under the bubble: link cards, reaction chips, "Seen".
  */
 function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, canDelete, highlight, online,
   receipt, direct,
-  onEdit, onDelete, onReply, onReact, onPin, onJump, onPreview }) {
-  const [picking, setPicking] = useState(false)
+  onEdit, onDelete, onReply, onReact, onPin, onForward, onSelect, onJump, onPreview,
+  selecting, selected, onToggleSelect }) {
+  const [tray, setTray] = useState(null)        // null | { up, all }   — the reaction tray
   const [showReactions, setShowReactions] = useState(false)
+  const trayRef = useRef(null)
   const time = new Date(m.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
   const mine = !!m.mine
   const cards = m.deleted ? [] : linkCards(m.body)
   const text = cards.length ? stripCardLinks(m.body) : m.body
   const reactions = m.reactions || []
-  const btn = 'p-1 text-text-muted hover:text-text-primary'
-  const bar = !m.deleted && canAct && (
-    <div className={cn('absolute -top-3 z-10 items-center rounded-ctl border border-border glass-overlay shadow-elevated',
-      picking ? 'flex' : 'hidden group-hover:flex', mine ? 'right-1' : 'left-11')}>
-      {QUICK_REACTIONS.map(e => (
-        <button key={e} type="button" onClick={() => onReact(e)} title={`React ${e}`}
-          className="w-7 h-7 text-base leading-none rounded-ctl hover:bg-surface-overlay">{e}</button>
-      ))}
-      <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={() => setPicking(p => !p)} title="More reactions" className={btn}><SmilePlus size={13} /></button>
-      <span className="w-px h-4 bg-border mx-0.5" />
-      <button type="button" onClick={onReply} title="Reply" className={btn}><Reply size={13} /></button>
-      <button type="button" onClick={onPin} title={m.pinnedAt ? 'Unpin' : 'Pin'} className={btn}>{m.pinnedAt ? <PinOff size={13} /> : <Pin size={13} />}</button>
-      {mine && <button type="button" onClick={onEdit} title="Edit" className={btn}><Pencil size={12} /></button>}
-      {canDelete && <button type="button" onClick={onDelete} title="Delete" className="p-1 text-text-muted hover:text-status-fail-fg"><Trash2 size={12} /></button>}
-      {picking && (
-        <EmojiPicker className={cn('absolute top-full mt-1', mine ? 'right-0' : 'left-0')}
-          onPick={(e) => { onReact(e); setPicking(false) }} onClose={() => setPicking(false)} />
+  // While picking messages to forward, the row is a checkbox: no menu, no
+  // reaction tray. Deleted and still-sending messages cannot be picked.
+  const selectable = selecting && !m.deleted && !m.pending
+  const actionable = !m.deleted && !m.pending && canAct && !selecting
+  // One message, one bubble. New sends already go out as one message per
+  // file (pictures together as an album — see Composer), so each file has its
+  // own bubble and its own reply / react / forward / delete. Messages sent
+  // before that may carry several files: they stay in ONE bubble, because
+  // every action on them applies to the whole message — drawing them as
+  // separate bubbles suggested otherwise.
+  const atts = m.deleted ? [] : (m.attachments || [])
+  const pics = atts.filter(asThumb)
+
+  // Open upward when the message is near the bottom of the window, so the
+  // popover is never cut off by the end of the message list.
+  const opensUp = (el, need) => !!el && window.innerHeight - el.getBoundingClientRect().bottom < need
+  useDismiss(trayRef, !!tray && !tray.all, () => setTray(null))
+
+  const reactButton = actionable && (
+    <div ref={trayRef} className="relative self-center shrink-0">
+      <button type="button" aria-label="React" title="React" aria-expanded={!!tray}
+        onClick={(e) => setTray(t => (t ? null : { up: opensUp(e.currentTarget, 90), all: false }))}
+        className={cn('h-7 w-7 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-opacity',
+          tray ? 'opacity-100 bg-surface-overlay' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100')}>
+        <SmilePlus size={16} />
+      </button>
+      {tray && !tray.all && (
+        <div className={cn('absolute z-30 flex items-center gap-0.5 rounded-full border border-border glass-overlay shadow-overlay px-1.5 py-1',
+          tray.up ? 'bottom-full mb-1' : 'top-full mt-1', mine ? 'right-0' : 'left-0')}>
+          {QUICK_REACTIONS.map(e => (
+            <button key={e} type="button" onClick={() => { onReact(e); setTray(null) }} title={`React ${e}`}
+              className="w-8 h-8 text-lg leading-none rounded-full hover:bg-surface-overlay hover:scale-110 transition-transform">{e}</button>
+          ))}
+          <button type="button" onClick={() => setTray(t => ({ ...t, all: true }))} title="More reactions" aria-label="More reactions"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-surface-overlay">
+            <Plus size={16} />
+          </button>
+        </div>
+      )}
+      {tray?.all && (
+        <EmojiPicker className={cn('absolute', tray.up ? 'bottom-full mb-1' : 'top-full mt-1', mine ? 'right-0' : 'left-0')}
+          onPick={(e) => { onReact(e); setTray(null) }} onClose={() => setTray(null)} />
       )}
     </div>
   )
+
+  const menuActions = { m, mine, canDelete, onReply, onPin, onEdit, onDelete, onForward, onSelect }
+  // The chevron always sits in the bubble's top-right corner. Over text or a
+  // picture it floats, with a halo fading what is under it. A file card has
+  // its preview/download buttons on the right, right where the chevron would
+  // land — so a bubble that opens with a file keeps a narrow strip free on
+  // its right for the chevron (always, so nothing shifts on hover).
+  const textFirst = !!text || (!!m.replyTo && !m.deleted)
+  const fileLead = !textFirst && !pics.length && atts.length > 0
+
   return (
     <div id={`chat-msg-${m.id}`}
+      onClickCapture={selectable ? (e) => { e.preventDefault(); e.stopPropagation(); onToggleSelect() } : undefined}
+      role={selectable ? 'checkbox' : undefined} aria-checked={selectable ? selected : undefined}
+      tabIndex={selectable ? 0 : undefined}
+      onKeyDown={selectable ? (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onToggleSelect() } } : undefined}
       className={cn('group relative flex gap-2 rounded-card transition-colors duration-700', mine ? 'justify-end' : 'justify-start',
-        grouped ? 'mt-0.5' : 'mt-3', lastOfBlock ? 'mb-1' : '', highlight && 'bg-status-warn-bg')}>
-      {bar}
+        grouped ? 'mt-0.5' : 'mt-3', lastOfBlock ? 'mb-1' : '', highlight && 'bg-status-warn-bg',
+        selecting && 'pl-8', selectable && 'cursor-pointer hover:bg-surface-overlay/40', selected && 'bg-brand-500/10')}>
+      {selecting && (
+        <span aria-hidden className={cn('absolute left-1.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 flex items-center justify-center',
+          !selectable ? 'border-border-subtle opacity-40'
+            : selected ? 'bg-brand-500 border-brand-500 text-brand-on' : 'border-border')}>
+          {selected && <Check size={12} strokeWidth={3} />}
+        </span>
+      )}
       {!mine && (
         <div className="w-8 shrink-0">
           {!grouped && (
@@ -832,15 +938,35 @@ function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, 
           {!mine && !grouped && showName && (
             <span className="text-[11px] font-semibold text-text-secondary mb-0.5 px-1">{m.senderName}</span>
           )}
+          {m.forwarded && !m.deleted && (
+            <span className="text-[10px] italic text-text-muted mb-0.5 px-1 inline-flex items-center gap-1">
+              <Forward size={10} /> Forwarded
+            </span>
+          )}
           {m.pinnedAt && !m.deleted && (
             <span className="text-[10px] text-text-muted mb-0.5 px-1 inline-flex items-center gap-1">
               <Pin size={9} /> Pinned{m.pinnedByName ? ` by ${m.pinnedByName}` : ''}
             </span>
           )}
-          <div className={cn('rounded-card px-3 py-1.5 min-w-0 max-w-full', m.pending && 'opacity-70',
+          <div className={cn('flex items-center gap-1 min-w-0 max-w-full', mine && 'flex-row-reverse')}>
+          <div className={cn('group/bubble relative rounded-card px-3 py-1.5 min-w-0 max-w-full', m.pending && 'opacity-70',
+            fileLead && actionable && 'pr-8',
             m.deleted ? 'bg-surface-overlay/60 border border-dashed border-border'
               : mine ? 'bg-brand-500 text-brand-on'
               : 'bg-surface-overlay border border-border-subtle text-text-primary')}>
+            {/* Behind the chevron: a soft halo in the bubble's own colour, so the
+                text under it fades out (as in WhatsApp) rather than being cut.
+                Clipped to the bubble's shape; a halo, not a gradient (DESIGN.md
+                rule 3). Separate from the menu so the menu is never clipped. */}
+            {actionable && !fileLead && (
+              <span aria-hidden className={cn('pointer-events-none absolute inset-0 overflow-hidden rounded-card',
+                'hidden group-hover/bubble:block group-focus-within/bubble:block')}>
+                <span className={cn('absolute top-1 right-1 h-6 w-6 rounded-full',
+                  mine ? 'bg-brand-500 shadow-[0_0_10px_10px_rgb(var(--color-brand-500))]'
+                    : 'bg-surface-overlay shadow-[0_0_10px_10px_rgb(var(--color-surface-overlay))]')} />
+              </span>
+            )}
+            {actionable && <MessageMenu {...menuActions} />}
             {m.replyTo && !m.deleted && (
               <button type="button" onClick={() => onJump(m.replyTo.id)} title="Go to the message"
                 className={cn('block w-full text-left mb-1 rounded-ctl border-l-2 px-2 py-1',
@@ -854,7 +980,7 @@ function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, 
               : (
                 <div className="space-y-1.5">
                   {text && <MessageText body={text} ctx={{ members, mentions: m.mentions || [], meId, onBrand: mine }} />}
-                  <Attachments files={m.attachments} onPreview={onPreview} onBrand={mine} />
+                  <Attachments files={atts} onPreview={onPreview} onBrand={mine} />
                 </div>
               )}
             <p className={cn('text-[10px] leading-none mt-1 text-right select-none',
@@ -864,6 +990,8 @@ function MessageRow({ m, grouped, lastOfBlock, showName, members, meId, canAct, 
                   meant the pending row said it twice. */}
               {m.editedAt && !m.deleted && <span className="mr-1">edited</span>}{time}
             </p>
+          </div>
+          {reactButton}
           </div>
           {cards.map(c => <LinkCard key={`${c.kind}:${c.type || ''}:${c.id}`} link={c} />)}
           {reactions.length > 0 && !m.deleted && (
@@ -947,9 +1075,32 @@ function Composer({ id, members, meId, onSending, onSent, onFailed, replyingTo, 
     if (room <= 0) { toast.error(`Up to ${MAX_FILES} files per message`); return }
     if (list.length > room) toast.error(`Only ${room} more file${room === 1 ? '' : 's'} can go on this message`)
     list.slice(0, room).forEach(file => {
+      // Refused up front with the reason (type or size) — before, an
+      // oversize photo died mid-upload with nothing on screen.
+      const why = refusal(file)
+      if (why) { toast.error(why, { duration: 7000 }); return }
       const key = `${Date.now()}-${Math.random().toString(36).slice(2)}`
-      setFiles(fs => [...fs, { key, name: file.name || 'pasted-image.png', size: file.size, type: file.type, status: 'uploading' }])
-      upload(file, { entityType: 'CHAT_CONVERSATION', entityId: id, linkType: 'ATTACHMENT', documentType: 'CHAT_FILE', silent: true })
+      // Photos up to 10 MB go compressed; anything else, and bigger photos,
+      // go as they are (full quality, GIFs keep their animation).
+      const asDocument = !isPhoto(file)
+      setFiles(fs => [...fs, { key, name: file.name || 'pasted-image.png', size: file.size, type: file.type, status: 'uploading', progress: 0 }])
+      const send = (asDoc) => upload(file, {
+        entityType: 'CHAT_CONVERSATION', entityId: id, linkType: 'ATTACHMENT', documentType: 'CHAT_FILE', silent: true,
+        asDocument: asDoc,
+        onProgress: (p) => setFiles(fs => fs.map(f => (f.key === key ? { ...f, progress: p } : f))),
+      })
+      // A photo posts through the app server, and a proxy in front of it
+      // (nginx: 1 MB by default) can refuse it before Spring sees it — as a
+      // 413, or, with no CORS headers on the proxy's error page, as a bare
+      // network error. Then send it the other way: straight to S3, full
+      // quality, which no proxy limit touches.
+      const viaServerRefused = (e) => !asDocument && (e?.status === 413 || e?.status == null)
+      send(asDocument)
+        .catch((e) => {
+          if (!viaServerRefused(e)) throw e
+          setFiles(fs => fs.map(f => (f.key === key ? { ...f, progress: 0 } : f)))
+          return send(true)
+        })
         .then(({ documentId }) => setFiles(fs => fs.map(f => (f.key === key ? { ...f, status: 'done', documentId } : f))))
         .catch((e) => {
           setFiles(fs => fs.map(f => (f.key === key ? { ...f, status: 'error' } : f)))
@@ -976,33 +1127,54 @@ function Composer({ id, members, meId, onSending, onSent, onFailed, replyingTo, 
     const all = tagged.some(m => m.isAll) && /(^|\s)@all\b/.test(body)
     const ids = all ? members.map(p => p.userId)
       : tagged.filter(m => !m.isAll && body.includes('@' + m.name)).map(m => m.userId)
-    const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    // Like WhatsApp: pictures sent together are ONE message (an album);
+    // every other file is a message of its own, so each can be replied to,
+    // reacted to and pinned by itself. The text is the caption of the first
+    // part — the album if there is one, otherwise the first file — and the
+    // reply and mentions go with it.
+    const asFile = (f) => ({ documentId: f.documentId, fileName: f.name, mimeType: f.type, size: f.size })
+    const pictures = atts.filter(f => asThumb(asFile(f)))
+    const others = atts.filter(f => !asThumb(asFile(f)))
+    const parts = [
+      ...(pictures.length ? [pictures] : []),
+      ...others.map(f => [f]),
+    ]
+    if (parts.length === 0) parts.push([])                 // text only
 
     // clearDraft, not setText(''): the text has stopped being a draft, so the
     // stored copy has to go too or it would come back on the next visit.
     clearDraft(); setMentions([]); setFiles([]); setPicker(null); setEmoji(false)
     if (ta.current) { ta.current.style.height = 'auto'; ta.current.focus() }
-    onSending({
-      id: tempId, pending: true, mine: true, senderId: meId, body, mentions: ids, reactions: [],
-      createdAt: new Date().toISOString(),
-      attachments: atts.map(f => ({ documentId: f.documentId, fileName: f.name, mimeType: f.type, size: f.size })),
-      replyTo: reply ? { id: reply.id, senderName: reply.senderName, preview: snippet(reply) } : null,
-    })
 
-    queue.current = queue.current.then(() => chatApi.send(id, body, ids, {
-      replyToId: reply?.id ?? null,
-      attachmentIds: atts.map(f => f.documentId),
-    }).then(
-      (r) => onSent(one(r), tempId),
-      (e) => {
-        onFailed(tempId)
-        toast.error(errMsg(e, 'Could not send — your message is back in the box'))
-        // Nothing typed is lost; only into an empty box, never over new text.
-        setText(t => (t ? t : body))
-        setMentions(ms => (ms.length ? ms : tagged))
-        setFiles(fs => (fs.length ? fs : atts))
-      },
-    ))
+    parts.forEach((partFiles, i) => {
+      const first = i === 0
+      const partBody = first ? body : ''
+      const partIds = first ? ids : []
+      const partReply = first ? reply : null
+      const tempId = `tmp-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`
+      onSending({
+        id: tempId, pending: true, mine: true, senderId: meId, body: partBody, mentions: partIds, reactions: [],
+        createdAt: new Date().toISOString(),
+        attachments: partFiles.map(asFile),
+        replyTo: partReply ? { id: partReply.id, senderName: partReply.senderName, preview: snippet(partReply) } : null,
+      })
+      queue.current = queue.current.then(() => chatApi.send(id, partBody, partIds, {
+        replyToId: partReply?.id ?? null,
+        attachmentIds: partFiles.map(f => f.documentId),
+      }).then(
+        (r) => onSent(one(r), tempId),
+        (e) => {
+          onFailed(tempId)
+          toast.error(errMsg(e, 'Could not send — it is back in the box'), { id: `send-failed-${tempId}` })
+          // Whatever did not go out comes back; never over new text.
+          if (first) {
+            setText(t => (t ? t : body))
+            setMentions(ms => (ms.length ? ms : tagged))
+          }
+          setFiles(fs => [...fs, ...partFiles.filter(f => !fs.some(x => x.key === f.key))])
+        },
+      ))
+    })
   }
 
   const ALL = { userId: '__all__', name: 'all', isAll: true }
@@ -1094,7 +1266,9 @@ function Composer({ id, members, meId, onSending, onSent, onFailed, replyingTo, 
                 : /^image\//.test(f.type || '') ? <ImageIcon size={12} className="shrink-0 text-text-muted" />
                 : <FileText size={12} className="shrink-0 text-text-muted" />}
               <span className="truncate" title={f.name}>{f.name}</span>
-              <span className="text-[10px] text-text-muted shrink-0">{f.status === 'error' ? 'failed' : fmtSize(f.size)}</span>
+              <span className="text-[10px] text-text-muted shrink-0 tabular-nums">
+                {f.status === 'error' ? 'failed' : f.status === 'uploading' && f.size > 2 * 1048576 ? `${f.progress || 0}%` : fmtBytes(f.size)}
+              </span>
               <button type="button" title="Remove" onClick={() => setFiles(fs => fs.filter(x => x.key !== f.key))}
                 className="text-text-muted hover:text-text-primary"><X size={11} /></button>
             </span>
@@ -1150,6 +1324,145 @@ function Composer({ id, members, meId, onSending, onSent, onFailed, replyingTo, 
         <Button size="sm" icon={Send} onClick={submit} disabled={!canSend} aria-label="Send" />
       </div>
     </div>
+  )
+}
+
+/** The time for a popover to open upward: near the bottom of the window. */
+const opensUpward = (el, need) => !!el && window.innerHeight - el.getBoundingClientRect().bottom < need
+
+/**
+ * A message's ⌄ menu — Reply, Forward, Copy, Pin, and Edit/Delete where
+ * allowed. In the bubble's top-right corner; hidden until the bubble is
+ * hovered or focused, and stays while open.
+ */
+function MessageMenu({ m, mine, canDelete, onReply, onPin, onEdit, onDelete, onForward, onSelect }) {
+  const [menu, setMenu] = useState(null)        // null | { up }
+  const ref = useRef(null)
+  useDismiss(ref, !!menu, () => setMenu(null))
+  const item = 'w-full flex items-center gap-2.5 px-3 py-1.5 text-sm text-left text-text-primary hover:bg-surface-overlay'
+  const run = (fn) => () => { setMenu(null); fn() }
+  const copyText = async () => {
+    try { await navigator.clipboard.writeText(m.body || ''); toast.success('Copied') }
+    catch { toast.error('Could not copy') }
+  }
+  const shown = menu ? 'visible' : 'invisible group-hover/bubble:visible group-focus-within/bubble:visible focus-within:visible'
+  return (
+    <div ref={ref} className={cn('absolute top-0 right-0 z-20', shown)}>
+      <button type="button" aria-label="Message options" title="More" aria-expanded={!!menu}
+        onClick={(e) => setMenu(v => (v ? null : { up: opensUpward(e.currentTarget, 260) }))}
+        className={cn('relative m-1 h-6 w-6 rounded-full flex items-center justify-center',
+          mine ? 'text-brand-on hover:bg-brand-on/15' : 'text-text-secondary hover:text-text-primary hover:bg-surface-raised')}>
+        <ChevronDown size={15} />
+      </button>
+      {menu && (
+        <div role="menu"
+          className={cn('absolute z-30 w-44 py-1 rounded-card border border-border bg-surface-raised shadow-overlay',
+            menu.up ? 'bottom-full mb-1' : 'top-full mt-1', mine ? 'right-0' : 'left-0')}>
+          <button type="button" role="menuitem" className={item} onClick={run(onReply)}><Reply size={14} className="text-text-muted" /> Reply</button>
+          <button type="button" role="menuitem" className={item} onClick={run(onForward)}><Forward size={14} className="text-text-muted" /> Forward</button>
+          <button type="button" role="menuitem" className={item} onClick={run(onSelect)}><CheckSquare size={14} className="text-text-muted" /> Select</button>
+          {!!m.body && <button type="button" role="menuitem" className={item} onClick={run(copyText)}><Copy size={14} className="text-text-muted" /> Copy text</button>}
+          <button type="button" role="menuitem" className={item} onClick={run(onPin)}>
+            {m.pinnedAt ? <PinOff size={14} className="text-text-muted" /> : <Pin size={14} className="text-text-muted" />} {m.pinnedAt ? 'Unpin' : 'Pin'}
+          </button>
+          {mine && <button type="button" role="menuitem" className={item} onClick={run(onEdit)}><Pencil size={14} className="text-text-muted" /> Edit</button>}
+          {canDelete && (
+            <>
+              <div className="my-1 border-t border-border-subtle" />
+              <button type="button" role="menuitem" className={cn(item, 'text-status-fail-fg')} onClick={run(onDelete)}>
+                <Trash2 size={14} /> Delete
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Forward one or more messages (picked with Select) to up to 5 of your chats.
+ * The copies carry the text and the files, say "Forwarded", and arrive in the
+ * order the messages were sent; mentions and reply links stay behind.
+ */
+const FORWARD_MAX = 5
+const FORWARD_MAX_MESSAGES = 30
+function ForwardModal({ messages, fromId, onClose, onDone }) {
+  const qc = useQueryClient()
+  const open = !!messages?.length
+  const [q, setQ] = useState('')
+  const [picked, setPicked] = useState([])
+  const [was, setWas] = useState(false)
+  if (open !== was) { setWas(open); if (open) { setQ(''); setPicked([]) } }
+  const { data, isLoading } = useQuery({ queryKey: KEY_LIST, queryFn: () => chatApi.conversations(), enabled: open })
+  const convs = list(data).filter(c => c.member !== false && !c.archived)
+  const shown = q.trim() ? convs.filter(c => (c.name || '').toLowerCase().includes(q.trim().toLowerCase())) : convs
+  const full = picked.length >= FORWARD_MAX
+  const toggle = (id) => setPicked(p => p.includes(id) ? p.filter(x => x !== id) : (p.length >= FORWARD_MAX ? p : [...p, id]))
+  const many = (messages?.length || 0) > 1
+  const send = useMutation({
+    mutationFn: () => many
+      ? chatApi.forwardMany(messages.map(m => m.id), picked)
+      : chatApi.forward(messages[0].id, picked),
+    onSuccess: () => {
+      const what = many ? `${messages.length} messages` : 'Message'
+      toast.success(picked.length === 1 ? `${what} forwarded` : `${what} forwarded to ${picked.length} chats`)
+      qc.invalidateQueries({ queryKey: KEY_LIST })
+      onDone()
+    },
+    onError: (e) => toast.error(errMsg(e, 'Could not forward')),
+  })
+  // A short preview of what is going: the message, or how many and of what.
+  const first = messages?.[0]
+  const files = (messages || []).reduce((n, m) => n + (m.attachments?.length || 0), 0)
+  return (
+    <Modal open={open} onClose={onClose} size="md" title={many ? `Forward ${messages.length} messages` : 'Forward message'}
+      subtitle={`Choose up to ${FORWARD_MAX} chats.`}
+      footer={<div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-text-muted">{picked.length ? `${picked.length} selected` : ''}</span>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+          <Button size="sm" onClick={() => send.mutate()} loading={send.isPending} disabled={!picked.length}>
+            <Forward size={14} /> Forward
+          </Button>
+        </div>
+      </div>}>
+      <div className="space-y-3">
+        {open && (
+          <div className="rounded-ctl border border-border-subtle bg-surface-overlay px-3 py-2 text-xs text-text-secondary">
+            {many ? (
+              <span>{messages.length} messages{files > 0 ? ` · ${files === 1 ? '1 file' : `${files} files`}` : ''} — they arrive in the order they were sent.</span>
+            ) : (<>
+              {first.body && <span className="line-clamp-2">{first.body}</span>}
+              {files > 0 && (
+                <span className="flex items-center gap-1 text-text-muted mt-0.5 min-w-0">
+                  <Paperclip size={11} className="shrink-0" />
+                  <span className="truncate">{first.attachments[0].fileName}{files > 1 ? ` and ${files - 1} more` : ''}</span>
+                </span>
+              )}
+            </>)}
+          </div>
+        )}
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search chats" autoFocus
+          className="w-full h-9 rounded-ctl border border-border glass-field px-3 text-sm text-text-primary" />
+        <div className="max-h-72 overflow-y-auto rounded-ctl border border-border">
+          {isLoading ? <p className="p-3 text-xs text-text-muted">Loading…</p>
+            : shown.length === 0 ? <p className="p-3 text-xs text-text-muted">No chats found.</p>
+            : shown.map(c => {
+              const on = picked.includes(c.id)
+              return (
+                <label key={c.id} className={cn('flex items-center gap-2 px-3 py-1.5 border-b border-border-subtle last:border-0',
+                  !on && full ? 'opacity-50 cursor-not-allowed' : 'hover:bg-surface-overlay cursor-pointer')}>
+                  <input type="checkbox" checked={on} disabled={!on && full} onChange={() => toggle(c.id)} />
+                  <ConvIcon c={c} />
+                  <span className="text-sm text-text-primary flex-1 truncate">{c.name}</span>
+                  {String(c.id) === String(fromId) && <span className="text-[11px] text-text-muted">This chat</span>}
+                </label>
+              )
+            })}
+        </div>
+      </div>
+    </Modal>
   )
 }
 

@@ -23,7 +23,7 @@ export const KIND_LABEL = {
   OPENING: 'Opening', WALKTHROUGH: 'Walkthrough', STATUS: 'Status',
   CLOSING: 'Closing', INTERNAL: 'Internal', OTHER: 'Meeting',
 }
-export const PROVIDER_LABEL = { EMBEDDED: 'KashiGRC call', NONE: 'No link', TEAMS: 'Teams', ZOOM: 'Zoom', MEET: 'Google Meet', OTHER: 'Link' }
+export const PROVIDER_LABEL = { EMBEDDED: 'KashiGuard call', NONE: 'No link', TEAMS: 'Teams', ZOOM: 'Zoom', MEET: 'Google Meet', OTHER: 'Link' }
 /**
  * Can this call be joined right now? The SERVER decides; this just reads it.
  *

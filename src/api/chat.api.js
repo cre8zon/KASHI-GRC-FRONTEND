@@ -25,6 +25,10 @@ export const chatApi = {
   remove:        (mid)            => api.delete(`/v1/chat/messages/${mid}`),
   react:         (mid, emoji)     => api.post(`/v1/chat/messages/${mid}/reactions`, { emoji }),
   pin:           (mid, pinned)    => api.post(`/v1/chat/messages/${mid}/pin`, { pinned }),
+  // Text and files, as new messages marked "Forwarded"; up to 5 chats.
+  forward:       (mid, conversationIds) => api.post(`/v1/chat/messages/${mid}/forward`, { conversationIds }),
+  // Several at once (up to 30), arriving in the order they were sent.
+  forwardMany:   (messageIds, conversationIds) => api.post('/v1/chat/messages/forward', { messageIds, conversationIds }),
   pins:          (id)             => api.get(`/v1/chat/conversations/${id}/pins`),
   members:       (id)             => api.get(`/v1/chat/conversations/${id}/members`),
   // Per message, fetched only when the info panel opens. The ticks come from

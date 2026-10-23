@@ -20,6 +20,7 @@ import { Skeleton } from '../ui/EmptyState'
 import { initials } from '../../utils/format'
 import api from '../../config/axios.config'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useUnreadCount } from '../../hooks/useNotifications'
 
 function NavIcon({ name, size = 16, ...props }) {
   const Icon = Icons[name] || Icons.Circle
@@ -27,10 +28,15 @@ function NavIcon({ name, size = 16, ...props }) {
 }
 
 function useBadgeCount(endpoint) {
+  // A notifications badge shows THE unread count (the bell's and the page's),
+  // whatever endpoint the nav row was configured with — it showed a third,
+  // differently counted number, refreshed on its own minute-long clock.
+  const isNotifications = !!endpoint && endpoint.startsWith('/v1/notifications')
+  const unread = useUnreadCount()
   const { data } = useQuery({
     queryKey: ['nav-badge', endpoint],
     queryFn:  () => api.get(endpoint),
-    enabled:  !!endpoint,
+    enabled:  !!endpoint && !isNotifications,
     refetchInterval: 60_000,
     // Two unwraps, not one. queryFn returns the axios RESPONSE, so d.data is
     // the ApiResponse envelope and d.data.data is the value. Checking only
@@ -49,7 +55,7 @@ function useBadgeCount(endpoint) {
       return 0
     },
   })
-  return data ?? 0
+  return isNotifications ? unread : (data ?? 0)
 }
 
 // ── Fixed color tokens per sidebar theme ─────────────────────────────────────
@@ -155,7 +161,7 @@ function getSidebarTokens(theme) {
   }
 }
 
-// ── KashiGRC Logo Mark ────────────────────────────────────────────────────────
+// ── KashiGuard Logo Mark ────────────────────────────────────────────────────────
 function KashiLogo({ size = 28, className }) {
   return (
     <div className={cn(
@@ -697,7 +703,7 @@ export function Sidebar({ collapsed, onToggle }) {
   const visible        = useMemo(() => filterNav(grouped, navQuery), [grouped, navQuery])
   const searching      = navQuery.trim().length > 0
   const searchRef      = useRef(null)
-  const displayName    = branding?.companyName || 'KashiGRC'
+  const displayName    = branding?.companyName || 'KashiGuard'
 
   // Glass applies ONLY to the light sidebar: over the pastel wash it reads as
   // Two-tone: the nav area sits on the recessed panel colour; the top zone and

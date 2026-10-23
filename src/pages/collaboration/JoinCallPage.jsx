@@ -187,7 +187,7 @@ export default function JoinCallPage() {
       <div className="w-full max-w-md glass-card rounded-card shadow-overlay px-6 py-7">
         <div className="flex items-center gap-2 text-brand-ink">
           <Video size={18} />
-          <p className="text-xs font-semibold uppercase tracking-wide">KashiGRC call</p>
+          <p className="text-xs font-semibold uppercase tracking-wide">KashiGuard call</p>
         </div>
 
         {phase === 'checking' && (

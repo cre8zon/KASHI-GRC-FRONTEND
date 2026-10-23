@@ -20,6 +20,73 @@ export const useMarkRead = () => {
   })
 }
 
+/**
+ * THE unread count — every unread notification, from the server. The bell,
+ * the Notifications page and the sidebar badge all read this one query, so
+ * they cannot disagree. (They used to count three different things: the
+ * unread items on one page of the unread list, the unread items on one page
+ * of all notifications, and whatever the nav row's endpoint returned.)
+ * Under the notifications key, so every refresh of the list refreshes it.
+ */
+export const UNREAD_COUNT_KEY = [...QUERY_KEYS.NOTIFICATIONS, 'unread-count']
+export const useUnreadCount = () => {
+  const { data } = useQuery({
+    queryKey: UNREAD_COUNT_KEY,
+    queryFn:  () => notificationsApi.unreadCount(),
+    refetchInterval: 30 * 1000,
+    select: (d) => {
+      const v = d?.data?.count ?? d?.count ?? d
+      return typeof v === 'number' ? v : 0
+    },
+  })
+  return data ?? 0
+}
+
+export const useMarkAllRead = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => notificationsApi.readAll(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEYS.NOTIFICATIONS }),
+  })
+}
+
+/**
+ * Reads notifications about whatever is on screen. A notification is about a
+ * page — a chat, a task, a meeting, a record — and opening that page by any
+ * route (a link, the sidebar, a bookmark) means it has been seen, not only
+ * clicking it on the Notifications page. The server decides what matches
+ * (NotificationService.markVisited); list pages never mark anything.
+ *
+ * Reports: after each navigation (once it settles), and again when a new
+ * notification arrives while that page is open and the window is in front —
+ * a chat message landing in the chat you are reading. Never while the tab is
+ * in the background: then nobody has seen it.
+ */
+export function useReadOnVisit(pathname, search) {
+  const qc = useQueryClient()
+  const unread = useUnreadCount()
+  const last = useRef({ key: '', unread: -1 })
+  useEffect(() => {
+    if (unread === 0) { last.current.unread = 0; return undefined }
+    const key = pathname + search
+    const report = () => {
+      if (document.visibilityState !== 'visible') return
+      if (last.current.key === key && last.current.unread === unread) return
+      last.current = { key, unread }
+      notificationsApi.readVisited(pathname, search ? search.replace(/^\?/, '') : '')
+        .then((r) => {
+          const updated = r?.data?.updated ?? r?.updated ?? 0
+          if (updated > 0) qc.invalidateQueries({ queryKey: QUERY_KEYS.NOTIFICATIONS })
+        })
+        .catch(() => { /* not worth a toast — the poll catches up */ })
+    }
+    const t = setTimeout(report, 700)        // the page has settled (redirects, tab restores)
+    const onVisible = () => { if (document.visibilityState === 'visible') report() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { clearTimeout(t); document.removeEventListener('visibilitychange', onVisible) }
+  }, [pathname, search, unread]) // eslint-disable-line react-hooks/exhaustive-deps
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // SOUND
 // ═══════════════════════════════════════════════════════════════════════════
