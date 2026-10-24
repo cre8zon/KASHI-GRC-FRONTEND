@@ -21,7 +21,7 @@ import { useTenant, useUpdateTenant } from '../../../hooks/useTenants'
 import { PageLayout } from '../../../components/layout/PageLayout'
 import { Button } from '../../../components/ui/Button'
 import { PageSkeleton } from '../../../components/ui/EmptyState'
-import { ConfirmDialog } from '../../../components/ui/Modal'
+import { ConfirmDialog, Modal } from '../../../components/ui/Modal'
 import { tenantsApi } from '../../../api/tenants.api'
 import { authApi } from '../../../api/auth.api'
 import { DetailTabs, StatusPill, useUrlTab } from '../../../components/billing/billingShared'
@@ -50,6 +50,7 @@ export default function TenantDetailPage() {
   const { data: tenant, isLoading } = useTenant(id)
   const { mutate: updateTenant, isPending } = useUpdateTenant()
   const [confirmSuspend, setConfirmSuspend] = useState(false)
+  const [suspendReason,  setSuspendReason]  = useState('')
   const [confirmResend, setConfirmResend] = useState(false)
 
   const { data: tenantOwner } = useQuery({
@@ -103,6 +104,12 @@ export default function TenantDetailPage() {
       <span className="text-text-faint shrink-0">/</span>
       <span className="truncate font-medium">{tenant.name}</span>
       <StatusPill status={tenant.status} />
+      {tenant.status === 'SUSPENDED' && tenant.readOnlyUntil && (
+        <span className="text-[11px] text-status-warn-fg shrink-0"
+          title="Its people can view and export until then; after that access is blocked">
+          read-only until {new Date(tenant.readOnlyUntil).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+        </span>
+      )}
       {tenant.isAuditFirm && <StatusPill status="APPROVED" label="Audit firm" tone="tag" />}
       {tenant.plan && <span className="text-[11px] text-text-muted font-mono shrink-0">{tenant.plan}</span>}
     </div>
@@ -135,19 +142,35 @@ export default function TenantDetailPage() {
         {tab === 'audit-firm'   && <FirmApplicationPanel tenantId={tenant.tenantId} tenantName={tenant.name} focusId={params.get('app')} />}
       </div>
 
-      <ConfirmDialog
-        open={confirmSuspend}
-        onClose={() => setConfirmSuspend(false)}
-        onConfirm={() => updateTenant(
-          { id: tenant.tenantId, data: { status: 'SUSPENDED' } },
-          { onSuccess: () => setConfirmSuspend(false) }
-        )}
-        title="Suspend Tenant"
-        confirmLabel="Suspend"
-        variant="danger"
-        loading={isPending}
-        message={`This will suspend ${tenant.name} and restrict their access. All data will be preserved.`}
-      />
+      {/* Suspending an organisation: a reason is required (kept in its status
+          history). Its people get a read-only grace period — they can view
+          and export, not change — then access is blocked. Data is kept. */}
+      <Modal open={confirmSuspend} onClose={() => { setConfirmSuspend(false); setSuspendReason('') }} size="sm"
+        title="Suspend organisation"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => { setConfirmSuspend(false); setSuspendReason('') }}>Cancel</Button>
+            <Button variant="danger" size="sm" loading={isPending} disabled={!suspendReason.trim()}
+              onClick={() => updateTenant(
+                { id: tenant.tenantId, data: { status: 'SUSPENDED', statusReason: suspendReason.trim() } },
+                { onSuccess: () => { setConfirmSuspend(false); setSuspendReason('') } }
+              )}>Suspend</Button>
+          </div>
+        }>
+        <div className="space-y-3 text-sm text-text-secondary">
+          <p>
+            Suspend <span className="font-semibold text-text-primary">{tenant.name}</span>? Its people can still sign in,
+            view and export for a grace period, but can't change anything. After that, access is blocked until you
+            activate it again. No data is deleted.
+          </p>
+          <label className="block">
+            <span className="text-xs font-medium text-text-secondary">Reason <span className="text-status-fail-fg">*</span></span>
+            <textarea value={suspendReason} onChange={e => setSuspendReason(e.target.value)} rows={3}
+              placeholder="e.g. Invoice INV-2026-014 unpaid for 60 days"
+              className="mt-1 w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary" />
+          </label>
+        </div>
+      </Modal>
 
       <ConfirmDialog
         open={confirmResend}

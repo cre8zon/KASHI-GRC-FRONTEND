@@ -1,7 +1,8 @@
+import { accountAccessStore } from '../store/accountAccessStore'
 import axios from 'axios'
 import { store } from '../store'
 import { queryClient } from './queryClient'
-import { SESSION_CODES, isAuthEndpoint, canRefresh, refreshSession, endSession, isRefreshRefused } from '../lib/session'
+import { SESSION_CODES, BLOCKED_CODES, isAuthEndpoint, canRefresh, refreshSession, endSession, isRefreshRefused, endReasonFor } from '../lib/session'
 import { isJwtExpired } from '../lib/jwt'
 
 const api = axios.create({
@@ -92,6 +93,8 @@ function invalidateForUrl(url) {
 
 api.interceptors.response.use(
   (response) => {
+    // Read-only organisation (suspended, in its grace period) → app banner.
+    accountAccessStore.fromHeaders(response.headers)
     // On any successful mutation, invalidate related cache keys globally
     const method = response.config?.method?.toLowerCase()
     if (MUTATION_METHODS.has(method)) {
@@ -101,6 +104,7 @@ api.interceptors.response.use(
     return response.data?.data ?? response.data
   },
   async (error) => {
+    if (error.response) accountAccessStore.fromHeaders(error.response.headers)
     const httpStatus = error.response?.status
     const code       = error.response?.data?.error?.code
     const cfg        = error.config || {}
@@ -116,13 +120,30 @@ api.interceptors.response.use(
     // answered an expired token with an empty 403. We only treat it as expiry
     // when our own token says it has expired, so a genuine permission 403 is
     // never mistaken for a sign-out.
+    // Suspended account, organisation or vendor: sign out at once and say why.
+    // A refresh would be refused the same way, so none is attempted.
+    if (httpStatus === 401 && BLOCKED_CODES[code] && store.getState().auth.isAuthenticated && !isAuthEndpoint(url)) {
+      endSession(BLOCKED_CODES[code])
+    }
+
     const sessionOver =
-      store.getState().auth.isAuthenticated && !isAuthEndpoint(url) && (
+      store.getState().auth.isAuthenticated && !isAuthEndpoint(url) && !BLOCKED_CODES[code] && (
         (httpStatus === 401 && (!code || SESSION_CODES.has(code))) ||
         (httpStatus === 403 && !code && isJwtExpired(store.getState().auth.token))
       )
 
     if (sessionOver) {
+      // Sent with a token that has since been renewed (a burst of requests on
+      // waking: the first renewal already happened while these were out).
+      // Replay with the new one — renewing again would rotate the refresh
+      // token for nothing, and each rotation is another chance for a tab
+      // that missed it to be refused.
+      const sentWith = String(cfg.headers?.get?.('Authorization') ?? cfg.headers?.Authorization ?? '').replace(/^Bearer /, '')
+      const current  = store.getState().auth.token
+      if (!cfg._kashiRetried && sentWith && current && sentWith !== current && !isJwtExpired(current)) {
+        cfg._kashiRetried = true
+        return api(cfg)
+      }
       if (!cfg._kashiRetried && canRefresh()) {
         try {
           await refreshSession()
@@ -133,7 +154,7 @@ api.interceptors.response.use(
           // Signed out only if the server refused the renewal. If it could
           // not be reached, this request fails like any other while the
           // server is down, and the session is renewed once it is back.
-          if (isRefreshRefused(refreshErr)) endSession('expired')
+          if (isRefreshRefused(refreshErr)) endSession(endReasonFor(refreshErr))
         }
       } else {
         endSession(code === 'AUTH_TOKEN_INVALID' ? 'invalid' : 'expired')

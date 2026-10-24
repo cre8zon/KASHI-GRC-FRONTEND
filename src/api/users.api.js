@@ -6,8 +6,16 @@ export const usersApi = {
   create:   (data)       => api.post('/v1/users', data),
   update:   (id, data)   => api.put(`/v1/users/${id}`, data),
   remove:   (id)         => api.delete(`/v1/users/${id}`),
-  suspend:  (id)         => api.patch(`/v1/users/${id}/suspend`),
+  // reason is kept in the account's status history (who, when, why)
+  suspend:  (id, reason) => api.patch(`/v1/users/${id}/suspend`, reason ? { reason } : {}),
   activate: (id)         => api.patch(`/v1/users/${id}/activate`),
+  /** What suspending this person affects: { is_owner, blocking_responsibilities: { open_tasks, active_delegations } } */
+  responsibilities: (id) => api.get(`/v1/users/${id}/responsibilities`),
+  statusHistory:    (id) => api.get(`/v1/users/${id}/status-history`),
+  /** The caller's organisation's owner: { ownerUserId } */
+  owner:    ()           => api.get('/v1/users/owner'),
+  /** Transfer ownership to this person — the current owner only. */
+  makeOwner: (id, reason) => api.post(`/v1/users/${id}/make-owner`, reason ? { reason } : {}),
   changePassword: (data) => api.put('/v1/users/password', data),  // backend: PUT /v1/users/password
 
   /** Invite — creates user AND sends welcome email with temp password */

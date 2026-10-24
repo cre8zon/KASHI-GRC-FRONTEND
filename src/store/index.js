@@ -55,18 +55,30 @@ export const store = configureStore({
 })
 
 // Already signed in at load (a refresh): record whose tabs these are.
-if (store.getState().auth.isAuthenticated) store.dispatch(claimTabs(store.getState().auth.userId))
+// Tabs are per person AND organisation (see tabsSlice.claimTabs).
+const tabOwnerKey = (a) => (a.tenantId != null ? `${a.userId}@${a.tenantId}` : String(a.userId))
+if (store.getState().auth.isAuthenticated) {
+  const a = store.getState().auth
+  store.dispatch(claimTabs({ userId: a.userId, tenantId: a.tenantId }))
+  saveTabs(store.getState().tabs)
+}
 
 let lastAuth = store.getState().auth
 let lastTabs = store.getState().tabs
 store.subscribe(() => {
   const currentAuth = store.getState().auth
   if (currentAuth !== lastAuth) {
+    const wasSignedIn = !!lastAuth?.isAuthenticated
     lastAuth = currentAuth
     if (currentAuth.isAuthenticated) {
       saveAuth(currentAuth)
-      // Tabs belong to whoever opened them (see tabsSlice.claimTabs).
-      if (String(store.getState().tabs.owner) !== String(currentAuth.userId)) store.dispatch(claimTabs(currentAuth.userId))
+      // Tabs belong to whoever opened them, in that organisation. A change
+      // while already signed in is an organisation switch: the tab on screen
+      // comes along (TenantSync switched under it). A fresh sign-in starts
+      // from that organisation's own tabs.
+      if (String(store.getState().tabs.owner) !== tabOwnerKey(currentAuth)) {
+        store.dispatch(claimTabs({ userId: currentAuth.userId, tenantId: currentAuth.tenantId, keepActive: wasSignedIn }))
+      }
     } else {
       clearAuth()
     }

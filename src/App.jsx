@@ -13,12 +13,13 @@ import { ThemeProvider } from './providers/ThemeProvider'
 import { CallDock } from './components/collab/call/CallDock'
 import { SessionManager } from './components/layout/SessionManager'
 import { PageSkeleton } from './components/ui/EmptyState'
-import { peekPostLoginTarget, joinOpenSession, subscribeJoin, isJoinPending } from './lib/session'
+import { peekPostLoginTarget, subscribeJoin, isJoinPending } from './lib/session'
 
-// A tab opened while another tab of this browser is signed in takes over its
-// session instead of starting at the sign-in page (see lib/session). Started
-// here, before the first render, so RequireAuth knows to wait for it.
-joinOpenSession()
+// Each tab is its own sign-in: several people (or one person in several
+// organisations) can work side by side in one browser. A new tab does NOT take
+// over another tab's session by itself any more — that made every new tab the
+// same user, and signing out there to switch user signed the first tab out too.
+// The sign-in page offers "Continue as …" instead (lib/session listPeerSessions).
 
 // ── Page preloading ───────────────────────────────────────────────────────────
 // Pages stay code-split (a fast first load), but once the app is up and idle

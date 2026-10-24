@@ -13,6 +13,7 @@
  *   and if that fails the user lands on the sign-in page with a message that
  *   says what happened and is returned to where they were afterwards.
  */
+import { accountAccessStore } from '../store/accountAccessStore'
 import axios from 'axios'
 import { store } from '../store'
 import { logout, sessionRefreshed, sessionAdopted } from '../store/slices/authSlice'
@@ -27,6 +28,24 @@ const BROADCAST_KEY = 'kashi_logout_broadcast'
 
 /** 401 codes that mean "this session is over" (vs. a wrong password etc.). */
 export const SESSION_CODES = new Set(['AUTH_SESSION_EXPIRED', 'AUTH_TOKEN_INVALID', 'AUTH_REQUIRED'])
+
+/**
+ * 401 codes meaning "this account may not be used any more" — the user, their
+ * organisation or their vendor was suspended (AccountAccessService on the
+ * server). No refresh is attempted: a new token would be refused just the same.
+ * The value is the reason shown on the sign-in page.
+ */
+export const BLOCKED_CODES = {
+  AUTH_ACCOUNT_SUSPENDED: 'account_suspended',
+  AUTH_TENANT_SUSPENDED:  'tenant_suspended',
+  AUTH_VENDOR_SUSPENDED:  'vendor_suspended',
+}
+
+/** The sign-in page reason for an error that ended the session. */
+export function endReasonFor(err, fallback = 'expired') {
+  const code = err?.response?.data?.error?.code || err?.code
+  return BLOCKED_CODES[code] || fallback
+}
 
 /** Endpoints whose 401 is about the credentials in the body, not the session. */
 const AUTH_ENDPOINT = /\/v1\/auth\/(login|refresh|logout|request-password-reset|reset-password)\b/
@@ -97,7 +116,32 @@ export function askPeers({ userId, tenantId, timeoutMs = 500 } = {}) {
   })
 }
 
+/**
+ * Every live session held by the other open tabs, one per person+organisation,
+ * for the sign-in page's "Continue as …". Collects answers for timeoutMs.
+ */
+export function listPeerSessions(timeoutMs = 600) {
+  if (!channel) return Promise.resolve([])
+  const nonce = Math.random().toString(36).slice(2)
+  const found = new Map()
+  return new Promise((resolve) => {
+    waiters.set(nonce, (auth) => {
+      if (!liveAuth(auth)) return
+      const key = `${auth.userId}@${auth.tenantId}`
+      if (!found.has(key)) found.set(key, auth)
+    })
+    setTimeout(() => { waiters.delete(nonce); resolve([...found.values()]) }, timeoutMs)
+    post({ type: 'ask', nonce, userId: null, tenantId: null })
+  })
+}
+
+/** Take over a session another tab offered (the sign-in page's "Continue as …"). */
+export function adoptPeerSession(auth) {
+  if (liveAuth(auth)) store.dispatch(sessionAdopted(auth))
+}
+
 // ── A new tab picks up the session of a tab already open ─────────────────────
+// No longer called at start-up (see App.jsx); kept for an explicit join.
 // RequireAuth waits for this (a moment) before sending anyone to sign in.
 let joinPending = false
 const joinListeners = new Set()
@@ -170,7 +214,17 @@ export function refreshSession() {
         // Refused — most often because another tab renewed it while this one
         // was asleep in the background and missed the message. Ask before
         // giving up.
-        const peer = await askPeers({ userId, tenantId })
+        //
+        // First: the renewal may have landed here while our request was out
+        // (a 'rotated' message from the tab that won).
+        const cur = store.getState().auth
+        if (cur.isAuthenticated && cur.refreshToken !== refreshToken && cur.token && !isJwtExpired(cur.token)) {
+          return cur.token
+        }
+        // Then ask the other tabs. Just after the laptop wakes they are all
+        // thawing at once, so give them a proper moment, twice.
+        const peer = (await askPeers({ userId, tenantId, timeoutMs: 1500 }))
+                  || (await askPeers({ userId, tenantId, timeoutMs: 2500 }))
         if (peer && peer.refreshToken !== refreshToken) {
           store.dispatch(sessionAdopted(peer))
           return peer.token
@@ -205,6 +259,7 @@ export function endSession(reason = 'expired', { broadcast = true } = {}) {
   if (ending) return
   if (!store.getState().auth.isAuthenticated) return
   ending = true
+  const endingUserId = store.getState().auth.userId
 
   // Revoke the refresh token server-side (fire-and-forget). Without this a
   // copied refresh token kept minting sessions for its full lifetime after
@@ -222,11 +277,14 @@ export function endSession(reason = 'expired', { broadcast = true } = {}) {
 
   store.dispatch(logout())
   queryClient.clear()
+  accountAccessStore.reset()
 
   if (broadcast) {
     // Other tabs listen for this (SessionManager) and sign out too, so a shared
     // computer is never left with a live tab after "Sign out".
-    try { localStorage.setItem(BROADCAST_KEY, `${Date.now()}:${reason}`) } catch { /* */ }
+    // Carries who signed out: only that person's other tabs follow, so a
+    // colleague signed in next door in the same browser stays signed in.
+    try { localStorage.setItem(BROADCAST_KEY, `${Date.now()}:${reason}:${endingUserId ?? ''}`) } catch { /* */ }
   }
 
   setTimeout(() => {

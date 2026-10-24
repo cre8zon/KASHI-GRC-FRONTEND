@@ -4,9 +4,10 @@ import { Clock, LogOut } from 'lucide-react'
 import { selectAuth } from '../../store/slices/authSlice'
 import { jwtExpiryMs } from '../../lib/jwt'
 import {
-  canRefresh, refreshSession, endSession, isRefreshRefused, SESSION_BROADCAST_KEY,
+  canRefresh, refreshSession, endSession, isRefreshRefused, endReasonFor, SESSION_BROADCAST_KEY,
 } from '../../lib/session'
 import { Button } from '../ui/Button'
+import { store } from '../../store'
 
 /**
  * SessionManager — keeps a signed-in session healthy, and ends it cleanly.
@@ -100,7 +101,7 @@ export function SessionManager() {
       // connection that dropped is not the user's session ending — keep it,
       // and try again shortly (the top banner already says the server is
       // unreachable).
-      if (isRefreshRefused(err)) endSession('expired')
+      if (isRefreshRefused(err)) endSession(endReasonFor(err))
       else retryAt.current = Date.now() + RETRY_AFTER_MS
     }
     finally { renewing.current = false }
@@ -155,8 +156,17 @@ export function SessionManager() {
   useEffect(() => {
     const onStorage = (e) => {
       if (e.key !== SESSION_BROADCAST_KEY || !e.newValue) return
-      const reason = e.newValue.split(':')[1] || 'signed_out'
-      endSession(reason === 'signed_out' ? 'signed_out_elsewhere' : reason, { broadcast: false })
+      const [, r, who] = e.newValue.split(':')
+      const reason = r || 'signed_out'
+      // Someone else signing out in their own tab is not this tab's business.
+      if (who && String(who) !== String(store.getState().auth.userId)) return
+      // Only a deliberate "Sign out" signs every tab out (a shared computer
+      // must not keep a live tab). A session that ran out or was refused in
+      // ONE tab says nothing about the others: they may hold another session
+      // entirely, or the same one already renewed. Following those took every
+      // tab down whenever one tab woke from sleep a step behind the others.
+      if (reason !== 'signed_out') return
+      endSession('signed_out_elsewhere', { broadcast: false })
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)

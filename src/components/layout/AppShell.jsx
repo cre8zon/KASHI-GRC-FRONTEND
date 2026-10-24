@@ -11,6 +11,7 @@ import { useBootstrap }       from '../../hooks/useUIConfig'
 import { PageSkeleton }       from '../ui/EmptyState'
 import { useServerStatus }    from '../../hooks/useServerStatus'
 import { ServerStatusBanner } from '../ui/ServerStatusBanner'
+import { ReadOnlyBanner }     from '../ui/ReadOnlyBanner'
 import { useChatPresenceFeed } from '../../hooks/useChatPresence'
 
 export function AppShell() {
@@ -48,6 +49,9 @@ export function AppShell() {
           the server banner because a server that is down is the more urgent
           news. */}
       <NotificationPermissionPrompt />
+
+      {/* Suspended organisation, within its read-only grace period. */}
+      <ReadOnlyBanner />
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(o => !o)} />

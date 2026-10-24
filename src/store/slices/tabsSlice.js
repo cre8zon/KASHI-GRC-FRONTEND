@@ -28,6 +28,8 @@ const initialState = {
   // the same person signing back in returns to where they were — but a
   // DIFFERENT person signing in on this browser tab must not inherit them.
   owner:       null,
+  // Other organisations' tab sets for the same person: { 'user@tenant': {tabs, activeTabId} }
+  saved:       {},
 }
 
 const CALL_ROUTE = '/call'
@@ -128,16 +130,50 @@ const tabsSlice = createSlice({
 
     setCallLock: (state, { payload }) => { state.callLock = !!payload },
 
-    // Signed in as `userId`: keep the tabs if they are theirs, otherwise start
-    // from a clean Dashboard (tabs from before ownership was recorded are
-    // kept — they can only be from this browser tab's own session).
-    claimTabs: (state, { payload: userId }) => {
+    // Tabs belong to one person IN ONE ORGANISATION. Their routes carry ids —
+    // /chat/8, /module/vendor/53 — that mean nothing (or something else) in
+    // another organisation: signing in to Aurevia with the platform tenant's
+    // tabs still open sent the Chat tab to conversation 8, which Aurevia does
+    // not have, and "That conversation is not available" greeted every sign-in.
+    //
+    // So each person+organisation keeps its own set. Moving to another
+    // organisation puts the current set aside and brings back that
+    // organisation's (or a clean Dashboard); coming back restores them.
+    //
+    // keepActive — the switch happened while standing on a page of the new
+    //   organisation (TenantSync), so that page's tab comes along and stays
+    //   active; anything else would navigate away from where the user is.
+    claimTabs: (state, { payload }) => {
+      const { userId, tenantId, keepActive } =
+        payload != null && typeof payload === 'object' ? payload : { userId: payload }
       if (userId == null) return
-      if (state.owner != null && String(state.owner) !== String(userId)) {
-        state.tabs = [HOME_TAB]
-        state.activeTabId = 'home'
+      const key  = tenantId != null ? `${userId}@${tenantId}` : String(userId)
+      const prev = state.owner == null ? null : String(state.owner)
+      // Saved before the organisation was part of the key: same person, keep.
+      const legacySame = prev != null && !prev.includes('@') && prev === String(userId)
+      if (prev != null && prev !== key && !legacySame) {
+        const saved = { ...(state.saved || {}) }
+        // Only this person's sets are kept; someone else's go.
+        const mine = (k) => k.split('@')[0] === String(userId)
+        if (prev.split('@')[0] === String(userId)) {
+          saved[prev] = { tabs: state.tabs.filter(t => pathOf(t.route) !== CALL_ROUTE), activeTabId: state.activeTabId }
+        }
+        Object.keys(saved).forEach(k => { if (!mine(k)) delete saved[k] })
+        const carry = keepActive ? state.tabs.find(t => t.id === state.activeTabId && t.id !== 'home') : null
+        const restored = saved[key]
+        delete saved[key]
+        let tabs = restored?.tabs?.length ? restored.tabs : [HOME_TAB]
+        let activeTabId = restored && tabs.some(t => t.id === restored.activeTabId) ? restored.activeTabId : 'home'
+        if (carry) {
+          const same = tabs.find(t => t.route === carry.route)
+          if (same) activeTabId = same.id
+          else { tabs = [...tabs, carry]; activeTabId = carry.id }
+        }
+        state.tabs = tabs
+        state.activeTabId = activeTabId
+        state.saved = saved
       }
-      state.owner = userId
+      state.owner = key
     },
 
     // Update a tab's title (called when page resolves entity name)
