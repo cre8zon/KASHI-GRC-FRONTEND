@@ -86,6 +86,15 @@ const authSlice = createSlice({
      * whatever the server now says about roles/permissions change, so a role
      * granted or revoked since sign-in takes effect without a re-login.
      */
+    /**
+     * Take over the session another tab of this browser holds (lib/session):
+     * its renewed tokens, or — for a tab opened without one — the whole
+     * signed-in state. Same browser, same origin; nothing leaves the device.
+     */
+    sessionAdopted(state, { payload }) {
+      if (!payload?.isAuthenticated || !payload?.token || !payload?.refreshToken) return
+      return { ...state, ...payload }
+    },
     sessionRefreshed(state, { payload }) {
       const { user, session } = payload || {}
       if (!session?.token) return
@@ -121,7 +130,7 @@ const authSlice = createSlice({
   },
 })
 
-export const { loginSuccess, logout, tenantSwitched, sessionRefreshed, updateToken, validateSession, updateContext } = authSlice.actions
+export const { loginSuccess, logout, tenantSwitched, sessionRefreshed, sessionAdopted, updateToken, validateSession, updateContext } = authSlice.actions
 export default authSlice.reducer
 
 export const selectAuth            = (s) => s.auth

@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from 'react'
+import { useEffect, lazy, Suspense, useSyncExternalStore } from 'react'
 import { useDispatch } from 'react-redux'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useSelector } from 'react-redux'
@@ -12,7 +12,13 @@ import { AppShell } from './components/layout/AppShell'
 import { ThemeProvider } from './providers/ThemeProvider'
 import { CallDock } from './components/collab/call/CallDock'
 import { SessionManager } from './components/layout/SessionManager'
-import { peekPostLoginTarget } from './lib/session'
+import { PageSkeleton } from './components/ui/EmptyState'
+import { peekPostLoginTarget, joinOpenSession, subscribeJoin, isJoinPending } from './lib/session'
+
+// A tab opened while another tab of this browser is signed in takes over its
+// session instead of starting at the sign-in page (see lib/session). Started
+// here, before the first render, so RequireAuth knows to wait for it.
+joinOpenSession()
 
 // ── Page preloading ───────────────────────────────────────────────────────────
 // Pages stay code-split (a fast first load), but once the app is up and idle
@@ -177,6 +183,10 @@ function PageLoader() {
 function RequireAuth({ children }) {
   const isAuthenticated = useSelector(selectIsAuthenticated)
   const location        = useLocation()
+  // A tab just opened may be picking up the session of a tab already open
+  // (lib/session joinOpenSession) — a moment, not a trip to the sign-in page.
+  const joining = useSyncExternalStore(subscribeJoin, isJoinPending)
+  if (!isAuthenticated && joining) return <div className="p-6"><PageSkeleton /></div>
   if (!isAuthenticated) return <Navigate to="/auth/login" state={{ from: location }} replace />
   return children
 }

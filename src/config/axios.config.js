@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { store } from '../store'
 import { queryClient } from './queryClient'
-import { SESSION_CODES, isAuthEndpoint, canRefresh, refreshSession, endSession } from '../lib/session'
+import { SESSION_CODES, isAuthEndpoint, canRefresh, refreshSession, endSession, isRefreshRefused } from '../lib/session'
 import { isJwtExpired } from '../lib/jwt'
 
 const api = axios.create({
@@ -129,8 +129,11 @@ api.interceptors.response.use(
           cfg._kashiRetried = true
           // The request interceptor re-reads the (now refreshed) token.
           return api(cfg)
-        } catch {
-          endSession('expired')
+        } catch (refreshErr) {
+          // Signed out only if the server refused the renewal. If it could
+          // not be reached, this request fails like any other while the
+          // server is down, and the session is renewed once it is back.
+          if (isRefreshRefused(refreshErr)) endSession('expired')
         }
       } else {
         endSession(code === 'AUTH_TOKEN_INVALID' ? 'invalid' : 'expired')
