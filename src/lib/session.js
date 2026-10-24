@@ -15,7 +15,7 @@
  */
 import axios from 'axios'
 import { store } from '../store'
-import { logout, sessionRefreshed } from '../store/slices/authSlice'
+import { logout, sessionRefreshed, sessionAdopted } from '../store/slices/authSlice'
 import { queryClient } from '../config/queryClient'
 import { isJwtExpired } from './jwt'
 
@@ -33,8 +33,104 @@ const AUTH_ENDPOINT = /\/v1\/auth\/(login|refresh|logout|request-password-reset|
 
 export function isAuthEndpoint(url = '') { return AUTH_ENDPOINT.test(url) }
 
-// ── Refresh (single-flight) ───────────────────────────────────────────────────
+// ── Tabs of this browser share one session ───────────────────────────────────
+//
+// Why: each tab used to keep its own copy of the tokens. Renewing rotates the
+// refresh token (the old one stops working a minute later), so when tab A
+// renewed, tab B's copy went stale; B's next renewal was refused, B signed
+// out and broadcast "sign out" to every tab — everyone was logged out about
+// once an hour with two tabs open. And a new tab started signed out.
+//
+// Now, over a BroadcastChannel (same browser, same origin only):
+//   'rotated' — "I renewed the session you also hold; here are the new
+//               tokens." Only a tab holding exactly the old refresh token
+//               takes them, so tabs signed in to another organisation, or as
+//               someone else, are never touched.
+//   'ask'     — a tab without a session (just opened), or one whose renewal
+//               was refused, asks whether another tab holds a live one;
+//   'answer'  — a signed-in tab replies with its session.
+// Closing the browser still ends a session that was not "Keep me signed in":
+// it lives only in open tabs (sessionStorage), never on disk.
+const CHANNEL = 'kashi_session'
+const TAB_ID = Math.random().toString(36).slice(2) + Date.now().toString(36)
+let channel = null
+try { if (typeof BroadcastChannel !== 'undefined') channel = new BroadcastChannel(CHANNEL) } catch { channel = null }
+const post = (msg) => { try { channel?.postMessage({ ...msg, tabId: TAB_ID }) } catch { /* closed */ } }
+const waiters = new Map()
+
+const liveAuth = (a) => !!(a?.isAuthenticated && a.token && a.refreshToken && !isJwtExpired(a.refreshToken))
+
+if (channel) {
+  channel.onmessage = (e) => {
+    const msg = e?.data || {}
+    if (!msg.type || msg.tabId === TAB_ID) return
+    const auth = store.getState().auth
+    if (msg.type === 'rotated') {
+      if (auth.isAuthenticated && auth.refreshToken && auth.refreshToken === msg.from && liveAuth(msg.auth)) {
+        store.dispatch(sessionAdopted(msg.auth))
+      }
+    } else if (msg.type === 'ask') {
+      if (!liveAuth(auth) || ending) return
+      if (msg.userId != null && String(msg.userId) !== String(auth.userId)) return
+      if (msg.tenantId != null && String(msg.tenantId) !== String(auth.tenantId)) return
+      post({ type: 'answer', nonce: msg.nonce, auth })
+    } else if (msg.type === 'answer') {
+      waiters.get(msg.nonce)?.(msg.auth)
+    }
+  }
+}
+
+/**
+ * Ask the other open tabs for a live session (optionally: this user, this
+ * organisation). Resolves to their auth state, or null after timeoutMs.
+ */
+export function askPeers({ userId, tenantId, timeoutMs = 500 } = {}) {
+  if (!channel) return Promise.resolve(null)
+  const nonce = Math.random().toString(36).slice(2)
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => { waiters.delete(nonce); resolve(null) }, timeoutMs)
+    waiters.set(nonce, (auth) => {
+      if (!liveAuth(auth)) return
+      clearTimeout(timer); waiters.delete(nonce); resolve(auth)
+    })
+    post({ type: 'ask', nonce, userId: userId ?? null, tenantId: tenantId ?? null })
+  })
+}
+
+// ── A new tab picks up the session of a tab already open ─────────────────────
+// RequireAuth waits for this (a moment) before sending anyone to sign in.
+let joinPending = false
+const joinListeners = new Set()
+export const isJoinPending = () => joinPending
+export const subscribeJoin = (l) => { joinListeners.add(l); return () => joinListeners.delete(l) }
+export function joinOpenSession() {
+  if (store.getState().auth.isAuthenticated || !channel) return
+  // Not straight after a sign-out: that tab is on the sign-in page on purpose.
+  try { if (sessionStorage.getItem(REASON_KEY)) return } catch { /* */ }
+  joinPending = true
+  joinListeners.forEach(l => l())
+  askPeers({ timeoutMs: 600 }).then((auth) => {
+    if (auth && !store.getState().auth.isAuthenticated) store.dispatch(sessionAdopted(auth))
+  }).finally(() => {
+    joinPending = false
+    joinListeners.forEach(l => l())
+  })
+}
+
+// ── Refresh (single-flight, one tab at a time) ────────────────────────────────
 let inFlight = null
+
+/**
+ * True when the server REFUSED the renewal (the session really is over), as
+ * opposed to not answering: a restart, a dropped connection, a laptop waking
+ * up offline. Only a refusal may sign anyone out — a failure to reach the
+ * server is retried, and the session carries on once it answers.
+ */
+export function isRefreshRefused(err) {
+  if (err?.message === 'NO_REFRESH_TOKEN') return true
+  const s = err?.response?.status
+  return s === 400 || s === 401 || s === 403
+}
 
 /** True when a refresh is possible at all (a refresh token that hasn't expired). */
 export function canRefresh() {
@@ -52,18 +148,43 @@ export function refreshSession() {
   if (inFlight) return inFlight
   if (!canRefresh()) return Promise.reject(new Error('NO_REFRESH_TOKEN'))
 
-  const { refreshToken, tenantId } = store.getState().auth
-  inFlight = axios
-    // Raw axios on purpose: the app instance's interceptors would treat a 401
-    // here as yet another expired call and recurse.
-    .post(`${BASE_URL}/v1/auth/refresh`, { refreshToken, tenantId }, { timeout: 20_000 })
-    .then((res) => {
+  const startedWith = store.getState().auth.refreshToken
+  const run = async () => {
+    // Another tab may have renewed this very session while we waited for the
+    // lock — its new tokens are already here ('rotated'). Nothing to do.
+    const now = store.getState().auth
+    if (now.refreshToken !== startedWith && now.token && !isJwtExpired(now.token)) return now.token
+
+    const { refreshToken, tenantId, userId } = now
+    try {
+      // Raw axios on purpose: the app instance's interceptors would treat a
+      // 401 here as yet another expired call and recurse.
+      const res = await axios.post(`${BASE_URL}/v1/auth/refresh`, { refreshToken, tenantId }, { timeout: 20_000 })
       const payload = res.data?.data
       if (!payload?.session?.token) throw new Error('REFRESH_EMPTY')
       store.dispatch(sessionRefreshed(payload))
+      post({ type: 'rotated', from: refreshToken, auth: store.getState().auth })
       return payload.session.token
-    })
-    .finally(() => { inFlight = null })
+    } catch (err) {
+      if (isRefreshRefused(err)) {
+        // Refused — most often because another tab renewed it while this one
+        // was asleep in the background and missed the message. Ask before
+        // giving up.
+        const peer = await askPeers({ userId, tenantId })
+        if (peer && peer.refreshToken !== refreshToken) {
+          store.dispatch(sessionAdopted(peer))
+          return peer.token
+        }
+      }
+      throw err
+    }
+  }
+  // Web Locks: one renewal at a time across every tab of this browser, so two
+  // tabs never rotate the same refresh token against each other.
+  const locked = typeof navigator !== 'undefined' && navigator.locks?.request
+    ? navigator.locks.request('kashi_session_refresh', run)
+    : run()
+  inFlight = Promise.resolve(locked).finally(() => { inFlight = null })
   return inFlight
 }
 

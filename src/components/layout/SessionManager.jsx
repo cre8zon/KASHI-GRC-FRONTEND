@@ -4,7 +4,7 @@ import { Clock, LogOut } from 'lucide-react'
 import { selectAuth } from '../../store/slices/authSlice'
 import { jwtExpiryMs } from '../../lib/jwt'
 import {
-  canRefresh, refreshSession, endSession, SESSION_BROADCAST_KEY,
+  canRefresh, refreshSession, endSession, isRefreshRefused, SESSION_BROADCAST_KEY,
 } from '../../lib/session'
 import { Button } from '../ui/Button'
 
@@ -23,14 +23,30 @@ import { Button } from '../ui/Button'
  * Renders nothing except the idle warning dialog.
  */
 
-const IDLE_MINUTES     = Number(import.meta.env.VITE_SESSION_IDLE_MINUTES) || 30
+// Sign-out after this many minutes without any activity (in any tab).
+// 4 hours by default: long enough that chat left open through meetings keeps
+// its notifications, still a cap for an unattended computer. Closing the
+// browser ends the session anyway, unless "Keep me signed in" was ticked
+// (those sessions are exempt from this limit). VITE_SESSION_IDLE_MINUTES in
+// .env overrides it — set at build time, so rebuild after changing it.
+const DEFAULT_IDLE_MINUTES = 240
+const IDLE_MINUTES = Number(import.meta.env.VITE_SESSION_IDLE_MINUTES) || DEFAULT_IDLE_MINUTES
 const WARNING_SECONDS  = 60
 const RENEW_BEFORE_MS  = 2 * 60 * 1000     // renew 2 min before expiry
+const RETRY_AFTER_MS   = 30_000            // server not answering: try again in 30 s
 const TICK_MS          = 5_000
 const ACTIVITY_KEY     = 'kashi_last_activity'
 const ACTIVITY_WRITE_THROTTLE_MS = 10_000
 
 const IDLE_MS = IDLE_MINUTES * 60 * 1000
+
+/** 239 → "3 h 59 min", 120 → "2 hours", 29 → "29 minutes". */
+function idleLabel(min) {
+  if (min < 60) return `${min} minute${min === 1 ? '' : 's'}`
+  const h = Math.floor(min / 60), m = min % 60
+  if (!m) return `${h} hour${h === 1 ? '' : 's'}`
+  return `${h} h ${m} min`
+}
 
 function readLastActivity() {
   try { return Number(localStorage.getItem(ACTIVITY_KEY)) || Date.now() } catch { return Date.now() }
@@ -41,6 +57,7 @@ export function SessionManager() {
   const [warnLeft, setWarnLeft] = useState(null)   // seconds left, or null when no warning
   const lastWrite = useRef(0)
   const renewing  = useRef(false)
+  const retryAt   = useRef(0)
   const warnLeftRef = useRef(null)
   useEffect(() => { warnLeftRef.current = warnLeft }, [warnLeft])
 
@@ -70,14 +87,22 @@ export function SessionManager() {
     if (!exp) return
     const left = exp - Date.now()
     if (left > RENEW_BEFORE_MS) return
+    if (Date.now() < retryAt.current) return
 
     if (!canRefresh()) {
       if (left <= 0) endSession('expired')
       return
     }
     renewing.current = true
-    try { await refreshSession() }
-    catch { endSession('expired') }
+    try { await refreshSession(); retryAt.current = 0 }
+    catch (err) {
+      // Only a refusal ends the session. A server that is restarting or a
+      // connection that dropped is not the user's session ending — keep it,
+      // and try again shortly (the top banner already says the server is
+      // unreachable).
+      if (isRefreshRefused(err)) endSession('expired')
+      else retryAt.current = Date.now() + RETRY_AFTER_MS
+    }
     finally { renewing.current = false }
   }, [token])
 
@@ -169,7 +194,7 @@ export function SessionManager() {
           </div>
           <div>
             <h2 id="idle-title" className="text-base font-semibold text-text-primary">Are you still there?</h2>
-            <p className="text-xs text-text-muted">Inactive for {IDLE_MINUTES - 1} minutes</p>
+            <p className="text-xs text-text-muted">Inactive for {idleLabel(IDLE_MINUTES - 1)}</p>
           </div>
         </div>
         <p id="idle-desc" className="text-sm text-text-secondary leading-relaxed">
