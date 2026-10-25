@@ -150,6 +150,10 @@ export function UserPicker({
   excludeUserId,
   emptyHint,
   disabled,
+  // Name to show when the assigned person is not in `users` — someone assigned
+  // earlier who this step no longer offers. Without it the chip read as
+  // unassigned over a question that has an assignee.
+  valueName,
 }) {
   const [open, setOpen]     = useState(false)
   const [query, setQuery]   = useState('')
@@ -197,7 +201,11 @@ export function UserPicker({
       (u.email || '').toLowerCase().includes(q))
   }, [users, query, excludeUserId])
 
-  const selected = users.find(u => uid(u) === value)
+  // Compared as strings: ids arrive as numbers from one endpoint and strings
+  // from another, and a strict match silently showed nobody.
+  const selected = value == null ? undefined
+    : (users.find(u => String(uid(u)) === String(value))
+       || (valueName ? { id: value, fullName: valueName } : undefined))
 
   return (
     <div ref={ref} className="relative inline-block">
@@ -287,7 +295,7 @@ export function UserPicker({
                 onClick={(e) => { e.stopPropagation(); onChange(uid(u)); setOpen(false); setQuery('') }}
                 className={cn(
                   'w-full flex items-center gap-2 px-3 py-1.5 text-[11px] transition-colors hover:bg-surface-overlay text-left',
-                  uid(u) === value ? 'bg-brand-500/10 text-brand-ink' : 'text-text-secondary'
+                  String(uid(u)) === String(value) ? 'bg-brand-500/10 text-brand-ink' : 'text-text-secondary'
                 )}
               >
                 <div className="h-4 w-4 rounded-full bg-surface-overlay border border-border flex items-center justify-center text-[8px] font-bold shrink-0">
@@ -301,7 +309,7 @@ export function UserPicker({
                     </div>
                   )}
                 </div>
-                {uid(u) === value && <CheckCircle2 size={10} className="text-brand-ink shrink-0" />}
+                {String(uid(u)) === String(value) && <CheckCircle2 size={10} className="text-brand-ink shrink-0" />}
               </button>
             ))}
           </div>
@@ -1169,6 +1177,10 @@ export const P = {
   REVIEWER_REOPEN:      'assessment.section.reviewer_reopen',
   REMEDIATION_VALIDATE: 'assessment.remediation.validate',
   REMEDIATION_ESCALATE: 'assessment.remediation.escalate',
+  // Closing a finding without a vendor fix. Its own permission (sql
+  // db/tprm/03), so reviewers who raise and escalate findings do not also
+  // accept them; the accept-risk endpoint checks the same code.
+  REMEDIATION_ACCEPT_RISK: 'assessment.remediation.accept_risk',
   FINDINGS_EDIT:        'assessment.findings.edit',
   RISK_RATING:          'assessment.risk_rating.assign',
   STEP_SEND_BACK:       'assessment.step.send_back',

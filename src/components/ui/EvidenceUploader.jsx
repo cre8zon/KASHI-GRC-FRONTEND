@@ -278,6 +278,11 @@ export default function EvidenceUploader({
   className,
   /** Called after each successful upload — use to invalidate parent query caches */
   onUploadSuccess,
+  /**
+   * Optional: extra content under a file's row — e.g. its review state and
+   * Accept / Reject controls on issue remediation evidence. (doc) => node.
+   */
+  renderRowExtra,
 }) {
   // staleTime: 0 forces immediate refetch after upload invalidates the cache
   const { data: docs = [], isLoading } = useEntityDocuments(
@@ -366,16 +371,20 @@ export default function EvidenceUploader({
       ) : (
         <div className="space-y-1.5">
           {docs.map(doc => (
-            <DocumentRow
-              key={doc.linkId ?? doc.documentId}
-              doc={doc}
-              entityType={entityType}
-              entityId={entityId}
-              linkType={linkType}
-              canRemove={canRemove}
-              compact={compact}
-              onPreview={setPreviewDoc}
-            />
+            <div key={doc.linkId ?? doc.documentId}>
+              <DocumentRow
+                doc={doc}
+                entityType={entityType}
+                entityId={entityId}
+                linkType={linkType}
+                // A reviewed file stays on the record; the server refuses
+                // to remove it, so the page does not offer to.
+                canRemove={canRemove && !doc.reviewStatus}
+                compact={compact}
+                onPreview={setPreviewDoc}
+              />
+              {renderRowExtra ? renderRowExtra(doc) : null}
+            </div>
           ))}
         </div>
       )}

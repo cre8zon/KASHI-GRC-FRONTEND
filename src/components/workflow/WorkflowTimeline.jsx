@@ -315,14 +315,14 @@ function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
         {!isLast && <div className="w-px flex-1 bg-border/50 my-1 min-h-[12px]" />}
       </div>
 
-      {/* Card */}
+      {/* Card — frosted like every other card. glass-card supplies the fill,
+          rim and blur; only the current step overrides the border (utilities
+          win over the glass layer), and steps not yet reached are dimmed. */}
       <div className={cn(
-        'flex-1 mb-3 rounded-card border overflow-hidden',
+        'glass-card flex-1 mb-3 rounded-card overflow-hidden',
         step.isCurrentStep
-          ? 'border-brand-500/30 bg-brand-500/3'
-          : step.visited
-            ? 'border-border/60 bg-surface-raised'
-            : 'border-border/30 bg-surface-raised/50 opacity-60'
+          ? 'border-brand-500/40'
+          : !step.visited && 'opacity-60'
       )}>
         {/* Header */}
         <button
@@ -330,7 +330,7 @@ function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
           disabled={!step.visited}
           className={cn(
             'w-full flex items-center gap-2 px-3 py-2.5 text-left',
-            step.visited ? 'hover:bg-surface-overlay transition-colors cursor-pointer' : 'cursor-default'
+            step.visited ? 'hover:bg-brand-500/5 transition-colors cursor-pointer' : 'cursor-default'
           )}
         >
           <div className="flex-1 min-w-0">

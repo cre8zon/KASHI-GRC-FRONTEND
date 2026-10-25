@@ -34,6 +34,10 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
   readOnlyFields = [],    // from vc.readOnlyFields — fields rendered as read-only text
   editableFields = null,  // from vc.editableFields — when set, ONLY these are editable (null = all editable)
   contextParams = null,   // runtime params (e.g. { frameworkref }) injected into framework-scoped lookups
+  // onlyFormFields: submit just this form's own field keys. For a form opened
+  // with a whole record as defaultValues (to prefill it) — without this the
+  // record's every key goes back to the server. Default off: unchanged.
+  onlyFormFields = false,
   // ── Optional, additive hooks (no existing caller passes them) ──────────────
   // customFields: { [fieldKey]: ({ value, onChange, onBlur, error, values, field }) => node }
   //   Renders a page-supplied control for that field key while the field row
@@ -174,8 +178,10 @@ export function DynamicForm({ formKey, onSubmit, defaultValues = {}, extraConfig
       const tagKeys = new Set((fields || [])
         .filter(f => f.fieldType === 'TAG')
         .map(f => f.fieldKey))
-      const payload = Object.fromEntries(Object.entries(data).map(([k, v]) =>
-        [k, tagKeys.has(k) && Array.isArray(v) ? v.join(',') : v]))
+      const ownKeys = new Set((fields || []).map(f => f.fieldKey))
+      const payload = Object.fromEntries(Object.entries(data)
+        .filter(([k]) => !onlyFormFields || ownKeys.has(k))
+        .map(([k, v]) => [k, tagKeys.has(k) && Array.isArray(v) ? v.join(',') : v]))
 
       await onSubmit(payload)
     } catch (err) {

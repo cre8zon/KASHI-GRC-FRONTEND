@@ -46,11 +46,10 @@
  *   showReviewer org side        — reviewer verdict badges
  *   showAll      everyone but a contributor — a contributor sees only their own
  *
- * ── STILL NOT HERE ────────────────────────────────────────────────────────
- * Section-level reviewer assignment. The backend has reviewerAssignQuestion and
- * its batch, but no section-level reviewer assign, so the reviewer name is shown
- * read-only. A picker here would have to fan out per question and call that a
- * section assignment.
+ * ── SECTION REVIEWERS (STEP 10) ───────────────────────────────────────────
+ * The review lead can give sections to reviewers here as well as on the Review
+ * tab. Both use useSectionReviewerAssignment, so the rule — who, on which step,
+ * from which list — is one rule, not two that drift.
  */
 
 import { useState, useMemo } from 'react'
@@ -65,6 +64,7 @@ import { assessmentsApi } from '../../api/assessments.api'
 import { QuestionDrawer } from '../item-panel'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
+import { useSectionReviewerAssignment } from './useSectionReviewerAssignment'
 import {
   UserPicker, useEligibleUsers, useStanding, P,
   resolveDrawerMode, GuardTagBadge,
@@ -249,6 +249,7 @@ function SectionRow({
   showScores, showReviewer, onOpenDrawer,
   onAssign, onSubmit, onReopen, busyId, busyOp, expanded, onToggle,
   selectable, selected, onToggleSelect,
+  reviewerAssign,           // useSectionReviewerAssignment's result, or undefined
 }) {
   const sid       = section.sectionInstanceId
   const submitted = !!section.submittedAt
@@ -298,7 +299,11 @@ function SectionRow({
 
   const canAssign = standing.can(P.ASSIGN_RESPONDER) && !submitted
   const canSubmit = mine && standing.hasStanding && standing.has(P.SECTION_SUBMIT) && !submitted
-  const canReopen = standing.hasStanding && standing.has(P.SECTION_REOPEN) && submitted
+  // The permission alone, no live task. A vendor CISO reopens a section when
+  // a responder asks for it — usually while the responders hold the step and
+  // the CISO holds nothing — so requiring standing hid the button at exactly
+  // the moment it is needed. The server checks the same permission.
+  const canReopen = standing.has(P.SECTION_REOPEN) && submitted
 
   return (
     <>
@@ -339,13 +344,27 @@ function SectionRow({
                 Submitted by {section.submittedByName}
               </span>
             )}
-            {section.reviewerAssignedUserName && (
+            {section.reviewerAssignedUserName && !reviewerAssign?.canAssign && (
               <span className="flex items-center gap-1 text-[9px] text-text-muted">
                 <User size={8} /> Reviewer: {section.reviewerAssignedUserName}
               </span>
             )}
           </div>
         </div>
+
+        {reviewerAssign?.canAssign && (
+          <UserPicker
+            users={reviewerAssign.reviewers}
+            loading={reviewerAssign.loading}
+            value={section.reviewerAssignedUserId}
+            valueName={section.reviewerAssignedUserName}
+            onChange={(userId) => reviewerAssign.assign(sid, userId)}
+            placeholder="Reviewer…"
+            saving={reviewerAssign.assigningId === sid}
+            savingLabel="Assigning…"
+            emptyHint="No reviewer is eligible for the next step yet."
+          />
+        )}
 
         {canAssign ? (
           <UserPicker
@@ -541,6 +560,14 @@ export default function AssessmentSectionsTab({
   // picker, so it can never offer a shortcut past a control the row respects.
   const canBulkAssign = standing.hasStanding && standing.can(P.ASSIGN_RESPONDER)
 
+  // Step 10 on the organisation side: sections to reviewers, the same rule as
+  // the Review tab. When it is open the bulk selection assigns reviewers.
+  const reviewerAssign = useSectionReviewerAssignment({
+    vc, assessmentId, taskId, enabled: userSide === 'ORGANIZATION',
+  })
+  const bulkReviewers = reviewerAssign.canAssign && !canBulkAssign
+  const canSelect     = canBulkAssign || bulkReviewers
+
   const assignBatch = useMutation({
     mutationFn: ({ userId, sectionInstanceIds }) =>
       assessmentsApi.vendor.assignSectionsBatch(assessmentId, sectionInstanceIds, userId),
@@ -670,8 +697,8 @@ export default function AssessmentSectionsTab({
             allOpen={collapse.allOpen}
             onToggleAll={collapse.toggleAll}
             selectedCount={selection.count}
-            totalQuestions={canBulkAssign ? sections.length : 0}
-            onSelectAllQuestions={canBulkAssign
+            totalQuestions={canSelect ? sections.length : 0}
+            onSelectAllQuestions={canSelect
               ? () => selection.toggleMany(sections.map(s => s.sectionInstanceId))
               : undefined}
             selectAllLabel={`Select all ${sections.length} sections`}
@@ -700,7 +727,8 @@ export default function AssessmentSectionsTab({
             busyOp={busyOp}
             expanded={collapse.isOpen(s.sectionInstanceId)}
             onToggle={() => collapse.toggle(s.sectionInstanceId)}
-            selectable={canBulkAssign}
+            selectable={canSelect}
+            reviewerAssign={reviewerAssign}
             selected={selection.isSelected(s.sectionInstanceId)}
             onToggleSelect={() => selection.toggle(s.sectionInstanceId)}
             onAssign={(sectionInstanceId, userId) => {
@@ -713,18 +741,33 @@ export default function AssessmentSectionsTab({
         ))}
       </div>
 
-      <BulkAssignBar
-        count={selection.count}
-        users={responders}
-        loading={respondersLoading}
-        saving={assignBatch.isPending}
-        itemNoun="section"
-        label="Assign to responder…"
-        onClear={selection.clear}
-        onAssign={(userId) =>
-          assignBatch.mutate({ userId, sectionInstanceIds: selection.asArray() })}
-        emptyHint="No responder is eligible on this step yet."
-      />
+      {bulkReviewers ? (
+        <BulkAssignBar
+          count={selection.count}
+          users={reviewerAssign.reviewers}
+          loading={reviewerAssign.loading}
+          saving={reviewerAssign.batchSaving}
+          itemNoun="section"
+          label="Assign reviewer…"
+          onClear={selection.clear}
+          onAssign={(userId) =>
+            reviewerAssign.assignBatch(selection.asArray(), userId, selection.clear)}
+          emptyHint="No reviewer is eligible for the next step yet."
+        />
+      ) : (
+        <BulkAssignBar
+          count={selection.count}
+          users={responders}
+          loading={respondersLoading}
+          saving={assignBatch.isPending}
+          itemNoun="section"
+          label="Assign to responder…"
+          onClear={selection.clear}
+          onAssign={(userId) =>
+            assignBatch.mutate({ userId, sectionInstanceIds: selection.asArray() })}
+          emptyHint="No responder is eligible on this step yet."
+        />
+      )}
 
       <QuestionDrawer
         question={drawerQuestion}

@@ -166,7 +166,7 @@ function FindingRow({
   // being stricter or looser than it. Validate and close live on the Issue.
   const canValidate = open && !escalated && item.canResolve && vendorActed(item.status)
                       && standing.has(P.REMEDIATION_VALIDATE)
-  const canAccept   = open && !escalated && item.canResolve && standing.has(P.REMEDIATION_VALIDATE)
+  const canAccept   = open && !escalated && item.canResolve && standing.has(P.REMEDIATION_ACCEPT_RISK)
   const canEscalate = open && !escalated && standing.has(P.REMEDIATION_ESCALATE)
 
   const overdue = item.dueAt && open && new Date(item.dueAt) < new Date()

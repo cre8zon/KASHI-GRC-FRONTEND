@@ -4,10 +4,20 @@
  * Org-side evaluation of the vendor's answers. Step 11 of TPRM Tier-1 —
  * "Reviewers Evaluate Assigned Questions", ORGANIZATION, ASSIGNMENT_SCOPED.
  *
- * ── REVIEWER ASSIGNMENT BELONGS HERE, NOT ON THE SECTIONS TAB ─────────────
- * The backend has reviewerAssignQuestion and its batch, and nothing at section
- * level. The sections tab therefore shows reviewer ownership read-only and the
- * editable control lives here, where the endpoint actually is.
+ * ── WHO OWNS WHAT: SECTIONS TO REVIEWERS, QUESTIONS TO ASSISTANTS ─────────
+ * Two different assignments, on two different columns, on two different steps:
+ *
+ *   step 10  the review lead gives each SECTION to a reviewer
+ *            (section.reviewerAssignedUserId, reviewApi.reviewerAssignSection).
+ *            Those are the people the workflow gives steps 11 and 12 to.
+ *   step 11  a reviewer may hand individual QUESTIONS in their own sections to
+ *            a review assistant (question.reviewerAssignedUserId,
+ *            reviewerAssignQuestion), which puts it in the assistant's inbox.
+ *
+ * This tab used to have the lead assign per QUESTION on step 10. That wrote the
+ * assistant column, so the workflow found no section reviewers, fell back to
+ * every holder of the reviewer role, and delegating a question to an assistant
+ * would have overwritten its reviewer.
  *
  * Step 11 has assignable_side = ORGANIZATION after seed 53. Before it, this
  * picker resolved through eligible-users mode 2 — the next step's actor roles —
@@ -62,7 +72,7 @@ import {
   CheckCircle2, XCircle, AlertTriangle, Layers, MessageSquare,
   Paperclip, Loader2, ShieldAlert,
   UserCheck, Clock, ArrowUpRight, Filter, MinusCircle, Users, Eye,
-  ChevronDown, ChevronRight, CheckCheck,
+  ChevronDown, ChevronRight, CheckCheck, RotateCcw,
 } from 'lucide-react'
 import { assessmentsApi } from '../../api/assessments.api'
 import { actionItemsApi } from '../../api/actionItems.api'
@@ -78,11 +88,14 @@ import {
 } from './vendorShared'
 // The org-side review endpoints live here, not on assessmentsApi.vendor.
 import { reviewApi } from '../../api/review.api'
+// Section → reviewer assignment (step 10), shared with the Sections tab so both
+// apply one rule. useTaskAssignableUsers lives there too.
+import { useSectionReviewerAssignment, useTaskAssignableUsers } from './useSectionReviewerAssignment'
 // Discuss and Evidence open the drawer on those tabs now, so this tab no longer
 // renders either inline. QuestionItemsButton moved to QuestionItemCard, where
 // the fill tab reads the same one — it existed here and there, and the two had
 // already drifted.
-import { QuestionItemsButton } from './QuestionItemCard'
+import { QuestionItemCard } from './QuestionItemCard'
 import { QuestionDrawer } from '../item-panel'
 import { ActionItemsBulkProvider, useEntityActionItems } from '../../hooks/useActionItems'
 import { useEffect, useRef } from 'react'
@@ -244,6 +257,7 @@ function TallyChips({ t, escalated = 0 }) {
 function SectionReviewHeader({
   section, escalated, open = true, onToggle,
   selectableIds = [], selectedCount = 0, onSelectAll,
+  selectTitle, assignSlot,
 }) {
   const state = sectionReviewState(section)
   const t     = tally(section.questions || [])
@@ -265,7 +279,7 @@ function SectionReviewHeader({
             checked={all}
             some={some}
             onChange={onSelectAll}
-            title={all ? 'Clear this section' : 'Select every question in this section'}
+            title={all ? 'Clear this section' : (selectTitle || 'Select every question in this section')}
           />
         )}
         <Layers size={11} className="text-text-muted shrink-0" />
@@ -277,14 +291,15 @@ function SectionReviewHeader({
         </span>
         <span className="flex-1" />
         <TallyChips t={t} escalated={escalated} />
+        {assignSlot}
       </div>
 
       {/* Who owns it and what has happened to it. One line, and only the parts
           that exist — an unassigned, unreviewed section prints nothing here
           rather than three em-dashes. */}
-      {(section.reviewerAssignedUserName || state.by) && (
+      {((section.reviewerAssignedUserName && !assignSlot) || state.by) && (
         <div className="flex items-center gap-3 mt-1 pl-[19px] flex-wrap">
-          {section.reviewerAssignedUserName && (
+          {section.reviewerAssignedUserName && !assignSlot && (
             <span className="flex items-center gap-1 text-[9px] text-text-muted">
               <UserCheck size={8} /> Reviewer: {section.reviewerAssignedUserName}
             </span>
@@ -417,202 +432,143 @@ function RemediationPanel({ onCancel, onSubmit, busy }) {
   )
 }
 
-function ReviewCard({
-  question, assessmentId, vc, standing, canEvaluate,
-  reviewers, reviewersLoading, onVerdict, onAssignReviewer, busy,
-  onOpenDrawer, onRequestRemediation, remediating, assigningReviewer, mineOnly,
-  selectable, selected, onToggleSelect, focused, viewerId,
+/**
+ * The reviewer's controls for one question — verdicts, Remediate and its form,
+ * and the review-assistant picker — as three pieces for QuestionItemCard's
+ * slots. A hook rather than a component because the pieces go to different
+ * places in the card; the list row and the drawer both use it, so the two show
+ * the same controls with the same gates.
+ *
+ * `question` may be null (the drawer when closed); every piece is then null.
+ */
+function useReviewerControls({
+  question, canEvaluate, viewerId, busy, onVerdict,
+  remediating, onRequestRemediation,
+  canDelegate, assistants, assistantsLoading, assigningReviewer, onAssignReviewer,
+  mineOnly, canRemediate,
 }) {
-  const qi = question.questionInstanceId
-  const r  = question.currentResponse || {}
-  // `panel` is gone with the inline Discuss and Evidence views — both now open
-  // the drawer on that tab. remediationOpen stays: raising a remediation is an
-  // action this row owns, not a view of something that lives elsewhere.
+  const qi = question?.questionInstanceId
+  const r  = question?.currentResponse || {}
   const [remediationOpen, setRemediationOpen] = useState(false)
+  // A different question in the drawer starts with the form closed.
+  useEffect(() => { setRemediationOpen(false) }, [qi])
 
-  // The org-side mirror of the fill tab's unlock. A CLARIFICATION raised on a
-  // question in a section the assistant has already locked is exactly the case
-  // the server's open-obligation bypass exists for; locking the UI anyway means
-  // reading the request and being unable to answer it.
-  const { data: myItems = [] } = useEntityActionItems('QUESTION_RESPONSE', qi, {
-    enabled: !!qi,
-  })
-  const owedHere   = hasLiveObligation(myItems, viewerId)
-  const mayEvaluate = canEvaluate || owedHere
-
+  // The org-side mirror of the fill tab's unlock: a CLARIFICATION raised on a
+  // question in a section the assistant already locked is what the server's
+  // open-obligation bypass exists for.
+  const { data: myItems = [] } = useEntityActionItems('QUESTION_RESPONSE', qi, { enabled: !!qi })
+  const mayEvaluate = canEvaluate || hasLiveObligation(myItems, viewerId)
   const current = VERDICT_BUTTONS.find(v => v.key === r.reviewerStatus)
 
-  return (
-    // Scroll target for useDrawerFromUrl, and the mark that says which row the
-    // open panel is about.
-    <div
-      id={`question-${qi}`}
-      className={cn(
-        'border-b border-border last:border-b-0 transition-colors',
-        focused && 'bg-brand-500/5 ring-1 ring-inset ring-brand-500/40'
-      )}
-    >
-      <div className="px-4 py-3">
-        <div className="flex items-start gap-2">
-          {selectable && (
-            <div className="pt-1 shrink-0">
-              <SelectBox
-                checked={!!selected}
-                onChange={() => onToggleSelect?.(qi)}
-                title="Select this question for a bulk reviewer assignment"
-              />
-            </div>
-          )}
-          <span className="text-[10px] text-text-muted w-6 shrink-0 pt-0.5">
-            {question.orderNo ?? '—'}
-          </span>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start gap-1.5">
-              <p className="flex-1 text-[12px] text-text-primary leading-snug">
-                {question.questionText}
-              </p>
-              {/* The org-side mirror: a review assistant sees "Assigned to
-                  you" until their verdict resolves it, at which point it reads
-                  "Evaluated · reported". Same component, same record — the
-                  only difference is which assignment type is theirs. */}
-              <QuestionObligationChip questionInstanceId={qi} className="mt-0.5" />
-              {/* Same marker the vendor sees while answering, shown here so a
-                  reviewer knows an empty Evidence tab is a gap rather than a
-                  question that never wanted a file. */}
-              <EvidenceRequiredBadge
-                required={question.requiresEvidence}
-                satisfied={(r.documents?.length || question.evidenceCount || 0) > 0}
-                className="mt-0.5"
-              />
-              {/* A tagged question is one KashiGuard rules can fire on. Seeing
-                  the tag while judging the answer explains why a finding is
-                  sitting in the drawer. */}
-              <GuardTagBadge tag={question.questionTag} className="mt-0.5" />
-            </div>
+  if (!question) return { controls: null, below: null, trailing: undefined }
 
-            <div className="mt-1.5 px-2 py-1.5 rounded-ctl bg-surface-overlay/60 border border-border">
-              <p className="text-[9px] text-text-muted mb-0.5">
-                Vendor answer
-                {r.answeredByName && <> · {r.answeredByName}</>}
-              </p>
-              <p className="text-[11px] text-text-secondary leading-relaxed">
-                <AnswerText question={question} />
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 mt-2">
-              {mayEvaluate ? (
-                <div className="flex items-center gap-1">
-                  {VERDICT_BUTTONS.map(v => {
-                    const Icon = v.icon
-                    const on = r.reviewerStatus === v.key
-                    return (
-                      <button
-                        key={v.key}
-                        onClick={() => onVerdict(qi, v.key)}
-                        disabled={busy === qi}
-                        className={cn(
-                          'flex items-center gap-1 text-[10px] px-2 py-1 rounded-ctl border transition-colors disabled:opacity-40',
-                          on ? cn('border-transparent', v.bg, v.color)
-                             : 'border-border bg-surface-overlay text-text-muted hover:border-border-strong'
-                        )}
-                      >
-                        <Icon size={10} /> {v.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              ) : current ? (
-                <span className={cn('flex items-center gap-1 text-[10px] px-2 py-1 rounded', current.bg, current.color)}>
-                  <current.icon size={10} /> {current.label}
-                </span>
-              ) : (
-                <span className="text-[10px] text-text-muted">Not yet evaluated</span>
-              )}
-
-              {/* ── DISCUSS AND EVIDENCE OPEN THE DRAWER ──────────────────
-                  Same change as the vendor side. These were inline panels that
-                  duplicated two of the drawer's five tabs, which meant two
-                  places to read the same conversation and two to keep in step.
-                  The drawer has the real controls — and on this side it has the
-                  Org notes channel, which the inline chat never offered, so a
-                  reviewer talking to a review assistant had nowhere private to
-                  do it from the row. */}
+  const controls = (
+    <>
+      {mayEvaluate ? (
+        <div className="flex items-center gap-1">
+          {VERDICT_BUTTONS.map(v => {
+            const Icon = v.icon
+            const on = r.reviewerStatus === v.key
+            return (
               <button
-                onClick={() => onOpenDrawer?.(question, 'shared')}
-                className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded text-text-muted hover:text-text-secondary transition-colors"
-                title="Open the discussion for this question"
+                key={v.key}
+                onClick={() => onVerdict(qi, v.key)}
+                disabled={busy === qi}
+                className={cn(
+                  'flex items-center gap-1 text-[10px] px-2 py-1 rounded-ctl border transition-colors disabled:opacity-40',
+                  on ? cn('border-transparent', v.bg, v.color)
+                     : 'border-border bg-surface-overlay text-text-muted hover:border-border-strong'
+                )}
               >
-                <MessageSquare size={10} /> Discuss
+                <Icon size={10} /> {v.label}
               </button>
-              <button
-                onClick={() => onOpenDrawer?.(question, 'evidence')}
-                className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded text-text-muted hover:text-text-secondary transition-colors"
-                title="Open the evidence for this question"
-              >
-                <Paperclip size={10} /> Evidence
-              </button>
-
-              {/* Remediation, the thing this screen was missing. A verdict
-                  records a judgement; a remediation asks the vendor to fix it,
-                  increments openRemediationCount, notifies their CISO, and is
-                  what the Findings tab then manages and escalates. */}
-              {mayEvaluate && (
-                <button
-                  onClick={() => setRemediationOpen(o => !o)}
-                  className={cn('flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded transition-colors',
-                    remediationOpen
-                      ? 'text-status-warn-fg bg-status-warn-bg'
-                      : 'text-text-muted hover:text-status-warn-fg')}
-                >
-                  <ShieldAlert size={10} /> Remediate
-                </button>
-              )}
-
-              <QuestionItemsButton
-                questionInstanceId={qi}
-                onClick={() => onOpenDrawer?.(question, 'actions')}
-              />
-
-              <span className="flex-1" />
-
-              {busy === qi && <Loader2 size={10} className="animate-spin text-text-muted" />}
-
-              {/* Same rule as the tab-level canAssignReviewer — computed from
-                  the standing prop because this row is a separate component
-                  and cannot see the tab's local. */}
-              {!mineOnly && standing.hasStanding && standing.has(P.ASSIGN_REVIEWER) ? (
-                <UserPicker
-                  users={reviewers}
-                  loading={reviewersLoading}
-                  value={question.reviewerAssignedUserId}
-                  onChange={(userId) => onAssignReviewer(qi, userId)}
-                  placeholder="Reviewer…"
-                  saving={assigningReviewer === qi}
-                  savingLabel="Assigning…"
-                  emptyHint="No organisation-side user is eligible on this step yet. Check that step 11 has an assignable side (seed 53)."
-                />
-              ) : question.reviewerAssignedUserName ? (
-                <span className="text-[9px] text-text-muted">
-                  {question.reviewerAssignedUserName}
-                </span>
-              ) : null}
-            </div>
-
-            {remediationOpen && (
-              <RemediationPanel
-                busy={remediating === qi}
-                onCancel={() => setRemediationOpen(false)}
-                onSubmit={(payload) => {
-                  onRequestRemediation(qi, payload)
-                  setRemediationOpen(false)
-                }}
-              />
-            )}
-          </div>
+            )
+          })}
         </div>
-      </div>
-    </div>
+      ) : current ? (
+        <span className={cn('flex items-center gap-1 text-[10px] px-2 py-1 rounded', current.bg, current.color)}>
+          <current.icon size={10} /> {current.label}
+        </span>
+      ) : (
+        <span className="text-[10px] text-text-muted">Not yet evaluated</span>
+      )}
+      {/* A verdict records a judgement; a remediation asks the vendor to fix
+          it, becomes a finding and escalates to an Issue. */}
+      {mayEvaluate && canRemediate && (
+        <button
+          onClick={() => setRemediationOpen(o => !o)}
+          className={cn('flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded transition-colors',
+            remediationOpen
+              ? 'text-status-warn-fg bg-status-warn-bg'
+              : 'text-text-muted hover:text-status-warn-fg')}
+        >
+          <ShieldAlert size={10} /> Remediate
+        </button>
+      )}
+      {busy === qi && <Loader2 size={10} className="animate-spin text-text-muted" />}
+    </>
+  )
+
+  const below = remediationOpen ? (
+    <RemediationPanel
+      busy={remediating === qi}
+      onCancel={() => setRemediationOpen(false)}
+      onSubmit={(payload) => {
+        onRequestRemediation(qi, payload)
+        setRemediationOpen(false)
+      }}
+    />
+  ) : null
+
+  // Delegation to a review assistant — the section's reviewer, on the evaluate
+  // step, for questions in their own section.
+  const trailing = (!mineOnly && canDelegate) ? (
+    <UserPicker
+      users={assistants}
+      loading={assistantsLoading}
+      value={question.reviewerAssignedUserId}
+      valueName={question.reviewerAssignedUserName}
+      onChange={(userId) => onAssignReviewer(qi, userId)}
+      placeholder="Assistant…"
+      saving={assigningReviewer === qi}
+      savingLabel="Delegating…"
+      emptyHint="Nobody on this step can be given a question. Check the evaluate step's assignable side."
+    />
+  ) : question.reviewerAssignedUserName ? (
+    <span className="flex items-center gap-1 text-[9px] text-text-muted"
+          title="Review assistant for this question">
+      <UserCheck size={8} /> {question.reviewerAssignedUserName}
+    </span>
+  ) : null
+
+  return { controls, below, trailing }
+}
+
+/**
+ * One question in the review list: the same QuestionItemCard the fill tab and
+ * the drawer use, read-only, with the reviewer's controls in its slots.
+ */
+function ReviewCard({
+  question, assessmentId, viewerId, focused,
+  selectable, selected, onToggleSelect, onOpenDrawer,
+  ...controlProps
+}) {
+  const slots = useReviewerControls({ question, viewerId, ...controlProps })
+  return (
+    <QuestionItemCard
+      variant="row"
+      question={question}
+      assessmentId={assessmentId}
+      editable={false}
+      answerable={false}
+      viewerId={viewerId}
+      focused={focused}
+      selectable={selectable}
+      selected={selected}
+      onToggleSelect={onToggleSelect}
+      onOpenDrawer={onOpenDrawer}
+      {...slots}
+    />
   )
 }
 
@@ -863,7 +819,7 @@ export default function AssessmentReviewTab({
   stepInstanceId, taskId, onTaskComplete, scope = 'all',
 }) {
   const qc = useQueryClient()
-  const mineOnly = scope === 'mine'
+  const scopeMine = scope === 'mine'
   const { userId: viewerId } = useSelector(selectAuth)
   const [busy, setBusy] = useState(null)
   const [remediating, setRemediating] = useState(null)
@@ -923,25 +879,48 @@ export default function AssessmentReviewTab({
     staleTime: 30 * 1000,
   })
 
+  // The axios interceptor unwraps ApiResponse.data, but a caller that gets
+  // the envelope would silently render nothing, so both shapes are read.
+  const allSections = useMemo(() => (hasEntitySections
+    ? entity.sections
+    : (raw?.sections || raw?.data?.sections || [])), [hasEntitySections, entity?.sections, raw])
+
+  // ── ASSISTANT MODE — THE ORG-SIDE CONTRIBUTOR ───────────────────────────
+  // The fill tab's contributor mode, mirrored: someone with no task on this
+  // assessment and no section of their own, who has questions a reviewer
+  // delegated to them. They see those questions and nothing else, evaluate
+  // only those, and get none of the step's controls — no delegating, no
+  // remediations, no all-reviewers roll-up. The server refuses the same things
+  // (AssessmentAccessGuard.assertCanEvaluate / assertHasLiveTask).
+  const hasTask = vc?.canAct === true || vc?.canOverride === true
+  const isAssistantMode = useMemo(() => {
+    if (hasTask) return false
+    const me = String(viewerId ?? '\u0000')
+    if (allSections.some(s => String(s.reviewerAssignedUserId ?? '') === me)) return false
+    return allSections.some(s => (s.questions || [])
+      .some(q => String(q.reviewerAssignedUserId ?? '') === me))
+  }, [hasTask, allSections, viewerId])
+  const mineOnly = scopeMine || isAssistantMode
+
   const sections = useMemo(() => {
-    // The axios interceptor unwraps ApiResponse.data, but a caller that gets
-    // the envelope would silently render nothing, so both shapes are read.
-    const all = hasEntitySections
-      ? entity.sections
-      : (raw?.sections || raw?.data?.sections || [])
+    const all = allSections
     if (!mineOnly) return all
 
     // Sections with nothing of mine in them are dropped entirely rather than
     // shown empty: an assistant with three questions across forty sections
     // should see three rows, not forty headers to scroll past.
+    // Mine = the questions delegated to me, plus every question in a section
+    // that is mine as its reviewer.
+    const me = String(viewerId ?? '\u0000')
     return all
       .map(sec => ({
         ...sec,
-        questions: (sec.questions || []).filter(
-          q => String(q.reviewerAssignedUserId ?? '') === String(viewerId ?? '\u0000')),
+        questions: String(sec.reviewerAssignedUserId ?? '') === me
+          ? (sec.questions || [])
+          : (sec.questions || []).filter(q => String(q.reviewerAssignedUserId ?? '') === me),
       }))
       .filter(sec => sec.questions.length > 0)
-  }, [hasEntitySections, entity?.sections, raw, mineOnly, viewerId])
+  }, [allSections, mineOnly, viewerId])
 
   // ── THE ASSISTANT'S MIRROR OF THE CONTRIBUTOR FIX ───────────────────────
   // A review assistant holds no workflow task either — reviewer-assigning a
@@ -955,8 +934,10 @@ export default function AssessmentReviewTab({
     const all = hasEntitySections
       ? (entity?.sections || [])
       : (raw?.sections || raw?.data?.sections || [])
-    return all.reduce((n, sec) => n + (sec.questions || []).filter(
-      q => String(q.reviewerAssignedUserId ?? '') === String(viewerId ?? '\u0000')).length, 0)
+    const me = String(viewerId ?? '\u0000')
+    return all.reduce((n, sec) => n + (String(sec.reviewerAssignedUserId ?? '') === me
+      ? (sec.questions || []).length
+      : (sec.questions || []).filter(q => String(q.reviewerAssignedUserId ?? '') === me).length), 0)
   }, [hasEntitySections, entity?.sections, raw, viewerId])
 
   // ── WHAT THIS ASSISTANT HAS ALREADY LOCKED ─────────────────────────────
@@ -1006,26 +987,32 @@ export default function AssessmentReviewTab({
   // step-action check: you hold the live task on this assessment, and you hold
   // assessment.question.assign_reviewer. Evaluating keeps its step gate —
   // recording a verdict genuinely belongs to the evaluate step.
-  const canAssignReviewer = standing.hasStanding && standing.has(P.ASSIGN_REVIEWER)
-
-  const { data: reviewers = [], isLoading: reviewersLoading } =
-    useEligibleUsers(stepInstanceId, 'ORGANIZATION', canAssignReviewer)
-
   // ── STEP 9: THE REVIEW LEAD ─────────────────────────────────────────────
   //
   // Gated on the SECTION KEY, not on stepAction. Steps 9 and 10 are both
   // ASSIGN + ORGANIZATION; ASSIGN_REVIEW_LEAD exists only on step 9, and
   // openSectionKeys drops it the moment it is assigned — so the control
   // appears exactly once, to exactly the person holding that step.
-  const reviewLeadGateOpen = (vc?.openSectionKeys || [])
-    .some(k => String(k).trim().toUpperCase() === 'ASSIGN_REVIEW_LEAD')
+  // Step 10 — sections to reviewers. The rule (who, on which step, from which
+  // list) is useSectionReviewerAssignment's, shared with the Sections tab.
+  const sectionAssign = useSectionReviewerAssignment({ vc, assessmentId, taskId, enabled: !mineOnly })
+  const reviewLeadGateOpen = sectionAssign.reviewLeadGateOpen
+  const canAssignReviewer  = sectionAssign.canAssign
 
-  // The SAME eligible-users endpoint the reviewer picker uses, on the same
-  // step instance. On a step with no assignable_side configured it returns the
-  // NEXT step's actor roles — which here is precisely the Org CISOs who would
-  // do step 10. No new endpoint, and no list of role names in this file.
+  // ── WHO EACH PICKER OFFERS ──────────────────────────────────────────────
+  // The task's own list (/workflows/tasks/{taskId}/assignable-users): the
+  // people who will do the NEXT step — Org CISOs on step 9, reviewers on
+  // step 10. It is the same resolution the server checks a pick against, so
+  // the list cannot offer someone the server then refuses.
+  //
+  // It was the step's side-filtered list (?side=ORGANIZATION), which answers
+  // "who works this side of the workflow" — every Org Admin — and is not the
+  // rule the server applies.
+  // On step 10 this is who sections can go to (the reviewers).
+  const reviewers        = sectionAssign.reviewers
+  const reviewersLoading = sectionAssign.loading
   const { data: reviewLeadCandidates = [], isLoading: reviewLeadCandidatesLoading } =
-    useEligibleUsers(stepInstanceId, 'ORGANIZATION', reviewLeadGateOpen)
+    useTaskAssignableUsers(taskId, reviewLeadGateOpen)
 
   const assignReviewLead = useMutation({
     mutationFn: (userId) =>
@@ -1052,6 +1039,23 @@ export default function AssessmentReviewTab({
   // the tab-wide half.
   const canEvaluate = standing.can(P.REVIEW_EVALUATE)
 
+  // ── STEP 11: DELEGATING QUESTIONS TO A REVIEW ASSISTANT ─────────────────
+  // The reviewer evaluating (a live EVALUATE task) may hand questions in their
+  // OWN sections to an assistant — an unassigned section counts as theirs, the
+  // same rule Submit section uses. Never on step 10, where sections are being
+  // handed out, and never on the 'mine' view.
+  const delegationOpen = !mineOnly && canEvaluate && !canAssignReviewer
+  const ownsSection = (s) => !s.reviewerSubmittedAt
+    && (s.reviewerAssignedUserId == null
+        || String(s.reviewerAssignedUserId) === String(viewerId ?? '\u0000'))
+  // The evaluate task's own list — who the workflow lets work this step — less
+  // the reviewer themselves.
+  const { data: assistantPool = [], isLoading: assistantsLoading } =
+    useTaskAssignableUsers(taskId, delegationOpen)
+  const assistants = useMemo(
+    () => assistantPool.filter(u => String(u?.id ?? u?.userId) !== String(viewerId ?? '\u0000')),
+    [assistantPool, viewerId])
+
   // Both are hooks, so they sit above the isLoading early return. Sections open
   // by default — see useSectionCollapse.
   const focusedQuestionId = useDrawerFromUrl(sections, openDrawer)
@@ -1061,7 +1065,7 @@ export default function AssessmentReviewTab({
   // questions of their own still assigns from the full Review tab; offering it
   // here would mean reassigning your own work away from a list defined as
   // "yours", which reads as a bug the moment the row disappears.
-  const canBulkAssign = !mineOnly && canAssignReviewer
+  const canBulkAssign = !mineOnly && canAssignReviewer      // step 10: sections
 
   const allQuestionIds = useMemo(
     () => sections.flatMap(s => (s.questions || []).map(q => q.questionInstanceId)).filter(Boolean),
@@ -1196,10 +1200,12 @@ export default function AssessmentReviewTab({
   const assignReviewer = useMutation({
     mutationFn: ({ questionInstanceId, userId }) =>
       assessmentsApi.vendor.reviewerAssignQuestion(assessmentId, questionInstanceId, userId),
-    onSuccess: () => { toast.success('Reviewer assigned'); invalidate() },
-    onError:   (e) => toast.error(e?.message || 'Could not assign the reviewer'),
+    onSuccess: () => { toast.success('Delegated to the review assistant'); invalidate() },
+    onError:   (e) => toast.error(e?.message || 'Could not delegate the question'),
     onSettled: () => setAssigningReviewer(null),
   })
+
+
 
   // The org-side mirror of the vendor tab's bulk assign. Different endpoint on
   // purpose: this writes reviewerAssignedUserId and must never touch
@@ -1246,15 +1252,74 @@ export default function AssessmentReviewTab({
       e?.response?.data?.error?.message || e?.message || 'Could not submit the section'),
   })
 
+  const canReopenReviewer = standing.has(P.REVIEWER_REOPEN)
+  const reviewerReopen = useMutation({
+    mutationFn: (sectionInstanceId) => reviewApi.reviewerReopenSection(assessmentId, sectionInstanceId),
+    onSuccess: () => {
+      toast.success('Section reopened for its reviewer')
+      invalidateAssessment(qc, assessmentId)
+      qc.invalidateQueries({ queryKey: ['assessment-review-summary', assessmentId] })
+      qc.invalidateQueries({ queryKey: ['view-context'] })
+    },
+    onError: (e) => toast.error(e?.message || 'Could not reopen the section'),
+  })
+
   const reviewerAssignBatch = useMutation({
     mutationFn: ({ userId, questionInstanceIds }) =>
       assessmentsApi.vendor.reviewerAssignQuestionsBatch(assessmentId, questionInstanceIds, userId),
     onSuccess: (_d, v) => {
-      toast.success(`${v.questionInstanceIds.length} question${v.questionInstanceIds.length === 1 ? '' : 's'} assigned`)
+      toast.success(`${v.questionInstanceIds.length} question${v.questionInstanceIds.length === 1 ? '' : 's'} delegated`)
       selection.clear()
       invalidate()
     },
-    onError: (e) => toast.error(e?.message || 'Could not assign the selected questions'),
+    onError: (e) => toast.error(e?.message || 'Could not delegate the selected questions'),
+  })
+
+  // ── ONE SET OF REVIEW CONTROLS, FOR THE ROW AND FOR THE DRAWER ──────────
+  // Everything a question's review controls need, given its section. The list
+  // row and the drawer both read it, so the two can never disagree about who
+  // may evaluate, remediate or delegate.
+  const controlPropsFor = (section, q) => ({
+    // Per question, not per section: only the question the assistant was newly
+    // assigned reopens, and only when the lock in the way is their OWN
+    // assistant lock rather than the reviewer's. The mirror of the fill tab's
+    // `editable` override.
+    canEvaluate: canEvaluate && !!section
+      && !section.reviewerSubmittedAt
+      && (!(mineOnly && assistantSubmitted.has(section.sectionInstanceId))
+          || owedAssignmentIds.has(q?.questionInstanceId)),
+    busy,
+    onVerdict: (questionInstanceId, value) => {
+      setBusy(questionInstanceId)
+      verdict.mutate({ questionInstanceId, value })
+    },
+    remediating,
+    onRequestRemediation: (questionInstanceId, payload) => {
+      setRemediating(questionInstanceId)
+      requestRemediation.mutate({ questionInstanceId, payload })
+    },
+    canDelegate: delegationOpen && !!section && ownsSection(section),
+    // Anyone who may evaluate a question may raise a remediation on it — the
+    // step holder on any, an assistant on theirs (the list shows them only
+    // theirs, and the server checks the same rule).
+    canRemediate: true,
+    assistants,
+    assistantsLoading,
+    assigningReviewer,
+    onAssignReviewer: (questionInstanceId, userId) => {
+      setAssigningReviewer(questionInstanceId)
+      assignReviewer.mutate({ questionInstanceId, userId })
+    },
+    mineOnly,
+  })
+
+  const drawerSection = useMemo(() => {
+    if (drawerQuestionId == null) return null
+    return (sections || []).find(s =>
+      (s.questions || []).some(q => q.questionInstanceId === drawerQuestionId)) || null
+  }, [sections, drawerQuestionId])
+  const drawerSlots = useReviewerControls({
+    question: drawerQuestion, viewerId, ...controlPropsFor(drawerSection, drawerQuestion),
   })
 
   if (isLoading) {
@@ -1281,7 +1346,9 @@ export default function AssessmentReviewTab({
   // server, which is the mirror image of the assertAssignable hole and just as
   // wrong: it hides a control the server would have allowed, and it fails
   // silently, so it reads as a missing feature rather than a bug.
-  const canSeeAll = standing.has(P.SECTIONS_VIEW_ALL)
+  // Never in assistant mode: like a contributor, an assistant sees their own
+  // questions and not everyone else's work.
+  const canSeeAll = standing.has(P.SECTIONS_VIEW_ALL) && !isAssistantMode
 
   // ── WHICH VIEW OPENS ────────────────────────────────────────────────────
   //
@@ -1315,10 +1382,16 @@ export default function AssessmentReviewTab({
   // Plain const rather than useMemo: it is computed after the isLoading early
   // return, where a hook cannot go, and it is a filter over a list already in
   // memory. "All" means everything the active filter is showing.
+  // Step 10 selects SECTIONS (those with something the filter shows); step 11
+  // selects QUESTIONS in the reviewer's own sections.
   const assignableIds = canBulkAssign
-    ? all.filter(q => matchesFilter(q, filter, escalatedIds))
-         .map(q => q.questionInstanceId).filter(Boolean)
-    : []
+    ? sections.filter(s => (s.questions || []).some(q => matchesFilter(q, filter, escalatedIds)))
+              .map(s => s.sectionInstanceId).filter(Boolean)
+    : delegationOpen
+      ? sections.filter(ownsSection)
+                .flatMap(s => (s.questions || []).filter(q => matchesFilter(q, filter, escalatedIds)))
+                .map(q => q.questionInstanceId).filter(Boolean)
+      : []
 
   return (
     <ActionItemsBulkProvider
@@ -1415,6 +1488,7 @@ export default function AssessmentReviewTab({
             <UserPicker
               users={reviewLeadCandidates}
               value={entity?.reviewLeadUserId}
+              valueName={entity?.reviewLeadUserName}
               onChange={(uid) => assignReviewLead.mutate(uid)}
               loading={reviewLeadCandidatesLoading}
               saving={assignReviewLead.isPending}
@@ -1430,6 +1504,16 @@ export default function AssessmentReviewTab({
             else to press.
           </p>
         </div>
+      )}
+
+      {/* Said plainly, as the fill tab says it to a contributor. */}
+      {isAssistantMode && (
+        <p className="px-4 py-2 text-[10px] text-brand-ink border-b border-border bg-brand-500/5">
+          You have {sections.reduce((n, s) => n + (s.questions || []).length, 0)} question
+          {sections.reduce((n, s) => n + (s.questions || []).length, 0) === 1 ? '' : 's'} to evaluate
+          across {sections.length} section{sections.length === 1 ? '' : 's'}. Lock your evaluations
+          in each section when you are done.
+        </p>
       )}
 
       {/* ── WHERE THIS REVIEW STANDS ─────────────────────────────────────
@@ -1493,11 +1577,12 @@ export default function AssessmentReviewTab({
       <ListToolbar
         allOpen={collapse.allOpen}
         onToggleAll={collapse.toggleAll}
-        totalQuestions={canBulkAssign ? assignableIds.length : 0}
+        totalQuestions={assignableIds.length}
         selectedCount={selection.count}
-        onSelectAllQuestions={canBulkAssign
+        onSelectAllQuestions={assignableIds.length
           ? () => selection.toggleMany(assignableIds)
           : undefined}
+        selectAllLabel={canBulkAssign ? `Select all ${assignableIds.length} sections` : undefined}
         left={
           <span className="text-[10px] text-text-muted">
             {/* Counts the questions the FILTER is showing, not the whole
@@ -1518,9 +1603,12 @@ export default function AssessmentReviewTab({
         const open = collapse.isOpen(sid)
         // Only the questions currently visible in this section are selectable,
         // for the same reason as the count above.
+        const delegatesHere = delegationOpen && ownsSection(section)
         const sectionIds = canBulkAssign
-          ? questions.map(q => q.questionInstanceId).filter(Boolean)
-          : []
+          ? [sid]
+          : delegatesHere
+            ? questions.map(q => q.questionInstanceId).filter(Boolean)
+            : []
         const sectionSelected = sectionIds.filter(id => selection.isSelected(id)).length
         // reviewerSubmittedAt is deliberately still absolute: the reviewer's
         // lock is the one the server honours, and being assigned a question is
@@ -1541,6 +1629,20 @@ export default function AssessmentReviewTab({
             selectableIds={sectionIds}
             selectedCount={sectionSelected}
             onSelectAll={sectionIds.length ? () => selection.toggleMany(sectionIds) : undefined}
+            selectTitle={canBulkAssign ? 'Select this section to assign a reviewer in bulk' : undefined}
+            assignSlot={canBulkAssign ? (
+              <UserPicker
+                users={reviewers}
+                loading={reviewersLoading}
+                value={section.reviewerAssignedUserId}
+                valueName={section.reviewerAssignedUserName}
+                onChange={(userId) => sectionAssign.assign(sid, userId)}
+                placeholder="Reviewer…"
+                saving={sectionAssign.assigningId === sid}
+                savingLabel="Assigning…"
+                emptyHint="No reviewer is eligible for the next step yet."
+              />
+            ) : null}
           />
           {/* ── THE REVIEWER'S SUBMIT, WHICH WAS NEVER RENDERED ──────────
               The comment below has always said reviewer-submit is "the
@@ -1555,8 +1657,34 @@ export default function AssessmentReviewTab({
               endpoint's own fallback already reads "no explicit assignments"
               as "all sections". The server refuses the rest with
               SECTION_NOT_YOURS, so this mirrors it rather than guessing. */}
+          {/* canEvaluate, not the bare permission: it also needs the viewer's
+              live task to be an EVALUATE step. With the permission alone the
+              Org Admin saw "Submit section" on step 9, where nobody evaluates. */}
+          {/* ── REOPEN A SIGNED-OFF SECTION (ORG CISO) ──────────────────────
+              The org-side mirror of the vendor CISO's Reopen on the Sections
+              tab: a reviewer who signed a section off and needs it back asks,
+              and whoever holds assessment.section.reviewer_reopen reopens it.
+              The permission alone — the CISO usually holds no task on the
+              evaluate step. */}
+          {!mineOnly && open && section.reviewerSubmittedAt && canReopenReviewer && (
+            <div className="flex items-center justify-end gap-2 px-4 py-2 border-b border-border bg-surface-overlay/30">
+              <span className="text-[10px] text-text-muted">
+                Signed off{section.reviewerSubmittedByName ? ` by ${section.reviewerSubmittedByName}` : ''}
+              </span>
+              <button
+                onClick={() => reviewerReopen.mutate(sid)}
+                disabled={reviewerReopen.isPending}
+                title="Reopens this section for its reviewer, and clears any assistant locks inside it."
+                className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-ctl border border-border bg-surface-raised text-text-secondary hover:border-border-strong transition-colors disabled:opacity-50"
+              >
+                <RotateCcw size={10} />
+                {reviewerReopen.isPending ? 'Reopening…' : 'Reopen section'}
+              </button>
+            </div>
+          )}
+
           {!mineOnly && open && !section.reviewerSubmittedAt
-            && standing.hasStanding && standing.has(P.REVIEW_EVALUATE)
+            && canEvaluate
             && (section.reviewerAssignedUserId == null
                 || String(section.reviewerAssignedUserId) === String(viewerId ?? '\u0000')) && (
             <div className="flex items-center justify-end gap-2 px-4 py-2 border-b border-border bg-surface-overlay/30">
@@ -1623,62 +1751,47 @@ export default function AssessmentReviewTab({
           {open && questions.map(q => (
             <ReviewCard
               key={q.questionInstanceId}
-              selectable={sectionIds.length > 0}
-              selected={selection.isSelected(q.questionInstanceId)}
-              onToggleSelect={selection.toggle}
               question={q}
               assessmentId={assessmentId}
-              vc={vc}
-              standing={standing}
-              // Per question, not per section: only the question they were
-              // newly assigned reopens, and only when the lock in the way is
-              // their OWN assistant lock rather than the reviewer's. Their
-              // earlier verdicts in this section stay locked, which is the
-              // point — a reviewer adding one question must not silently
-              // reopen evaluations the assistant had already finished.
-              // The mirror of the fill tab's `editable` override.
-              canEvaluate={canEvaluate
-                && !section.reviewerSubmittedAt
-                && (!(mineOnly && assistantSubmitted.has(sid))
-                    || owedAssignmentIds.has(q.questionInstanceId))}
-              reviewers={reviewers}
-              reviewersLoading={reviewersLoading}
-              busy={busy}
-              onVerdict={(questionInstanceId, value) => {
-                setBusy(questionInstanceId)
-                verdict.mutate({ questionInstanceId, value })
-              }}
-              assigningReviewer={assigningReviewer}
-              mineOnly={mineOnly}
               viewerId={viewerId}
               focused={focusedQuestionId === q.questionInstanceId}
-              onAssignReviewer={(questionInstanceId, userId) => {
-                setAssigningReviewer(questionInstanceId)
-                assignReviewer.mutate({ questionInstanceId, userId })
-              }}
+              selectable={delegatesHere && sectionIds.length > 0}
+              selected={selection.isSelected(q.questionInstanceId)}
+              onToggleSelect={selection.toggle}
               onOpenDrawer={openDrawer}
-              remediating={remediating}
-              onRequestRemediation={(questionInstanceId, payload) => {
-                setRemediating(questionInstanceId)
-                requestRemediation.mutate({ questionInstanceId, payload })
-              }}
+              {...controlPropsFor(section, q)}
             />
           ))}
         </div>
         )
       })}
 
-      <BulkAssignBar
-        count={selection.count}
-        users={reviewers}
-        loading={reviewersLoading}
-        saving={reviewerAssignBatch.isPending}
-        label="Assign reviewer…"
-        emptyHint="No organisation-side review assistant is eligible on this step yet."
-        onAssign={(userId) =>
-          reviewerAssignBatch.mutate({ userId, questionInstanceIds: selection.asArray() })}
-        onClear={selection.clear}
-      />
+      {canBulkAssign ? (
+        <BulkAssignBar
+          count={selection.count}
+          itemNoun="section"
+          users={reviewers}
+          loading={reviewersLoading}
+          saving={sectionAssign.batchSaving}
+          label="Assign reviewer…"
+          emptyHint="No reviewer is eligible for the next step yet."
+          onAssign={(userId) =>
+            sectionAssign.assignBatch(selection.asArray(), userId, selection.clear)}
+          onClear={selection.clear}
+        />
+      ) : delegationOpen ? (
+        <BulkAssignBar
+          count={selection.count}
+          users={assistants}
+          loading={assistantsLoading}
+          saving={reviewerAssignBatch.isPending}
+          label="Delegate to assistant…"
+          emptyHint="Nobody on this step can be given a question."
+          onAssign={(userId) =>
+            reviewerAssignBatch.mutate({ userId, questionInstanceIds: selection.asArray() })}
+          onClear={selection.clear}
+        />
+      ) : null}
       </>
       )}
 
@@ -1696,6 +1809,9 @@ export default function AssessmentReviewTab({
         // is what stops the card's obligation bypass doing exactly that.
         canAnswer={false}
         onClose={() => { setDrawerQuestionId(null); setDrawerTab(null) }}
+        // The same verdicts, Remediate and assistant picker as the list row,
+        // in the same card's slots.
+        reviewSlots={drawerQuestion ? drawerSlots : undefined}
         // Per-question buttons from ui_actions, screen_key
         // 'vendor_assessment_question'. Renders nothing until sql/72 seeds
         // rows, and nothing for a user the server filters them away from.

@@ -98,6 +98,11 @@ export function QuestionDrawer({
   // changing them is not part of this.
   canAnswer,
   onClose,
+  // Organisation-side review controls for this question — { controls, below,
+  // trailing } — built by the Review tab and handed to the answer card's slots,
+  // so the drawer and the review list row are the same QuestionItemCard with
+  // the same controls. Undefined everywhere else.
+  reviewSlots,
 }) {
   const open = !!question
   const qiId = question?.questionInstanceId
@@ -329,7 +334,7 @@ export function QuestionDrawer({
                 cut. Bounded and scrollable, so whatever is in here is always
                 reachable. */}
             <div className="px-5 py-3 border-b border-border bg-surface-overlay/30 flex-shrink-0 max-h-[45vh] overflow-y-auto">
-              {!resp && !editableNow && question.responseType !== 'FILE_UPLOAD' ? (
+              {!resp && !editableNow && question.responseType !== 'FILE_UPLOAD' && !reviewSlots ? (
                 <p className="text-xs text-text-muted italic">Not answered yet.</p>
               ) : (
                 <QuestionItemCard
@@ -342,6 +347,7 @@ export function QuestionDrawer({
                   saving={savingAnswer ? qiId : null}
                   onSave={(payload) => saveAnswer(payload)}
                   onOpenDrawer={(_q, tab) => setActiveTab(tab)}
+                  {...(reviewSlots || {})}
                 />
               )}
             </div>
