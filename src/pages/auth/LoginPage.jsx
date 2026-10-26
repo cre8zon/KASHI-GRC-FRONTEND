@@ -7,7 +7,7 @@ import { Mail, ArrowRight } from 'lucide-react'
 import { useLoginWithRedirect } from '../../hooks/useAuth'
 import { AuthLayout, AuthHeading } from '../../components/auth/AuthLayout'
 import { TextField, PasswordField, FormAlert, SubmitButton } from '../../components/auth/AuthFields'
-import { consumeSessionEndReason, consumeReturnTo } from '../../lib/session'
+import { consumeSessionEndReason, consumeReturnTo, listPeerSessions, adoptPeerSession, setPostLoginTarget } from '../../lib/session'
 import { parseApiError } from '../../lib/passwordPolicy'
 
 const schema = z.object({
@@ -24,6 +24,9 @@ const REASON_COPY = {
   signed_out:           { tone: 'pass', title: "You've signed out",     body: null },
   signed_out_elsewhere: { tone: 'info', title: 'Signed out',            body: 'You signed out in another tab.' },
   password_changed:     { tone: 'pass', title: 'Password updated',      body: 'Sign in with your new password.' },
+  account_suspended:    { tone: 'fail', title: 'Your account was suspended', body: 'An administrator of your organisation suspended this account. Contact them to restore it.' },
+  tenant_suspended:     { tone: 'fail', title: "Your organisation's access is suspended", body: 'Contact Kashiguard support to restore access.' },
+  vendor_suspended:     { tone: 'fail', title: "Your company's access is suspended", body: 'The organisation you work with suspended your company. Contact them to restore it.' },
 }
 
 export default function LoginPage() {
@@ -42,8 +45,27 @@ export default function LoginPage() {
   const { register, handleSubmit, setFocus, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { email: location.state?.email || '', password: '', rememberMe: false },
-    mode: 'onTouched',
+    // Checked on submit, then live while correcting. 'onTouched' flagged an
+    // empty email the moment focus left it — before Chrome's autofill, which
+    // only hands its value over on the first click, had filled it in — and
+    // left "Enter your work email" under a filled-in address.
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
   })
+
+  // Sessions open in this browser's other tabs. Each tab signs in on its own
+  // (several people can work side by side); this only OFFERS to continue as
+  // one of them, so nobody's tab is taken over without asking.
+  const [peers, setPeers] = useState([])
+  useEffect(() => {
+    let live = true
+    listPeerSessions().then(list => { if (live) setPeers(list) })
+    return () => { live = false }
+  }, [])
+  const continueAs = (auth) => {
+    setPostLoginTarget(returnTo)
+    adoptPeerSession(auth)
+  }
 
   useEffect(() => { setFocus(location.state?.email ? 'password' : 'email') }, [setFocus]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -71,6 +93,26 @@ export default function LoginPage() {
             <> {' '}<Link to="/auth/forgot-password" className="font-semibold underline underline-offset-2">Reset password</Link></>
           )}
         </FormAlert>
+      )}
+
+      {peers.length > 0 && (
+        <div className="mb-4 space-y-2">
+          <p className="text-xs text-text-muted">Signed in in another tab</p>
+          {peers.map(p => (
+            <button key={`${p.userId}@${p.tenantId}`} type="button" onClick={() => continueAs(p)}
+              className="w-full flex items-center gap-3 rounded-ctl border border-border px-3 py-2.5 text-left hover:bg-surface-overlay transition-colors">
+              <span className="w-8 h-8 shrink-0 rounded-full bg-brand-500 text-brand-on text-xs font-bold flex items-center justify-center">
+                {(p.fullName || p.email || '?').trim().split(/\s+/).map(s => s[0]).slice(0, 2).join('').toUpperCase()}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-text-primary truncate">Continue as {p.fullName || p.email}</span>
+                <span className="block text-xs text-text-muted truncate">{p.tenantName || p.email}</span>
+              </span>
+              <ArrowRight size={15} className="shrink-0 text-text-muted" />
+            </button>
+          ))}
+          <p className="pt-1 text-xs text-text-muted">Or sign in as someone else:</p>
+        </div>
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4" onChange={() => error && reset()}>

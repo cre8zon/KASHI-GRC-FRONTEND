@@ -492,7 +492,7 @@ async function generatePDF(assessment, sections = []) {
 
 
 // ── 1. Header ─────────────────────────────────────────────────────────────────
-function ReportHeader({ assessment, onDownload, generatingPDF }) {
+function ReportHeader({ assessment, onDownload, generatingPDF, embedded = false }) {
   const navigate  = useNavigate()
   const risk      = assessment?.riskRating
   const riskCfg   = RISK_CFG[risk] || {}
@@ -506,10 +506,14 @@ function ReportHeader({ assessment, onDownload, generatingPDF }) {
       <div className={cn('h-1', riskCfg.bar || 'bg-brand-500')}/>
       <div className="px-6 py-5">
         <div className="flex items-center justify-between mb-5">
+          {/* Inside the assessment's Reports tab there is no Reports list to go
+              back to — the tab itself is where the reader came from. */}
+          {embedded ? <span /> : (
           <button onClick={() => navigate('/reports')}
             className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors">
             <ArrowLeft size={13}/> Back to Reports
           </button>
+          )}
           <div className="flex items-center gap-2 print:hidden">
             <button onClick={onDownload} disabled={generatingPDF}
               className="flex items-center gap-1.5 text-xs font-medium text-brand-ink
@@ -1028,6 +1032,18 @@ function PageNav() {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function AssessmentReportPage() {
   const { id } = useParams()
+  return <AssessmentReportView id={id} />
+}
+
+/**
+ * The report itself, for the /reports page and for the assessment's own
+ * Reports tab. One component, so the two can never show different reports.
+ *
+ * embedded: rendered inside the module page's tab. No "On this page" rail
+ * (it is sized to the window and scrolls the window, not the tab), no "Back
+ * to Reports", and no full-height frame — the tab's own container scrolls.
+ */
+export function AssessmentReportView({ id, embedded = false }) {
   const roles   = useSelector(selectRoles)
   const isAdmin = roles?.some(r => {
     const n = r.name || r.roleName || ''
@@ -1089,7 +1105,7 @@ export default function AssessmentReportPage() {
   }
 
   if (isLoading) return (
-    <div className="flex items-center justify-center h-full">
+    <div className={cn('flex items-center justify-center', embedded ? 'py-16' : 'h-full')}>
       <div className="flex flex-col items-center gap-3">
         <div className="w-10 h-10 rounded-full border-2 border-brand-500/30 border-t-brand-500 animate-spin"/>
         <p className="text-sm text-text-muted">Loading report…</p>
@@ -1098,7 +1114,7 @@ export default function AssessmentReportPage() {
   )
 
   if (isError || !assessment) return (
-    <div className="flex items-center justify-center h-full">
+    <div className={cn('flex items-center justify-center', embedded ? 'py-16' : 'h-full')}>
       <div className="text-center">
         <XCircle size={32} className="text-status-fail-fg mx-auto mb-3"/>
         <p className="text-sm font-medium text-text-primary mb-1">Report not found</p>
@@ -1125,11 +1141,12 @@ export default function AssessmentReportPage() {
     : assessment
 
   return (
-    <div className="flex gap-0 h-full">
-      <PageNav/>
-      <div className="flex-1 overflow-y-auto print:overflow-visible">
-        <div className="max-w-4xl mx-auto px-6 py-6 space-y-5 print:px-0 print:py-0 print:space-y-4">
-          <ReportHeader assessment={assessment} onDownload={handlePrint} generatingPDF={generatingPDF}/>
+    <div className={cn('flex gap-0', !embedded && 'h-full')}>
+      {!embedded && <PageNav/>}
+      <div className={cn('flex-1 print:overflow-visible', !embedded && 'overflow-y-auto')}>
+        <div className={cn('max-w-4xl mx-auto space-y-5 print:px-0 print:py-0 print:space-y-4',
+          embedded ? 'py-4' : 'px-6 py-6')}>
+          <ReportHeader assessment={assessment} onDownload={handlePrint} generatingPDF={generatingPDF} embedded={embedded}/>
           <ExecutiveSummary sections={sections} assessment={assessment}/>
           <SectionBreakdown sections={sections}/>
           <Findings

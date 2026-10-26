@@ -77,6 +77,15 @@ export const workflowsApi = {
     progress: (id)               => api.get(`/v1/workflow-instances/${id}/progress`),
 
     /**
+     * A step that has nobody on it (e.g. its assignee was suspended): who can
+     * be given it, and whether you may choose. → { canAssign, candidates[], stepName, status }
+     */
+    actorCandidates: (stepInstanceId) =>
+      api.get(`/v1/workflow-instances/steps/${stepInstanceId}/actor-candidates`),
+    /** Give such a step to one person (initiator, the step's assigners, or the owner may). */
+    manualAssign: (instanceId, stepInstanceId, userId) =>
+      api.post(`/v1/workflow-instances/${instanceId}/steps/${stepInstanceId}/manual-assign`, null, { params: { userId } }),
+    /**
      * POST /v1/workflow-instances/{id}/steps/{stepInstanceId}/re-evaluate
      * Admin: re-check the step approval gate and advance the workflow if satisfied.
      * Safe to call on any IN_PROGRESS step — returns { advanced, reason, nextStep }

@@ -31,7 +31,7 @@
  * question someone asks six months later, looking at the workflow.
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ClipboardList, ShieldAlert, Check, Loader2, ChevronDown, ChevronRight, Info,
@@ -110,6 +110,13 @@ export default function TemplateSelectionPanel({ vendor, workflowInstanceId, onS
     retry: false,
     select: (r) => r?.data ?? r,
   })
+
+  // When the vendor's score maps to a single template, the workflow has
+  // already filled it in as the default — tick it, so confirming is one click
+  // (and the override below is still there if the default is wrong).
+  useEffect(() => {
+    if (chosen == null && data?.preselectedTemplateId != null) setChosen(data.preselectedTemplateId)
+  }, [data?.preselectedTemplateId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const candidates = useMemo(() => data?.candidates || [], [data])
   const allBands   = useMemo(() => data?.allBands || [], [data])

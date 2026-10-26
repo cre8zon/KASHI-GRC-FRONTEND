@@ -45,7 +45,9 @@ import AssessmentReviewTab   from '../../components/vendor/AssessmentReviewTab'
 import AssessmentFindingsTab from '../../components/vendor/AssessmentFindingsTab'
 import AssessmentReportsTab  from '../../components/vendor/AssessmentReportsTab'
 import RestartWorkflowWizard from '../../components/vendor/RestartWorkflowWizard'
+import { AssessmentRiskRatingDialog, AssessmentConsolidateDialog } from '../../components/vendor/AssessmentScoreDialogs'
 import VendorAssessmentsTab  from '../../components/vendor/VendorAssessmentsTab'
+import TemplateSelectionPanel from '../../components/vendor/TemplateSelectionPanel'
 import VendorTeamTab         from '../../components/vendor/VendorTeamTab'
 import VendorContractsTab    from '../../components/vendor/VendorContractsTab'
 import { TestPolicyCsvImportModal }  from '../../components/audit/TestPolicyCsvImportModal'
@@ -99,6 +101,8 @@ const resolveIcon = (name) => {
  */
 const ROW_ACTION_COMPONENTS = {
   RestartWorkflowWizard,
+  AssessmentRiskRatingDialog,
+  AssessmentConsolidateDialog,
 }
 import { Badge, DynamicBadge } from '../../components/ui/Badge'
 import { COLOR_MAP } from '../../config/constants'
@@ -129,7 +133,7 @@ import TrainingPlayerTab      from '../../components/training/TrainingPlayerTab'
 import TrainingContentTab     from '../../components/training/TrainingContentTab'
 import { useModuleSocket,
          useModuleListSocket } from '../../hooks/useModuleSocket'
-import { useUserTaskSocket } from '../../hooks/useWorkflowSocket'
+import { useUserTaskSocket, useWorkflowInstanceSocket } from '../../hooks/useWorkflowSocket'
 import { getUserLabel } from '../../lib/userLookup'
 
 // ─── API ──────────────────────────────────────────────────────────────────────
@@ -146,9 +150,15 @@ const moduleApi = {
   patch: (basePath, id, data) => api.patch(`${basePath}/${id}`, data),
   delete:(basePath, id) => api.delete(`${basePath}/${id}`),
   // After task completion — check if same user has next task on same entity
+  // The axios interceptor already unwraps ApiResponse, so `r` is usually the
+  // payload itself. Reading only r.data.data turned every answer into null —
+  // "no next task" — which is what sent the follow-up below into a loop.
   nextTask: (entityType, entityId) =>
     api.get('/v1/workflow-instances/tasks/my-next', { params: { entityType, entityId } })
-       .then(r => r?.data?.data || null),
+       .then(r => {
+         const d = r?.data?.data ?? r?.data ?? r
+         return d && d.taskId ? d : null
+       }),
 }
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
@@ -597,14 +607,27 @@ function ModuleListView({ bp }) {
     ?? listRes?.totalElements
     ?? items.length
 
+  // The vendor onboarding response names the workflow it started
+  // (VendorOnboardResponse.workflowInstanceId); that workflow's first step
+  // pauses for a questionnaire choice, so offer the choice straight away.
+  const [questionnaireChoice, setQuestionnaireChoice] = useState(null)
+  const openQuestionnaireChoice = (res, name) => {
+    if (bp.entityType !== 'VENDOR') return
+    const d = res?.data?.data ?? res?.data ?? res
+    const instanceId = d?.workflowInstanceId
+    if (instanceId == null) return
+    setQuestionnaireChoice({ vendorId: d?.vendorId, vendorName: name || d?.name, instanceId })
+  }
+
   const createMut = useMutation({
     // Stamp the URL's frameworkRef onto the new entity so an engagement created
     // from the ISO nav belongs to ISO (not left null / defaulted to SOC2).
     mutationFn: (data) => moduleApi.create(bp.apiBasePath,
       frameworkRef ? { frameworkRef, ...data } : data),
-    onSuccess: (res) => {
+    onSuccess: (res, vars) => {
       qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
       toast.success(`${entitySingular} created successfully`)
+      openQuestionnaireChoice(res, vars?.name)
       // AUDIT_POLICY with RICH_TEXT: go straight to the editor after creation.
       // No point landing back on the list — the user needs to write the content.
       if (bp.entityType === 'AUDIT_POLICY') {
@@ -1514,6 +1537,19 @@ function ModuleListView({ bp }) {
         </Modal>
       )}
 
+      {/* Just onboarded a vendor: its workflow is paused for the questionnaire
+          choice — ask now, as Restart does, rather than leave the person to
+          find the step. */}
+      {questionnaireChoice && (
+        <RestartWorkflowWizard
+          vendorId={questionnaireChoice.vendorId}
+          vendorName={questionnaireChoice.vendorName}
+          startInstanceId={questionnaireChoice.instanceId}
+          onClose={() => setQuestionnaireChoice(null)}
+          onDone={() => qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })}
+        />
+      )}
+
       {/* Row action components — see ROW_ACTION_COMPONENTS. Rendered at the
           page level rather than inside the cell so the modal is not unmounted
           by a table re-render mid-flow, which on a two-request wizard would
@@ -1579,6 +1615,7 @@ function ModuleListView({ bp }) {
                 const payload = frameworkRef ? { frameworkRef, ...data } : data
                 const res = await api({ method: listFormAction.httpMethod || 'POST', url: endpoint, data: payload })
                 qc.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+                openQuestionnaireChoice(res, data?.name)
                 // "Policy created" is wrong for an adopt-all run — nothing was
                 // created here, a background job was queued. The server's own
                 // message says what happened; fall back to the generic one.
@@ -1660,7 +1697,7 @@ function CapabilityTabBody({ tab, bp, id, entity, vc, focusActionItemId }) {
     if (bp.entityType === 'AUDIT_FINDING')
       return <FindingEvidenceTab entityId={Number(id)} vc={vc} />
     if (bp.entityType === 'ISSUE')
-      return <IssueEvidenceTab entityId={Number(id)} vc={vc} />
+      return <IssueEvidenceTab entityId={Number(id)} vc={vc} entity={entity} />
     return <EvidenceTab entityId={id} entityType={bp.entityType} vc={vc} />
   }
 
@@ -1891,6 +1928,19 @@ function filterScreenActions({ actions, entity, vc = {}, bp = {}, taskId, roleAc
       const workflowStarted = entity?.workflowInstanceId != null
       if ((transitionKeys.has(action.actionKey) || postsToTaskEndpoint)
             && !effectiveCanAct && workflowStarted) return false
+
+      // ── THE STEP NAMES ITS OWN BUTTONS ─────────────────────────────
+      // A step may list the status-flow buttons that complete it
+      // (step_ui_override_json "transitions"). Where a module's status
+      // buttons drive its workflow, status alone cannot tell two steps
+      // apart — an issue at PENDING_REVIEW may be waiting for "Send for
+      // validation" or for "Validate & Resolve" depending on the
+      // workflow — and pressing the other one completes the wrong step.
+      // Only status-flow actions are filtered; everything else on the
+      // screen is unaffected. No list = no restriction.
+      if (Array.isArray(vc.transitions) && vc.transitions.length > 0
+            && transitionKeys.has(action.actionKey) && action.actionKey !== 'COMPLETE_STEP'
+            && !vc.transitions.includes(action.actionKey)) return false
       // When a step uses compound-task section gates (hasSections=true), completion
       // happens automatically when all section items are done — hide the manual button
       // to prevent premature APPROVE calls that would fail the gate check.
@@ -2186,9 +2236,28 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
     // ui_navigation.route is the authoritative mapping and already holds the
     // full path with :id. TaskInbox.resolveTaskRoute has always used it; this
     // handler was the odd one out.
-    if (navKey && bp?.navKey && navKey !== bp.navKey && artifactId) {
+    // ── SAME RECORD IS SAME PAGE, WHATEVER THE NAV KEY SAYS ─────────────────
+    // A step's nav key and the blueprint's nav key are often different names
+    // for this very page: every issue step carries 'issue_detail' while the
+    // ISSUE blueprint's key is 'issue'. Treated as a cross-page move, the
+    // lookup below then needed the 'issue_detail' nav row — inactive, and not
+    // visible to the vendor side — found nothing, toasted "open it from My
+    // Tasks" and returned without touching the URL. The banner stayed on the
+    // finished task and the new step's buttons never appeared, even though
+    // the next task was the same person's, on the same issue.
+    //
+    // So: when the next task opens THIS record, or its route resolves to the
+    // page already open, it is a same-page update.
+    const sameRecord = artifactId != null && String(artifactId) === String(id)
+    const navRow     = navKey ? (navItems || []).find(n => n.navKey === navKey) : null
+    const targetPath = navRow?.route && artifactId != null
+      ? navRow.route.replace(':id', artifactId) : null
+    const samePage   = sameRecord
+      || (targetPath && !embedded && targetPath === window.location.pathname)
+
+    if (!samePage && navKey && bp?.navKey && navKey !== bp.navKey && artifactId) {
       const qp  = `?taskId=${newTaskId}&stepInstanceId=${newStepInstanceId}`
-      const nav = (navItems || []).find(n => n.navKey === navKey)
+      const nav = navRow
 
       if (nav?.route) {
         navigate(nav.route.replace(':id', artifactId) + qp)
@@ -2218,7 +2287,7 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
     } else {
       toast.success(`You've been assigned: ${stepName || 'New task'}`, { icon: '📋', duration: 5000 })
     }
-  }, [setSearchParams, taskId, navigate, bp?.navKey, navItems])
+  }, [setSearchParams, taskId, navigate, bp?.navKey, navItems, id, embedded])
 
 
   // ── transitionToNextTask ─────────────────────────────────────────────────
@@ -2245,15 +2314,19 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
       return true
     }
 
-    // No new task arrived — clear task context (last step or workflow complete)
-    setSearchParams(prev => {
-      const p = new URLSearchParams(prev)
-      p.delete('taskId')
-      p.delete('stepInstanceId')
-      return p
-    })
+    // The event did not arrive in time: ask the server once. If this viewer has
+    // a next task on the record, move to it. If not, KEEP the finished task in
+    // the URL — the banner stays and reads "read-only at this step". Clearing
+    // it hid the banner and switched the step's actions off with it.
+    try {
+      const next = await moduleApi.nextTask(entityType, entityId)
+      if (next?.taskId && String(next.taskId) !== String(taskId)) {
+        handleTaskAssigned(next)
+        return true
+      }
+    } catch { /* no next task — stay on the finished one */ }
     return false
-  }, [taskId, setSearchParams, embedded])
+  }, [taskId, embedded, handleTaskAssigned])
 
   // ── Parallel fetch optimisation ───────────────────────────────────────────
   // Blueprint, entity, and view-context are independent — start all three
@@ -2280,7 +2353,16 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
   const entity = entityRes?.data || entityRes
 
   // Gap 3: pass stepInstanceId so backend resolves step-action-aware editableFields
-  const { data: vcRes } = useViewContext(bp.entityType || entityType, id, stepInstanceId, taskId)
+  //
+  // A step with no task is asked about WITHOUT the step. The server resolves
+  // "step but no task" as an observer of that step — no taskId, no actions —
+  // so a URL that had lost its taskId (an older build stripped it, and the
+  // in-app tab keeps the URL) could never get it back: the page asked, was
+  // told "observer", and showed nothing. Without the step the server looks up
+  // the viewer's own open task on this record (or override authority), and
+  // the URL correction below puts taskId back.
+  const { data: vcRes, dataUpdatedAt: vcUpdatedAt, isError: vcError } =
+    useViewContext(bp.entityType || entityType, id, taskId ? stepInstanceId : undefined, taskId)
   const vc = vcRes?.data || vcRes || {}
 
   // ── Self-correct stale URL params ────────────────────────────────────────
@@ -2297,12 +2379,30 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
     if (!backendStepId) return // vc not loaded or no active task
 
     // Case 1: URL has wrong stepInstanceId (stale after WS-driven step advance)
+    // Only when the server names this viewer's task on the new step. Without
+    // one, the URL is left alone: deleting taskId here — which happened
+    // whenever view-context refreshed before TASK_ASSIGNED arrived — hid the
+    // banner and the step's actions, and nothing ever put the task back.
+    // A finished task with no successor stays in the URL, shown read-only;
+    // the follow-up below moves to the next task when there is one.
     if (urlStepId && backendStepId !== urlStepId) {
+      if (backendTaskId) {
+        setSearchParams(prev => {
+          const p = new URLSearchParams(prev)
+          p.set('stepInstanceId', backendStepId)
+          p.set('taskId', backendTaskId)
+          return p
+        })
+      }
+      return
+    }
+
+    // Case 1b: URL has the step but lost its task (an earlier version of
+    // Case 1 removed it) and the server says this viewer holds a task here.
+    if (urlStepId && !urlTaskId && backendTaskId && backendStepId === urlStepId) {
       setSearchParams(prev => {
         const p = new URLSearchParams(prev)
-        p.set('stepInstanceId', backendStepId)
-        if (backendTaskId) p.set('taskId', backendTaskId)
-        else p.delete('taskId')
+        p.set('taskId', backendTaskId)
         return p
       })
       return
@@ -2320,6 +2420,46 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
       })
     }
   }, [vc.stepInstanceId, vc.taskId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── THE TASK IN THE URL IS FINISHED: FOLLOW TO MY NEXT ONE ────────────────
+  // TASK_ASSIGNED over the WebSocket is the primary way the page moves to the
+  // next task. When that event is missed — the socket reconnecting, the event
+  // landing before the page subscribed — the page sat on the finished task,
+  // "read-only at this step", until a refresh. So whenever the URL's task is
+  // no longer one this viewer can act on, ask the server once whether they
+  // have a live task on this record and move to it. Once per task id, so a
+  // genuinely finished workflow costs one request per view-context refresh.
+  //
+  // Re-checked on EVERY view-context refresh, not once per task id. Checking
+  // once meant a task that finished, and then came back to life somewhere
+  // else (an admin reset reopening the step before it, a send-back), left the
+  // banner on the dead task for good. A view-context that fails — the step in
+  // the URL was deleted by a rollback — counts as not live too.
+  const followingRef = useRef(null)
+  useEffect(() => {
+    if (embedded || !taskId || !id || !bp?.entityType) return
+    // Live only when the server says so. A task whose step a rollback deleted
+    // comes back with no step at all and canAct absent — not false — which the
+    // previous check read as live, so the banner sat on "Task #1735" forever.
+    if (!vcUpdatedAt && !vcError) return            // not loaded yet
+    const live = !vcError && vc.canAct === true && !!vc.stepInstanceId
+      && (!vc.taskId || String(vc.taskId) === String(taskId))
+    if (live || vc.canOverride === true) return
+    // Once per (task, view-context version): the answer cannot change until
+    // view-context does, and asking again on every render is how this
+    // hammered /my-next every second.
+    const key = `${taskId}@${vcUpdatedAt}@${vcError ? 'e' : ''}`
+    if (followingRef.current === key) return
+    followingRef.current = key
+    moduleApi.nextTask(bp.entityType, id)
+      .then(next => {
+        if (next?.taskId && String(next.taskId) !== String(taskId)) handleTaskAssigned(next)
+        // No live task: leave the URL alone. Removing taskId made the
+        // stale-URL correction below put it straight back, and the two chased
+        // each other. The banner already says "read-only at this step".
+      })
+      .catch(() => {})
+  }, [taskId, id, bp?.entityType, vcUpdatedAt, vcError, embedded]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Role-based tab/action visibility — Screen Designer's roleAccessJson ────
   // Data-driven: consults whatever was configured per-role/per-side in Screen
@@ -2415,11 +2555,21 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
     dispatch(saveSubTab({ tabId: activeAppTabId, subTab: null }))
   }, [id]) // eslint-disable-line
 
+  // A tab named in the link that opened this task wins over the step-based
+  // guess below. A nav row can name its tab (vendor_assessment_select_template →
+  // ?tab=workflow, where the template choice is); the guess maps FILL to
+  // Overview and replaced it, so the task landed on a tab with nothing to do.
+  // Remembered per step: when the workflow advances to a new task here, the
+  // step-based choice applies again.
+  const linkTab = useRef({ step: stepInstanceId, tab: urlTab })
+  const linkNamesTab = !!linkTab.current.tab && String(linkTab.current.step) === String(stepInstanceId)
+
   // Auto-select tab based on workflow step action when coming from a task.
   // Only fires once when vc.stepAction first resolves — doesn't override
   // user's manual tab clicks (useEffect dep is stepAction string, not vc object).
   useEffect(() => {
     if (!stepInstanceId || !vc.stepAction) return
+    if (linkNamesTab) return
     // A drawer opened on a named tab (an inbox route, a row's "open evidence")
     // stays on it.
     if (embedded && urlTab) return
@@ -2494,6 +2644,7 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
   // default tab so the page isn't blank while vc loads
   useEffect(() => {
     if (!stepInstanceId) return
+    if (linkNamesTab) return   // the link chose the tab (see linkTab)
     if (actionItemId) return   // see the effect above
     if (embedded && urlTab) return
     const entityDefaultTabs = {
@@ -2522,7 +2673,10 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
           return key && !CAPABILITY_TAB_KEYS.has(key)
         }).map(t => typeof t === 'string'
           ? { key: t.toLowerCase().replace(/\s+/g,'_'), label: t }
-          : { key: t.key, label: t.label || t.key, icon: t.icon || null })
+          // readOnly: the tab displays what the workflow's steps wrote and is
+          // never edited in place — the step's own action collects the
+          // fields (issue Root Cause / Remediation). Absent = as before.
+          : { key: t.key, label: t.label || t.key, icon: t.icon || null, readOnly: t.readOnly === true })
       }
     } catch {}
     return []
@@ -3098,8 +3252,13 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
       {/* Task context banner — shown when opened from a workflow task (stepInstanceId in URL).
           Reminds the user which task they're working on and which step action is expected.
           The back-to-inbox button clears the task context. */}
+      {/* The task banner and the tab strip stick together. The banner scrolled
+          away with the content, and on a long questionnaire the one line that
+          says which task you are working — and that it has gone read-only —
+          was off screen exactly when it mattered. */}
+      <div className="sticky top-0 z-10 glass-chrome border-b border-border">
       {taskId && (
-        <div className="mx-6 mt-4 flex items-center gap-3 px-3 py-2.5 rounded-card
+        <div className="mx-6 mt-3 mb-1 flex items-center gap-3 px-3 py-2.5 rounded-card
                         bg-brand-500/8 border border-brand-500/20 text-xs">
           <CheckSquare size={13} className="text-brand-ink shrink-0" />
           <div className="flex-1 min-w-0">
@@ -3137,7 +3296,7 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
           (blur + saturate over --glass-bg) and already degrades to solid via
           the @supports fallback where backdrop-filter is unavailable. A flat
           bg-surface read as a hard band against everything around it. */}
-      <div className="sticky top-0 z-10 glass-chrome flex items-center gap-1 px-6 border-b border-border overflow-x-auto scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div className="flex items-center gap-1 px-6 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {visibleTabs.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={cn(
@@ -3149,6 +3308,7 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
             <t.icon size={12} /> {t.label}
           </button>
         ))}
+      </div>
       </div>
 
       {/* Tab content */}
@@ -3268,6 +3428,7 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
         {sdCustomTabs.some(t => t.key === tab) && (
           <CustomTabContent
             tabKey={tab}
+            tabReadOnly={sdCustomTabs.find(t => t.key === tab)?.readOnly === true}
             detailScreenKey={bp.detailScreenKey}
             entity={entity}
             entityType={bp.entityType}
@@ -3387,7 +3548,14 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
           >
             <DynamicForm
               formKey={formKey}
-              defaultValues={{ entityId: id, entityType: bp.entityType }}
+              // __prefillFromEntity: the form edits what the record already
+              // holds — a step's form opened again after a send-back shows
+              // the plan as it was, not blank. Opt-in, so every form action
+              // seeded before it still opens empty.
+              defaultValues={meta.__prefillFromEntity
+                ? { ...(entity || {}), entityId: id, entityType: bp.entityType }
+                : { entityId: id, entityType: bp.entityType }}
+              onlyFormFields={meta.__prefillFromEntity === true}
               onSubmit={async (data) => {
                 try {
                   setActingId(detailFormAction.id)
@@ -3397,12 +3565,20 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
                   // flight — the same lag the Publish button had.
                   await Promise.all([
                     qcDetail.invalidateQueries({ queryKey: ['module-detail', bp.apiBasePath, id] }),
-                    qcDetail.invalidateQueries({ queryKey: ['view-context', bp.entityType, id] })
+                    qcDetail.invalidateQueries({ queryKey: ['view-context', bp.entityType, id] }),
+                    qcDetail.invalidateQueries({ queryKey: ['module-workflow', bp.entityType, id] }),
                   ])
                   toast.success(detailFormAction.label + ' saved')
                   setDetailFormAction(null)
+                  // A form action can complete the step (an issue's Start
+                  // remediation, Close). Move on like any other action does:
+                  // to the viewer's next task, or stay read-only.
+                  if (taskId) transitionToNextTask(bp?.entityType, id)
                 } catch (e) {
-                  toast.error(e?.response?.data?.message || 'Failed')
+                  // The server's reason — e.g. "Before this step can be
+                  // completed, add: remediation evidence" — not a bare "Failed".
+                  toast.error(e?.response?.data?.error?.message
+                    || e?.response?.data?.message || e?.message || 'Failed')
                 } finally { setActingId(null) }
               }}
               loading={actingId === detailFormAction.id}
@@ -3427,6 +3603,10 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
             vendorName={entityLabel}
             entityId={id}
             row={entity}
+            // The task this page is acting under, for components that close a
+            // step's gate (the assessment score dialogs). Others ignore it.
+            taskId={taskId}
+            stepInstanceId={stepInstanceId}
             onClose={() => setDetailComponent(null)}
             onDone={() => {
               // The same four queries executeAction invalidates. A restarted
@@ -3436,6 +3616,9 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
               qcDetail.invalidateQueries({ queryKey: ['view-context', bp.entityType, id] })
               qcDetail.invalidateQueries({ queryKey: ['module-workflow', bp.entityType, id] })
               qcDetail.invalidateQueries({ queryKey: ['module-list', bp.apiBasePath] })
+              // A component that finished the task moves on like any other
+              // action: to the viewer's next task, or stays read-only.
+              if (taskId) transitionToNextTask(bp?.entityType, id)
             }}
           />
         )
@@ -3481,6 +3664,7 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
 // ─── Sub-tabs ─────────────────────────────────────────────────────────────────
 
 function WorkflowTab({ entityType, entityId, vc, bp, entity }) {
+  const qc = useQueryClient()
   // Single query: resolve instance id then fetch progress in one chain.
   // Previously two sequential queries caused a waterfall (step1 → step2 blocked).
   // Now we do both in one queryFn — one round trip, no waterfall.
@@ -3526,6 +3710,11 @@ function WorkflowTab({ entityType, entityId, vc, bp, entity }) {
   const instance = wfData?.instance
   const progress = wfData?.progress
 
+  // Live: every event on this instance — anyone's step advancing, completing
+  // or being reset — refreshes the timeline. It used to move only when the
+  // viewer's own task changed, or on a refresh.
+  useWorkflowInstanceSocket(instance?.id, { showToasts: false })
+
   // Loading skeleton
   if (wfLoading) {
     return (
@@ -3562,6 +3751,21 @@ function WorkflowTab({ entityType, entityId, vc, bp, entity }) {
 
   return (
     <div className="max-w-2xl space-y-4">
+      {/* A vendor's workflow waiting on its questionnaire choice: the choice is
+          made HERE, where "Select Assessment Template" in the inbox lands.
+          It was only on the Assessments tab, so the task link opened onto a
+          step with nothing to act on. Renders nothing when no choice is
+          pending. */}
+      {entityType === 'VENDOR' && (
+        <TemplateSelectionPanel
+          vendor={entity}
+          workflowInstanceId={instance.id}
+          onStarted={() => {
+            qc.invalidateQueries({ queryKey: ['module-workflow', entityType, entityId] })
+            qc.invalidateQueries({ queryKey: ['vendor-assessments'] })
+          }}
+        />
+      )}
       <WorkflowTimeline
         progress={progress}
         workflowInstanceId={instance.id}
@@ -3607,7 +3811,7 @@ function EvidenceTab({ entityId, entityType, vc }) {
 //   "policies"  → LibraryMappingTab (shows policies linked to this control)
 // All other keys → renders fields from {detailScreenKey}_tab_{tabKey} form key.
 
-function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBasePath, vc, userSide, userRole, stepInstanceId, taskId, onTaskComplete }) {
+function CustomTabContent({ tabKey, tabReadOnly = false, detailScreenKey, entity, entityType, apiBasePath, vc, userSide, userRole, stepInstanceId, taskId, onTaskComplete }) {
   // ── ALL HOOKS MUST BE AT TOP — Rules of Hooks ────────────────────────────
   const qc = useQueryClient()
   const [saving,   setSaving]   = useState(false)
@@ -3654,7 +3858,8 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
   const tabEditable = editableTabsDefined
     ? (hasTask && vc.editableTabs.includes(tabKey))
     : true
-  const canEdit = tabEditable && (vc?.stepAction ? (vc?.canAct === true) : (vc?.canEdit === true))
+  const canEdit = !tabReadOnly
+    && tabEditable && (vc?.stepAction ? (vc?.canAct === true) : (vc?.canEdit === true))
   const canAct  = vc?.canAct === true
 
   // Compute whether this tab has meaningful content already saved
@@ -3990,60 +4195,151 @@ function CustomTabContent({ tabKey, detailScreenKey, entity, entityType, apiBase
   return (
     <div className="flex flex-col">
       {editButton}
-      <div className="grid grid-cols-12 gap-4">
-      {fields.map((field, fi) => {
-        if (field.fieldType === 'SECTION_HEADER') return (
-          <div key={fi} className="col-span-12 pt-2">
-            <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide border-b border-border pb-1">
-              {field.label}
-            </h3>
-          </div>
-        )
-        if (field.fieldType === 'DIVIDER') return (
-          <div key={fi} className="col-span-12 h-px bg-border" />
-        )
-        // dependsOnJson: hide field when condition on another field is not met
-        if (field.dependsOnJson) {
-          try {
-            const dep = typeof field.dependsOnJson === 'string' ? JSON.parse(field.dependsOnJson) : field.dependsOnJson
-            const actual = entity?.[dep.field]
-            const show = dep.operator === 'eq'  ? actual === dep.value
-                       : dep.operator === 'neq' ? actual !== dep.value
-                       : dep.operator === 'in'  ? (Array.isArray(dep.value) && dep.value.includes(actual))
-                       : true
-            if (!show) return null
-          } catch {}
-        }
-        const value = entity?.[field.fieldKey]
-        // Hide fields with depends_on_json that don't match current entity values
-        if (field.dependsOnJson) {
-          try {
-            const dep = typeof field.dependsOnJson === 'string'
-              ? JSON.parse(field.dependsOnJson) : field.dependsOnJson
-            const entityVal = entity?.[dep.field]
-            const matches = dep.operator === 'eq' ? entityVal === dep.value
-              : dep.operator === 'in' ? dep.value.includes(entityVal)
-              : dep.operator === 'neq' ? entityVal !== dep.value
-              : true
-            if (!matches) return null
-          } catch (e) { /* invalid depends_on_json — show field */ }
-        }
-        return (
-          <div key={fi} className={`col-span-${field.gridCols || 6}`}>
-            <FieldDisplay
-              label={field.label}
-              value={value}
-              type={field.fieldType}
-              editable={false}
-              field={field}
-            />
-          </div>
-        )
-      })}
-    </div>
+      <FormTabReadView fields={fields} entity={entity} readOnlyTab={tabReadOnly} />
     </div>
   )
 }
+
+// ── FORM TAB, READ VIEW ──────────────────────────────────────────────────────
+// How every {screen}_tab_{key} form tab reads when it is not being edited.
+// One component for all modules, so Overview, Root Cause, Remediation and
+// every other form tab read the same way.
+//
+//   • each SECTION_HEADER starts a card; fields before the first header go in
+//     an untitled card
+//   • short fields share a responsive grid; long text (TEXTAREA, RICH_TEXT,
+//     MULTILINE_LIST) runs the full width so a plan reads as a paragraph
+//   • an empty field says so in words, not a dash
+//   • a read-only tab with nothing recorded yet says the workflow fills it,
+//     instead of a page of empty labels
+// Values still render through FieldDisplay, so formatting per type is shared
+// with the rest of the page.
+const LONG_FIELD_TYPES = new Set(['TEXTAREA', 'RICH_TEXT', 'MULTILINE_LIST'])
+
+function fieldVisible(field, entity) {
+  if (!field.dependsOnJson) return true
+  try {
+    const dep = typeof field.dependsOnJson === 'string' ? JSON.parse(field.dependsOnJson) : field.dependsOnJson
+    const actual = entity?.[dep.field]
+    return dep.operator === 'eq'  ? actual === dep.value
+         : dep.operator === 'neq' ? actual !== dep.value
+         : dep.operator === 'in'  ? (Array.isArray(dep.value) && dep.value.includes(actual))
+         : true
+  } catch { return true }
+}
+
+const isEmptyValue = (v) => v == null || v === '' || (Array.isArray(v) && v.length === 0)
+
+function FormTabReadView({ fields = [], entity = {}, readOnlyTab = false }) {
+  const sections = []
+  let current = { title: null, fields: [] }
+  for (const f of fields) {
+    if (f.fieldType === 'SECTION_HEADER') {
+      if (current.fields.length) sections.push(current)
+      current = { title: f.label, fields: [] }
+    } else if (f.fieldType !== 'DIVIDER' && fieldVisible(f, entity)) {
+      current.fields.push(f)
+    }
+  }
+  if (current.fields.length) sections.push(current)
+
+  const anyFilled = sections.some(sec => sec.fields.some(f => !isEmptyValue(entity?.[f.fieldKey])))
+  if (readOnlyTab && !anyFilled) return (
+    <div className="py-12 text-center">
+      <p className="text-sm text-text-muted">Nothing recorded yet.</p>
+      <p className="text-xs text-text-muted mt-1 opacity-70">
+        This is filled in by the workflow step that owns it, and shows here once that step is done.
+      </p>
+    </div>
+  )
+
+  return (
+    <div className="space-y-4 max-w-4xl">
+      {sections.map((sec, si) => (
+        <section key={si} className="rounded-card border border-border glass-card overflow-hidden">
+          {sec.title && (
+            <header className="px-4 py-2.5 border-b border-border/60 bg-surface-inset/50">
+              <h3 className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">{sec.title}</h3>
+            </header>
+          )}
+          <div className="px-4 py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+            {sec.fields.map((field, fi) => {
+              const value = entity?.[field.fieldKey]
+              const long  = LONG_FIELD_TYPES.has(field.fieldType)
+              return (
+                <div key={field.fieldKey || fi}
+                  className={long ? 'sm:col-span-2 lg:col-span-3' : ''}>
+                  {isEmptyValue(value) ? (
+                    <div>
+                      <p className="text-[11px] font-medium text-text-muted mb-1">{field.label}</p>
+                      <p className="text-xs italic text-text-faint">Not filled in yet</p>
+                    </div>
+                  ) : long && typeof value === 'string' ? (
+                    <div>
+                      <p className="text-[11px] font-medium text-text-muted mb-1">{field.label}</p>
+                      <p className="text-sm text-text-primary whitespace-pre-wrap leading-relaxed">{value}</p>
+                    </div>
+                  ) : (
+                    <FieldDisplay label={field.label} value={value} type={field.fieldType}
+                      editable={false} field={field} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      ))}
+    </div>
+  )
+}
+// The assessment question a vendor issue was raised from — what was asked,
+// what the vendor answered, the reviewer's verdict and the remediation the
+// reviewer asked for, with a way back to the assessment.
+const VERDICT_TONE = {
+  PASS:    'bg-status-pass-bg text-status-pass-fg',
+  PARTIAL: 'bg-status-warn-bg text-status-warn-fg',
+  FAIL:    'bg-status-fail-bg text-status-fail-fg',
+}
+function VendorQuestionSourceCard({ source: f }) {
+  const navigate = useNavigate()
+  return (
+    <section className="rounded-card border border-border glass-card overflow-hidden">
+      <header className="flex items-center gap-2 px-4 py-2.5 border-b border-border/60 bg-surface-inset/50 flex-wrap">
+        <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">Vendor assessment question</span>
+        {f.sectionName && <span className="text-[11px] text-text-muted">· {f.sectionName}</span>}
+        <span className="flex-1" />
+        {f.reviewerStatus && f.reviewerStatus !== 'PENDING' && (
+          <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded',
+            VERDICT_TONE[f.reviewerStatus] || 'bg-surface-overlay text-text-muted')}>
+            {f.reviewerStatus}
+          </span>
+        )}
+        {f.assessmentId && (
+          <button type="button" onClick={() => navigate(`/module/vendor_assessment/${f.assessmentId}`)}
+            className="text-[11px] font-medium text-brand-ink hover:underline">
+            Assessment #{f.assessmentId} →
+          </button>
+        )}
+      </header>
+      <div className="px-4 py-4 space-y-3">
+        {f.questionText && <p className="text-sm font-medium text-text-primary">{f.questionText}</p>}
+        <div>
+          <p className="text-[11px] font-medium text-text-muted mb-1">Vendor's answer</p>
+          <p className="text-sm text-text-primary whitespace-pre-wrap">
+            {f.answer || <span className="italic text-text-faint">Not answered</span>}
+          </p>
+        </div>
+        {(f.remediationAsked || f.title) && (
+          <div>
+            <p className="text-[11px] font-medium text-text-muted mb-1">Remediation asked for</p>
+            <p className="text-sm text-text-primary whitespace-pre-wrap">{f.remediationAsked || f.title}</p>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 // Auditors raise findings during SOC2/TPRM audits → linked here for traceability
 function IssueFindingsTab({ issueId }) {
   const { data: res, isLoading } = useQuery({
@@ -4061,16 +4357,19 @@ function IssueFindingsTab({ issueId }) {
 
   if (findings.length === 0) return (
     <div className="py-12 text-center">
-      <p className="text-sm text-text-muted">No linked findings yet.</p>
+      <p className="text-sm text-text-muted">No linked findings.</p>
       <p className="text-xs text-text-muted mt-1 opacity-60">
-        Use the Link Finding button to associate audit findings with this issue.
+        This issue was not raised from an audit finding or an assessment question.
       </p>
     </div>
   )
 
   return (
-    <div className="space-y-2">
-      {findings.map((f, i) => (
+    <div className="space-y-2 max-w-4xl">
+      {findings.filter(f => f.kind === 'VENDOR_QUESTION').map((f, i) => (
+        <VendorQuestionSourceCard key={`vq-${f.actionItemId || i}`} source={f} />
+      ))}
+      {findings.filter(f => f.kind !== 'VENDOR_QUESTION').map((f, i) => (
         <div key={f.id || i}
           className="flex items-start gap-3 p-3 rounded-card border border-border bg-surface-secondary hover:border-border-strong transition-colors">
           <div className="flex-1 min-w-0">
@@ -4491,6 +4790,19 @@ function ServerErrorState({ error }) {
 
   const forbidden = status === 403
     || /ACCESS_DENIED|NOT_ACCESSIBLE|ADMIN_ONLY|MEMBERSHIP_INACTIVE|FORBIDDEN/.test(code || '')
+  // Every other failure used to read "the server is not responding" — even a
+  // record that simply does not exist (a task link carrying the wrong id), which
+  // sent people looking at the server instead of the link. Only a real failure
+  // to reach the server says that now; the rest say what the server said.
+  const notFound    = status === 404 || /NOT_FOUND/.test(code || '')
+  const unreachable = !status || code === 'NETWORK_ERROR' || status === 502 || status === 503 || status === 504
+  const failTitle   = notFound ? 'This record could not be found' : 'Could not load this page'
+  const failBody    = notFound
+    ? (serverMsg ? `${serverMsg}. It may have been deleted, or the link points to the wrong record.`
+                 : 'It may have been deleted, or the link points to the wrong record.')
+    : unreachable
+      ? 'The server is not responding. It may be restarting — please try again in a moment.'
+      : (serverMsg || 'The server could not load this record.')
 
   // The server names the owning tenant when the caller already holds a usable
   // membership there. That is the authoritative answer — it beats searching the
@@ -4536,12 +4848,12 @@ function ServerErrorState({ error }) {
       </div>
       <div>
         <p className="text-sm font-medium text-text-secondary">
-          {forbidden ? 'You do not have access to this record' : 'Could not load this page'}
+          {forbidden ? 'You do not have access to this record' : failTitle}
         </p>
         <p className="text-xs text-text-muted mt-1 max-w-sm">
           {forbidden
             ? (serverMsg || 'Your current organisation does not have access to this record.')
-            : 'The server is not responding. It may be restarting — please try again in a moment.'}
+            : failBody}
         </p>
         {offerSwitch && (
           <p className="text-xs text-text-muted mt-2 max-w-sm">

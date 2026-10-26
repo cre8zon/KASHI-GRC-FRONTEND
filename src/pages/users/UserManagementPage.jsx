@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import {
   Plus, Search, RefreshCw, Send, Shield, UserCheck,
-  UserX, Check, Loader2, ChevronDown, ChevronUp, AlertTriangle, ShieldCheck, UserMinus } from 'lucide-react'
+  UserX, Check, Loader2, ChevronDown, ChevronUp, AlertTriangle, ShieldCheck, UserMinus, Crown } from 'lucide-react'
 import { usersApi } from '../../api/users.api'
 import { rolesApi } from '../../api/roles.api'
 import { vendorsApi } from '../../api/vendors.api'
@@ -51,7 +51,7 @@ function useOnboardUser() {
 function useSuspendUser() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id) => usersApi.suspend(id),
+    mutationFn: ({ id, reason }) => usersApi.suspend(id, reason),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); toast.success('User suspended') },
     onError: (e) => toast.error(e?.response?.data?.error?.message || 'Failed'),
   })
@@ -697,7 +697,7 @@ function ExternalAuditorsSection({ side }) {
 }
 
 export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: vendorIdProp, tenantIdOverride, subheader }) {
-  const { tenantId: ownTenantId } = useSelector(selectAuth)
+  const { tenantId: ownTenantId, userId: meId } = useSelector(selectAuth)
   // SYSTEM callers browsing a specific tenant's users (see UsersHubPage) pass
   // tenantIdOverride; everyone else always uses their own tenant. Backend
   // only honours the override for SYSTEM-side callers regardless, so this
@@ -725,6 +725,31 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
   const [roleTarget,     setRoleTarget]     = useState(null)
   const [confirmSuspend, setConfirmSuspend] = useState(null)
   const [resendTarget,   setResendTarget]   = useState(null)
+  const [ownerTarget,    setOwnerTarget]    = useState(null)
+
+  // The organisation's one owner: can't be suspended or have the role taken
+  // away; only they can hand ownership on. Only for one's own organisation —
+  // a platform admin browsing another tenant manages that from the tenant page.
+  const ownOrg = side === 'ORGANIZATION' && !tenantIdOverride
+  const { data: ownerData } = useQuery({
+    queryKey: ['users-owner', ownTenantId],
+    queryFn:  () => usersApi.owner(),
+    enabled:  ownOrg,
+    staleTime: 60_000,
+  })
+  const ownerId = ownerData?.ownerUserId ?? null
+  const iAmOwner = ownerId != null && String(ownerId) === String(meId)
+  const qcOwner = useQueryClient()
+  const { mutate: makeOwner, isPending: transferring } = useMutation({
+    mutationFn: (target) => usersApi.makeOwner(target.id),
+    onSuccess: (r) => {
+      qcOwner.invalidateQueries({ queryKey: ['users-owner'] })
+      qcOwner.invalidateQueries({ queryKey: ['users'] })
+      setOwnerTarget(null)
+      toast.success(`${r?.ownerName || 'They'} now own${r?.ownerName ? 's' : ''} the organisation`)
+    },
+    onError: (e) => toast.error(e?.response?.data?.error?.message || 'Could not transfer ownership'),
+  })
 
   const { data, isLoading, refetch } = useUsers({
     skip:     (page - 1) * 20,
@@ -771,7 +796,20 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
         </div>
       ),
     },
-    { key: 'fullName',  label: 'Name',    sortable: true,  width: 180 },
+    {
+      key: 'fullName', label: 'Name', sortable: true, width: 180, type: 'custom',
+      render: (row) => (
+        <span className="inline-flex items-center gap-1.5 min-w-0">
+          <span className="truncate">{row.fullName}</span>
+          {ownerId != null && String(row.id) === String(ownerId) && (
+            <span title="Organisation owner"
+              className="inline-flex items-center gap-0.5 shrink-0 h-4 px-1.5 rounded-badge bg-brand-500/15 text-brand-ink text-[10px] font-semibold">
+              <Crown size={9} /> Owner
+            </span>
+          )}
+        </span>
+      ),
+    },
     { key: 'email',     label: 'Email',   sortable: true,  width: 220, type: 'mono' },
     {
       key: 'roles', label: 'Roles', width: 240, type: 'custom',
@@ -807,7 +845,15 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
             className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
             <Send size={12} />
           </button>
-          {canEdit && row.status === 'ACTIVE' && (
+          {iAmOwner && row.status === 'ACTIVE' && String(row.id) !== String(ownerId) && (
+            <button onClick={() => setOwnerTarget(row)} title="Make owner"
+              className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-brand-ink hover:bg-brand-500/10 transition-colors">
+              <Crown size={12} />
+            </button>
+          )}
+          {canEdit && row.status === 'ACTIVE'
+            && String(row.id) !== String(meId)
+            && !(ownerId != null && String(row.id) === String(ownerId)) && (
             <button onClick={() => setConfirmSuspend(row)} title="Suspend"
               className="h-6 w-6 flex items-center justify-center rounded text-text-muted hover:text-status-fail-fg hover:bg-status-fail-bg transition-colors">
               <UserX size={12} />
@@ -900,15 +946,22 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
         )}
       </Modal>
 
-      <ConfirmDialog
-        open={!!confirmSuspend}
+      <SuspendUserDialog
+        user={confirmSuspend}
         onClose={() => setConfirmSuspend(null)}
-        onConfirm={() => suspend(confirmSuspend?.id, { onSuccess: () => setConfirmSuspend(null) })}
         loading={suspending}
-        title="Suspend User"
-        variant="danger"
-        confirmLabel="Suspend"
-        message={`Suspend ${confirmSuspend?.fullName || confirmSuspend?.email}? They will lose access immediately.`}
+        onConfirm={(reason) => suspend({ id: confirmSuspend?.id, reason }, { onSuccess: () => setConfirmSuspend(null) })}
+      />
+
+      <ConfirmDialog
+        open={!!ownerTarget}
+        onClose={() => setOwnerTarget(null)}
+        onConfirm={() => makeOwner(ownerTarget)}
+        loading={transferring}
+        title="Transfer ownership"
+        variant="primary"
+        confirmLabel="Make owner"
+        message={`Make ${ownerTarget?.fullName || ownerTarget?.email} the owner of this organisation? They become the one person who can hand ownership on. You keep administrator access.`}
       />
 
       <ConfirmDialog
@@ -922,5 +975,64 @@ export default function UserManagementPage({ side = 'ORGANIZATION', vendorId: ve
         message={`Resend welcome email to ${resendTarget?.email}? Their current password will be invalidated.`}
       />
     </PageLayout>
+  )
+}
+
+/**
+ * Suspend someone: a reason (kept in their status history) and, before
+ * confirming, what it affects — their open tasks go back to unassigned for
+ * someone to pick up, and their delegations end. They are signed out on their
+ * next request.
+ */
+function SuspendUserDialog({ user, onClose, onConfirm, loading }) {
+  const [reason, setReason] = useState('')
+  const [was, setWas] = useState(null)
+  if ((user?.id ?? null) !== was) { setWas(user?.id ?? null); setReason('') }
+  const { data: impact, isLoading } = useQuery({
+    queryKey: ['user-responsibilities', user?.id],
+    queryFn:  () => usersApi.responsibilities(user.id),
+    enabled:  !!user,
+    staleTime: 0,
+  })
+  const tasks = impact?.blocking_responsibilities?.open_tasks ?? 0
+  const delegations = impact?.blocking_responsibilities?.active_delegations ?? 0
+  const b = impact?.blocking_responsibilities || {}
+  const items = b.action_items ?? 0
+  const reviews = b.reviews ?? 0
+  const assignments = (b.assessment_assignments ?? 0) + (b.audit_assignments ?? 0)
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
+  const name = user?.fullName || user?.email
+  return (
+    <Modal open={!!user} onClose={onClose} size="sm" title="Suspend user"
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+          <Button variant="danger" size="sm" loading={loading} onClick={() => onConfirm(reason.trim())}>Suspend</Button>
+        </div>
+      }>
+      <div className="space-y-3 text-sm text-text-secondary">
+        <p>
+          Suspend <span className="font-semibold text-text-primary">{name}</span>? They are signed out straight
+          away, and stay suspended until someone activates them again.
+        </p>
+        <div className="rounded-ctl border border-border-subtle bg-surface-overlay px-3 py-2 text-xs">
+          {isLoading ? <span className="text-text-muted">Checking what this affects…</span> : (
+            <ul className="space-y-1">
+              <li>{tasks === 0 ? 'No open tasks.' : `${tasks} open task${tasks === 1 ? '' : 's'} will go back to unassigned, for someone to pick up.`}</li>
+              {items > 0 && <li>{plural(items, 'action item', 'action items')} will go back to whoever handed {items === 1 ? 'it' : 'them'} out.</li>}
+              {reviews > 0 && <li>{plural(reviews, 'review', 'reviews')} waiting on them will go back to whoever raised {reviews === 1 ? 'it' : 'them'}.</li>}
+              {assignments > 0 && <li>{plural(assignments, 'assessment or audit assignment', 'assessment or audit assignments')} will be cleared, and the people running those will be told.</li>}
+              {delegations > 0 && <li>{delegations} delegation{delegations === 1 ? '' : 's'} will end.</li>}
+            </ul>
+          )}
+        </div>
+        <label className="block">
+          <span className="text-xs font-medium text-text-secondary">Reason <span className="text-text-muted font-normal">(kept in their account history)</span></span>
+          <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3}
+            placeholder="e.g. Left the company on 24 Oct"
+            className="mt-1 w-full rounded-ctl border border-border glass-field px-3 py-2 text-sm text-text-primary" />
+        </label>
+      </div>
+    </Modal>
   )
 }

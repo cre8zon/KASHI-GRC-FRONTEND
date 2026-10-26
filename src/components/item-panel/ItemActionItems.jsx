@@ -28,6 +28,7 @@ import { cn }             from '../../lib/cn'
 import { formatDate }     from '../../utils/format'
 import { useEntityActionItems } from '../../hooks/useActionItems'
 import { reviewApi }      from '../../api/review.api'
+import { usePermission }  from '../../hooks/usePermission'
 import { commentsApi }    from '../../api/comments.api'
 import { MentionInput }   from '../ui/MentionInput'
 import toast              from 'react-hot-toast'
@@ -196,6 +197,9 @@ function ActionItemThread({ entityId, item, visibility = 'ALL' }) {
 }
 
 export function ItemActionItems({ entityType, entityId, assessmentId, mode, userSide = 'VENDOR' }) {
+  // Accept risk has its own permission — the same code the endpoint checks — so
+  // a reviewer who can raise and escalate a finding does not also close it.
+  const mayAcceptRisk = usePermission().hasPermission('assessment.remediation.accept_risk')
   const qc = useQueryClient()
   const { data: items = [], isLoading } = useEntityActionItems(entityType, entityId, {
     enabled: !!entityId,
@@ -347,6 +351,7 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode, user
                   {validating ? 'Validating…' : 'Validate'}
                 </button>
               )}
+              {mayAcceptRisk && (
               <button
                 disabled={acceptingRisk}
                 onClick={() => acceptRisk(item.id)}
@@ -354,6 +359,7 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode, user
                 <CheckCheck size={10} />
                 {acceptingRisk ? '…' : 'Accept risk'}
               </button>
+              )}
             </div>
             )
           )}
@@ -474,6 +480,7 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode, user
                   {validating ? 'Validating…' : 'Validate'}
                 </button>
               )}
+              {mayAcceptRisk && (
               <button
                 disabled={acceptingRisk}
                 onClick={() => acceptRisk(item.id)}
@@ -481,6 +488,7 @@ export function ItemActionItems({ entityType, entityId, assessmentId, mode, user
                 <CheckCheck size={10} />
                 {acceptingRisk ? '…' : 'Accept risk'}
               </button>
+              )}
               {!vendorActed(item.status) && (
                 <button
                   onClick={() => toast('Send back functionality via action item page')}

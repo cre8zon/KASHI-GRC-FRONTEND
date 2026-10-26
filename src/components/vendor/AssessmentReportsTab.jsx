@@ -57,9 +57,10 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   FileText, Download, Loader2, RefreshCcw, ShieldAlert, Clock, User,
-  TrendingUp, TrendingDown, Minus, AlertTriangle,
+  TrendingUp, TrendingDown, Minus, AlertTriangle, ArrowLeft, ExternalLink,
 } from 'lucide-react'
 import { assessmentsApi } from '../../api/assessments.api'
+import { AssessmentReportView } from '../../pages/reports/AssessmentReportPage'
 import { cn } from '../../lib/cn'
 import toast from 'react-hot-toast'
 import { useStanding, P, unwrapList } from './vendorShared'
@@ -120,7 +121,7 @@ function Delta({ current, previous }) {
   )
 }
 
-function ReportRow({ report, previous, isLatest, assessmentId, navigate }) {
+function ReportRow({ report, previous, isLatest, onOpen }) {
   const pct = pctOf(report)
   const prevPct = pctOf(previous)
   const when = fmtWhen(report.generatedAt)
@@ -208,7 +209,7 @@ function ReportRow({ report, previous, isLatest, assessmentId, navigate }) {
             READ a report — the row beside it is the frozen numbers. */}
         <button
           type="button"
-          onClick={() => navigate(`/reports/assessments/${assessmentId}`)}
+          onClick={onOpen}
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-ctl border border-brand-500/30 bg-brand-500/10 text-[11px] font-medium text-brand-ink hover:bg-brand-500/20 transition-colors">
           <FileText size={11} /> Open report
         </button>
@@ -249,6 +250,10 @@ export default function AssessmentReportsTab({ assessmentId, entity, vc = {} }) 
   const navigate = useNavigate()
   const standing = useStanding(vc, 'EVALUATE')
   const [regenerating, setRegenerating] = useState(false)
+  // The report opens HERE, in the tab, rather than on /reports — the reader
+  // stays on the assessment with its tabs and task banner. "Open full page"
+  // is still one click away for printing or sharing a link.
+  const [viewing, setViewing] = useState(false)
 
   const { data: raw, isLoading, isError, error } = useQuery({
     queryKey: ['assessment-reports', assessmentId],
@@ -299,6 +304,23 @@ export default function AssessmentReportsTab({ assessmentId, entity, vc = {} }) 
   // the normal way a report comes into existence.
   const canRegenerate = standing.can(P.FINDINGS_EDIT)
 
+  if (viewing) return (
+    <div>
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-surface-overlay/40">
+        <button type="button" onClick={() => setViewing(false)}
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors">
+          <ArrowLeft size={11} /> Versions
+        </button>
+        <span className="flex-1" />
+        <button type="button" onClick={() => navigate(`/reports/assessments/${assessmentId}`)}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-ctl border border-border text-[11px] font-medium text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
+          <ExternalLink size={11} /> Open full page
+        </button>
+      </div>
+      <AssessmentReportView id={assessmentId} embedded />
+    </div>
+  )
+
   return (
     <div>
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-surface-overlay/40 flex-wrap">
@@ -339,7 +361,7 @@ export default function AssessmentReportsTab({ assessmentId, entity, vc = {} }) 
           </p>
           <button
             type="button"
-            onClick={() => navigate(`/reports/assessments/${assessmentId}`)}
+            onClick={() => setViewing(true)}
             className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-ctl border border-brand-500/30 bg-brand-500/10 text-[11px] font-medium text-brand-ink hover:bg-brand-500/20 transition-colors">
             <FileText size={11} /> Open the report
           </button>
@@ -362,8 +384,7 @@ export default function AssessmentReportsTab({ assessmentId, entity, vc = {} }) 
               // the next element, not the one before it.
               previous={reports[i + 1]}
               isLatest={i === 0}
-              assessmentId={assessmentId}
-              navigate={navigate}
+              onOpen={() => setViewing(true)}
             />
           ))}
         </div>

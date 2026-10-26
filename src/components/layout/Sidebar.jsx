@@ -138,6 +138,10 @@ function getSidebarTokens(theme) {
     searchBg:  'bg-brand-100/10',
     searchField: 'bg-brand-100/8 border border-brand-100/15 focus-within:bg-brand-100/12',
     wsCard:    'bg-brand-100/10 border-brand-100/15',
+    // Same layout as the light brand sidebar: the account sits in its own
+    // card at the foot, matching the workspace card at the top.
+    userBg:    'mx-2.5 mb-2.5 rounded-card border border-brand-100/15 bg-brand-100/10',
+    userHover: 'rounded-card hover:bg-brand-100/10',
     border:    'border-brand-100/12',
   }
   // Dark sidebar. It is dark in BOTH app themes, so its ink must be the
@@ -157,6 +161,8 @@ function getSidebarTokens(theme) {
     searchBg:  'bg-on-dark/8',
     searchField: 'bg-on-dark/8 border border-on-dark/10 focus-within:bg-on-dark/12',
     wsCard:    'bg-on-dark/8 border-on-dark/10',
+    userBg:    'mx-2.5 mb-2.5 rounded-card border border-on-dark/10 bg-on-dark/8',
+    userHover: 'rounded-card hover:bg-on-dark/8',
     border:    'border-on-dark/8',
   }
 }

@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useSelector } from 'react-redux'
 import { selectAuth } from '../store/slices/authSlice'
 import { QUERY_KEYS } from '../config/constants'
+import { endSession, BLOCKED_CODES } from '../lib/session'
 
 /**
  * Live notifications: refetch the moment the server says there is one, instead
@@ -56,6 +57,13 @@ export function useNotificationSocket() {
     const onEvent = (msg) => {
       try {
         const event = JSON.parse(msg.body)
+        // Suspended (or their organisation / vendor was) while this tab was
+        // open: the server says so here, then closes the connection. Sign out
+        // now, with the reason, instead of waiting for the next click.
+        if (event?.type === 'SESSION_ENDED') {
+          endSession(BLOCKED_CODES[event.code] || 'invalid', { broadcast: false })
+          return
+        }
         // The same topic carries workflow events and action-item events. Only
         // ours should cost a notifications refetch — the others have their own
         // hooks already invalidating their own queries.

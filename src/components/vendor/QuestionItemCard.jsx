@@ -31,10 +31,10 @@
  *
  *   Reviewer verdicts and remediation. PASS/PARTIAL/FAIL and the remediation
  *   panel are organisation-side judgements about a question, not part of the
- *   question. They stay in AssessmentReviewTab, which renders this card for the
- *   answer and its own controls around it. Folding them in here would make one
- *   component with two unrelated bodies — which is the thing this file exists
- *   to stop.
+ *   question. AssessmentReviewTab builds them (useReviewerControls) and hands
+ *   them in through three slots — `controls`, `below`, `trailing` — so the
+ *   review list row and the review drawer are this same card, as the fill tab's
+ *   are, without the card learning what a verdict is.
  *
  *   ResponderActions. Same reasoning: Accept / Request revision / Override are
  *   commands the responder issues about a contributor's work. They stay in the
@@ -169,6 +169,14 @@ export function QuestionItemCard({
   // the drawer is already open.
   onOpenDrawer,
   className,
+  // ── SLOTS, FOR THE REVIEW SIDE ──────────────────────────────────────────
+  //   controls  inline, at the start of the row's action line (verdicts,
+  //             Remediate); under the answer in the panel
+  //   below     under the action line — an expanded remediation form
+  //   trailing  replaces the contributor picker at the end of the row; in the
+  //             panel, after the controls
+  // All optional. The fill tab passes none and renders exactly as before.
+  controls, below, trailing,
 }) {
   const isPanel = variant === 'panel'
   const qi      = question.questionInstanceId
@@ -443,6 +451,14 @@ export function QuestionItemCard({
             <Loader2 size={9} className="animate-spin" /> Saving
           </span>
         )}
+        {(controls || trailing) && (
+          <div className="flex items-center gap-2 flex-wrap pt-1">
+            {controls}
+            <span className="flex-1" />
+            {trailing}
+          </div>
+        )}
+        {below}
       </div>
     )
   }
@@ -494,6 +510,7 @@ export function QuestionItemCard({
                 inline copy was a second place for the same conversation to
                 live and a second thing to keep in step. */}
             <div className="flex items-center gap-2 mt-2">
+              {controls}
               <button
                 onClick={() => onOpenDrawer?.(question, 'shared')}
                 className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded text-text-muted hover:text-text-secondary transition-colors"
@@ -528,7 +545,7 @@ export function QuestionItemCard({
                 <span className="text-[9px] text-status-pass-fg">Answered</span>
               )}
 
-              {canAssign ? (
+              {trailing !== undefined ? trailing : canAssign ? (
                 <UserPicker
                   users={contributors}
                   loading={contributorsLoading}
@@ -541,6 +558,7 @@ export function QuestionItemCard({
                 <span className="text-[9px] text-text-muted">{question.assignedUserName}</span>
               ) : null}
             </div>
+            {below}
           </div>
         </div>
       </div>

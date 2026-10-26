@@ -1,60 +1,110 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSelector } from 'react-redux'
-import { selectAuth } from '../store/slices/authSlice'
+import { store } from '../store'
 import toast from 'react-hot-toast'
 
 /**
- * Low-level WebSocket connection hook using native browser WebSocket + STOMP protocol.
- * Uses SockJS + @stomp/stompjs for reliability and fallback support.
+ * ONE shared STOMP connection for the workflow sockets, with subscriptions
+ * that survive a reconnect.
  *
- * NOTE: Install required packages:
- *   npm install @stomp/stompjs sockjs-client
+ * ── WHAT WAS WRONG ───────────────────────────────────────────────────────
+ * Every hook call opened its own SockJS + STOMP client, and a new one again
+ * whenever the access token refreshed — the old client was never shut down,
+ * because the cleanup sat inside a .then() where React never saw it. Worse,
+ * each hook subscribed ONCE, by polling for a connected client for ten
+ * seconds and then giving up. STOMP does not re-subscribe after a reconnect,
+ * so the first time the connection dropped — the laptop slept, the backend
+ * restarted — every subscription on the page was silently gone. Live task
+ * transitions and timeline updates then needed a refresh, which is exactly
+ * what "it used to update by itself" describes.
  *
- * The hook is lazy — it connects only when called with at least one subscription.
- * It reconnects automatically on disconnect (handled by STOMP client).
+ * Now: one client per tab, the token read fresh on every (re)connect, and a
+ * registry of subscriptions that is replayed on every connect. A hook adds
+ * its destination to the registry and removes it on unmount; whether the
+ * socket is up at that moment no longer matters.
  */
-function useStompClient() {
-  const clientRef = useRef(null)
-  const { token } = useSelector(selectAuth)
+const shared = {
+  client:  null,
+  starting: false,
+  subs:    new Map(),          // id -> { destination, onMessage, handle }
+  nextId:  1,
+}
 
-  useEffect(() => {
-    // Dynamically import to avoid SSR issues and keep bundle lean
-    Promise.all([
-      import('@stomp/stompjs'),
-      import('sockjs-client'),
-    ]).then(([{ Client }, { default: SockJS }]) => {
-      const client = new Client({
-        webSocketFactory: () => new SockJS(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/ws`,
-          null,
-          // Native WebSocket only — SockJS's older XHR-based fallback
-          // transports register an `unload` listener for cleanup, which
-          // Chrome now blocks under its default Permissions-Policy and
-          // logs as a console violation. Every browser this app targets
-          // supports native WebSocket, so those fallbacks are never
-          // actually needed here.
-          { transports: ['websocket'] }
-        ),
-        connectHeaders: {
-          Authorization: `Bearer ${token}`,
-        },
-        reconnectDelay: 5000,
-        onConnect:    () => { clientRef.current = client },
-        onDisconnect: () => { clientRef.current = null },
-        onStompError: (frame) => {
-          console.warn('[WS] STOMP error:', frame.headers?.message)
-        },
-      })
-      client.activate()
+function currentToken() {
+  try { return store.getState()?.auth?.token || null } catch { return null }
+}
 
-      return () => client.deactivate()
-    }).catch(err => {
-      console.warn('[WS] STOMP client not available:', err.message)
+function subscribeLive(entry) {
+  const c = shared.client
+  if (!c?.connected) return
+  try { entry.handle?.unsubscribe() } catch { /* stale handle from a dead connection */ }
+  entry.handle = c.subscribe(entry.destination, entry.onMessage)
+}
+
+function ensureClient() {
+  if (shared.client || shared.starting) return
+  shared.starting = true
+  Promise.all([
+    import('@stomp/stompjs'),
+    import('sockjs-client'),
+  ]).then(([{ Client }, { default: SockJS }]) => {
+    const client = new Client({
+      webSocketFactory: () => new SockJS(
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/ws`,
+        null,
+        // Native WebSocket only — SockJS's XHR fallbacks register an `unload`
+        // listener Chrome now blocks; every target browser has WebSocket.
+        { transports: ['websocket'] }
+      ),
+      // Read on every attempt, so a reconnect after a token refresh does not
+      // present the expired one.
+      beforeConnect: () => {
+        const token = currentToken()
+        // Signed out: stop instead of retrying every five seconds with no
+        // credentials. The next subscription after sign-in starts a new one.
+        if (!token) { stopClient(); return }
+        client.connectHeaders = { Authorization: `Bearer ${token}` }
+      },
+      reconnectDelay: 5000,
+      // Replay every registered subscription — on the first connect and on
+      // every reconnect after it.
+      onConnect: () => { shared.subs.forEach(subscribeLive) },
+      onStompError: (frame) => {
+        console.warn('[WS] STOMP error:', frame.headers?.message)
+      },
     })
-  }, [token])
+    shared.starting = false
+    // Everything unsubscribed while the library was loading — nothing to start.
+    if (shared.subs.size === 0) return
+    shared.client = client
+    client.activate()
+  }).catch(err => {
+    shared.starting = false
+    console.warn('[WS] STOMP client not available:', err.message)
+  })
+}
 
-  return clientRef
+function stopClient() {
+  const c = shared.client
+  shared.client = null
+  shared.subs.forEach(e => { e.handle = null })
+  try { c?.deactivate() } catch { /* already down */ }
+}
+
+/** Register a durable subscription; returns the function that removes it. */
+function subscribeDurable(destination, onMessage) {
+  ensureClient()
+  const id = shared.nextId++
+  const entry = { destination, onMessage, handle: null }
+  shared.subs.set(id, entry)
+  subscribeLive(entry)
+  return () => {
+    shared.subs.delete(id)
+    try { entry.handle?.unsubscribe() } catch { /* connection already gone */ }
+    // Nothing left to listen for — close rather than hold an idle socket.
+    if (shared.subs.size === 0) stopClient()
+  }
 }
 
 /**
@@ -69,41 +119,20 @@ function useStompClient() {
  */
 export function useWorkflowInstanceSocket(workflowInstanceId, { showToasts = true } = {}) {
   const qc = useQueryClient()
-  const clientRef = useStompClient()
+  const showToastsRef = useRef(showToasts)
+  useEffect(() => { showToastsRef.current = showToasts }, [showToasts])
 
   useEffect(() => {
     if (!workflowInstanceId) return
-
-    const subscribe = () => {
-      const client = clientRef.current
-      if (!client?.connected) return null
-
-      return client.subscribe(
-        `/topic/instance/${workflowInstanceId}`,
-        (message) => {
-          try {
-            const event = JSON.parse(message.body)
-            handleInstanceEvent(event, workflowInstanceId, qc, showToasts)
-          } catch (e) {
-            console.warn('[WS] Failed to parse event:', e)
-          }
-        }
-      )
-    }
-
-    // Retry subscription until client connects
-    let sub = null
-    let retries = 0
-    const interval = setInterval(() => {
-      sub = subscribe()
-      if (sub || retries++ > 20) clearInterval(interval)
-    }, 500)
-
-    return () => {
-      clearInterval(interval)
-      sub?.unsubscribe()
-    }
-  }, [workflowInstanceId, qc, showToasts]) // eslint-disable-line
+    return subscribeDurable(`/topic/instance/${workflowInstanceId}`, (message) => {
+      try {
+        const event = JSON.parse(message.body)
+        handleInstanceEvent(event, workflowInstanceId, qc, showToastsRef.current)
+      } catch (e) {
+        console.warn('[WS] Failed to parse event:', e)
+      }
+    })
+  }, [workflowInstanceId, qc])
 }
 
 /**
@@ -120,74 +149,66 @@ export function useWorkflowInstanceSocket(workflowInstanceId, { showToasts = tru
  */
 export function useUserTaskSocket(userId, { watchEntityType, watchEntityId, watchParentProjectId, onTaskAssigned } = {}) {
   const qc = useQueryClient()
-  const clientRef = useStompClient()
   // Stable ref so the subscription closure always calls the latest callback
   const onTaskAssignedRef = useRef(onTaskAssigned)
   useEffect(() => { onTaskAssignedRef.current = onTaskAssigned }, [onTaskAssigned])
 
   useEffect(() => {
     if (!userId) return
+    return subscribeDurable(`/topic/user/${userId}`, (message) => {
+      try {
+        const event = JSON.parse(message.body)
+        if (event.type === 'TASK_ASSIGNED') {
+          // Always refresh inbox badge
+          qc.invalidateQueries({ queryKey: ['my-tasks'] })
+          // A task of mine moved: the workflow timeline and the page's own
+          // controls are stale too.
+          qc.invalidateQueries({ queryKey: ['module-workflow'] })
+          qc.invalidateQueries({ queryKey: ['view-context'] })
 
-    let sub = null
-    let retries = 0
-    const interval = setInterval(() => {
-      const client = clientRef.current
-      if (client?.connected) {
-        sub = client.subscribe(`/topic/user/${userId}`, (message) => {
-          try {
-            const event = JSON.parse(message.body)
-            if (event.type === 'TASK_ASSIGNED') {
-              // Always refresh inbox badge
-              qc.invalidateQueries({ queryKey: ['my-tasks'] })
+          // Seamless transition: if this task is for the entity the user
+          // is currently viewing, call the callback instead of showing
+          // a generic "go to inbox" toast.
+          const isCurrentEntity = watchEntityType && watchEntityId && (
+            // Same-entity match: entityType + entityId matches current page
+            (event.entityType === watchEntityType &&
+             String(event.entityId) === String(watchEntityId)) ||
+            // Cross-entity match: artifactId matches current page's entity ID
+            // e.g. WF16 task assigned with artifactId=engagementId, user is on engagement page
+            // Only when the artifact is a different record from the workflow's
+            // entity: an issue task carries its own issue as artifact, and
+            // Issue 74 is not Vendor Assessment 74 — matching on the bare id
+            // sent the assessment page off to the issue screen.
+            (event.artifactId && String(event.artifactId) === String(watchEntityId)
+              && String(event.artifactId) !== String(event.entityId)) ||
+            // Parent-project match: user is on an engagement page, new task is on the parent project
+            // e.g. Step 3 completes → Step 4 task assigned on AUDIT_PROJECT
+            (watchParentProjectId &&
+             event.entityType === 'AUDIT_PROJECT' &&
+             String(event.entityId) === String(watchParentProjectId))
+          )
 
-              // Seamless transition: if this task is for the entity the user
-              // is currently viewing, call the callback instead of showing
-              // a generic "go to inbox" toast.
-              const isCurrentEntity = watchEntityType && watchEntityId && (
-                // Same-entity match: entityType + entityId matches current page
-                (event.entityType === watchEntityType &&
-                 String(event.entityId) === String(watchEntityId)) ||
-                // Cross-entity match: artifactId matches current page's entity ID
-                // e.g. WF16 task assigned with artifactId=engagementId, user is on engagement page
-                (event.artifactId && String(event.artifactId) === String(watchEntityId)) ||
-                // Parent-project match: user is on an engagement page, new task is on the parent project
-                // e.g. Step 3 completes → Step 4 task assigned on AUDIT_PROJECT
-                (watchParentProjectId &&
-                 event.entityType === 'AUDIT_PROJECT' &&
-                 String(event.entityId) === String(watchParentProjectId))
-              )
-
-              if (isCurrentEntity && onTaskAssignedRef.current) {
-                onTaskAssignedRef.current({
-                  taskId:         event.taskId,
-                  stepInstanceId: event.stepInstanceId,
-                  stepName:       event.stepName,
-                  stepAction:     event.resolvedStepAction,
-                  navKey:         event.navKey,
-                  artifactId:     event.artifactId,
-                })
-              } else {
-                // Different entity or no watch — show inbox toast as before
-                toast.success(`New task: ${event.stepName || 'Workflow step'}`, {
-                  icon: '📋',
-                  duration: 5000,
-                })
-              }
-            }
-          } catch (e) {
-            console.warn('[WS] Failed to parse user event:', e)
+          if (isCurrentEntity && onTaskAssignedRef.current) {
+            onTaskAssignedRef.current({
+              taskId:         event.taskId,
+              stepInstanceId: event.stepInstanceId,
+              stepName:       event.stepName,
+              stepAction:     event.resolvedStepAction,
+              navKey:         event.navKey,
+              artifactId:     event.artifactId,
+            })
+          } else {
+            // Different entity or no watch — show inbox toast as before
+            toast.success(`New task: ${event.stepName || 'Workflow step'}`, {
+              icon: '📋',
+              duration: 5000,
+            })
           }
-        })
-        clearInterval(interval)
-      } else if (retries++ > 20) {
-        clearInterval(interval)
+        }
+      } catch (e) {
+        console.warn('[WS] Failed to parse user event:', e)
       }
-    }, 500)
-
-    return () => {
-      clearInterval(interval)
-      sub?.unsubscribe()
-    }
+    })
   }, [userId, watchEntityType, watchEntityId, qc]) // eslint-disable-line
 }
 
@@ -200,37 +221,15 @@ export function useUserTaskSocket(userId, { watchEntityType, watchEntityId, watc
  */
 export function useArtifactSocket(entityType, artifactId) {
   const qc = useQueryClient()
-  const clientRef = useStompClient()
 
   useEffect(() => {
     if (!entityType || !artifactId) return
-    const room = `/topic/artifact/${entityType.toLowerCase()}/${artifactId}`
-
-    let sub = null
-    let retries = 0
-    const interval = setInterval(() => {
-      const client = clientRef.current
-      if (client?.connected) {
-        sub = client.subscribe(room, (message) => {
-          try {
-            const event = JSON.parse(message.body)
-            // Invalidate all queries related to this artifact
-            qc.invalidateQueries({ queryKey: ['vendor-assessment', artifactId] })
-            qc.invalidateQueries({ queryKey: ['workflow-progress'] })
-          } catch (e) {
-            console.warn('[WS] Failed to parse artifact event:', e)
-          }
-        })
-        clearInterval(interval)
-      } else if (retries++ > 20) {
-        clearInterval(interval)
-      }
-    }, 500)
-
-    return () => {
-      clearInterval(interval)
-      sub?.unsubscribe()
-    }
+    return subscribeDurable(`/topic/artifact/${entityType.toLowerCase()}/${artifactId}`, () => {
+      // Invalidate all queries related to this artifact
+      qc.invalidateQueries({ queryKey: ['vendor-assessment', artifactId] })
+      qc.invalidateQueries({ queryKey: ['workflow-progress'] })
+      qc.invalidateQueries({ queryKey: ['module-workflow'] })
+    })
   }, [entityType, artifactId, qc])
 }
 
@@ -240,6 +239,11 @@ function handleInstanceEvent(event, workflowInstanceId, qc, showToasts) {
   // Always invalidate progress for any event on this instance
   qc.invalidateQueries({ queryKey: ['workflow-progress', workflowInstanceId] })
   qc.invalidateQueries({ queryKey: ['workflow-instance', workflowInstanceId] })
+  // The module page's Workflow tab reads instance + progress under one key of
+  // its own, and every page's controls hang off view-context. Both move with
+  // any event on the instance — a step advancing, completing, or being reset.
+  qc.invalidateQueries({ queryKey: ['module-workflow'] })
+  qc.invalidateQueries({ queryKey: ['view-context'] })
 
   switch (event.type) {
     case 'TASK_ASSIGNED':

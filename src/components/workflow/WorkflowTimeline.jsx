@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Clock, Circle, X, Zap, ChevronDown, ChevronRight,
          Users, AlertTriangle, RotateCcw, RefreshCw, RotateCw, AlertCircle, GitBranch, Info, ShieldAlert } from 'lucide-react'
 import { cn } from '../../lib/cn'
+import { GlassSelect } from '../ui/GlassSelect'
 import { workflowsApi } from '../../api/workflows.api'
 import { assessmentsApi } from '../../api/assessments.api'
 import toast from 'react-hot-toast'
@@ -32,6 +33,8 @@ const STEP_STATUS = {
   REJECTED:            { icon: X,            color: 'text-status-fail-fg',    ring: 'border-status-fail-bd    bg-status-fail-bg'    },
   IN_PROGRESS:         { icon: Clock,        color: 'text-brand-ink',  ring: 'border-brand-500/40  bg-brand-500/10'  },
   AWAITING_ASSIGNMENT: { icon: Users,        color: 'text-status-warn-fg',  ring: 'border-status-warn-bd  bg-status-warn-bg'  },
+  // Nobody on it — e.g. its assignee was suspended. Someone has to be chosen.
+  UNASSIGNED:          { icon: Users,        color: 'text-status-warn-fg',  ring: 'border-status-warn-bd  bg-status-warn-bg'  },
   REASSIGNED:          { icon: RotateCcw,    color: 'text-status-tag-fg', ring: 'border-status-tag-bd bg-status-tag-bg' },
   PENDING:             { icon: Circle,       color: 'text-text-muted', ring: 'border-border        bg-surface-overlay'},
 }
@@ -312,14 +315,14 @@ function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
         {!isLast && <div className="w-px flex-1 bg-border/50 my-1 min-h-[12px]" />}
       </div>
 
-      {/* Card */}
+      {/* Card — frosted like every other card. glass-card supplies the fill,
+          rim and blur; only the current step overrides the border (utilities
+          win over the glass layer), and steps not yet reached are dimmed. */}
       <div className={cn(
-        'flex-1 mb-3 rounded-card border overflow-hidden',
+        'glass-card flex-1 mb-3 rounded-card overflow-hidden',
         step.isCurrentStep
-          ? 'border-brand-500/30 bg-brand-500/3'
-          : step.visited
-            ? 'border-border/60 bg-surface-raised'
-            : 'border-border/30 bg-surface-raised/50 opacity-60'
+          ? 'border-brand-500/40'
+          : !step.visited && 'opacity-60'
       )}>
         {/* Header */}
         <button
@@ -327,7 +330,7 @@ function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
           disabled={!step.visited}
           className={cn(
             'w-full flex items-center gap-2 px-3 py-2.5 text-left',
-            step.visited ? 'hover:bg-surface-overlay transition-colors cursor-pointer' : 'cursor-default'
+            step.visited ? 'hover:bg-brand-500/5 transition-colors cursor-pointer' : 'cursor-default'
           )}
         >
           <div className="flex-1 min-w-0">
@@ -442,6 +445,9 @@ function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
                 )}
               </div>
             )}
+            {status === 'UNASSIGNED' && stepInstanceId && (
+              <AssignStepPanel stepInstanceId={stepInstanceId} workflowInstanceId={workflowInstanceId} />
+            )}
             {/* Actor tasks — the people doing real work */}
             {actorTasks.length > 0
               ? actorTasks.map((t, i) => <TaskRow key={i} task={t} isAssigner={false}
@@ -467,6 +473,73 @@ function StepRow({ step, isLast, workflowInstanceId, isAdmin, assessmentId }) {
             )}
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+// ── AssignStepPanel ───────────────────────────────────────────────────────────
+//
+// A step with nobody on it — usually because its assignee was suspended, and the
+// organisation's rule is that such work goes back to unassigned rather than
+// silently to someone else. Whoever may choose (the workflow's initiator, the
+// step's assigners, the organisation's owner) picks one person here; everyone
+// else is told who can.
+
+function AssignStepPanel({ stepInstanceId, workflowInstanceId }) {
+  const qc = useQueryClient()
+  const [userId, setUserId] = useState('')
+  const { data, isLoading } = useQuery({
+    queryKey: ['wf-step-candidates', stepInstanceId],
+    queryFn:  () => workflowsApi.instances.actorCandidates(stepInstanceId),
+    staleTime: 30_000,
+  })
+  // Not every page passes the instance id to the timeline; the server knows it.
+  const instanceId = data?.workflowInstanceId ?? workflowInstanceId
+  const assign = useMutation({
+    mutationFn: () => workflowsApi.instances.manualAssign(instanceId, stepInstanceId, userId),
+    onSuccess: () => {
+      toast.success('Assigned')
+      setUserId('')
+      // Pages key their progress query differently — refresh any that holds it.
+      qc.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).toLowerCase().includes('progress') })
+      qc.invalidateQueries({ queryKey: ['wf-step-candidates', stepInstanceId] })
+      qc.invalidateQueries({ queryKey: ['my-tasks'] })
+    },
+    onError: (e) => toast.error(e?.response?.data?.error?.message || 'Could not assign'),
+  })
+  const candidates = data?.candidates || []
+  return (
+    <div className="px-3 py-2.5 border-b border-border/50 bg-status-warn-bg/40">
+      <div className="flex items-start gap-2">
+        <Users size={11} className="text-status-warn-fg shrink-0 mt-0.5" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-medium text-status-warn-fg">Nobody is on this step</p>
+          {isLoading ? (
+            <p className="text-[10px] text-text-muted mt-0.5">Checking who can take it…</p>
+          ) : !data?.canAssign ? (
+            <p className="text-[10px] text-text-secondary mt-0.5">
+              The workflow's initiator, its assigners or the organisation's owner can give it to someone.
+            </p>
+          ) : candidates.length === 0 ? (
+            <p className="text-[10px] text-text-secondary mt-0.5">
+              No active person holds a role for this step. Give someone the role, then assign it here.
+            </p>
+          ) : (
+            <div className="mt-1.5 flex items-center gap-2">
+              <GlassSelect value={userId} onChange={e => setUserId(e.target.value)} className="h-7 flex-1 min-w-0 text-xs">
+                <option value="">Choose a person…</option>
+                {candidates.map(c => (
+                  <option key={c.id} value={c.id}>{c.fullName || c.email}{c.roleName ? ` — ${c.roleName}` : ''}</option>
+                ))}
+              </GlassSelect>
+              <button type="button" disabled={!userId || assign.isPending} onClick={() => assign.mutate()}
+                className="h-7 px-3 rounded-ctl text-[11px] font-semibold bg-brand-500 text-brand-on disabled:opacity-50">
+                {assign.isPending ? 'Assigning…' : 'Assign'}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

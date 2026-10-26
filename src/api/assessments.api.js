@@ -344,6 +344,9 @@ export const assessmentsApi = {
       api.post(`/v1/assessments/${id}/recalculate-scores`, null, { params: taskId ? { taskId } : {} }),
     documentFindings:          (id, taskId, findings) =>
       api.post(`/v1/assessments/${id}/document-findings`, { findings }, { params: { taskId } }),
+    /** Live reviewer-adjusted score, compliance % and suggested risk rating. */
+    scoreSummary:              (id) =>
+      api.get(`/v1/assessments/${id}/score-summary`),
     cisoApprove:               (id, taskId) =>
       api.post(`/v1/assessments/${id}/ciso-approve`, null, { params: { taskId } }),
     assignRiskRating:          (id, taskId, riskRating) =>

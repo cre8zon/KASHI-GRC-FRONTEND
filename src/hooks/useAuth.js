@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import { authApi } from '../api/auth.api'
 import { loginSuccess, tenantSwitched, selectAuth } from '../store/slices/authSlice'
 import { queryClient } from '../config/queryClient'
+import { store } from '../store'
+import { claimTabs } from '../store/slices/tabsSlice'
 import { endSession, setPostLoginTarget } from '../lib/session'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -47,10 +49,20 @@ export const useSwitchTenant = (opts = {}) => {
       // Drop the outgoing tenant's cache BEFORE the new state lands, so nothing
       // can render against a mismatched token.
       queryClient.clear()
+      // A deliberate switch puts this organisation's tabs aside and brings
+      // back the new one's (or a clean Dashboard) — done before the auth
+      // change, so the store does not carry the current page's tab across.
+      if (!silent) {
+        const userId = store.getState().auth.userId
+        const tenantId = payload.user?.tenantId
+        if (userId != null && tenantId != null) dispatch(claimTabs({ userId, tenantId }))
+      }
       dispatch(tenantSwitched(payload))
       if (silent) return   // caller is already on the right route
       toast.success(`Switched to ${payload.user?.tenantName || 'organization'}`)
-      navigate('/dashboard', { replace: true })
+      const { tabs, activeTabId } = store.getState().tabs
+      const back = tabs.find(t => t.id === activeTabId)?.route
+      navigate(back && back.startsWith('/') ? back : '/dashboard', { replace: true })
     },
     onError: (err) => {
       const msg = err?.response?.data?.error?.message || err?.message || 'Could not switch organization'
