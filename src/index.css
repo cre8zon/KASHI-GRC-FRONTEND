@@ -221,5 +221,42 @@
   .gradient-border::after { display: none; }
 }
 
+/* Quiet scrollbars for panels that scroll inside the page (tables, side
+   columns): thin, and invisible until the pointer is over the panel — so the
+   scrollbar is there when you reach for it, without a permanent grey bar on
+   every table. Keyboard, wheel and trackpad scrolling are unaffected. */
+.scroll-quiet { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.scroll-quiet:hover, .scroll-quiet:focus-within { scrollbar-color: rgb(var(--color-brand-500) / .35) transparent; }
+.scroll-quiet::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-quiet::-webkit-scrollbar-track { background: transparent; }
+.scroll-quiet::-webkit-scrollbar-thumb { background: transparent; border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+.scroll-quiet:hover::-webkit-scrollbar-thumb, .scroll-quiet:focus-within::-webkit-scrollbar-thumb { background-color: rgb(var(--color-brand-500) / .35); }
+.scroll-quiet::-webkit-scrollbar-corner { background: transparent; }
+
 /* Hide scrollbar while keeping scroll functionality */
 .scrollbar-none::-webkit-scrollbar { display: none; }
+/* ── Guide band (list screens: workflows / module guide) ─────────────────────
+   The darkest thing above a list, in the tenant's own hue: brand-900 → 800
+   with brand-200 text. brand-900 is dark in both light and dark themes, so the
+   band stays a dark band everywhere; in dark mode a hairline keeps its edge. */
+.guide-band {
+  background: linear-gradient(100deg, rgb(var(--color-brand-900)), rgb(var(--color-brand-800)));
+  color: #fff;
+}
+[data-theme="dark"] .guide-band { box-shadow: inset 0 0 0 1px rgb(var(--color-brand-500) / .35); }
+@media (prefers-color-scheme: dark) { [data-theme="system"] .guide-band { box-shadow: inset 0 0 0 1px rgb(var(--color-brand-500) / .35); } }
+.guide-band-muted { color: rgb(var(--color-brand-200)); }
+.guide-band-cta { background: rgb(var(--color-brand-200)); color: rgb(var(--color-brand-900)); }
+.guide-band-cta:hover { background: rgb(var(--color-brand-100)); }
+.guide-band-ghost { border-color: rgb(var(--color-brand-400) / .7); color: #fff; }
+.guide-band-ghost:hover { background: rgb(255 255 255 / .08); }
+/* Same tokens for the catalogue's video stage. */
+.guide-stage { background: rgb(var(--color-brand-900)); }
+
+/* ── Detail band (record screens) ────────────────────────────────────────────
+   Breadcrumb, hero and tab strip on a soft brand tint that fades down to the
+   tab rule; the tab body below sits on the plain page with white cards. */
+.detail-band {
+  background: linear-gradient(180deg, rgb(var(--color-brand-500) / .10), rgb(var(--color-brand-500) / .035) 70%, rgb(var(--color-brand-500) / .03));
+  border-bottom: 1px solid rgb(var(--color-border));
+}

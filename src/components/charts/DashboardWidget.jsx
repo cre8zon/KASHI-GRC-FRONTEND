@@ -32,7 +32,7 @@ const CHART_COLORS = [
   'var(--chart-5)', 'var(--chart-6)', 'var(--chart-7)', 'var(--chart-8)',
 ]
 
-function useWidgetData(widget, userSides) {
+export function useWidgetData(widget, userSides) {
   // Check if user's sides match widget's allowedSidesJson
   const sideAllowed = !widget.allowedSidesJson ||
     (userSides || []).some(s => widget.allowedSidesJson.includes(`"${s}"`))
@@ -87,7 +87,7 @@ function useWidgetData(widget, userSides) {
  * without revocation evidence" and "0 people did" must not be the same colour,
  * and which of them is bad is a property of the metric, not of the component.
  */
-function resolveThresholdColor(thresholdsJson, value) {
+export function resolveThresholdColor(thresholdsJson, value) {
   if (thresholdsJson == null || value == null) return null
   let rules
   try { rules = JSON.parse(thresholdsJson) } catch { return null }
@@ -107,7 +107,7 @@ function resolveThresholdColor(thresholdsJson, value) {
 }
 
 /** Formatting is a property of the metric, so it comes from the row. */
-function formatValue(value, valueFormat) {
+export function formatValue(value, valueFormat) {
   if (value == null) return '—'
   const n = Number(value)
   switch (valueFormat) {

@@ -82,7 +82,10 @@ function queryMatches(routeQuery, search) {
   return true
 }
 
-const isHidden = (item) => item.isActive === false || item.isActive === 0
+// A row shown as a tab on another page (tabParentKey) is not in the sidebar,
+// so for highlighting it counts as hidden and climbs to the page it is a tab
+// of: on the Vendor dashboard tab, "Vendors" lights up.
+const isHidden = (item) => item.isActive === false || item.isActive === 0 || !!item.tabParentKey
 
 /**
  * Flatten the nested nav tree, keeping each row's parent so the chain can be
@@ -91,7 +94,7 @@ const isHidden = (item) => item.isActive === false || item.isActive === 0
  */
 function flatten(items, parent = null, out = [], byKey = new Map()) {
   for (const item of items || []) {
-    const row = { ...item, _parent: item.parentKey || parent?.navKey || null }
+    const row = { ...item, _parent: item.tabParentKey || item.parentKey || parent?.navKey || null }
     out.push(row)
     if (row.navKey) byKey.set(row.navKey, row)
     if (item.children?.length) flatten(item.children, item, out, byKey)
@@ -189,11 +192,44 @@ function pathOnlyFallback(rows, byKey, pathname) {
  *          expand. `matchedKey` is the row that actually matched, which may be
  *          a hidden detail row.
  */
+/**
+ * A row is a page TAB only while its tab parent is in this user's menu.
+ *
+ * The menu is filtered per user (side, permission, feature), so a tab row can
+ * reach someone whose parent page did not — a dashboard permission without the
+ * list permission. Hiding that row from the sidebar would lose the page
+ * altogether; instead it falls back to being an ordinary sidebar row. Rows
+ * whose parent IS present come back unchanged (same objects), and the result
+ * is cached per tree, so callers can use it freely in render.
+ */
+const normalizedCache = new WeakMap()
+export function normalizeTabRows(items) {
+  if (!Array.isArray(items)) return items
+  const hit = normalizedCache.get(items)
+  if (hit) return hit
+  const present = new Set()
+  const walk = (rs) => {
+    for (const r of rs || []) {
+      if (r.navKey && r.route && !isHidden(r)) present.add(r.navKey)
+      if (r.children?.length) walk(r.children)
+    }
+  }
+  walk(items)
+  const fix = (rs) => (rs || []).map(r => {
+    const kids = r.children?.length ? fix(r.children) : r.children
+    const orphan = !!r.tabParentKey && !present.has(r.tabParentKey)
+    return orphan || kids !== r.children ? { ...r, tabParentKey: orphan ? null : r.tabParentKey, children: kids } : r
+  })
+  const out = fix(items)
+  normalizedCache.set(items, out)
+  return out
+}
+
 export function resolveNav(items, location) {
   const { pathname, search } = location || {}
   if (!pathname) return null
 
-  const { rows, byKey } = flatten(items)
+  const { rows, byKey } = flatten(normalizeTabRows(items))
 
   // Two winners, tracked separately. The overall winner may be a hidden detail
   // row, which is usually the better answer — but only if its chain reaches
@@ -245,4 +281,4 @@ export function resolveNav(items, location) {
  */
 export function activeNavRoute(items, location) {
   return resolveNav(items, location)?.route || null
-}
+}

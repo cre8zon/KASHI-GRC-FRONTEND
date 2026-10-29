@@ -16,6 +16,7 @@ import { LayoutModeInspector } from './LayoutModeInspector'
 import { HeaderZoneInspector } from './HeaderZoneInspector'
 import { TabContentInspector } from './TabContentInspector'
 import { GenericElementInspector } from './GenericElementInspector'
+import { InspectorSection } from '../shared/InspectorHelpers'
 
 function Inspector({ screen, screenType, selectedElement, onSelectElement, onSelectScreen }) {
   const qc = useQueryClient()

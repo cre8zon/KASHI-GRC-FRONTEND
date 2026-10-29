@@ -26,8 +26,10 @@ export const ENQUIRY_PERMS = { VIEW: 'platform:enquiries:view', MANAGE: 'platfor
 export const TYPE_LABEL = {
   DEMO: 'Demo', TRIAL: 'Free trial', CONTACT_SALES: 'Contact sales', AUDIT_FIRM: 'Audit firm',
   PARTNERSHIP: 'Partnership', SUPPORT: 'Support', GENERAL: 'General',
+  // From the in-app workflow catalogue, already matched to the customer's tenant.
+  WORKFLOW_REQUEST: 'Custom workflow',
 }
-export const typeTone = (t) => ({ DEMO: 'info', TRIAL: 'pass', CONTACT_SALES: 'tag', AUDIT_FIRM: 'tag', SUPPORT: 'warn' }[t] || 'muted')
+export const typeTone = (t) => ({ DEMO: 'info', TRIAL: 'pass', CONTACT_SALES: 'tag', AUDIT_FIRM: 'tag', SUPPORT: 'warn', WORKFLOW_REQUEST: 'pass' }[t] || 'muted')
 
 const STATUS_CHOICES = [
   { value: 'NEW', label: 'New' }, { value: 'IN_PROGRESS', label: 'In progress' },

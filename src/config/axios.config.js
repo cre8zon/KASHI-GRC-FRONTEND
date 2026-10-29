@@ -53,7 +53,7 @@ const MUTATION_INVALIDATION_RULES = [
   { prefix: '/v1/admin/module-blueprints', keys: ['module-blueprint'] },
 
   // Workflow
-  { prefix: '/v1/workflow-instances',     keys: ['module-workflow', 'view-context', 'module-detail', 'workflow-instances'] },
+  { prefix: '/v1/workflow-instances',     keys: ['module-workflow', 'view-context', 'module-detail', 'workflow-instances', 'workflow-role-coverage'] },
   { prefix: '/v1/workflows',              keys: ['admin-workflows', 'module-workflow'] },
 
   // Audit library
@@ -69,7 +69,7 @@ const MUTATION_INVALIDATION_RULES = [
   { prefix: '/v1/assessments',            keys: ['module-list', 'module-detail'] },
 
   // Users & tenants
-  { prefix: '/v1/users',                  keys: ['users', 'admin-users'] },
+  { prefix: '/v1/users',                  keys: ['users', 'admin-users', 'workflow-role-coverage'] },   // a role given → warning re-checks
   { prefix: '/v1/tenants',               keys: ['tenants', 'roles', 'rbac-roles'] },
 
   // Navigation (consumer endpoint — bootstrap covers this but belt-and-suspenders)

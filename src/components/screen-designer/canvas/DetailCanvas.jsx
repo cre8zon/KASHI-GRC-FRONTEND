@@ -27,7 +27,8 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
         return parsed.map(t =>
           typeof t === 'string'
             ? { key: t.toLowerCase().replace(/\s+/g, '_'), label: t }
-            : { key: t.key || t.label?.toLowerCase().replace(/\s+/g, '_') || 'tab', label: t.label || t.key || 'Tab' }
+            : { key: t.key || t.label?.toLowerCase().replace(/\s+/g, '_') || 'tab', label: t.label || t.key || 'Tab',
+                header: t.header === true }
         )
       }
     } catch {}
@@ -208,6 +209,13 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
           </div>
         ) : tabFields.length > 0 ? (
           // CONFIGURABLE tab — show REAL configured fields
+          <>
+          {activeTabDef?.header && (
+            <div className="mx-4 mt-3 px-3 py-2 rounded-card border border-dashed border-brand-500/40 bg-brand-500/5 text-[10px] text-brand-ink">
+              This tab has its own header — it replaces the header zone while the tab is open.
+              Configure it in the Inspector → Tab header.
+            </div>
+          )}
           <div
             className={cn(
               'p-4 cursor-pointer',
@@ -245,6 +253,7 @@ function DetailCanvas({ screen, selectedElement, onSelectElement, actions, layou
               {tabFields.length} field{tabFields.length !== 1 ? 's' : ''} configured · click to edit in Inspector
             </p>
           </div>
+          </>
         ) : (
           // CONFIGURABLE tab — empty, show prompt
           <div

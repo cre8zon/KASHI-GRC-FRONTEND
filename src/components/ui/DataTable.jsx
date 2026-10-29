@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { DynamicBadge, Badge } from './Badge'
 import { COLOR_MAP } from '../../config/constants'
@@ -238,9 +238,53 @@ export function DataTable({
         return <LookupCell id={val} />
       }
       default:
-        return <span>{val ?? '—'}</span>
+        // Two lines at most — a long title used to wrap to six and make every
+        // row as tall as its longest cell. The full text is on hover.
+        return <span title={typeof val === 'string' && val.length > 24 ? val : undefined}>{val ?? '—'}</span>
     }
   }
+
+  // ── Column widths: content-aware, one line per row ─────────────────────────
+  // The table uses a fixed layout. ONE primary column (the title / name) takes
+  // whatever room is left and may wrap to two lines; every other column gets a
+  // width suited to what it holds — a configured width is honoured within a
+  // sensible range for its type — and its content stays on one line, truncated
+  // with the full value on hover. Rows stay one height, columns stop fighting
+  // over space, and the table only scrolls sideways when the window really is
+  // narrower than the columns need.
+  const layout = useMemo(() => {
+    // [min, max, default] px per column type. Defaults are deliberately lean:
+    // eleven columns must still fit a 1500px table, with the primary column
+    // getting the rest.
+    const RANGE = {
+      mono: [60, 200, 90], number: [56, 110, 80], badge: [88, 160, 110], date: [96, 140, 112],
+      user: [130, 220, 160], lookup: [130, 220, 160], progress: [110, 180, 140], truncate: [120, 280, 180],
+      text: [100, 220, 130],
+    }
+    const PRIMARY_KEYS = ['title', 'name', 'label', 'titleSnapshot', 'controlNameSnapshot', 'testNameSnapshot', 'displayName', 'fullName']
+    const primaryKey = (displayCols.find(c => PRIMARY_KEYS.includes(c.key))
+      || displayCols.find(c => !c.type || c.type === 'text' || c.type === 'truncate'))?.key
+    let fixedTotal = selectable ? 40 : 0
+    const widths = {}
+    for (const c of displayCols) {
+      if (c.key === primaryKey) continue
+      let w
+      if (c.type === 'custom') w = Number(c.width) || 140
+      else {
+        const [lo, hi, dflt] = RANGE[c.type] || RANGE.text
+        w = Math.min(hi, Math.max(lo, Number(c.width) || dflt))
+      }
+      widths[c.key] = w
+      fixedTotal += w
+    }
+    const primaryMin = primaryKey ? Math.max(260, Number(displayCols.find(c => c.key === primaryKey)?.minWidth) || 0) : 0
+    // The primary column gets a width too (its floor, with some weight), and
+    // the table is full width: when there is spare room the browser spreads it
+    // across ALL columns in proportion, so truncated keys and routes get room
+    // as well instead of the title column swallowing everything.
+    if (primaryKey) widths[primaryKey] = Math.round(primaryMin * 1.25)
+    return { primaryKey, widths, minTableWidth: fixedTotal + primaryMin }
+  }, [displayCols, selectable])
 
   const SortIcon = ({ col }) => {
     if (!col.sortable) return null
@@ -252,11 +296,18 @@ export function DataTable({
 
   return (
     <div className="flex flex-col h-full min-h-0 rounded-card border border-border-subtle overflow-hidden glass-card">
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-auto overscroll-contain"
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-auto overscroll-contain scroll-quiet"
            style={maxHeight ? { maxHeight } : undefined}>
         {/* border-separate, not collapse: with collapse, sticky header cells
             lose their borders and rows show through the seam while scrolling. */}
-        <table className="w-full text-sm border-separate border-spacing-0">
+        <table className="w-full text-sm border-separate border-spacing-0 table-fixed"
+          style={{ minWidth: layout.minTableWidth }}>
+          <colgroup>
+            {selectable && <col style={{ width: 40 }} />}
+            {displayCols.map(col => (
+              <col key={col.key} style={{ width: layout.widths[col.key] }} />
+            ))}
+          </colgroup>
           <thead className="sticky top-0 z-10">
             <tr>
               {selectable && (
@@ -277,7 +328,7 @@ export function DataTable({
               {displayCols.map((col, ci) => (
                 <th
                   key={col.key}
-                  style={{ width: col.width }}
+                  title={col.label}
                   draggable
                   onDragStart={() => setDragColIdx(ci)}
                   onDragOver={e => e.preventDefault()}
@@ -299,8 +350,8 @@ export function DataTable({
                   )}
                   onClick={() => col.sortable && onSort?.(col.key)}
                 >
-                  <span className="inline-flex items-center gap-1">
-                    {col.label} <SortIcon col={col} />
+                  <span className="flex items-center gap-1 min-w-0">
+                    <span className="truncate">{col.label}</span> <SortIcon col={col} />
                   </span>
                 </th>
               ))}
@@ -362,8 +413,22 @@ export function DataTable({
                   </td>
                 )}
                 {displayCols.map(col => (
-                  <td key={col.key} className="px-3 py-2.5 text-text-primary">
-                    {renderCell(row, col)}
+                  <td key={col.key}
+                    className={cn('px-3 py-2.5 text-text-primary align-middle',
+                      // Row-action columns (keys starting "__") may open menus,
+                      // so they are never clipped. Every other cell stays inside
+                      // its column — custom ones too, which is where long keys
+                      // and routes were spilling into the next column.
+                      !String(col.key).startsWith('__') && 'overflow-hidden')}>
+                    {/* Primary column: up to two lines. Every other column: one
+                        line, cut with an ellipsis (full value on hover). */}
+                    {String(col.key).startsWith('__')
+                      ? renderCell(row, col)
+                      : <div className={cn('min-w-0',
+                          col.key === layout.primaryKey ? 'line-clamp-2 break-words' : 'truncate whitespace-nowrap')}
+                          title={col.type === 'custom' && typeof row[col.key] === 'string' ? row[col.key] : undefined}>
+                          {renderCell(row, col)}
+                        </div>}
                   </td>
                 ))}
               </tr>
