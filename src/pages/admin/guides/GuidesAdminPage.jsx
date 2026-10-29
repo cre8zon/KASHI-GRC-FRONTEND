@@ -132,6 +132,7 @@ function ModuleGuideSettings({ entityType, modules }) {
   const [summary, setSummary] = useState('')
   const [connections, setConnections] = useState([])
   const [chapters, setChapters] = useState([])
+  const [actionItems, setActionItems] = useState([])
   const [link, setLink] = useState('')
 
   useEffect(() => {
@@ -140,6 +141,7 @@ function ModuleGuideSettings({ entityType, modules }) {
     setSummary(g.summary || '')
     setConnections(Array.isArray(g.connections) ? g.connections : [])
     setChapters((Array.isArray(g.chapters) ? g.chapters : []).map(c => ({ label: c.label || '', time: mmss(c.seconds) })))
+    setActionItems(Array.isArray(g.actionItems) ? g.actionItems : [])
     setLink(settings.demoVideoUrl || '')
   }, [settings])
 
@@ -226,6 +228,28 @@ function ModuleGuideSettings({ entityType, modules }) {
         ))}
       </div>
 
+      {/* Action items — the per-question / per-control obligations people
+          receive inside a record, beyond the workflow's own tasks. */}
+      <div className="flex flex-col gap-2 pt-3 border-t border-border">
+        <div className="flex items-center gap-2">
+          <p className="text-xs font-semibold text-text-secondary flex-1">Action items in this module</p>
+          <button type="button" onClick={() => setActionItems(a => [...a, { label: '', raisedWhen: '', goesTo: '', closesWhen: '' }])}
+            className="text-xs font-semibold text-brand-ink hover:underline inline-flex items-center gap-1"><Plus size={11} /> Add</button>
+        </div>
+        {actionItems.length === 0 && <p className="text-xs text-text-muted">None — add one for each kind of action item people receive in this module (e.g. "Question assignment").</p>}
+        {actionItems.map((a, i) => (
+          <div key={i} className="grid gap-2 items-start" style={{ gridTemplateColumns: '160px 1fr 1fr 1fr 28px' }}>
+            {[['label', 'Name, e.g. Revision request'], ['raisedWhen', 'Raised when…'], ['goesTo', 'Goes to…'], ['closesWhen', 'Closes when…']].map(([k, ph]) => (
+              <input key={k} value={a[k] || ''} placeholder={ph} aria-label={ph}
+                onChange={e => setActionItems(as => as.map((x, j) => j === i ? { ...x, [k]: e.target.value } : x))}
+                className="h-8 px-2 text-xs glass-field border border-border rounded-ctl text-text-primary" />
+            ))}
+            <button type="button" aria-label="Remove action item" onClick={() => setActionItems(as => as.filter((_, j) => j !== i))}
+              className="h-8 w-7 flex items-center justify-center text-text-muted hover:text-status-fail-fg"><Trash2 size={13} /></button>
+          </div>
+        ))}
+      </div>
+
       {/* Video */}
       <div className="flex flex-col gap-2 pt-3 border-t border-border">
         <div className="flex items-center gap-2">
@@ -271,7 +295,10 @@ function ModuleGuideSettings({ entityType, modules }) {
       <div className="flex justify-end">
         <Button size="sm" icon={Save} loading={save.isPending} loadingText="Saving…"
           onClick={() => save.mutate({
+            // Keep every guide key this form does not edit (the save replaces
+            // guide_json as a whole).
             guide: {
+              ...(settings?.guide || {}),
               summary: summary.trim() || null,
               connections: connections.filter(c => (c.label || '').trim()).map(c => ({
                 entityType: c.entityType || null, label: c.label.trim(), text: (c.text || '').trim() || null,
@@ -279,6 +306,11 @@ function ModuleGuideSettings({ entityType, modules }) {
               chapters: chapters.filter(c => c.label.trim() && toSeconds(c.time) != null)
                 .map(c => ({ label: c.label.trim(), seconds: toSeconds(c.time) }))
                 .sort((a, b) => a.seconds - b.seconds),
+              actionItems: actionItems.filter(a => (a.label || '').trim()).map(a => ({
+                label: a.label.trim(), raisedWhen: (a.raisedWhen || '').trim() || null,
+                goesTo: (a.goesTo || '').trim() || null, closesWhen: (a.closesWhen || '').trim() || null,
+                ...(a.type ? { type: a.type } : {}),
+              })),
             },
             demoVideoUrl: link.trim(),
           })}>

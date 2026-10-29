@@ -983,6 +983,6 @@ export function useStepWalkthrough({ workflowId, stepId, entityType }) {
   if (!ch || ch.startSeconds == null) return null
   return {
     seconds: ch.startSeconds,
-    to: `/workflow-catalogue/${String(entityType || '').toLowerCase()}?workflow=${workflowId}&t=${ch.startSeconds}`,
+    to: `/workflow-catalogue/${String(entityType || '').toLowerCase()}?workflow=${workflowId}&at=${ch.startSeconds}`,  // ?at=, never ?t= (tenant switch)
   }
 }

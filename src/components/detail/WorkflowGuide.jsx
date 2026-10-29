@@ -218,7 +218,7 @@ export function WorkflowGuideDrawer({ open, onClose, definition, currentStepId, 
                         you || current ? 'text-text-primary' : 'text-text-secondary')}>{s.guideText}</p>
                     )}
                     {Number.isFinite(s.demoStartSeconds) && (
-                      <Link to={`${catalogue}&t=${s.demoStartSeconds}`} onClick={onClose}
+                      <Link to={`${catalogue}&at=${s.demoStartSeconds}`} onClick={onClose}
                         className="mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-semibold text-brand-ink hover:underline">
                         <Play size={9} fill="currentColor" /> Watch this step · {mmss(s.demoStartSeconds)}
                       </Link>

@@ -7,7 +7,8 @@
  * against the organisation's users, and a way to request a custom workflow
  * (which lands in the platform Enquiries inbox as WORKFLOW_REQUEST).
  *
- * Query params: ?workflow={id} selects one, ?t={seconds} starts the video
+ * Query params: ?workflow={id} selects one, ?at={seconds} starts the video
+ * (not ?t= — that is the tenant-switch parameter TenantSync acts on)
  * there (the task bar's "How this step works"), ?request=1 opens the request
  * form. Platform admins also get "Walkthrough video" settings per workflow.
  */
@@ -57,7 +58,7 @@ export default function WorkflowCataloguePage() {
   const { data: workflows = [], isLoading } = useWorkflowCatalogue(entityType)
   const selectedId = Number(sp.get('workflow')) || workflows[0]?.id || null
   const selected = workflows.find(w => w.id === selectedId) || workflows[0] || null
-  const select = (id) => { const p = new URLSearchParams(sp); p.set('workflow', String(id)); p.delete('t'); setSp(p, { replace: true }) }
+  const select = (id) => { const p = new URLSearchParams(sp); p.set('workflow', String(id)); p.delete('at'); setSp(p, { replace: true }) }
 
   const requestRef = useRef(null)
   useEffect(() => {
@@ -150,7 +151,7 @@ export default function WorkflowCataloguePage() {
               ? <ModuleGuideSection entityType={entityType} isOrgSide={isOrgSide} />
               : selected
                 ? <>
-                    <Walkthrough workflow={selected} startAt={Number(sp.get('t')) || 0} />
+                    <Walkthrough workflow={selected} startAt={Number(sp.get('at')) || 0} />
                     <StepWizard workflow={selected} viewerSides={isOrgSide ? [] : sides} />
                     {isOrgSide && <RoleCoverage workflowId={selected.id} />}
                     {isPlatform && <DemoSettings workflow={selected} entityType={entityType} />}
@@ -287,7 +288,8 @@ export function ModuleGuideSection({ entityType, isOrgSide }) {
   const states = guide.lifecycle?.states || []
   const actions = guide.actions || []
   const connections = guide.connections || []
-  const nothing = !guide.summary && !guide.hasDemo && states.length < 2 && !actions.length && !connections.length
+  const actionItems = guide.actionItems || []
+  const nothing = !guide.summary && !guide.hasDemo && states.length < 2 && !actions.length && !connections.length && !actionItems.length
 
   return (
     <div className="flex flex-col gap-3">
@@ -297,6 +299,10 @@ export function ModuleGuideSection({ entityType, isOrgSide }) {
             .map((c, i) => ({ key: `${i}-${c.label}`, label: c.label, seconds: Number(c.seconds) }))}
           title={guide.displayNamePlural || guide.displayName} />
       )}
+
+      {/* A module with no video of its own (Vendor Assessment runs the Vendor
+          workflow) shows the walkthrough of the workflow it runs instead. */}
+      {!guide.hasDemo && <WorkflowWalkthroughFallback entityType={entityType} />}
 
       {guide.summary && (
         <section className="rounded-card border border-border bg-surface-raised p-3.5">
@@ -352,6 +358,25 @@ export function ModuleGuideSection({ entityType, isOrgSide }) {
         </section>
       )}
 
+      {actionItems.length > 0 && (
+        <section className="rounded-card border border-border bg-surface-raised p-3.5 flex flex-col gap-2">
+          <h2 className="text-[13px] font-semibold text-text-primary">Action items you may receive here</h2>
+          <p className="text-xs text-text-muted -mt-1">
+            Besides the workflow's own tasks, work inside a record arrives as action items — in your inbox and on the record's Action items tab.
+          </p>
+          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+            {actionItems.map((a, i) => (
+              <div key={i} className="rounded-ctl border border-border px-3 py-2 flex flex-col gap-1">
+                <p className="text-[12.5px] font-semibold text-text-primary">{a.label}</p>
+                {[['Raised when', a.raisedWhen], ['Goes to', a.goesTo], ['Closes when', a.closesWhen]].filter(([, v]) => v).map(([k, v]) => (
+                  <p key={k} className="text-xs leading-snug"><span className="text-text-muted">{k}: </span><span className="text-text-secondary">{v}</span></p>
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {connections.length > 0 && (
         <section className="rounded-card border border-border bg-surface-raised p-3.5 flex flex-col gap-2">
           <h2 className="text-[13px] font-semibold text-text-primary">How it connects</h2>
@@ -378,6 +403,14 @@ export function ModuleGuideSection({ entityType, isOrgSide }) {
       )}
     </div>
   )
+}
+
+/** The first workflow of this module that has a walkthrough video, played on the module's guide. */
+function WorkflowWalkthroughFallback({ entityType }) {
+  const { data: workflows = [] } = useWorkflowCatalogue(entityType)
+  const wf = workflows.find(w => w.hasDemo && w.usage?.total > 0) || workflows.find(w => w.hasDemo)
+  if (!wf) return null
+  return <Walkthrough workflow={wf} startAt={0} />
 }
 
 /** Start time for the common video hosts; other links open at the start. */
