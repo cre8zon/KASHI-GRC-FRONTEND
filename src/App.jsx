@@ -61,6 +61,10 @@ const PasswordChangedPage     = lazyPage(() => import('./pages/auth/PasswordChan
 // Core — high-traffic pages, loaded early
 const DashboardPage     = lazyPage(() => import('./pages/dashboard/DashboardPage'))
 const TrustCenterPage   = lazyPage(() => import('./pages/trust/TrustCenterPage'))
+// Workflows a module can run — steps, roles, walkthrough, custom requests.
+const WorkflowCataloguePage = lazyPage(() => import('./pages/workflow/WorkflowCataloguePage'))
+// Platform Admin: every module and workflow walkthrough and guide in one place.
+const GuidesAdminPage = lazyPage(() => import('./pages/admin/guides/GuidesAdminPage'))
 const SettingsPage      = lazyPage(() => import('./pages/settings/SettingsPage'))
 const WorkflowInboxPage = lazyPage(() => import('./pages/workflow/WorkflowInboxPage'))
 const AllTasksPage      = lazyPage(() => import('./pages/workflow/AllTasksPage'))
@@ -374,6 +378,7 @@ export default function App() {
             <Route path="/admin/notification-email-rules" element={<RequireSystem><NotificationEmailRulesPage /></RequireSystem>} />
             <Route path="/admin/design-system"    element={<RequireSystem><DesignSystemPage /></RequireSystem>} />
             <Route path="/admin/screen-designer"  element={<RequireSystem><ScreenDesignerPage /></RequireSystem>} />
+            <Route path="/admin/guides"           element={<RequireSystem><GuidesAdminPage /></RequireSystem>} />
             <Route path="/admin/dashboard"        element={<RequireSystem><DashboardAdminPage /></RequireSystem>} />
             <Route path="/admin/audit/library"          element={<RequireSystem><AdminAuditLibraryPage /></RequireSystem>} />
             <Route path="/admin/controls/library"       element={<RequireSystem><ControlsLibraryPage /></RequireSystem>} />
@@ -387,6 +392,9 @@ export default function App() {
 
             {/* Universal Module Page */}
             <Route path="/module"                                              element={<Navigate to="/admin/modules" replace />} />
+            <Route path="/workflow-catalogue/:entityType"                      element={<WorkflowCataloguePage />} />
+            {/* Same page opened on "how this module works" — for modules with or without workflows */}
+            <Route path="/guide/:entityType"                                   element={<WorkflowCataloguePage />} />
             <Route path="/module/:entityType"                                  element={<UniversalModulePage />} />
             <Route path="/module/:entityType/:id"                              element={<UniversalModulePage />} />
             <Route path="/module/:parentEntityType/:parentId/:entityType"      element={<UniversalModulePage />} />

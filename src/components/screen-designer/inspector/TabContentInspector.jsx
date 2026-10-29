@@ -12,6 +12,47 @@ import { SIDES, HTTP_METHODS, ACTION_VARIANTS, LAYOUT_MODES,
          SCREEN_TYPES, FIELD_TYPES, FIELD_TYPE_GROUPS, CAPABILITY_TABS } from '../constants'
 
 import { RoleVisibilityEditor } from './RoleVisibilityEditor'
+import { HeaderZoneInspector } from './HeaderZoneInspector'
+import { useLayoutTabs } from './useLayoutTabs'
+
+/**
+ * A Screen Designer tab can carry its own header — fields shown above the tabs
+ * while this tab is open, instead of the Overview header zone. Off by default:
+ * the tab then shows the Overview header. Stored as "header": true on the tab's
+ * tabs_json entry, fields under {screen}_tab_{key}_header.
+ */
+function TabHeaderSection({ screenKey, tabKey, tab, onSelectElement }) {
+  const { tabs, patchTab, saving, layout } = useLayoutTabs(screenKey)
+  const entry = tabs.find(t => t.key === tabKey)
+  const on = entry?.header === true
+  return (
+    <InspectorSection title="Tab header">
+      <label className="flex items-start gap-2 cursor-pointer">
+        <input type="checkbox" className="mt-0.5" checked={on} disabled={saving || !layout?.id || !entry}
+          onChange={() => patchTab(tabKey, { header: !on }, tab)} />
+        <span className="text-[11px] text-text-secondary leading-relaxed">
+          This tab has its own header
+          <span className="block text-[10px] text-text-muted">
+            Off: the Overview header zone shows on this tab. On: the fields below show instead,
+            and are not repeated in the tab's cards.
+          </span>
+        </span>
+      </label>
+      {!entry && <p className="text-[10px] text-status-warn-fg mt-2">Save this tab to the screen layout first.</p>}
+      {on && (
+        <div className="-mx-4 mt-2">
+          <HeaderZoneInspector
+            screenKey={screenKey}
+            formKey={`${screenKey}_tab_${tabKey}_header`}
+            title={`${tab} — header fields`}
+            showTiles={false}
+            onSelectElement={onSelectElement}
+          />
+        </div>
+      )}
+    </InspectorSection>
+  )
+}
 
 function TabContentInspector({ tab, tabKey, screenKey, onSelectElement }) {
   const qc = useQueryClient()
@@ -90,6 +131,11 @@ function TabContentInspector({ tab, tabKey, screenKey, onSelectElement }) {
           <Plus size={12} /> Add field to {tab} tab
         </button>
       </InspectorSection>
+
+      {/* Overview's header lives in the Header zone inspector */}
+      {tabKey !== 'overview' && (
+        <TabHeaderSection screenKey={screenKey} tabKey={tabKey} tab={tab} onSelectElement={onSelectElement} />
+      )}
 
       {/* Role visibility — who can see this tab's content */}
       <RoleVisibilityEditor screenKey={`${screenKey}_tab_${tabKey}`} />

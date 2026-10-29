@@ -123,6 +123,12 @@ import { useSelector, useDispatch } from 'react-redux'
 import { selectActiveTabId, saveSubTab, selectActiveSubTab } from '../../store/slices/tabsSlice'
 import { selectAuth, selectRoleSides } from '../../store/slices/authSlice'
 import { previousEntry } from '../../components/layout/navTrail'
+import {
+  SEMANTIC_COLORS, Breadcrumb, navTrailFor, ActionBar, RecordHero, ActionButton, FieldCards, Chip, badgeFor, isEmptyValue,
+  tileTabsFor, useHeaderTiles, useStepWalkthrough, fetchModuleWorkflow, moduleWorkflowKey,
+} from '../../components/detail/DetailChrome'
+import { WorkflowBand, KpiBand, FilterChips, YourPartBand, ModuleGuideBand } from '../../components/list/ListBands'
+import { WorkflowGuideDrawer, useWorkflowDefinition, stepGuidance, RoleCoverageWarning } from '../../components/detail/WorkflowGuide'
 import { parseRoleAccessJson, isTabAllowed, isActionAllowed } from '../../components/screen-designer/roleAccessJson'
 // ── v2 additions ─────────────────────────────────────────────────────────────
 import EntityTreeView          from '../../components/module/EntityTreeView'
@@ -408,6 +414,8 @@ function ModuleListView({ bp }) {
   // component and is not in scope here.
   const listRoleSides = useSelector(selectRoleSides) || []
   const isPlatformSide = listRoleSides.includes('SYSTEM')
+  // Menu tree, for the list's breadcrumb (Home › group › module).
+  const { data: listNavItems = [] } = useNavigation()
   // Default to the tenant's OWN policies.
   //
   // Once the platform library is adopted, "All" is ~38 platform rows plus ~38
@@ -581,10 +589,19 @@ function ModuleListView({ bp }) {
   const frameworkRef = searchParams.get('frameworkRef') || undefined
   // urlSearch, not `search`: the query follows the debounced value so typing
   // does not fire a request per character.
+  // List filters set from the KPI band: URL params named f.<field>, sent to the
+  // list endpoint as <field> (f.status=OPEN → status=OPEN). Kept in the URL so
+  // Back and refresh keep them; a module that does not filter on a field simply
+  // ignores the param.
+  const listFilters = {}
+  for (const [k, v] of searchParams.entries()) {
+    if (k.startsWith('f.') && v !== '') listFilters[k] = v
+  }
   const params = { search: urlSearch || undefined, skip: page * 20, take: 20,
     frameworkRef,
     origin: origin || undefined,
-    sortBy: sortBy || undefined, sortDirection: sortBy ? sortDir : undefined }
+    sortBy: sortBy || undefined, sortDirection: sortBy ? sortDir : undefined,
+    ...Object.fromEntries(Object.entries(listFilters).map(([k, v]) => [k.slice(2), v])) }
   const { data: listRes, isLoading } = useEntityList(bp.apiBasePath, params)
   // Handle all API response shapes:
   // { items: [...], pagination: {...} }  — our standard PaginatedResponse (axios strips outer data wrapper)
@@ -1201,12 +1218,22 @@ function ModuleListView({ bp }) {
     : baseTitle
 
   return (
-    <PageLayout
-      title={pageTitle}
-      subtitle={parentLabel
-        ? `${parentLabel} · ${total} record${total !== 1 ? 's' : ''}`
-        : `${total} record${total !== 1 ? 's' : ''}`}
-      actions={
+    // No PageLayout header: breadcrumb first, then ONE toolbar row — title and
+    // count on the left, filters, search and actions on the right. The old
+    // header was a separate 72px block with the breadcrumb below it.
+    <PageLayout>
+      <div className="px-6 pt-3 flex flex-col gap-1.5">
+        <Breadcrumb items={[
+          { label: 'Home', to: '/dashboard' },
+          ...navTrailFor(listNavItems, { navKey: bp.navKey, entityType: bp.entityType }),
+          { label: pageTitle },
+        ]} />
+        <div className="flex items-center gap-2.5 flex-wrap min-h-9">
+          <h1 className="text-lg font-semibold text-text-primary leading-tight">{pageTitle}</h1>
+          <span className="text-[11px] font-medium px-2 py-0.5 rounded-badge bg-surface-overlay text-text-secondary whitespace-nowrap">
+            {parentLabel ? `${parentLabel} · ` : ''}{total} record{total !== 1 ? 's' : ''}
+          </span>
+          <div className="ml-auto">
         <div className="flex items-center gap-2">
           {/* Origin segmented filter. Rendered only when the current page of
               results actually reports an origin, so it appears on the library
@@ -1241,7 +1268,9 @@ function ModuleListView({ bp }) {
             </div>
           )}
           <div className="relative">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+            {/* z-10: the field's backdrop blur paints it above an un-layered
+                icon, which hid the magnifier entirely. */}
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted z-10 pointer-events-none" />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder={`Search ${entityPlural.toLowerCase()}…`}
               className="w-52 pl-8 pr-3 h-8 text-xs glass-field border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
@@ -1284,12 +1313,35 @@ function ModuleListView({ bp }) {
             )
           }
         </div>
-      }
-    >
+          </div>
+        </div>
+      </div>
       {/* SoD / access violations banner */}
       {vc.sodViolations?.length > 0 && <SodBanner violations={vc.sodViolations} />}
 
-      <div className="p-6">
+      <div className="px-6 pt-3 pb-6">
+        {/* Above the table: the module's workflows (organisation side — the
+            people who choose how work runs), its KPI band and the filters a
+            KPI tile set. Each renders nothing when it has nothing. */}
+        <div className="flex flex-col gap-2.5 mb-3 empty:hidden">
+          {/* Organisation and platform choose how work runs: the workflow band.
+              Vendors, auditors and auditees work inside those workflows: their
+              band shows only their own steps. A module with no workflow gets
+              the module guide band instead. */}
+          {bp.supportsWorkflow && (
+            !listRoleSides.some(s => ['VENDOR', 'AUDITOR', 'AUDITEE'].includes(s))
+              ? <WorkflowBand entityType={bp.entityType} moduleLabel={bp.displayNamePlural || bp.displayName} />
+              : <YourPartBand entityType={bp.entityType} viewerSides={listRoleSides} />
+          )}
+          {!bp.supportsWorkflow && (
+            <ModuleGuideBand entityType={bp.entityType} moduleLabel={bp.displayNamePlural || bp.displayName} />
+          )}
+          <KpiBand entityType={bp.entityType} activeFilters={listFilters}
+            onFilter={(f) => writeUrl({ ...f, page: null })} />
+          <FilterChips filters={listFilters}
+            onRemove={(k) => writeUrl({ [k]: null, page: null })}
+            onClear={() => writeUrl({ ...Object.fromEntries(Object.keys(listFilters).map(k => [k, null])), page: null })} />
+        </div>
         {/* ── v2: tree view for modules with supportsTree=true ── */}
         {bp.supportsTree
           ? (
@@ -2442,7 +2494,9 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
     // comes back with no step at all and canAct absent — not false — which the
     // previous check read as live, so the banner sat on "Task #1735" forever.
     if (!vcUpdatedAt && !vcError) return            // not loaded yet
-    const live = !vcError && vc.canAct === true && !!vc.stepInstanceId
+    // The task path of /view-context did not return stepInstanceId (it does
+    // now); the URL always carries it, so either one marks the step as known.
+    const live = !vcError && vc.canAct === true && !!(vc.stepInstanceId || stepInstanceId)
       && (!vc.taskId || String(vc.taskId) === String(taskId))
     if (live || vc.canOverride === true) return
     // Once per (task, view-context version): the answer cannot change until
@@ -2676,7 +2730,10 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
           // readOnly: the tab displays what the workflow's steps wrote and is
           // never edited in place — the step's own action collects the
           // fields (issue Root Cause / Remediation). Absent = as before.
-          : { key: t.key, label: t.label || t.key, icon: t.icon || null, readOnly: t.readOnly === true })
+          : { key: t.key, label: t.label || t.key, icon: t.icon || null, readOnly: t.readOnly === true,
+              // header: the tab has its own header form, {screen}_tab_{key}_header,
+              // shown instead of the Overview header zone on that tab.
+              header: t.header === true })
       }
     } catch {}
     return []
@@ -3082,6 +3139,70 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
     return afterOwnership.filter(t => isTabAllowed(roleAccess, currentSide, currentRoleIds, t.key))
   }, [bp, vc, sdCustomTabs, sdLayout?.tabsJson, roleAccess, currentSide, currentRoleIds, entity?.editable])
 
+  // Overview read-only when the layout says so — "readOnly": true on the
+  // overview entry of tabs_json (issue_detail sets it: owner, severity and due
+  // date change through Edit details). Overview is a capability tab, so it is
+  // not among sdCustomTabs and the flag is read here. Layout is untouched.
+  const overviewReadOnly = (() => {
+    try {
+      const tabs = JSON.parse(sdLayout?.tabsJson || 'null')
+      return Array.isArray(tabs)
+        && tabs.some(t => t && typeof t === 'object' && t.key === 'overview' && t.readOnly === true)
+    } catch { return false }
+  })()
+  const overviewVc = overviewReadOnly ? { ...vc, canEdit: false } : vc
+
+  // ── Header zone, tab headers, summary tiles, walkthrough ──────────────────
+  // All hooks, so they sit above the early returns below.
+  //
+  // Which header shows on a tab: Overview and every tab built in code show the
+  // Overview header zone ({screen}_header). A Screen Designer tab shows ITS OWN
+  // header ({screen}_tab_{key}_header) when tabs_json marks it "header": true,
+  // and falls back to the Overview header zone when it has none.
+  const visibleTabKeys = visibleTabs.map(t => t.key)
+  const visibleTabKeysSig = visibleTabKeys.join(',')
+  const tileTabs = useMemo(() => tileTabsFor(sdLayout?.tabsJson, visibleTabKeys),
+    [sdLayout?.tabsJson, visibleTabKeysSig]) // eslint-disable-line react-hooks/exhaustive-deps
+  const { tiles: headerTiles, workflow: wfSummary } = useHeaderTiles({
+    tabs: embedded ? [] : tileTabs,
+    entityType: bp.entityType, entityId: id, entity,
+    withWorkflow: !!bp.supportsWorkflow && !embedded,
+    workflowInstanceId: vc.workflowInstanceId,
+  })
+  const activeCustomTab = sdCustomTabs.find(t => t.key === tab)
+  const tabHeaderFormKey = (bp.detailScreenKey && activeCustomTab?.header)
+    ? `${bp.detailScreenKey}_tab_${tab}_header` : null
+  const { data: tabHeaderRes } = useQuery({
+    queryKey: ['module-tab-header-form', tabHeaderFormKey],
+    queryFn: () => uiConfigApi.form(tabHeaderFormKey),
+    enabled: !!tabHeaderFormKey,
+    staleTime: 5 * 60_000,
+  })
+  const tabHeaderFields = tabHeaderFormKey ? (tabHeaderRes?.fields || []) : []
+  const walkthrough = useStepWalkthrough({
+    workflowId: wfSummary?.workflowId,
+    stepId: wfSummary && !wfSummary.done ? wfSummary.stepId : null,
+    entityType: bp.entityType,
+  })
+
+  // ── Workflow guide: what this step expects, what comes next, every step ───
+  // Same for every side — it reads the workflow and the viewer's sides. The
+  // drawer opens by itself the first time someone holds a task in a given
+  // workflow (once per person per workflow), and from "View workflow" after.
+  const { data: wfDefinition } = useWorkflowDefinition(embedded ? null : wfSummary?.workflowId)
+  const guidance = stepGuidance(wfDefinition, wfSummary && !wfSummary.done ? wfSummary.stepId : null)
+  const [guideOpen, setGuideOpen] = useState(false)
+  const guideLive = !!taskId && vc.canAct === true && !!(vc.stepInstanceId || stepInstanceId)
+  useEffect(() => {
+    if (embedded || !guideLive || !wfDefinition?.id || !currentUserId) return
+    const key = `kashi:wf-guide-seen:${currentUserId}:${wfDefinition.id}`
+    try {
+      if (localStorage.getItem(key)) return
+      localStorage.setItem(key, '1')
+    } catch { return }   // no storage (private mode) — never auto-open rather than every time
+    setGuideOpen(true)
+  }, [embedded, guideLive, wfDefinition?.id, currentUserId])
+
   // Build field sections from blueprint schema
   let schema = { sections: [] }
   try { schema = JSON.parse(bp.fieldsSchemaJson || '{}') } catch {}
@@ -3153,137 +3274,235 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
     || entity?.controlCode || entity?.testCode || entity?.policyName
     || `${bp.displayName} #${id}`
 
+  // Breadcrumb trail: Home › menu group(s) › list › parent › record › tab.
+  const headerKeys = headerFields.map(f => f.fieldKey)
+  const refField = headerFields.find(f => /(^|[a-z])(ref|code)(snapshot)?$/i.test(f.fieldKey || '')
+    && entity?.[f.fieldKey])
+  const recordCrumb = refField ? String(entity[refField.fieldKey]) : entityLabel
+  const activeTabLabel = tab !== 'overview' ? visibleTabs.find(t => t.key === tab)?.label : null
+  const crumbs = [
+    { label: 'Home', to: '/dashboard' },
+    ...navTrailFor(navItems, { navKey: bp.navKey, entityType: bp.entityType }),
+    listNavKey && listLabel ? { label: listLabel, onClick: navigateToList } : null,
+    breadcrumbParentId && breadcrumbParentLabel ? { label: breadcrumbParentLabel, onClick: navigateToParent } : null,
+    activeTabLabel ? { label: recordCrumb, onClick: () => setTab('overview') } : { label: recordCrumb },
+    activeTabLabel ? { label: activeTabLabel } : null,
+  ].filter(Boolean)
+
   const detailTitle = (
-        <div className="flex items-center gap-2 min-w-0">
-          <button onClick={handleBack}
-            className="text-text-muted hover:text-text-primary transition-colors shrink-0">
-            <ArrowLeft size={15} />
+    <div className="px-6 pt-3 flex flex-col gap-1">
+      <div className="flex items-center gap-2 min-w-0">
+        <button onClick={handleBack} aria-label="Back"
+          className="text-text-muted hover:text-text-primary transition-colors shrink-0">
+          <ArrowLeft size={14} />
+        </button>
+        <Breadcrumb items={crumbs} />
+        {taskId && (
+          <button onClick={() => navigate('/workflow/inbox')}
+            className="ml-auto text-[11px] text-text-muted hover:text-text-primary transition-colors shrink-0 flex items-center gap-1">
+            <ArrowLeft size={10} /> Back to inbox
           </button>
-
-          {/* Generic breadcrumb: List → Parent → Current */}
-          {listNavKey && listLabel && (
-            <>
-              <button
-                onClick={navigateToList}
-                className="text-xs text-text-muted hover:text-brand-ink transition-colors shrink-0">
-                {listLabel}
-              </button>
-              <span className="text-text-faint shrink-0">/</span>
-            </>
-          )}
-          {breadcrumbParentLabel && breadcrumbParentId && (
-            <>
-              <button
-                onClick={navigateToParent}
-                className="text-xs text-text-muted hover:text-brand-ink transition-colors truncate max-w-[140px]"
-                title={breadcrumbParentLabel}>
-                {breadcrumbParentLabel}
-              </button>
-              <span className="text-text-faint shrink-0">/</span>
-            </>
-          )}
-          <span className="truncate font-medium">{entityLabel}</span>
-          {entity?.status && <EntityStatusBadge status={entity.status} />}
-        </div>
+        )}
+      </div>
+    </div>
   )
-  const detailActions = (
-        <div className="flex items-center gap-2 flex-wrap">
-          {vc.sodViolations?.filter(v => v.conflictType === 'HARD').length > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-status-fail-fg bg-status-fail-bg border border-status-fail-bd rounded-ctl px-2 py-1">
-              <AlertTriangle size={12} /> SoD conflict
-            </div>
-          )}
-          {/* FIX: Render screen designer actions with correct variants and status guards */}
-          {screenActions.map(action => {
-            const ActionIcon = resolveIcon(action.icon)
+  // ── Action bar ─────────────────────────────────────────────────────────────
+  // The step's decisions go out front — the actions the current step lists in
+  // its transitions, plus workflow transitions (Approve / Reject …) and any
+  // action Screen Designer pinned with variant "primary". Everything else goes
+  // under More, so the one button that finishes the step is the obvious one.
+  const stepTransitionKeys = new Set(Array.isArray(vc.transitions) ? vc.transitions : [])
+  const isFrontAction = (a) => stepTransitionKeys.has(a.actionKey) || !!transitionOf(a) || a.variant === 'primary'
+  const frontActions = screenActions.filter(isFrontAction)
+  const moreActions  = screenActions.filter(a => !isFrontAction(a))
+  // A task is live when the server says this user can act on it. The step id
+  // comes from the view context or, on the task path, from the URL — requiring
+  // it from the view context alone showed every task as "view only".
+  const liveTask = !!taskId && vc.canAct === true && !!(vc.stepInstanceId || stepInstanceId)
+    && (!vc.taskId || String(vc.taskId) === String(taskId))
+  const barMode = taskId ? (liveTask ? 'act' : 'view') : 'none'
+  const mainActionId = barMode === 'act'
+    ? (frontActions.find(a => stepTransitionKeys.has(a.actionKey)) || frontActions.find(a => transitionOf(a)) || frontActions[0])?.id
+    : null
 
-            // The action's own word, from the payload override or the seed.
-            let actionLabel = action.label
-            try {
-              const m = JSON.parse(action.payloadTemplateJson || '{}')
-              actionLabel = m.__label || action.label
-            } catch { /* malformed payload — the seeded label still stands */ }
+  const renderActionButton = (action) => {
+    const main = action.id === mainActionId
+    const ActionIcon = resolveIcon(action.icon)
 
-            // ── SAME BUTTON, HONEST LABEL ─────────────────────────────────
-            //
-            // When this click takes the override path — authority here but no
-            // task — the label has to say so: they are forcing the step past
-            // work that is not done, and the record will name them for it.
-            //
-            // But it has to keep saying WHICH action. Approve and Reject are
-            // separate buttons on this header (ui_actions 244 and 246), both
-            // are transitions, and flattening both to "Override step" left two
-            // buttons distinguishable only by icon colour. Each still posts its
-            // own transition, so the label was the only place the difference
-            // was lost — on the one screen where a mis-click is least
-            // recoverable.
-            const willOverride = transitionOf(action)
-                  && !vc.taskId && vc.canOverride === true && vc.stepInstanceId
-            const label = willOverride ? `Override: ${actionLabel}` : actionLabel
+    // The action's own word, from the payload override or the seed.
+    let actionLabel = action.label
+    try {
+      const m = JSON.parse(action.payloadTemplateJson || '{}')
+      actionLabel = m.__label || action.label
+    } catch { /* malformed payload — the seeded label still stands */ }
 
-            return (
-            <Button
-              key={action.id}
-              size="sm"
-              variant={action.variant || 'secondary'}
-              loading={actingId != null && actingId === action.id}
-              // Explicit text rather than a bare spinner beside the unchanged
-              // label — "Approve" with a spinner reads as an unresponsive
-              // button; "Approving…" reads as work in progress. It follows the
-              // label above, so an override spins as "Override: Approve…"
-              // rather than reverting to a word the button is not showing.
-              loadingText={String(label || '').replace(/^\s*\+\s*/, '') + '…'}
-              disabled={actingId != null && actingId !== action.id}
-              icon={ActionIcon || undefined}
-              onClick={() => handleActionClick(action)}
-            >
-              {label}
-            </Button>
-            )
-          })}
-          {/* Edit button hidden — overview fields are now inline-editable on click (Wrike-style) */}
-          {canDelete && (
-            <Button variant="danger" size="sm" icon={Trash2} onClick={() => setDeleteTarget(entity)} />
-          )}
-        </div>
+    // ── SAME BUTTON, HONEST LABEL ─────────────────────────────────
+    //
+    // When this click takes the override path — authority here but no
+    // task — the label has to say so: they are forcing the step past
+    // work that is not done, and the record will name them for it.
+    //
+    // But it has to keep saying WHICH action. Approve and Reject are
+    // separate buttons on this header (ui_actions 244 and 246), both
+    // are transitions, and flattening both to "Override step" left two
+    // buttons distinguishable only by icon colour. Each still posts its
+    // own transition, so the label was the only place the difference
+    // was lost — on the one screen where a mis-click is least
+    // recoverable.
+    const willOverride = transitionOf(action)
+          && !vc.taskId && vc.canOverride === true && vc.stepInstanceId
+    const label = willOverride ? `Override: ${actionLabel}` : actionLabel
+
+    return (
+    <Button
+      key={action.id}
+      // One size for every action button on the record — task bar and header
+      // alike (ActionButton is h-8 / text-xs); the main one stands out by its
+      // fill, not by being bigger.
+      size="sm"
+      className="!h-8 !font-semibold"
+      variant={main ? 'primary' : (action.variant || 'secondary')}
+      loading={actingId != null && actingId === action.id}
+      // Explicit text rather than a bare spinner beside the unchanged
+      // label — "Approve" with a spinner reads as an unresponsive
+      // button; "Approving…" reads as work in progress. It follows the
+      // label above, so an override spins as "Override: Approve…"
+      // rather than reverting to a word the button is not showing.
+      loadingText={String(label || '').replace(/^\s*\+\s*/, '') + '…'}
+      disabled={actingId != null && actingId !== action.id}
+      icon={ActionIcon || undefined}
+      onClick={() => handleActionClick(action)}
+    >
+      {label}
+    </Button>
+    )
+  }
+
+  const primaryButtons = frontActions.map(renderActionButton)
+  const labelOf = (a) => { try { return JSON.parse(a.payloadTemplateJson || '{}').__label || a.label } catch { return a.label } }
+  // Every record action is its own button — no "More" menu. Order: Edit,
+  // the ordinary actions, the danger ones outlined red (Offboard, Delete),
+  // then the step's filled main button last.
+  const otherButtons = [
+    ...moreActions.filter(a => a.variant !== 'danger').map(a => (
+      <ActionButton key={`a-${a.id}`} icon={resolveIcon(a.icon) || undefined} label={labelOf(a)}
+        disabled={actingId != null} onClick={() => handleActionClick(a)} />
+    )),
+    ...moreActions.filter(a => a.variant === 'danger').map(a => (
+      <ActionButton key={`a-${a.id}`} tone="danger" icon={resolveIcon(a.icon) || undefined} label={labelOf(a)}
+        disabled={actingId != null} onClick={() => handleActionClick(a)} />
+    )),
+    ...(canDelete ? [
+      <ActionButton key="delete" tone="danger" icon={Trash2} label="Delete" title={`Delete ${bp.displayName || ''}`.trim()}
+        onClick={() => setDeleteTarget(entity)} />,
+    ] : []),
+  ]
+  // Edit details: the module's edit form, only where editing is allowed at all —
+  // the step permits it (vc.canEdit) and the layout has not made Overview
+  // read-only (issues edit through their own "Edit details" step action).
+  const canEditDetails = !!editFormKey && canEdit && !overviewReadOnly && entity?.editable !== false
+  const holderText = wfSummary && !wfSummary.done && wfSummary.holders.length
+    ? `with ${wfSummary.holders.join(', ')}` : null
+  const viewReason = barMode !== 'view' ? null
+    : wfSummary?.done ? 'workflow completed, nothing left to act on'
+    : wfSummary?.holders?.length ? `${wfSummary.holders.join(', ')} acts on this step`
+    : 'read-only at this step'
+  // The task bar exists only when the page is opened for a task: the task, its
+  // step buttons and what to do. Everything else — More, Edit details, View
+  // workflow and, without a task, any step actions — lives in the header zone.
+  const actionBar = barMode === 'none' ? null : (
+    <ActionBar
+      mode={barMode}
+      taskId={taskId}
+      stepLabel={vc.stepLabel || (wfSummary && !wfSummary.done ? wfSummary.stepName : null)}
+      viewReason={viewReason}
+      slaDueAt={wfSummary?.slaDueAt}
+      primary={primaryButtons}
+      how={walkthrough || (wfDefinition && guidance.current ? { onClick: () => setGuideOpen(true) } : null)}
+      guide={wfDefinition ? {
+        whatToDo: guidance.current?.guideText || null,
+        next: guidance.next ? {
+          name: guidance.next.name,
+          sideLabel: { ORGANIZATION: 'Organisation', VENDOR: 'Vendor', AUDITOR: 'Auditor', AUDITEE: 'Auditee', SYSTEM: 'automatic' }[guidance.next.side] || null,
+        } : null,
+        // The whole workflow is opened from the header ("How this workflow
+        // works"), which is there with or without a task — not repeated here.
+        onOpen: null,
+      } : null}
+    />
+  )
+  // The record's own actions, at the end of the header zone's first row.
+  // Same with or without a task: a task only ADDS the task bar above (with the
+  // step's buttons in it); everything here stays where it is.
+  const headerActions = (barMode === 'none' && primaryButtons.length) || canEditDetails || otherButtons.length || wfDefinition
+    ? (
+      <>
+        {wfDefinition && (
+          <ActionButton tone="ghost" icon={GitBranch} title={holderText || undefined} onClick={() => setGuideOpen(true)}
+            label="How this workflow works" />
+        )}
+        {canEditDetails && <ActionButton icon={Pencil} label="Edit details" onClick={() => setEditOpen(true)} />}
+        {otherButtons}
+        {barMode === 'none' && primaryButtons}
+      </>
+    ) : null
+  // Header zone for the tab in view: the tab's own header when it has one,
+  // otherwise the Overview header zone with the summary tiles.
+  const usingTabHeader = tabHeaderFields.length > 0
+  const heroFields = (usingTabHeader ? tabHeaderFields : headerFields).filter(f => !vc.hiddenFields?.includes(f.fieldKey))
+  // Status sits beside the title: from the header's status field when it has
+  // one (in its configured colour), else the entity's own status.
+  const statusField = heroFields.find(f => f.fieldKey === 'status')
+  const heroStatus = !entity?.status ? null
+    : statusField
+      ? (() => { const b = badgeFor(statusField, entity.status, screenConfig); return <Chip colorTag={b.colorTag}>{b.label}</Chip> })()
+      : <EntityStatusBadge status={entity.status} />
+  const headerZone = (
+    <RecordHero
+      icon={resolveIcon(bp.icon)}
+      title={entityLabel}
+      status={heroStatus}
+      fields={heroFields.filter(f => f.fieldKey !== 'status')}
+      entity={entity}
+      titleValue={entityLabel}
+      screenConfig={screenConfig}
+      renderValue={(f, v) => renderFieldValue(v, f.fieldType, f)}
+      tiles={usingTabHeader ? [] : headerTiles.map(t => {
+        // The task bar and the Workflow tile must agree: when the record's
+        // instance was not found (tile says "Not started") but the page has a
+        // live step, the tile shows that step instead of contradicting it.
+        if (t.key === 'workflow' && !t.summary && vc.stepInstanceId && vc.stepLabel) {
+          return { ...t, value: vc.stepLabel, sub: 'in progress', colorTag: 'purple', onClick: () => setTab(t.key) }
+        }
+        return { ...t, onClick: () => setTab(t.key) }
+      })}
+      actions={headerActions}
+    />
   )
   const detailBody = (
     <>
-      {/* Task context banner — shown when opened from a workflow task (stepInstanceId in URL).
-          Reminds the user which task they're working on and which step action is expected.
-          The back-to-inbox button clears the task context. */}
-      {/* The task banner and the tab strip stick together. The banner scrolled
-          away with the content, and on a long questionnaire the one line that
-          says which task you are working — and that it has gone read-only —
-          was off screen exactly when it mattered. */}
-      <div className="sticky top-0 z-10 glass-chrome border-b border-border">
-      {taskId && (
-        <div className="mx-6 mt-3 mb-1 flex items-center gap-3 px-3 py-2.5 rounded-card
-                        bg-brand-500/8 border border-brand-500/20 text-xs">
-          <CheckSquare size={13} className="text-brand-ink shrink-0" />
-          <div className="flex-1 min-w-0">
-            <span className="text-brand-ink font-medium">Task #{taskId}</span>
-            {vc.stepLabel && (
-              <span className="text-text-muted ml-1.5">· {vc.stepLabel}</span>
-            )}
-            {vc.canEdit === false && (
-              <span className="ml-2 text-text-muted italic">read-only at this step</span>
-            )}
-          </div>
-          {breadcrumbParentId && breadcrumbParentLabel && (
-            <button
-              onClick={navigateToParent}
-              className="text-[11px] text-text-muted hover:text-text-primary transition-colors shrink-0 flex items-center gap-1">
-              <ArrowLeft size={10} /> {breadcrumbParentLabel}
-            </button>
-          )}
-          <button
-            onClick={() => navigate('/workflow/inbox')}
-            className="text-[11px] text-text-muted hover:text-text-primary transition-colors shrink-0 flex items-center gap-1">
-            <ArrowLeft size={10} /> Back to inbox
-          </button>
-        </div>
-      )}
+      {/* Action bar, then the header zone — above the tabs, on every tab. The
+          action bar replaces the old task banner: it says which task this is,
+          whether it can be acted on, and carries the step's buttons. */}
+      {/* Fixed top: task bar, header zone and tabs never scroll — only the
+          tab body below does (it is the scroll container). */}
+      {/* The record's band: breadcrumb, task bar, hero and tab strip on one
+          brand-tinted ground (.detail-band), ending in the tab rule — so the
+          record's identity, its tabs and the tab content read as three
+          layers instead of three white cards. */}
+      <div className="shrink-0 detail-band">
+      {!embedded && detailTitle}
+      <div className={cn('flex flex-col gap-3', embedded ? 'px-5 pt-3' : 'px-6 pt-3')}>
+        {actionBar}
+        {headerZone}
+        {/* Steps ahead whose roles nobody holds — and where their tasks will
+            land instead. Gone as soon as every role has someone. */}
+        {!embedded && (wfSummary?.instanceId || vc.workflowInstanceId) && (
+          <RoleCoverageWarning instanceId={wfSummary?.instanceId || vc.workflowInstanceId} />
+        )}
+      </div>
+
+      <div className={cn('z-10', embedded ? 'px-5 pt-2' : 'px-6 pt-2')}>
 
       {/* SoD banner */}
       {vc.sodViolations?.length > 0 && <SodBanner violations={vc.sodViolations} />}
@@ -3296,128 +3515,65 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
           (blur + saturate over --glass-bg) and already degrades to solid via
           the @supports fallback where backdrop-filter is unavailable. A flat
           bg-surface read as a hard band against everything around it. */}
-      <div className="flex items-center gap-1 px-6 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      {/* Tabs: a soft rounded strip, like the cards around it; the active
+          tab is a tinted pill rather than an underline on a hard band. */}
+      <div role="tablist" className="flex items-end gap-1 overflow-x-auto scrollbar-none"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {visibleTabs.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
+          <button key={t.key} role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}
             className={cn(
-              'shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-md transition-colors border-b-2 -mb-px',
+              'relative shrink-0 flex items-center gap-1.5 px-3 h-10 text-[13px] transition-colors',
               tab === t.key
-                ? 'border-brand-500 text-brand-ink bg-brand-500/5'
-                : 'border-transparent text-text-muted hover:text-text-secondary hover:bg-surface-overlay'
+                ? 'text-brand-ink font-semibold'
+                : 'text-text-muted font-medium hover:text-text-primary'
             )}>
-            <t.icon size={12} /> {t.label}
+            <t.icon size={14} /> {t.label}
+            {tab === t.key && <span className="absolute left-2 right-2 -bottom-px h-[2.5px] rounded-full bg-brand-500" />}
           </button>
         ))}
       </div>
       </div>
+      </div>
 
-      {/* Tab content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {tab === 'overview' && (
-          <div className="max-w-3xl space-y-6">
-            {/* ── Header zone fields from Screen Designer ─────────────────────── */}
-            {headerFields.length > 0 && (
-              <div className="grid grid-cols-12 gap-4 pb-4 border-b border-border">
-                {headerFields.map((field, fi) => {
-                  const value = entity?.[field.fieldKey]
-                  return (
-                    <div key={fi} className={`col-span-${field.gridCols || 6}`}>
-                      <FieldDisplay
-                        label={field.label} value={value} type={field.fieldType}
-                        editable={canEdit && !vc.readOnlyFields?.includes(field.fieldKey)}
-                        field={field}
-                      />
-                    </div>
-                  )
-                })}
+      {/* Tab content — the only part that scrolls */}
+      <div className={cn('flex-1 min-h-0 overflow-y-auto scroll-quiet', embedded ? 'px-5 py-3' : 'px-6 pt-3 pb-6')}>
+        {tab === 'overview' && (() => {
+          // Cards from the Overview form (Screen Designer), else the blueprint
+          // schema. Fields already in the header zone are not repeated, and no
+          // field is edited in place: editing is "Edit details" in the action
+          // bar, offered only when the step allows it.
+          const formFields = detailFieldSections.length > 0
+            ? (activeDetailFormRes?.fields || [])
+            : (schema.sections || []).flatMap(sec => [
+                { fieldType: 'SECTION_HEADER', label: sec.label, fieldKey: `__sec_${sec.label}` },
+                ...(sec.fields || []).map(f => ({ ...f, fieldKey: f.key, fieldType: f.type })),
+              ])
+          if (formFields.length > 0) return (
+            <FieldCards
+              fields={formFields}
+              entity={entity}
+              skipKeys={headerFields.filter(f => !isEmptyValue(entity?.[f.fieldKey])).map(f => f.fieldKey)}
+              defaultTitle="Overview"
+              screenConfig={screenConfig}
+              renderValue={(f, v) => renderFieldValue(v, f.fieldType, f)}
+              isHidden={(k) => !!vc.hiddenFields?.includes(k)}
+            />
+          )
+          /* Last fallback: raw key-value when neither source has data */
+          return entity ? (
+            <div className="border border-border rounded-card overflow-hidden max-w-3xl">
+              <div className="px-4 py-2.5 bg-surface-overlay border-b border-border">
+                <span className="text-xs font-medium text-text-muted">Entity data</span>
               </div>
-            )}
-            {/* FIX: Render fields from Screen Designer form config (editFormKey / createFormKey).
-                This is the single source of truth — the same fields configured in Screen Designer
-                are what appear here. Blueprint's fieldsSchemaJson is the raw data model; the
-                form config is the UI presentation layer (labels, order, gridCols, sections).
-                Consistency: Screen Designer issue_create_form fields ↔ /module/issue/:id Overview */}
-            {detailFieldSections.length > 0
-              ? detailFieldSections.map((section, si) => (
-                <div key={si}>
-                  <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">
-                    {section.label}
-                  </h3>
-                  <div className="grid grid-cols-12 gap-3">
-                    {section.fields.map((field, fi) => {
-                      if (vc.hiddenFields?.includes(field.fieldKey)) return null
-                      return (
-                        <div key={fi} className={`col-span-${field.gridCols || 6}`}>
-                          <DrawerProperty
-                            field={field}
-                            entity={entity}
-                            screenConfig={screenConfig}
-                            editingKey={editingKey}
-                            editValue={editValue}
-                            saving={saving}
-                            onStartEdit={startEdit}
-                            onChangeValue={setEditValue}
-                            onSave={saveField}
-                            onCancel={cancelEdit}
-                            vc={vc}
-                          />
-                        </div>
-                      )
-                    })}
-                  </div>
+              {Object.entries(entity).filter(([k]) => !['id','createdAt','updatedAt'].includes(k)).map(([k, v]) => (
+                <div key={k} className="flex items-center gap-3 px-4 py-2 border-b border-border/50 last:border-0 text-xs">
+                  <span className="font-mono text-text-muted w-40 shrink-0">{k}</span>
+                  <span className="text-text-primary truncate">{String(v ?? '—')}</span>
                 </div>
-              ))
-              : /* Fallback: blueprint schema sections when no form configured yet */
-              schema.sections?.map((section, si) => (
-                <div key={si}>
-                  <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">
-                    {section.label}
-                  </h3>
-                  <div className="grid grid-cols-12 gap-3">
-                    {(section.fields || []).map((field, fi) => {
-                      if (field.type === 'SECTION_HEADER' || field.type === 'DIVIDER') return null
-                      if (vc.hiddenFields?.includes(field.key)) return null
-                      // Normalise blueprint schema field to DrawerProperty shape
-                      const normField = { ...field, fieldKey: field.key, fieldType: field.type }
-                      return (
-                        <div key={fi} className={`col-span-${field.gridCols || 6}`}>
-                          <DrawerProperty
-                            field={normField}
-                            entity={entity}
-                            screenConfig={screenConfig}
-                            editingKey={editingKey}
-                            editValue={editValue}
-                            saving={saving}
-                            onStartEdit={startEdit}
-                            onChangeValue={setEditValue}
-                            onSave={saveField}
-                            onCancel={cancelEdit}
-                            vc={vc}
-                          />
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))
-            }
-
-            {/* Last fallback: raw key-value when neither source has data */}
-            {detailFieldSections.length === 0 && schema.sections?.length === 0 && entity && (
-              <div className="border border-border rounded-card overflow-hidden">
-                <div className="px-4 py-2.5 bg-surface-overlay border-b border-border">
-                  <span className="text-xs font-medium text-text-muted">Entity data</span>
-                </div>
-                {Object.entries(entity).filter(([k]) => !['id','createdAt','updatedAt'].includes(k)).map(([k, v]) => (
-                  <div key={k} className="flex items-center gap-3 px-4 py-2 border-b border-border/50 last:border-0 text-xs">
-                    <span className="font-mono text-text-muted w-40 shrink-0">{k}</span>
-                    <span className="text-text-primary truncate">{String(v ?? '—')}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+              ))}
+            </div>
+          ) : null
+        })()}
 
         {['workflow','actions','evidence','comments','history'].includes(tab) && (
           <CapabilityTabBody tab={tab} bp={bp} id={id} entity={entity} vc={vc}
@@ -3429,6 +3585,10 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
           <CustomTabContent
             tabKey={tab}
             tabReadOnly={sdCustomTabs.find(t => t.key === tab)?.readOnly === true}
+            // Fields this tab's own header already shows are not repeated in
+            // its cards; screenConfig colours its badges.
+            skipKeys={tabHeaderFields.map(f => f.fieldKey)}
+            screenConfig={screenConfig}
             detailScreenKey={bp.detailScreenKey}
             entity={entity}
             entityType={bp.entityType}
@@ -3588,6 +3748,16 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
         )
       })()}
 
+      <WorkflowGuideDrawer
+        open={guideOpen}
+        onClose={() => setGuideOpen(false)}
+        definition={wfDefinition}
+        currentStepId={wfSummary && !wfSummary.done ? wfSummary.stepId : null}
+        workflowDone={!!wfSummary?.done}
+        viewerSides={userSides || []}
+        entityType={bp.entityType}
+      />
+
       {/* Component actions — see ROW_ACTION_COMPONENTS.
           Rendered inside detailBody rather than in either shell, so the full
           page and the drawer both get it from one place and cannot drift.
@@ -3631,32 +3801,28 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
   // own frame (EntityDrawer) carries Close and Open full page.
   if (embedded) return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="px-5 pt-3 pb-3 border-b border-border shrink-0 flex flex-col gap-2.5">
-        <div className="flex items-center gap-2 min-w-0">
-          {breadcrumbParentLabel && (
-            <>
-              <span className="text-[11px] text-text-muted truncate max-w-[200px]" title={breadcrumbParentLabel}>
-                {breadcrumbParentLabel}
-              </span>
-              <span className="text-text-faint shrink-0">/</span>
-            </>
-          )}
-          <span className="text-sm font-semibold text-text-primary truncate">{entityLabel}</span>
-          {entity?.status && <EntityStatusBadge status={entity.status} />}
+      {/* The hero inside detailBody carries the title and status; only the
+          parent the record belongs to is named above it. */}
+      {breadcrumbParentLabel && (
+        <div className="px-5 pt-2.5 shrink-0 text-[11px] text-text-muted truncate" title={breadcrumbParentLabel}>
+          {breadcrumbParentLabel}
         </div>
-        {detailActions}
-      </div>
+      )}
       {/* The scroll container — the tab strip inside detailBody is sticky
           against this, exactly as it is against the page on the full view. */}
-      <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">
+      <div className="flex-1 min-h-0 flex flex-col">
         {detailBody}
       </div>
     </div>
   )
 
   return (
-    <PageLayout title={detailTitle} actions={detailActions}>
-      {detailBody}
+    // Breadcrumb, title, action bar and header zone are part of the page body
+    // now (detailTitle + detailBody), so PageLayout's own header is not used.
+    <PageLayout>
+      <div className="flex flex-col h-full min-h-0">
+        {detailBody}
+      </div>
     </PageLayout>
   )
 }
@@ -3668,7 +3834,10 @@ function WorkflowTab({ entityType, entityId, vc, bp, entity }) {
   // Single query: resolve instance id then fetch progress in one chain.
   // Previously two sequential queries caused a waterfall (step1 → step2 blocked).
   // Now we do both in one queryFn — one round trip, no waterfall.
-  const entityWorkflowId = entity?.workflowInstanceId
+  // The record's own instance, else the one the view context resolved — a
+  // vendor assessment's workflow lives on its cycle, filed under the VENDOR,
+  // so looking it up by the assessment finds nothing.
+  const entityWorkflowId = entity?.workflowInstanceId ?? vc?.workflowInstanceId
   // For project-governed engagements: if the engagement has no own workflow instance
   // (AUDIT_ENGAGEMENT entities are governed by the project lifecycle, not their own workflow),
   // fall back to the project instance's workflow so the tab shows the project timeline.
@@ -3683,28 +3852,12 @@ function WorkflowTab({ entityType, entityId, vc, bp, entity }) {
     : !!entityId
 
   const { data: wfData, isLoading: wfLoading } = useQuery({
-    queryKey: ['module-workflow', entityType, entityId, projectInstanceId ?? null],
+    queryKey: moduleWorkflowKey(entityType, entityId, projectInstanceId, entityWorkflowId),
     enabled: readyToFetch,
-    queryFn: async () => {
-      // Resolve the instance
-      let instanceData
-      if (entityWorkflowId) {
-        instanceData = await api.get(`/v1/workflow-instances/${entityWorkflowId}`)
-      } else if (entityType === 'AUDIT_ENGAGEMENT' && projectInstanceId) {
-        // Engagement is governed by the project workflow — fetch project's active workflow
-        instanceData = await api.get('/v1/workflow-instances/active', {
-          params: { entityType: 'AUDIT_PROJECT', entityId: projectInstanceId }
-        })
-      } else {
-        instanceData = await api.get('/v1/workflow-instances/active', { params: { entityType, entityId } })
-      }
-      const inst = instanceData?.data || instanceData
-      if (!inst?.id) return { instance: inst, progress: [] }
-      // Fetch progress immediately — no second render cycle
-      const progressData = await api.get(`/v1/workflow-instances/${inst.id}/progress`)
-      const prog = progressData?.data || progressData
-      return { instance: inst, progress: Array.isArray(prog) ? prog : (prog?.data || []) }
-    },
+    // Same function and key as the header zone's Workflow tile
+    // (DetailChrome.useHeaderTiles), so the page fetches it once. Engagements
+    // governed by a project resolve the project's instance, as before.
+    queryFn: () => fetchModuleWorkflow({ entityType, entityId, entityWorkflowId, projectInstanceId }),
     staleTime: 15 * 1000,
   })
   const instance = wfData?.instance
@@ -3811,7 +3964,7 @@ function EvidenceTab({ entityId, entityType, vc }) {
 //   "policies"  → LibraryMappingTab (shows policies linked to this control)
 // All other keys → renders fields from {detailScreenKey}_tab_{tabKey} form key.
 
-function CustomTabContent({ tabKey, tabReadOnly = false, detailScreenKey, entity, entityType, apiBasePath, vc, userSide, userRole, stepInstanceId, taskId, onTaskComplete }) {
+function CustomTabContent({ tabKey, tabReadOnly = false, detailScreenKey, entity, entityType, apiBasePath, vc, userSide, userRole, stepInstanceId, taskId, onTaskComplete, skipKeys = [], screenConfig }) {
   // ── ALL HOOKS MUST BE AT TOP — Rules of Hooks ────────────────────────────
   const qc = useQueryClient()
   const [saving,   setSaving]   = useState(false)
@@ -4178,118 +4331,29 @@ function CustomTabContent({ tabKey, tabReadOnly = false, detailScreenKey, entity
     )
   }
 
-  // Read-only header with Edit button when user has edit rights
+  // Read-only view with an Edit button when the user may edit this tab
   const editButton = canEdit ? (
-    <div className="flex justify-end mb-3">
-      <button onClick={() => setEditMode(true)}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-ctl border border-border text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-        </svg>
-        Edit
-      </button>
-    </div>
+    <button onClick={() => setEditMode(true)}
+      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-ctl border border-brand-500/30 bg-brand-500/8 text-brand-ink hover:bg-brand-500/15 transition-colors">
+      <Pencil size={11} /> Edit
+    </button>
   ) : null
 
+  // Cards, not a label/value grid: each SECTION_HEADER starts a card, field
+  // type decides the look, empty fields collapse into one "Not set" strip.
+  // Fields the tab's own header shows (skipKeys) are not repeated.
+  const tabLabel = String(tabKey).replace(/[-_]/g, ' ').replace(/^\w/, c => c.toUpperCase())
   return (
-    <div className="flex flex-col">
-      {editButton}
-      <FormTabReadView fields={fields} entity={entity} readOnlyTab={tabReadOnly} />
-    </div>
-  )
-}
-
-// ── FORM TAB, READ VIEW ──────────────────────────────────────────────────────
-// How every {screen}_tab_{key} form tab reads when it is not being edited.
-// One component for all modules, so Overview, Root Cause, Remediation and
-// every other form tab read the same way.
-//
-//   • each SECTION_HEADER starts a card; fields before the first header go in
-//     an untitled card
-//   • short fields share a responsive grid; long text (TEXTAREA, RICH_TEXT,
-//     MULTILINE_LIST) runs the full width so a plan reads as a paragraph
-//   • an empty field says so in words, not a dash
-//   • a read-only tab with nothing recorded yet says the workflow fills it,
-//     instead of a page of empty labels
-// Values still render through FieldDisplay, so formatting per type is shared
-// with the rest of the page.
-const LONG_FIELD_TYPES = new Set(['TEXTAREA', 'RICH_TEXT', 'MULTILINE_LIST'])
-
-function fieldVisible(field, entity) {
-  if (!field.dependsOnJson) return true
-  try {
-    const dep = typeof field.dependsOnJson === 'string' ? JSON.parse(field.dependsOnJson) : field.dependsOnJson
-    const actual = entity?.[dep.field]
-    return dep.operator === 'eq'  ? actual === dep.value
-         : dep.operator === 'neq' ? actual !== dep.value
-         : dep.operator === 'in'  ? (Array.isArray(dep.value) && dep.value.includes(actual))
-         : true
-  } catch { return true }
-}
-
-const isEmptyValue = (v) => v == null || v === '' || (Array.isArray(v) && v.length === 0)
-
-function FormTabReadView({ fields = [], entity = {}, readOnlyTab = false }) {
-  const sections = []
-  let current = { title: null, fields: [] }
-  for (const f of fields) {
-    if (f.fieldType === 'SECTION_HEADER') {
-      if (current.fields.length) sections.push(current)
-      current = { title: f.label, fields: [] }
-    } else if (f.fieldType !== 'DIVIDER' && fieldVisible(f, entity)) {
-      current.fields.push(f)
-    }
-  }
-  if (current.fields.length) sections.push(current)
-
-  const anyFilled = sections.some(sec => sec.fields.some(f => !isEmptyValue(entity?.[f.fieldKey])))
-  if (readOnlyTab && !anyFilled) return (
-    <div className="py-12 text-center">
-      <p className="text-sm text-text-muted">Nothing recorded yet.</p>
-      <p className="text-xs text-text-muted mt-1 opacity-70">
-        This is filled in by the workflow step that owns it, and shows here once that step is done.
-      </p>
-    </div>
-  )
-
-  return (
-    <div className="space-y-4 max-w-4xl">
-      {sections.map((sec, si) => (
-        <section key={si} className="rounded-card border border-border glass-card overflow-hidden">
-          {sec.title && (
-            <header className="px-4 py-2.5 border-b border-border/60 bg-surface-inset/50">
-              <h3 className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">{sec.title}</h3>
-            </header>
-          )}
-          <div className="px-4 py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
-            {sec.fields.map((field, fi) => {
-              const value = entity?.[field.fieldKey]
-              const long  = LONG_FIELD_TYPES.has(field.fieldType)
-              return (
-                <div key={field.fieldKey || fi}
-                  className={long ? 'sm:col-span-2 lg:col-span-3' : ''}>
-                  {isEmptyValue(value) ? (
-                    <div>
-                      <p className="text-[11px] font-medium text-text-muted mb-1">{field.label}</p>
-                      <p className="text-xs italic text-text-faint">Not filled in yet</p>
-                    </div>
-                  ) : long && typeof value === 'string' ? (
-                    <div>
-                      <p className="text-[11px] font-medium text-text-muted mb-1">{field.label}</p>
-                      <p className="text-sm text-text-primary whitespace-pre-wrap leading-relaxed">{value}</p>
-                    </div>
-                  ) : (
-                    <FieldDisplay label={field.label} value={value} type={field.fieldType}
-                      editable={false} field={field} />
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </section>
-      ))}
-    </div>
+    <FieldCards
+      fields={fields}
+      entity={entity}
+      skipKeys={skipKeys}
+      defaultTitle={tabLabel}
+      headerSlot={editButton}
+      screenConfig={screenConfig}
+      renderValue={(f, v) => renderFieldValue(v, f.fieldType, f)}
+      isHidden={(k) => !!vc?.hiddenFields?.includes(k)}
+    />
   )
 }
 // The assessment question a vendor issue was raised from — what was asked,
@@ -4546,9 +4610,10 @@ function EntityDisplay({ value, lookupEntityType, lookupApiPath }) {
   return <span className="text-sm text-text-primary">{label || valueStr}</span>
 }
 
-function FieldDisplay({ label, value, type, editable, field = {} }) {
-  // ── Render the value correctly based on type ──────────────────────────────
-  const renderDisplayValue = () => {
+// The value half of FieldDisplay, on its own so the header zone and the field
+// cards (DetailChrome) render values exactly as the old grid did.
+function renderFieldValue(value, type, field = {}) {
+  {
     if (value === null || value === undefined || value === '') {
       return <span className="text-text-faint text-xs italic">—</span>
     }
@@ -4681,6 +4746,10 @@ function FieldDisplay({ label, value, type, editable, field = {} }) {
         return <span className="text-sm text-text-primary">{String(value)}</span>
     }
   }
+}
+
+function FieldDisplay({ label, value, type, editable, field = {} }) {
+  const renderDisplayValue = () => renderFieldValue(value, type, field)
 
   return (
     <div className="flex flex-col gap-0.5">
@@ -4696,11 +4765,12 @@ function FieldDisplay({ label, value, type, editable, field = {} }) {
 }
 
 function EntityStatusBadge({ status }) {
-  const colorMap = {
-    DRAFT: 'amber', OPEN: 'blue', IN_REVIEW: 'purple',
-    APPROVED: 'green', CLOSED: 'gray', REJECTED: 'red',
-  }
-  return <Badge variant={colorMap[status] || 'gray'} size="xs">{status}</Badge>
+  // Badge reads value/label/colorTag. This passed variant and children, which
+  // it ignores, so every record showed an empty grey "• —" beside its title.
+  const s = String(status || '')
+  return <Chip colorTag={SEMANTIC_COLORS[s.toUpperCase()] || 'gray'}>
+    {s.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase())}
+  </Chip>
 }
 
 function SodBanner({ violations }) {
@@ -5107,22 +5177,8 @@ function UrlEntityDrawerLevel({ type, id, level, tabKey, onCloseLevel }) {
 // SELECT fields with optionsComponentKey render as DynamicBadge (colored).
 // Fallback: semantic color map for common GRC values (status, severity, etc.)
 
-// Semantic color fallback — covers common GRC values that may not have
-// a configured optionsComponentKey yet.
-const SEMANTIC_COLORS = {
-  // Severity
-  CRITICAL: 'red', HIGH: 'amber', MEDIUM: 'yellow', LOW: 'green',
-  // Status
-  OPEN: 'blue', IN_PROGRESS: 'indigo', PENDING_REVIEW: 'purple',
-  TRIAGED: 'cyan', RESOLVED: 'green', CLOSED: 'gray',
-  ACCEPTED_RISK: 'amber', PENDING_VALIDATION: 'yellow',
-  // Issue type
-  INTERNAL: 'blue', EXTERNAL: 'purple', AUTOMATED: 'cyan', REGULATORY: 'indigo',
-  // Generic
-  ACTIVE: 'green', INACTIVE: 'gray', DRAFT: 'gray', APPROVED: 'green',
-  REJECTED: 'red', CANCELLED: 'gray', COMPLETED: 'green',
-  true: 'green', false: 'gray',
-}
+// SEMANTIC_COLORS now lives in components/detail/DetailChrome (imported above)
+// so the header zone, the field cards and DrawerProperty read one map.
 
 function DrawerProperty({ field, entity, screenConfig, editingKey, editValue, saving,
   onStartEdit, onChangeValue, onSave, onCancel,

@@ -12,12 +12,65 @@ import { SIDES, HTTP_METHODS, ACTION_VARIANTS, LAYOUT_MODES,
          SCREEN_TYPES, FIELD_TYPES, FIELD_TYPE_GROUPS, CAPABILITY_TABS } from '../constants'
 
 import { RoleVisibilityEditor } from './RoleVisibilityEditor'
+import { useLayoutTabs } from './useLayoutTabs'
 
-function HeaderZoneInspector({ screenKey, onSelectElement }) {
+// Tabs built in code that can show a summary tile in the header zone, and the
+// ones shown when the screen has not chosen. Mirrors DetailChrome.tileTabsFor.
+const TILE_TAB_OPTIONS = [
+  { key: 'workflow',        label: 'Workflow',        hint: 'current step · who holds it',  byDefault: true },
+  { key: 'evidence',        label: 'Evidence',        hint: 'files · accepted / pending',    byDefault: true },
+  { key: 'linked-findings', label: 'Linked findings', hint: 'issues only',                   byDefault: true },
+  { key: 'comments',        label: 'Comments',        hint: 'count · last comment',          byDefault: false },
+]
+
+function SummaryTilesSection({ screenKey }) {
+  const { tabs, patchTab, saving, layout } = useLayoutTabs(screenKey)
+  // Same rule as the runtime: a tab's own "headerKpi" decides; a tab that has
+  // not chosen keeps its default.
+  const isOn = (opt) => {
+    const t = tabs.find(x => x.key === opt.key)
+    return t && typeof t.headerKpi === 'boolean' ? t.headerKpi : opt.byDefault
+  }
+  return (
+    <InspectorSection title="Summary tiles">
+      <p className="text-[10px] text-text-muted leading-relaxed mb-2">
+        A row of tiles under the header fields, one per tab built in code. Clicking a
+        tile opens its tab. Shown only when the record has that tab. Stored as
+        <code className="font-mono"> "headerKpi"</code> on the tab's entry in tabs_json.
+      </p>
+      {!layout?.id && <p className="text-[10px] text-status-warn-fg mb-2">Save this screen's layout first.</p>}
+      <div className="space-y-1">
+        {TILE_TAB_OPTIONS.map(opt => {
+          // Linked findings is a Screen Designer tab, not a capability one: adding
+          // an entry for it would CREATE the tab, so it is only offered where the
+          // screen already lists it.
+          const unavailable = opt.key === 'linked-findings' && !tabs.some(t => t.key === opt.key)
+          const on = !unavailable && isOn(opt)
+          return (
+            <label key={opt.key} title={unavailable ? 'This screen has no Linked findings tab' : undefined}
+              className={cn('flex items-center gap-2 px-2.5 py-1.5 rounded-card border border-border bg-background cursor-pointer',
+                unavailable && 'opacity-50 cursor-not-allowed')}>
+              <input type="checkbox" checked={on} disabled={saving || !layout?.id || unavailable}
+                onChange={() => patchTab(opt.key, { headerKpi: !on }, opt.label)} />
+              <span className="text-xs text-text-primary font-medium flex-1">{opt.label}</span>
+              <span className="text-[9px] text-text-muted">{opt.hint}</span>
+            </label>
+          )
+        })}
+      </div>
+    </InspectorSection>
+  )
+}
+
+/**
+ * Header zone fields. With formKey/title it edits a TAB's own header instead
+ * ({screen}_tab_{key}_header) — same field list, no summary tiles.
+ */
+function HeaderZoneInspector({ screenKey, onSelectElement, formKey: formKeyProp, title, showTiles = true }) {
   const qc = useQueryClient()
 
   // Load (or create) the UiForm for the header zone
-  const formKey = `${screenKey}_header`
+  const formKey = formKeyProp || `${screenKey}_header`
   const { data: formRes, isLoading } = useQuery({
     queryKey: ['sd-form', formKey],
     queryFn:  () => sdApi.getForm(formKey),
@@ -58,10 +111,13 @@ function HeaderZoneInspector({ screenKey, onSelectElement }) {
 
   return (
     <div className="p-4 space-y-4">
-      <InspectorSection title="Header zone fields">
+      <InspectorSection title={title || 'Header zone fields'}>
         <p className="text-[10px] text-text-muted leading-relaxed mb-3">
-          Fields that appear above the tabs — always visible to all roles.
-          Typical: title, status badge, owner, created date, ID number.
+          {formKeyProp
+            ? 'Fields shown above the tabs while this tab is open, instead of the Overview header zone.'
+            : 'Fields that appear above the tabs on Overview and every tab without its own header.'}
+          {' '}A reference field shows as a code chip, dropdowns as coloured badges,
+          people and dates as tiles.
           Stored as <code className="font-mono">UiFormField</code> rows under key{' '}
           <code className="font-mono text-brand-ink">{formKey}</code>.
         </p>
@@ -93,6 +149,8 @@ function HeaderZoneInspector({ screenKey, onSelectElement }) {
           <Plus size={12} /> Add header field
         </button>
       </InspectorSection>
+
+      {showTiles && !formKeyProp && <SummaryTilesSection screenKey={screenKey} />}
 
       <InspectorSection title="Common header fields">
         <p className="text-[9px] text-text-muted mb-2">Click to add a pre-configured field:</p>

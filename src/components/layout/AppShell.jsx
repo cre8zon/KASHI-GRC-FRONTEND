@@ -6,6 +6,7 @@ import { NotificationPermissionPrompt } from '../ui/NotificationPermissionPrompt
 import { Sidebar }            from './Sidebar'
 import { TopNav }             from './TopNav'
 import { TabBar }             from './TabBar'
+import { PageTabs }           from './PageTabs'
 import { TabContentRenderer } from './TabContent'
 import { useBootstrap }       from '../../hooks/useUIConfig'
 import { PageSkeleton }       from '../ui/EmptyState'
@@ -58,6 +59,8 @@ export function AppShell() {
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
           <TopNav onMenuToggle={() => setCollapsed(o => !o)} />
           <TabBar />
+          {/* A page's own tabs (Navigation → "Show as tab of") — on that page only. */}
+          {!isLoading && <PageTabs />}
           {isLoading ? <PageSkeleton /> : <TabContentRenderer serverStatus={status} onRetry={retryNow} nextRetryIn={nextRetryIn} />}
         </div>
       </div>

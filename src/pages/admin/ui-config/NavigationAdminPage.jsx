@@ -103,6 +103,7 @@ function useCreateNav() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-nav'] })
       qc.invalidateQueries({ queryKey: ['admin-nav-all'] })
+      qc.invalidateQueries({ queryKey: ['navigation'] })
       toast.success('Nav item created')
     },
     onError: (e) => toast.error(e?.response?.data?.error?.message || 'Failed'),
@@ -116,6 +117,7 @@ function useUpdateNav() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-nav'] })
       qc.invalidateQueries({ queryKey: ['admin-nav-all'] })
+      qc.invalidateQueries({ queryKey: ['navigation'] })   // sidebar and page tabs
       toast.success('Updated')
     },
     onError: (e) => toast.error(e?.response?.data?.error?.message || 'Failed'),
@@ -692,6 +694,7 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
     icon:               item?.icon               || '',
     route:              item?.route              || '',
     parentKey:          item?.parentKey          || null,
+    tabParentKey:       item?.tabParentKey       || null,
     sortOrder:          item?.sortOrder          ?? '',
     module:             item?.module             || '',
     allowedSides:       item?.allowedSides       || '',
@@ -709,15 +712,30 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
     .map(n => ({ key: n.navKey, label: `${n.navKey}  (${n.label})` }))
     .sort((a, b) => a.key.localeCompare(b.key))
 
+  // A tab's parent must itself be a page (has a route) and not a tab — tabs
+  // do not nest.
+  const tabParentOptions = allItems
+    .filter(n => n.navKey !== item?.navKey && n.route && !n.tabParentKey)
+    .map(n => ({ key: n.navKey, label: `${n.label}  (${n.route})` }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+  const myTabs = item?.navKey
+    ? allItems.filter(n => n.tabParentKey === item.navKey).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    : []
+
   const handleSubmit = () => {
     if (!form.navKey.trim()) { toast.error('Nav key required'); return }
     if (!form.label.trim())  { toast.error('Label required');  return }
     if (!form.route.trim())  { toast.error('Route required');  return }
+    if (form.tabParentKey && form.tabParentKey === form.navKey) { toast.error('A page cannot be a tab of itself'); return }
+    if (form.tabParentKey && !allItems.some(n => n.navKey === form.tabParentKey)) {
+      toast.error(`No navigation item "${form.tabParentKey}" — pick one from the list`); return
+    }
     onSubmit({
       ...form,
       sortOrder:          form.sortOrder !== '' ? parseInt(form.sortOrder) : undefined,
       // Send empty string to CLEAR optional fields (null = backend skips the field entirely)
       parentKey:          form.parentKey          ?? '',
+      tabParentKey:       form.tabParentKey       ?? '',
       requiredPermission: form.requiredPermission ?? '',
       requiredFeature:    form.requiredFeature    ?? '',
       badgeCountEndpoint: form.badgeCountEndpoint ?? '',
@@ -756,6 +774,47 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
             ))}
           </datalist>
         </div>
+      </div>
+
+      {/* Page tabs: this row as a tab on another page instead of a sidebar
+          entry (ui_navigation.tab_parent_key). */}
+      <div className="rounded-card border border-border bg-surface-overlay/40 p-3 flex flex-col gap-2">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">
+            Show as tab of
+          </label>
+          <input
+            list="tab-parent-options"
+            value={form.tabParentKey || ''}
+            onChange={e => set('tabParentKey', e.target.value || null)}
+            placeholder="Blank = its own sidebar entry"
+            className="h-8 w-full rounded-ctl border border-border glass-field px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+          <datalist id="tab-parent-options">
+            {tabParentOptions.map(({ key, label }) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </datalist>
+          <p className="text-[11px] text-text-muted leading-snug">
+            {form.tabParentKey
+              ? <>Shown as a tab on <strong className="text-text-secondary">{allItems.find(n => n.navKey === form.tabParentKey)?.label || form.tabParentKey}</strong>'s page, in sort order after it — and not in the sidebar.</>
+              : 'Pick a page to show this one as a tab on it (e.g. a dashboard or offboarding list beside Vendors). It then leaves the sidebar.'}
+          </p>
+        </div>
+        {myTabs.length > 0 && (
+          <div className="flex flex-col gap-1 pt-2 border-t border-border/60">
+            <span className="text-xs font-medium text-text-secondary uppercase tracking-wide">Tabs on this page</span>
+            <div className="flex flex-wrap gap-1.5 items-center text-[12px]">
+              <span className="px-2 py-0.5 rounded-badge bg-brand-500/12 text-brand-ink font-semibold">{form.label || item?.label}</span>
+              {myTabs.map(t => (
+                <span key={t.navKey} className="px-2 py-0.5 rounded-badge bg-surface-raised border border-border text-text-secondary">
+                  {t.label} <span className="text-text-muted font-mono text-[10.5px]">· {t.sortOrder ?? 0}</span>
+                </span>
+              ))}
+            </div>
+            <p className="text-[11px] text-text-muted">Change a tab's order with its Sort Order; remove it by clearing its "Show as tab of".</p>
+          </div>
+        )}
       </div>
 
       <div>
@@ -831,7 +890,7 @@ function NavForm({ item, onSubmit, isPending, onClose, allItems = [] }) {
         <Input value={form.requiredFeature || ''}
           onChange={e => set('requiredFeature', e.target.value || null)}
           placeholder="e.g. framework.iso27001, module.vendor_assessment"
-          helperText="Row is hidden and its route blocked unless the tenant has this feature enabled in Feature Flags" />
+          helperText="Row is hidden unless the tenant has this feature enabled in Feature Flags. Several keys, comma-separated, mean any of them (framework.soc2,framework.iso27001)." />
       </div>
 
       <Input label="Badge Count Endpoint" value={form.badgeCountEndpoint || ''}
@@ -890,7 +949,17 @@ export default function NavigationAdminPage() {
     { key: 'id',     label: 'ID',    width: 45,  type: 'mono' },
     { key: 'navKey', label: 'Key',   width: 175, type: 'custom',
       render: (r) => <span className="text-xs font-mono text-text-secondary">{r.navKey}</span> },
-    { key: 'label',  label: 'Label', width: 135 },
+    { key: 'label',  label: 'Label', width: 150, type: 'custom',
+      render: (r) => (
+        <span className="flex flex-col min-w-0">
+          <span className="truncate">{r.label}</span>
+          {r.tabParentKey && (
+            <span className="text-[10px] font-semibold text-brand-ink truncate" title={`Tab on ${r.tabParentKey}`}>
+              tab of {allItems.find(n => n.navKey === r.tabParentKey)?.label || r.tabParentKey}
+            </span>
+          )}
+        </span>
+      ) },
     { key: 'route',  label: 'Route', width: 185, type: 'custom',
       render: (r) => <span className="text-xs font-mono text-brand-ink">{r.route || '—'}</span> },
     { key: 'module', label: 'Module', width: 120, type: 'custom',

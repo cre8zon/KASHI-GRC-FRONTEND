@@ -8,7 +8,7 @@ import * as Icons from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { useNavigation } from '../../hooks/useUIConfig'
-import { resolveNav } from '../../lib/navRoute'
+import { resolveNav, normalizeTabRows } from '../../lib/navRoute'
 import { useSelector } from 'react-redux'
 import { useDispatch } from 'react-redux'
 import { openTab } from '../../store/slices/tabsSlice'
@@ -325,7 +325,16 @@ function NavItem({ item, depth = 0, collapsed = false, t, forceOpen = false }) {
   const activeRoute = useContext(ActiveNavRouteContext)
   const routeMatches = (route) => !!route && route === activeRoute
   const [open, setOpen] = useNavOpen(item.navKey, forceOpen)
-  const hasChildren = item.children?.length > 0
+  // Only children that are actually drawn make a group: hidden detail rows
+  // (is_active = 0) and tab rows (drawn on the page) used to leave an empty
+  // group with a chevron. A row with no route of its own stays a group.
+  // A child is drawn only when it is active, not a page tab, and a page you
+  // can open from a menu — a detail route with a :param (Room, Policy Editor…)
+  // never is, whatever its is_active says.
+  const drawable = (c) => c.isActive !== false && c.isActive !== 0 && !c.tabParentKey
+    && !!c.route && !/\/:/.test(c.route)
+  const drawnChildren = (item.children || []).some(drawable)
+  const hasChildren = item.route ? drawnChildren : (item.children?.length > 0)
 
   if (hasChildren) {
     const isActive = routeMatches(item.route)
@@ -361,7 +370,7 @@ function NavItem({ item, depth = 0, collapsed = false, t, forceOpen = false }) {
                 appeared to work for some items and not others. The backend
                 deliberately returns inactive items (UiConfigServiceImpl: task
                 nav entries rely on it), so the filter has to live here. */}
-            {item.children.filter(child => child.isActive !== false).map(child => (
+            {item.children.filter(drawable).map(child => (
               <NavItem key={child.navKey} item={child} depth={depth + 1} t={t} forceOpen={forceOpen} />
             ))}
           </div>
@@ -704,7 +713,9 @@ export function Sidebar({ collapsed, onToggle }) {
   // (which has `grouped` in its deps) re-ran and queued a scrollIntoView on
   // every single render of the sidebar. navItems is query data and stable
   // between fetches, so this is the identity the dependents actually wanted.
-  const grouped        = useMemo(() => groupByModule(navItems), [navItems])
+  // Tab rows whose parent page this user cannot see stay ordinary sidebar
+  // rows (lib/navRoute normalizeTabRows) — no page is ever lost to tabs.
+  const grouped        = useMemo(() => groupByModule(normalizeTabRows(navItems)), [navItems])
   const [navQuery, setNavQuery] = useState('')
   const visible        = useMemo(() => filterNav(grouped, navQuery), [grouped, navQuery])
   const searching      = navQuery.trim().length > 0
@@ -980,7 +991,7 @@ function filterNav(groups, query) {
     const kept = []
 
     for (const item of items) {
-      const children = (item.children || []).filter(c => c.isActive !== false)
+      const children = (item.children || []).filter(c => c.isActive !== false && !c.tabParentKey)
       if (moduleHit || hit(item.label)) { kept.push(item); continue }
 
       const matchingChildren = children.filter(c => hit(c.label))
@@ -997,6 +1008,9 @@ function groupByModule(items) {
   for (const item of items) {
     // Top level only — children are filtered where they render, in NavItem.
     if (!item.isActive) continue
+    // Rows shown as tabs on another page (Navigation → "Show as tab of") are
+    // not sidebar entries; PageTabs draws them on their page.
+    if (item.tabParentKey) continue
     const key = item.module || '_root'
     if (!groups[key]) groups[key] = []
     groups[key].push(item)
