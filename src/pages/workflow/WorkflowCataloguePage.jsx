@@ -228,7 +228,7 @@ function VideoPlayer({ demo, chapters = [], startAt = 0, title, chapterHint = 'C
               onPlay={() => setPlaying(true)} />
             {!playing && (
               <button type="button" onClick={() => { videoRef.current?.play?.(); setPlaying(true) }}
-                className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white">
+                className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-on-dark">
                 <span className="guide-band-cta w-14 h-14 rounded-full flex items-center justify-center">
                   <Play size={22} fill="currentColor" />
                 </span>
@@ -239,7 +239,7 @@ function VideoPlayer({ demo, chapters = [], startAt = 0, title, chapterHint = 'C
           </>
         ) : demo?.kind === 'LINK' && demo.url ? (
           <a href={withTime(demo.url, startAt)} target="_blank" rel="noopener noreferrer"
-            className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white">
+            className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-on-dark">
             <span className="guide-band-cta w-14 h-14 rounded-full flex items-center justify-center">
               <Play size={22} fill="currentColor" />
             </span>
@@ -457,7 +457,7 @@ export function StepWizard({ workflow, viewerSides = [] }) {
               viewerSides.length > 0 && !mine(s) && 'opacity-70')}
             style={{ borderTop: `3px solid ${SIDE_COLOR[s.side] || SIDE_COLOR.ORGANIZATION}` }}>
             <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full text-[11px] font-bold text-white flex items-center justify-center shrink-0"
+              <span className="w-5 h-5 rounded-full text-[11px] font-bold text-on-dark flex items-center justify-center shrink-0"
                 style={{ background: SIDE_COLOR[s.side] || SIDE_COLOR.ORGANIZATION }}>{s.order}</span>
               <strong className="text-[12.5px] text-text-primary leading-tight">{s.name}</strong>
               {mine(s) && <span className="ml-auto text-[10px] font-bold px-1.5 rounded-badge bg-brand-500 text-brand-on">You</span>}

@@ -260,3 +260,15 @@
   background: linear-gradient(180deg, rgb(var(--color-brand-500) / .10), rgb(var(--color-brand-500) / .035) 70%, rgb(var(--color-brand-500) / .03));
   border-bottom: 1px solid rgb(var(--color-border));
 }
+
+/* Workflow side colours — one per party, identical in every theme (like
+   --color-on-dark) so a step reads the same colour in the guide, the
+   catalogue and the videos. Used as rgb(var(--color-side-*)). */
+:root {
+  --color-side-org:     124  92 214;
+  --color-side-vendor:   47 111 214;
+  --color-side-auditor: 217 130  43;
+  --color-side-auditee:  63 154 138;
+  --color-side-system:  154 161 173;
+  --color-side-done:     63 154  99;
+}

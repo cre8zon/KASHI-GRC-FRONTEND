@@ -1,7 +1,7 @@
 # KashiGuard Design System — "Calm" v4 (brand + pastel, engine-generated themes)
 
 The design contract. Every UI change — human or AI — must comply.
-CI enforces it: `npm run lint:design` (runs automatically on `prebuild`).
+CI enforces it: `npm run lint:design` (runs automatically on `prebuild`). `npm run dev` runs the same guard on every save and shows violations in the terminal and the browser overlay, so they never first appear at build time.
 
 ## Direction
 
@@ -108,6 +108,8 @@ exist for inline styles and `.policy-content`.
 ## Tools
 
 - `tools/check-design-system.mjs` — CI guard (`npm run lint:design`).
+- `tools/check-import-case.mjs` — import spelling must match the file name's case exactly (`npm run lint:imports`, also on `prebuild`); Windows/macOS ignore case, Linux builds do not.
+- `tools/vite-design-guard.js` — runs both guards inside `npm run dev` on every save.
 - `tools/migrate_theme_v2.py` — the codemod, idempotent, CRLF-safe.
   `python3 tools/migrate_theme_v2.py` (dry-run) / `--apply`.
 

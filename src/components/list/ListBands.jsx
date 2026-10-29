@@ -24,11 +24,11 @@ import { TILE_TONE, SEMANTIC_COLORS } from '../detail/DetailChrome'
 
 /** Colour per workflow side — the same four everywhere a step is drawn. */
 export const SIDE_COLOR = {
-  ORGANIZATION: '#7c5cd6',
-  VENDOR:       '#2f6fd6',
-  AUDITOR:      '#d9822b',
-  AUDITEE:      '#3f9a8a',
-  SYSTEM:       '#9aa1ad',
+  ORGANIZATION: 'rgb(var(--color-side-org))',
+  VENDOR:       'rgb(var(--color-side-vendor))',
+  AUDITOR:      'rgb(var(--color-side-auditor))',
+  AUDITEE:      'rgb(var(--color-side-auditee))',
+  SYSTEM:       'rgb(var(--color-side-system))',
 }
 export const SIDE_LABEL = {
   ORGANIZATION: 'Organisation', VENDOR: 'Vendor', AUDITOR: 'Auditor', AUDITEE: 'Auditee', SYSTEM: 'System',
@@ -97,7 +97,7 @@ function GuideBandShell({ icon: Icon, title, subtitle, links, strip, collapsed, 
   const collapseBtn = (
     <button type="button" onClick={onToggle} aria-expanded={!collapsed}
       aria-label={collapsed ? 'Expand' : 'Collapse'}
-      className="guide-band-muted w-7 h-7 rounded-ctl flex items-center justify-center hover:bg-white/10 shrink-0">
+      className="guide-band-muted w-7 h-7 rounded-ctl flex items-center justify-center hover:bg-on-dark/10 shrink-0">
       {collapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
     </button>
   )
@@ -246,7 +246,7 @@ const SEMANTIC_DOT = {
   amber: 'rgb(var(--color-status-warn-fg))', yellow: 'rgb(var(--color-status-warn-fg))',
   blue: 'rgb(var(--color-status-info-fg))', cyan: 'rgb(var(--color-status-info-fg))',
   purple: 'rgb(var(--color-status-pending-fg))', indigo: 'rgb(var(--color-status-pending-fg))',
-  gray: '#9aa1ad', teal: '#3f9a8a',
+  gray: 'rgb(var(--color-side-system))', teal: 'rgb(var(--color-side-auditee))',
 }
 
 /**
