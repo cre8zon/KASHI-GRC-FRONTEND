@@ -20,7 +20,7 @@ import { cn } from '../../lib/cn'
 import api from '../../config/axios.config'
 
 const SIDE_COLOR = {
-  ORGANIZATION: '#7c5cd6', VENDOR: '#2f6fd6', AUDITOR: '#d9822b', AUDITEE: '#3f9a8a', SYSTEM: '#9aa1ad',
+  ORGANIZATION: 'rgb(var(--color-side-org))', VENDOR: 'rgb(var(--color-side-vendor))', AUDITOR: 'rgb(var(--color-side-auditor))', AUDITEE: 'rgb(var(--color-side-auditee))', SYSTEM: 'rgb(var(--color-side-system))',
 }
 const SIDE_LABEL = {
   ORGANIZATION: 'Organisation', VENDOR: 'Vendor', AUDITOR: 'Auditor', AUDITEE: 'Auditee', SYSTEM: 'System',
@@ -153,7 +153,7 @@ export function WorkflowGuideDrawer({ open, onClose, definition, currentStepId, 
 
   return createPortal(
     <div className="fixed inset-0 z-[60] flex justify-end" role="dialog" aria-modal="true" aria-label="Workflow guide">
-      <button type="button" aria-label="Close guide" className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <button type="button" aria-label="Close guide" className="absolute inset-0 bg-on-dark-inv/30" onClick={onClose} />
       <aside className="relative w-full max-w-[460px] h-full bg-surface-raised border-l border-border shadow-2xl flex flex-col">
         <header className="px-5 pt-4 pb-3 border-b border-border">
           <div className="flex items-start gap-2">
@@ -189,9 +189,9 @@ export function WorkflowGuideDrawer({ open, onClose, definition, currentStepId, 
             return (
               <li key={s.id} className="flex gap-3">
                 <div className="flex flex-col items-center">
-                  <span className={cn('w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center shrink-0 text-white',
+                  <span className={cn('w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center shrink-0 text-on-dark',
                     current && 'ring-4 ring-brand-500/20')}
-                    style={{ background: done ? '#3f9a63' : color, opacity: !you && !current && !done ? 0.55 : 1 }}>
+                    style={{ background: done ? 'rgb(var(--color-side-done))' : color, opacity: !you && !current && !done ? 0.55 : 1 }}>
                     {done ? <CheckCircle2 size={13} /> : s.order}
                   </span>
                   {i < steps.length - 1 && <span className="w-px flex-1 bg-border my-1" />}
@@ -307,7 +307,7 @@ export function RoleCoverageWarning({ instanceId, className }) {
             <li key={g.stepId} className="flex items-baseline gap-2 flex-wrap">
               <span className="text-[10.5px] font-bold px-1.5 rounded-badge bg-surface-raised border border-border shrink-0">{g.stepOrder}</span>
               <span className="font-semibold">{g.stepName}</span>
-              {g.current && <span className="text-[10px] font-bold px-1.5 rounded-badge bg-status-warn-fg text-white">Now</span>}
+              {g.current && <span className="text-[10px] font-bold px-1.5 rounded-badge bg-status-warn-fg text-on-dark">Now</span>}
               <span className="text-text-secondary">
                 needs {(g.roles || []).join(' or ') || 'a role'} → goes to {g.fallbackUserName
                   ? <><strong className="text-text-primary">{g.fallbackUserName}</strong> ({FALLBACK_TEXT[g.fallbackKind] || 'fallback'})</>

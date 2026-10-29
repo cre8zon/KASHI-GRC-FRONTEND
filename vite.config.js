@@ -1,12 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import designGuard from './tools/vite-design-guard.js'
 
 export default defineConfig({
   define: {
     global: 'globalThis',
   },
-  plugins: [react()],
+  plugins: [react(), designGuard()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
