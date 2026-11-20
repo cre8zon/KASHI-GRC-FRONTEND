@@ -34,7 +34,7 @@ export default function AiGapPanel({ policyId, framework, controlCodes = [], onI
     setBusy(true)
     try {
       const res = await aiApi.gapAnalysis({ policyId, framework, controlCodes })
-      setResult(res.data?.data ?? res.data)
+      setResult(res?.data?.data ?? res?.data ?? res)
     } catch (e) {
       toast.error(e?.response?.data?.error?.message || 'Gap analysis failed')
     } finally { setBusy(false) }

@@ -20,7 +20,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
-  ChevronRight, MoreHorizontal, BookOpen, Pencil, Play, Eye, CheckSquare, Calendar, User,
+  ChevronRight, ChevronDown, MoreHorizontal, BookOpen, Pencil, Play, Eye, CheckSquare, Calendar, User,
   GitBranch, Paperclip, AlertTriangle, MessageSquare, Clock, FileText, Tag, Hash, Gauge, LayoutList,
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
@@ -207,6 +207,10 @@ export function ActionBar({ mode = 'none', taskId, stepLabel, holderText, viewRe
   primary = [], more = [], onEdit, how, guide }) {
   const hasButtons = primary.length > 0 || more.length > 0 || !!onEdit
   const [showAll, setShowAll] = useState(false)
+  // The guidance row ("What to do", Next, View workflow) used to sit under
+  // the task line on every record, doubling the bar's height. It now folds
+  // into the task line and opens on demand.
+  const [showGuide, setShowGuide] = useState(false)
   if (mode === 'none' && !hasButtons && !stepLabel) return null
 
   const sla = slaDueAt ? slaChip(slaDueAt) : null
@@ -214,12 +218,14 @@ export function ActionBar({ mode = 'none', taskId, stepLabel, holderText, viewRe
   return (
     <div className={cn(
       'flex items-center gap-3 px-3 py-2 rounded-card flex-wrap',
-      act ? 'bg-surface-raised border border-brand-500/35 shadow-[0_2px_8px_rgb(var(--color-brand-500)/0.10)]'
-          : mode === 'view' ? 'bg-surface-overlay border border-border'
-          : 'bg-surface-raised border border-border/70')}>
+      // Glass like the cards around it; a task you can act on carries a brand
+      // rim so it stands out from the view-only and current-step states.
+      act ? 'glass-card ring-1 ring-brand-500/35 shadow-elevated'
+          : mode === 'view' ? 'glass-inset'
+          : 'glass-card')}>
       {(mode !== 'none' || stepLabel) && (
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className={cn('w-8 h-8 rounded-full flex items-center justify-center shrink-0',
+          <span className={cn('w-7 h-7 rounded-full flex items-center justify-center shrink-0',
             act ? 'bg-brand-500 text-brand-on' : 'bg-surface-overlay text-text-muted border border-border')}>
             {act ? <CheckSquare size={15} /> : mode === 'view' ? <Eye size={15} /> : <GitBranch size={15} />}
           </span>
@@ -237,6 +243,18 @@ export function ActionBar({ mode = 'none', taskId, stepLabel, holderText, viewRe
             </p>
           </div>
           {sla && act && <Chip colorTag={sla.colorTag}>{sla.text}</Chip>}
+          {guide && guide.whatToDo && mode !== 'none' && (
+            <button type="button" onClick={() => setShowGuide(v => !v)} aria-expanded={showGuide}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-brand-ink px-2.5 py-1 rounded-full bg-brand-500/8 hover:bg-brand-500/15 transition-colors">
+              <BookOpen size={11} /> {mode === 'act' ? 'What to do' : 'This step'}
+              <ChevronDown size={11} className={cn('transition-transform', showGuide && 'rotate-180')} />
+            </button>
+          )}
+          {guide?.next && !showGuide && (
+            <span className="hidden xl:inline text-xs text-text-muted whitespace-nowrap">
+              Next: <span className="font-semibold text-text-primary">{guide.next.name}</span>
+            </span>
+          )}
           {/* With a walkthrough chapter for this step: ▶ jumps to it in the
               video. Without one: the same link opens the step's guide. */}
           {how?.to ? (
@@ -267,8 +285,8 @@ export function ActionBar({ mode = 'none', taskId, stepLabel, holderText, viewRe
       )}
       {/* Guidance line: what this step expects, what comes after, and the
           whole workflow one click away. guide = { whatToDo, next, onOpen }. */}
-      {guide && (guide.whatToDo || guide.next || guide.onOpen) && (
-        <div className="basis-full flex items-start gap-3 flex-wrap pt-2 border-t border-border/60">
+      {guide && showGuide && (guide.whatToDo || guide.next || guide.onOpen) && (
+        <div className="basis-full flex items-start gap-3 flex-wrap pt-2 border-t border-border/60 animate-fade-in">
           {guide.whatToDo && mode !== 'none' && (
             <div className="flex-[1_1_320px] min-w-0 text-[12.5px] leading-relaxed text-text-secondary">
               <span className="font-semibold text-text-primary">{mode === 'act' ? 'What to do: ' : 'This step: '}</span>
@@ -441,7 +459,7 @@ export function splitHeaderFields(fields = [], entity, titleValue) {
  * is what separates the record's identity from the tab content.
  */
 export function RecordHero({ icon: Icon, title, status, fields = [], entity, titleValue, screenConfig,
-  renderValue, tiles = [], actions = null }) {
+  renderValue, tiles = [], actions = null, afterTitle = null }) {
   const { refs, badges, kpis, facts } = splitHeaderFields(fields, entity, titleValue)
   const kpiTiles = kpis.map(f => {
     const v = entity[f.fieldKey]
@@ -453,7 +471,7 @@ export function RecordHero({ icon: Icon, title, status, fields = [], entity, tit
   })
   const allTiles = [...kpiTiles, ...tiles]
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-2.5">
       <div className="flex items-start gap-3 flex-wrap">
         <span className="w-9 h-9 rounded-ctl flex items-center justify-center shrink-0 text-brand-on shadow-sm"
           style={{ background: 'linear-gradient(135deg, rgb(var(--color-brand-500)), rgb(var(--color-brand-700)))' }}>
@@ -494,6 +512,8 @@ export function RecordHero({ icon: Icon, title, status, fields = [], entity, tit
         </div>
         {actions && <div className="flex items-center gap-2 flex-wrap justify-end ml-auto max-w-full">{actions}</div>}
       </div>
+      {/* afterTitle: the workflow task bar — the record first, then what to do about it. */}
+      {afterTitle}
       {allTiles.length > 0 && (
         <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}>
           {allTiles.map(t => <HeroTile key={t.key} tile={t} />)}
@@ -510,14 +530,19 @@ function HeroTile({ tile }) {
   const Tag_ = tile.onClick ? 'button' : 'div'
   return (
     <Tag_ type={tile.onClick ? 'button' : undefined} onClick={tile.onClick}
-      className={cn('text-left px-3 py-2 rounded-card border min-w-0 flex flex-col gap-0.5 transition-all', t.tile,
-        tile.onClick && 'hover:-translate-y-px hover:shadow-sm cursor-pointer')}>
-      <span className="flex items-center gap-2">
+      // Compact: label and value on one line, the sub-line beside the value —
+      // a tile row is ~40px instead of ~75px.
+      className={cn('text-left px-3 py-1.5 rounded-card border min-w-0 flex flex-col gap-0 transition-all', t.tile,
+        tile.onClick && 'hover:-translate-y-px hover:shadow-sm cursor-pointer')}
+      title={[tile.label, typeof tile.value === 'string' ? tile.value : null, tile.sub].filter(Boolean).join(' · ')}>
+      <span className="flex items-center gap-1.5">
+        {Icon && <Icon size={12} className={cn('shrink-0', t.fg)} />}
         <span className={cn('text-[10px] font-bold uppercase tracking-wider truncate flex-1 min-w-0', t.fg)}>{tile.label}</span>
-        {Icon && <Icon size={14} className={cn('shrink-0', t.fg)} />}
       </span>
-      <span className={cn('text-[15px] font-bold truncate leading-snug', t.fg)}>{tile.value}</span>
-      {tile.sub && <span className={cn('text-[11.5px] truncate', t.fg)}>{tile.sub}</span>}
+      <span className="flex items-baseline gap-1.5 min-w-0">
+        <span className={cn('text-[13.5px] font-bold truncate leading-snug', t.fg)}>{tile.value}</span>
+        {tile.sub && <span className={cn('text-[11px] truncate opacity-80', t.fg)}>{tile.sub}</span>}
+      </span>
     </Tag_>
   )
 }
@@ -528,7 +553,7 @@ export function ActionButton({ icon: Icon, label, onClick, tone: kind = 'seconda
     <button type="button" onClick={onClick} disabled={disabled} title={title}
       className={cn('inline-flex items-center gap-1.5 h-8 px-3 rounded-ctl text-xs font-semibold whitespace-nowrap transition-colors disabled:opacity-40',
         kind === 'danger' && 'border border-status-fail-fg/30 text-status-fail-fg hover:bg-status-fail-bg/60',
-        kind === 'secondary' && 'border border-border bg-surface-raised text-text-primary hover:bg-surface-overlay',
+        kind === 'secondary' && 'glass-button border border-brand-500/25 text-brand-ink hover:bg-brand-500/10',
         kind === 'brand' && 'border border-brand-500/30 bg-brand-500/8 text-brand-ink hover:bg-brand-500/15',
         kind === 'ghost' && 'text-brand-ink hover:bg-brand-500/8')}>
       {Icon && <Icon size={13} />} {label}

@@ -1,0 +1,186 @@
+/*
+ * KashiGuard AI — the visual layer that marks AI surfaces (orb, launcher,
+ * composer, panel, proposed actions). Every colour is a theme token, so the
+ * effects follow the user's brand preset in light and dark.
+ *
+ * Text never sits on the deep end of a gradient: surfaces carrying text use
+ * brand-500 → brand-600, the range text-brand-on is guaranteed against. The
+ * wider brand-300 → brand-800 range is decorative only (orb, rings, aura).
+ */
+
+@property --ai-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* Decorative: the orb core and other text-free marks. */
+.ai-grad-deep {
+  background-image: linear-gradient(135deg,
+    rgb(var(--color-brand-300)) 0%,
+    rgb(var(--color-brand-500)) 45%,
+    rgb(var(--color-brand-700)) 100%);
+}
+
+/* Surfaces with text-brand-on on them (buttons, user bubbles). */
+.ai-grad {
+  background-image: linear-gradient(135deg, rgb(var(--color-brand-500)), rgb(var(--color-brand-600)));
+}
+
+/* Tinted wash for headers and cards. */
+.ai-grad-soft {
+  background-image: linear-gradient(135deg,
+    rgb(var(--color-brand-500) / .14),
+    rgb(var(--color-brand-300) / .08) 50%,
+    rgb(var(--color-brand-700) / .12));
+}
+
+/* Gradient text — for large headings and short labels only. */
+.ai-text {
+  background-image: linear-gradient(90deg,
+    rgb(var(--color-brand-700)), rgb(var(--color-brand-500)) 50%, rgb(var(--color-brand-ink)));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ai-text-shimmer { animation: ai-shimmer 2.2s linear infinite; }
+
+/* A gradient border that follows the element's radius. Add .ai-ring-spin to rotate it.
+   The element must be positioned (relative/fixed) — not set here, so a
+   `fixed` utility on the same element is never overridden. */
+.ai-ring { isolation: isolate; }
+.ai-ring::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(from var(--ai-angle),
+    rgb(var(--color-brand-300)), rgb(var(--color-brand-600)),
+    rgb(var(--color-brand-400)), rgb(var(--color-brand-700)),
+    rgb(var(--color-brand-300)));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: -1;
+}
+.ai-ring-spin::before { animation: ai-spin 4s linear infinite; }
+.ai-ring-soft::before { opacity: .7; }
+.ai-ring-hover-spin:hover::before { opacity: 1; animation: ai-spin 4s linear infinite; }
+
+/* Rotating conic glow behind the orb. */
+.ai-glow {
+  background: conic-gradient(from var(--ai-angle),
+    rgb(var(--color-brand-300) / .9), rgb(var(--color-brand-600) / .9),
+    rgb(var(--color-brand-400) / .9), rgb(var(--color-brand-300) / .9));
+  filter: blur(8px);           /* AiOrb overrides this inline, scaled to its size */
+  animation: ai-spin 6s linear infinite;
+}
+.ai-glow-fast { animation-duration: 1.6s; }
+.ai-glow-hero { animation-duration: 3s; }
+
+/* ── Hero orb (the page greeting) ───────────────────────────────────────── */
+.ai-float    { animation: ai-float 5s ease-in-out infinite; }
+.ai-breathe  { animation: ai-breathe 3.2s ease-in-out infinite; }
+.ai-sparkle-turn { animation: ai-sparkle 6s ease-in-out infinite; }
+.ai-ripple   { border: 1.5px solid rgb(var(--color-brand-500) / .55); animation: ai-ripple 3.2s ease-out infinite; }
+@keyframes ai-float   { 0%, 100% { transform: translateY(0); }  50% { transform: translateY(-6px); } }
+@keyframes ai-breathe { 0%, 100% { transform: scale(1); }       50% { transform: scale(1.06); } }
+@keyframes ai-sparkle { 0%, 70%, 100% { transform: rotate(0deg) scale(1); } 80% { transform: rotate(90deg) scale(1.15); } 90% { transform: rotate(180deg) scale(1); } }
+@keyframes ai-ripple  { from { transform: scale(.9); opacity: .9; } to { transform: scale(1.9); opacity: 0; } }
+
+/* Soft aura behind the hero. */
+.ai-aura {
+  background: radial-gradient(closest-side, rgb(var(--color-brand-500) / .28), rgb(var(--color-brand-500) / 0));
+  filter: blur(18px);
+}
+
+.ai-shadow { box-shadow: 0 6px 24px -6px rgb(var(--color-brand-600) / .55); }
+
+/* ── Top-bar launcher ("Ask AI") ─────────────────────────────────────────── */
+.ai-launch { transition: transform .2s ease, box-shadow .2s ease; }
+.ai-launch:hover, .ai-launch:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px -8px rgb(var(--color-brand-600) / .65), 0 0 0 4px rgb(var(--color-brand-500) / .10);
+}
+.ai-launch:hover::before, .ai-launch:focus-visible::before { opacity: 1; animation: ai-spin 2.4s linear infinite; }
+.ai-launch:hover .ai-glow, .ai-launch:focus-visible .ai-glow { animation-duration: 1.4s; opacity: 1; }
+.ai-launch:hover .ai-text, .ai-launch:focus-visible .ai-text { animation: ai-shimmer 1.6s linear infinite; }
+
+/* ── Page backdrop (Gemini-style aurora) ───────────────────────────────────
+   Soft colour pooled along the bottom and one corner, drifting slowly — cool
+   on the left, brand in the middle, warm on the right. Each blob is the brand
+   colour turned round the colour wheel (hue-rotate), so the spread works for
+   every theme preset while staying recognisably on brand. It fades out
+   towards the top, so the page title and tab bar sit on a clean surface with
+   no hard edge. Purely decorative: pointer-events none, behind content. */
+.ai-backdrop { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 30%, #000 100%);
+          mask-image: linear-gradient(to bottom, transparent 0%, #000 30%, #000 100%); }
+.ai-backdrop > span { position: absolute; border-radius: 9999px; opacity: .75; will-change: transform; }
+.ai-blob-cool { width: 55%; height: 70%; left: -12%; bottom: -30%;
+  background: radial-gradient(closest-side, rgb(var(--color-brand-500)), rgb(var(--color-brand-500) / 0));
+  filter: blur(80px) hue-rotate(-55deg) saturate(1.5);
+  animation: ai-drift-1 18s ease-in-out infinite alternate; }
+.ai-blob-brand { width: 55%; height: 62%; left: 24%; bottom: -36%;
+  background: radial-gradient(closest-side, rgb(var(--color-brand-600)), rgb(var(--color-brand-600) / 0));
+  filter: blur(80px) saturate(1.4);
+  animation: ai-drift-2 22s ease-in-out infinite alternate; }
+.ai-blob-warm { width: 52%; height: 70%; right: -12%; bottom: -28%;
+  background: radial-gradient(closest-side, rgb(var(--color-brand-400)), rgb(var(--color-brand-400) / 0));
+  filter: blur(80px) hue-rotate(60deg) saturate(1.6);
+  animation: ai-drift-3 26s ease-in-out infinite alternate; }
+.ai-blob-high { width: 36%; height: 42%; right: 6%; top: 8%; opacity: .4 !important;
+  background: radial-gradient(closest-side, rgb(var(--color-brand-300)), rgb(var(--color-brand-300) / 0));
+  filter: blur(90px) hue-rotate(-30deg);
+  animation: ai-drift-4 30s ease-in-out infinite alternate; }
+.ai-backdrop-busy > span { opacity: .95; animation-duration: 6s; }
+[data-theme="dark"] .ai-backdrop > span { opacity: .42; }
+[data-theme="dark"] .ai-backdrop-busy > span { opacity: .6; }
+
+@keyframes ai-drift-1 { to { transform: translate(14%, -10%) scale(1.12); } }
+@keyframes ai-drift-2 { to { transform: translate(-12%, -14%) scale(1.18); } }
+@keyframes ai-drift-3 { to { transform: translate(-16%, -6%) scale(.92); } }
+@keyframes ai-drift-4 { to { transform: translate(-20%, 18%) scale(1.1); } }
+
+/* ── Glittering border (the page's message box) ────────────────────────────
+   The gradient border turns continuously, and bright streaks run round it at
+   their own pace, like light catching a cut edge. */
+.ai-glitter::before {
+  opacity: 1;
+  padding: 2px;
+  inset: -2px;
+  background:
+    conic-gradient(from calc(var(--ai-angle) * 1.6), transparent 0deg,
+      rgb(var(--color-brand-50)) 12deg, transparent 30deg,
+      transparent 180deg, rgb(var(--color-brand-100) / .9) 194deg, transparent 210deg),
+    conic-gradient(from calc(var(--ai-angle) * -2.2), transparent 0deg,
+      rgb(var(--color-brand-50) / .85) 6deg, transparent 16deg),
+    conic-gradient(from var(--ai-angle),
+      rgb(var(--color-brand-300)), rgb(var(--color-brand-600)),
+      rgb(var(--color-brand-400)), rgb(var(--color-brand-700)),
+      rgb(var(--color-brand-300)));
+  /* 12s a turn. The streaks run 1.6x and 2.2x the base speed, so at the
+     earlier 5s the fastest lapped the box every ~2s and pulled the eye; at
+     12s it takes ~5.5s — still alive, no longer distracting. */
+  animation: ai-spin 12s linear infinite;
+}
+/* Side-panel variant: same light, slower and softer at rest. */
+.ai-glitter-calm::before { animation-duration: 20s; opacity: .8; }
+.ai-glitter-calm:focus-within::before { animation-duration: 12s; opacity: 1; }
+
+@keyframes ai-spin    { to { --ai-angle: 360deg; } }
+@keyframes ai-shimmer { to { background-position: -200% center; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-text-shimmer, .ai-ring-spin::before, .ai-ring-hover-spin:hover::before, .ai-glow,
+  .ai-launch:hover::before, .ai-launch:hover .ai-text, .ai-backdrop, .ai-backdrop > span,
+  .ai-glitter::before, .ai-float, .ai-breathe, .ai-sparkle-turn, .ai-ripple { animation: none; }
+  .ai-ripple { opacity: 0; }
+  .ai-launch:hover { transform: none; }
+}
+
+/* Gradient border comes fully alive while the element has focus. */
+.ai-ring:focus-within::before { opacity: 1; }

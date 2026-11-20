@@ -51,6 +51,9 @@ export const GlassSelect = forwardRef(function GlassSelect(props, forwardedRef) 
     className, style, children, disabled, multiple, size,
     id, title, autoFocus, placeholder,
     onBlur, onFocus,
+    // Opt-in: let the list be wider than the button, for a compact trigger
+    // whose options are long (e.g. "Role — Holder"). Omitted, nothing changes.
+    listMinWidth,
     'aria-label': ariaLabel, 'aria-labelledby': ariaLabelledBy, 'aria-describedby': ariaDescribedBy,
     'aria-invalid': ariaInvalid,
     ...selectProps   // value, defaultValue, onChange, name, required, form, …
@@ -115,9 +118,10 @@ export const GlassSelect = forwardRef(function GlassSelect(props, forwardedRef) 
     if (!r) return
     const below = window.innerHeight - r.bottom
     const up = below < Math.min(LIST_MAX_HEIGHT + 60, 260) && r.top > below
+    const w = Math.min(Math.max(r.width, 220, Number(listMinWidth) || 0), window.innerWidth - 16)
     setPos({
-      left: Math.max(8, Math.min(r.left, window.innerWidth - Math.max(r.width, 220) - 8)),
-      width: Math.max(r.width, 220),
+      left: Math.max(8, Math.min(r.left, window.innerWidth - w - 8)),
+      width: w,
       top: up ? undefined : r.bottom + 4,
       bottom: up ? window.innerHeight - r.top + 4 : undefined,
       maxHeight: Math.max(160, Math.min(LIST_MAX_HEIGHT, (up ? r.top : below) - 16)),

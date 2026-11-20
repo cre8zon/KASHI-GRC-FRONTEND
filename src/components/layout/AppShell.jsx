@@ -14,6 +14,8 @@ import { useServerStatus }    from '../../hooks/useServerStatus'
 import { ServerStatusBanner } from '../ui/ServerStatusBanner'
 import { ReadOnlyBanner }     from '../ui/ReadOnlyBanner'
 import { useChatPresenceFeed } from '../../hooks/useChatPresence'
+import { AgentPanel }         from '../ai/AgentPanel'
+import { TableResizer } from './TableResizer'
 
 export function AppShell() {
   const [collapsed, setCollapsed] = useState(false)
@@ -59,11 +61,28 @@ export function AppShell() {
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
           <TopNav onMenuToggle={() => setCollapsed(o => !o)} />
           <TabBar />
-          {/* A page's own tabs (Navigation → "Show as tab of") — on that page only. */}
-          {!isLoading && <PageTabs />}
-          {isLoading ? <PageSkeleton /> : <TabContentRenderer serverStatus={status} onRetry={retryNow} nextRetryIn={nextRetryIn} />}
+          {/* The page: one rounded surface under the app tabs, like the top
+              bar and the sidebar beside it. The page area used to be a
+              borderless region with square ends, so the band under the
+              active tab started on a hard corner. mr-2, no left margin:
+              the sidebar's own 8px margin is the gap, so every gap in the
+              shell is 8px instead of 16px beside the sidebar. No backdrop-filter here:
+              it would become the containing block for every position:fixed
+              modal and drawer inside a page. */}
+          <div className="page-surface flex-1 min-h-0 flex flex-col mr-2 mb-2 rounded-card overflow-hidden">
+            {/* A page's own tabs (Navigation → "Show as tab of") — on that page only. */}
+            {!isLoading && <PageTabs />}
+            {isLoading ? <PageSkeleton /> : <TabContentRenderer serverStatus={status} onRetry={retryNow} nextRetryIn={nextRetryIn} />}
+          </div>
         </div>
       </div>
+
+      {/* KashiGuard AI side panel — renders nothing unless the user's menu has it. */}
+      {!isLoading && <AgentPanel />}
+
+      {/* Drag-to-resize columns on every plain table in the app, saved per
+          user. DataTable has its own column controls and is skipped. */}
+      <TableResizer />
     </div>
   )
 }

@@ -59,7 +59,7 @@ import {
   Table, Undo, Redo, Eye, EyeOff, AlertTriangle,
   FileText, Loader2, Strikethrough, Highlighter,
   Link2, Link2Off, AlignLeft, AlignCenter, AlignRight,
-  Code2, Sparkles, Braces,
+  Code2, Sparkles, Braces, Wand2,
 } from 'lucide-react'
 import { useEditor, EditorContent }                  from '@tiptap/react'
 import { BubbleMenu }                                 from '@tiptap/react/menus'
@@ -71,12 +71,18 @@ import { Table as TableExtension, TableRow, TableCell, TableHeader } from '@tipt
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Button }     from '../../components/ui/Button'
 import { Badge }      from '../../components/ui/Badge'
+import { GlassSelect } from '../../components/ui/GlassSelect'
+import { Breadcrumb, navTrailFor } from '../../components/detail/DetailChrome'
+import { useNavigation } from '../../hooks/useUIConfig'
 import { cn }         from '../../lib/cn'
 import api            from '../../config/axios.config'
 import toast          from 'react-hot-toast'
 import AiBubbleAction from '../../components/ai/AiBubbleAction'
 import AiDraftModal   from '../../components/ai/AiDraftModal'
 import AiMappingPanel from '../../components/ai/AiMappingPanel'
+import { aiApi }      from '../../api/ai.api'
+import { Link }       from 'react-router-dom'
+import PolicyRevisionsPanel, { revisionApi } from '../../components/policies/PolicyRevisionsPanel'
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
 
@@ -149,7 +155,7 @@ export default function PolicyEditorPage() {
   const [varMenuOpen, setVarMenuOpen] = useState(false)
   const { data: varCatalog } = useQuery({
     queryKey: ['policy-variable-catalog'],
-    queryFn:  () => api.get('/v1/ai/admin/policy-variables').then(r => r.data?.data ?? r.data),
+    queryFn:  () => api.get('/v1/ai/admin/policy-variables').then(r => r?.data?.data ?? r?.data ?? r),
     staleTime: 30 * 60 * 1000,   // a deploy-time constant, not live data
   })
 
@@ -179,6 +185,13 @@ export default function PolicyEditorPage() {
     { key: 'policy_version',  label: 'Version',        example: '1.0' },
   ]
 
+  // The tenant's policy roles ({{role_<key>}} -> current holder at read time).
+  const { data: policyRolesRaw } = useQuery({
+    queryKey: ['policy-roles'],
+    queryFn:  () => api.get('/v1/ai/org-profile/roles').then(r => r?.data?.data ?? r?.data ?? r),
+    staleTime: 5 * 60 * 1000,
+  })
+
   // Catalog labels/examples when the endpoint answers; the static list otherwise,
   // so the picker still works if the AI admin endpoint is unavailable to this user.
   const insertableVars = useMemo(() => {
@@ -193,8 +206,15 @@ export default function PolicyEditorPage() {
         example: meta[k.key]?.example || k.example,
         syntax:  `{{${k.key}}}`,   // always mustache — this is the resolver's syntax
       })),
-    }]
-  }, [varCatalog])
+    }, {
+      // Name a role's current holder without typing their name — it updates
+      // when the role changes hands (Settings → AI profile → Policy roles).
+      category: 'Policy roles',
+      vars: (Array.isArray(policyRolesRaw) ? policyRolesRaw : [])
+        .filter(r => r.current)
+        .map(r => ({ key: `role_${r.roleKey}`, label: r.roleTitle, example: r.userName, syntax: r.variable })),
+    }].filter(g => g.vars.length > 0)
+  }, [varCatalog, policyRolesRaw])
 
   const insertVariable = (v) => {
     if (!editor) return
@@ -211,6 +231,57 @@ export default function PolicyEditorPage() {
     enabled:  !!id,
   })
   const policy = policyRes?.data || policyRes
+  // The API sends contentBody with {{variables}} already filled in, for
+  // reading, and contentBodyRaw with them intact. The editor must only ever
+  // hold the raw form: loading the filled-in text would show "POL-056" instead
+  // of {{policy_ref}}, and the next save would write those values in for good,
+  // so the reference line would stop following renumbering, versions and owner.
+  const rawBody = policy?.contentBodyRaw ?? policy?.contentBody ?? ''
+
+  // ── Where this page sits ──────────────────────────────────────────────────
+  // The editor belongs to a policy record (/module/audit_policy/:id). Back and
+  // the breadcrumb go there, not to whatever page happened to be open before
+  // (navigate(-1) returned to Settings or Users after a detour).
+  const { data: navItems = [] } = useNavigation()
+  const policyListLabel = useMemo(() => {
+    const find = (nodes) => {
+      for (const n of nodes || []) {
+        if (typeof n.route === 'string' && n.route.split('?')[0] === '/module/audit_policy') return n.label
+        const hit = find(n.children)
+        if (hit) return hit
+      }
+      return null
+    }
+    return find(navItems) || 'Policies'
+  }, [navItems])
+  const recordPath = `/module/audit_policy/${id}`
+  const crumbs = [
+    { label: 'Home', to: '/dashboard' },
+    ...navTrailFor(navItems, { entityType: 'AUDIT_POLICY' }),
+    { label: policyListLabel, to: '/module/audit_policy' },
+    { label: policy?.policyRef || policy?.title || `Policy #${id}`, to: recordPath },
+    { label: 'Content' },
+  ]
+
+  // ── Policy owner ──────────────────────────────────────────────────────────
+  // The owner should be an accountable ROLE from the policy role register: a
+  // team cannot approve an exception, and a personal name goes stale. When the
+  // owner names a role, {{policy_owner}} reads "Role (Current holder)" and
+  // follows the register. Older free-text owners ("Engineering") still show
+  // as written until someone picks a role.
+  const ownerRoles = useMemo(() => (Array.isArray(policyRolesRaw) ? policyRolesRaw : [])
+    .filter(r => r.current)
+    .map(r => ({ title: r.roleTitle, holder: r.userName })), [policyRolesRaw])
+  const ownerRole = ownerRoles.find(r =>
+    r.title.trim().toLowerCase() === (policy?.ownerTeam || '').trim().toLowerCase())
+  const ownerMut = useMutation({
+    mutationFn: (ownerTeam) => policyApi.update(id, { title: policy?.title, ownerTeam }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['policy-editor', id] })
+      toast.success('Owner updated — policies show the role and its current holder')
+    },
+    onError: (e) => toast.error(e?.response?.data?.message || 'Could not change the owner'),
+  })
 
   // No dedicated /versions endpoint yet — derive from the policy itself.
   // Shows the current approved version; expand to a real endpoint when available.
@@ -227,10 +298,25 @@ export default function PolicyEditorPage() {
   const aiControlCodes = (policy?.commonControlCodes || policy?.controlTags || '')
     .split(/[,\s]+/).map(v => v.trim()).filter(Boolean)
 
-  // "Draft with AI" appears on an EMPTY draft only. Offering it over a policy
-  // someone has already written invites replacing their work with one click.
-  const isEmptyDraft = policy?.status === 'DRAFT'
-    && !(policy?.contentBody || '').replace(/<[^>]+>/g, '').trim()
+  // "Draft content" on an empty DRAFT; "Regenerate" on a DRAFT that has text.
+  // Regenerating used to be withheld because it would overwrite someone's work
+  // with one click. It no longer can: the current body is snapshotted as a
+  // revision (BEFORE_AI) before the AI draft goes in, the modal shows a
+  // comparison before anything is accepted, and History can restore it.
+  const isDraft      = policy?.status === 'DRAFT'
+  const isEmptyDraft = isDraft
+    && !rawBody.replace(/<[^>]+>/g, '').trim()
+
+  // How much the AI knows about this organisation. Shared query key with the
+  // Settings → AI profile tab, so saving the profile refreshes this too.
+  // Only fetched once the AI panel is open — non-AI users are never nagged.
+  const { data: aiProfile } = useQuery({
+    queryKey: ['ai-org-profile-completeness'],
+    queryFn:  () => aiApi.completeness(),
+    enabled:  aiPanelOpen,
+    staleTime: 60 * 1000,
+  })
+  const aiProfileScore = typeof aiProfile?.score === 'number' ? aiProfile.score : null
 
   // ── TipTap editor ──────────────────────────────────────────────────
   const editor = useEditor({
@@ -247,7 +333,7 @@ export default function PolicyEditorPage() {
       TableCell,
       TableHeader,
     ],
-    content:   policy?.contentBody || '',
+    content:   rawBody,
     editable:  !isReadOnly,
     onUpdate:  ({ editor: e }) => {
       setIsDirty(true)
@@ -264,8 +350,13 @@ export default function PolicyEditorPage() {
 
   // Load content once policy arrives (editor may mount before data)
   useEffect(() => {
-    if (editor && policy?.contentBody && !editor.getText()) {
-      editor.commands.setContent(policy.contentBody)
+    if (editor && rawBody && !editor.getText()) {
+      // emitUpdate false: loading is not an edit. Emitting it marked the page
+      // dirty on open ("Unsaved changes"), so autosave rewrote the body 30 s
+      // later even though nobody had typed.
+      editor.commands.setContent(rawBody, { emitUpdate: false })
+      // No update event, so count here — otherwise the footer reads 0 words.
+      setWordCount(editor.getText().trim().split(/\s+/).filter(Boolean).length)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [policy?.id])
@@ -286,6 +377,13 @@ export default function PolicyEditorPage() {
       await qc.invalidateQueries({ queryKey: ['policy-editor', id] })
       setLastSaved(new Date())
       setIsDirty(false)
+      // A manual save keeps a revision; autosave does not (one every 30 s is
+      // noise, not history). Identical text is deduplicated server side.
+      if (!silent) {
+        revisionApi.snapshot(id, { source: 'MANUAL', contentBody })
+          .then(() => qc.invalidateQueries({ queryKey: ['policy-revisions', id] }))
+          .catch(() => {})
+      }
       if (!silent) toast.success('Saved')
     } catch (e) {
       if (!silent) toast.error(e?.response?.data?.message || 'Save failed')
@@ -333,9 +431,12 @@ export default function PolicyEditorPage() {
   return (
     <PageLayout
       title={
+        <div className="flex flex-col gap-1 min-w-0">
+        <Breadcrumb items={crumbs} />
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate(recordPath)}
+            aria-label="Back to the policy"
             className="text-text-muted hover:text-text-primary transition-colors"
           >
             <ArrowLeft size={15} />
@@ -348,9 +449,32 @@ export default function PolicyEditorPage() {
           {policy.version && (
             <span className="text-[10px] text-text-muted font-mono">v{policy.version}</span>
           )}
+          <span className="flex items-center gap-1 text-[10px] text-text-muted"
+                title="The accountable owner. Pick a policy role: wherever {{policy_owner}} appears it reads as the role and its current holder.">
+            Owner
+            <GlassSelect
+              value={ownerRole ? ownerRole.title : ''}
+              disabled={isReadOnly || ownerMut.isPending || ownerRoles.length === 0}
+              onChange={e => { if (e.target.value) ownerMut.mutate(e.target.value) }}
+              listMinWidth={440}
+              className="h-7 w-[380px] max-w-[40vw] text-xs"
+            >
+              {!ownerRole && (
+                <option value="">
+                  {ownerRoles.length === 0
+                    ? 'Add policy roles in Settings → AI profile'
+                    : policy.ownerTeam ? `${policy.ownerTeam} (not a policy role)` : 'Choose a role…'}
+                </option>
+              )}
+              {ownerRoles.map(r => (
+                <option key={r.title} value={r.title}>{r.title}{r.holder ? ` — ${r.holder}` : ' — vacant'}</option>
+              ))}
+            </GlassSelect>
+          </span>
           {isDirty && (
             <span className="text-[10px] text-status-warn-fg italic">Unsaved changes</span>
           )}
+        </div>
         </div>
       }
       actions={
@@ -396,12 +520,16 @@ export default function PolicyEditorPage() {
               Metadata is not asked for here: the policy already has a title,
               owner team, frameworks and cadence, chosen when it was created.
               Creating a policy FROM scratch with AI is AiPolicyCreatePage. */}
+          {/* One AI entry point. An empty draft gets a direct "Draft with AI"
+              button, because writing the first draft is THE obvious next step;
+              once there is text, regenerating lives in the AI panel beside the
+              other AI actions rather than as a second competing button. */}
           {!isReadOnly && isEmptyDraft && (
             <Button
               size="sm" variant="secondary" icon={Sparkles}
               onClick={() => setAiDraftOpen(true)}
             >
-              Draft content
+              Draft with AI
             </Button>
           )}
 
@@ -531,7 +659,9 @@ export default function PolicyEditorPage() {
               /* Preview mode — rendered HTML */
               <div
                 className="max-w-3xl mx-auto px-8 py-10 policy-content"
-                dangerouslySetInnerHTML={{ __html: editor?.getHTML() || policy.contentBody || '' }}
+                // Saved text is shown as readers will see it, variables filled
+                // in by the server. Unsaved edits can only be shown raw.
+                dangerouslySetInnerHTML={{ __html: (!isDirty && policy.contentBody) || editor?.getHTML() || '' }}
               />
             ) : (
               <EditorContent
@@ -584,7 +714,12 @@ export default function PolicyEditorPage() {
                 organisation, and a name typed here appears in all of them.
               </p>
               {insertableVars.map(group => (
-                <div key={group.category}>
+                <div key={group.category} className="mb-3">
+                  {insertableVars.length > 1 && (
+                    <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+                      {group.category}
+                    </p>
+                  )}
                   {group.vars.map(v => (
                     <button key={v.key} onClick={() => insertVariable(v)}
                       className="w-full text-left px-2 py-2 rounded hover:bg-surface-overlay
@@ -611,6 +746,42 @@ export default function PolicyEditorPage() {
                 className="text-text-muted hover:text-text-secondary text-xs">Close</button>
             </div>
             <div className="p-3 space-y-3">
+              {/* Profile status: the reason a draft says [[ORGANISATION NAME]]. */}
+              {aiProfileScore != null && aiProfileScore < 80 && (
+                <div className={cn('flex gap-2 rounded-ctl border p-2.5',
+                  aiProfileScore < 50 ? 'border-status-warn-bd bg-status-warn-bg' : 'border-status-info-bd bg-status-info-bg')}>
+                  <AlertTriangle size={13} className={cn('mt-0.5 shrink-0',
+                    aiProfileScore < 50 ? 'text-status-warn-fg' : 'text-status-info-fg')} />
+                  <div className={cn('text-[11px] leading-snug',
+                    aiProfileScore < 50 ? 'text-status-warn-fg' : 'text-status-info-fg')}>
+                    AI organisation profile {aiProfileScore}% complete — drafts use
+                    placeholders for anything it doesn't know.
+                    <Link to="/settings?tab=ai-profile" className="ml-1 font-medium underline">
+                      Complete it
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {/* Policy content: draft or regenerate the body. */}
+              {!isReadOnly && isDraft && (
+                <div className="rounded-ctl border border-border bg-surface p-3">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-text-primary">
+                    <Wand2 size={12} className="text-brand-ink" />
+                    {isEmptyDraft ? 'Draft the content' : 'Regenerate the content'}
+                  </div>
+                  <p className="mt-1 text-[11px] text-text-muted leading-snug">
+                    {isEmptyDraft
+                      ? 'Writes a first draft from this policy’s title and linked controls.'
+                      : 'Writes a fresh draft. You compare it with the current text before replacing anything, and the current text is kept in History.'}
+                  </p>
+                  <Button size="sm" variant="secondary" icon={Sparkles} className="mt-2"
+                    onClick={() => setAiDraftOpen(true)}>
+                    {isEmptyDraft ? 'Draft with AI' : 'Regenerate…'}
+                  </Button>
+                </div>
+              )}
+
               {/* onAccept calls the existing link-control endpoint. The AI never
                   writes the mapping itself — a mapping is a compliance assertion
                   and a human accepts each one individually. */}
@@ -618,8 +789,22 @@ export default function PolicyEditorPage() {
                 policyId={policy.id}
                 frameworks={aiFrameworks}
                 existingCodes={aiControlCodes}
-                onAccept={(code) => {
-                  toast.success(`${code} accepted — link it from the control mapping panel`)
+                onAccept={async (code) => {
+                  // Accepting a suggestion links it — the person has just
+                  // confirmed this one mapping.
+                  try {
+                    const lr = await api.post(`/v1/audit/library/policies/${id}/controls/link-common`, {
+                      codes: [code], frameworks: aiFrameworks,
+                    })
+                    const res = lr?.data?.data ?? lr?.data ?? lr
+                    const n = (res?.linked || []).filter(l => !l.alreadyLinked).length
+                    if (n) toast.success(`${code} linked (${n} library control${n === 1 ? '' : 's'})`)
+                    else if (res?.linked?.length) toast(`${code} was already linked`)
+                    else toast(`${code} has no library control yet — nothing to link`)
+                    qc.invalidateQueries({ queryKey: ['policy-editor', id] })
+                  } catch (e) {
+                    toast.error(e?.response?.data?.message || `Could not link ${code}`)
+                  }
                 }}
               />
             </div>
@@ -628,7 +813,7 @@ export default function PolicyEditorPage() {
 
         {/* ── Version history panel ── */}
         {historyOpen && (
-          <div className="w-72 shrink-0 border-l border-border flex flex-col">
+          <div className="w-80 shrink-0 border-l border-border flex flex-col overflow-y-auto">
             <div className="px-4 py-3 border-b border-border shrink-0">
               <p className="text-xs font-semibold text-text-secondary">Version history</p>
             </div>
@@ -673,6 +858,22 @@ export default function PolicyEditorPage() {
                 </div>
               )}
             </div>
+
+            {/* Draft revisions within this version: compare and restore. */}
+            <div className="border-t border-border">
+              <PolicyRevisionsPanel
+                policyId={policy.id}
+                currentHtml={editor?.getHTML() || ''}
+                canRestore={!isReadOnly}
+                onRestored={(html) => {
+                  editor?.commands.setContent(html || '')
+                  const text = editor?.getText() || ''
+                  setWordCount(text.trim().split(/\s+/).filter(Boolean).length)
+                  setIsDirty(false)
+                  qc.invalidateQueries({ queryKey: ['policy-editor', id] })
+                }}
+              />
+            </div>
           </div>
         )}
       </div>
@@ -689,11 +890,45 @@ export default function PolicyEditorPage() {
           policyTitle={policy.title}
           controlCodes={aiControlCodes}
           frameworks={aiFrameworks}
-          onAccept={(html) => {
+          currentHtml={aiDraftOpen ? (editor?.getHTML() || '') : ''}
+          onAccept={async (html, result) => {
+            // 1. Keep what is in the editor now — including unsaved typing — as
+            //    a revision, so replacing it can always be undone.
+            const before = editor?.getHTML() || ''
+            const hadText = !!before.replace(/<[^>]+>/g, '').trim()
+            let kept = null
+            if (hadText) {
+              try {
+                kept = await revisionApi.snapshot(id, { source: 'BEFORE_AI', contentBody: before })
+                kept = kept?.data?.data ?? kept?.data ?? kept
+              } catch (e) {
+                // Without the snapshot the old text would be unrecoverable — stop.
+                toast.error(e?.response?.data?.message || 'Could not keep the current draft, so nothing was replaced')
+                return
+              }
+            }
+
+            // 2. Put the AI draft in and save it, so it is a revision too.
             editor?.commands.setContent(html)
-            setIsDirty(true)
             const text = editor?.getText() || ''
             setWordCount(text.trim().split(/\s+/).filter(Boolean).length)
+            try {
+              await policyApi.update(id, { title: policy.title, contentBody: html })
+              await revisionApi.snapshot(id, {
+                source: 'AI_DRAFT', contentBody: html,
+                aiInteractionId: result?.interactionId ?? undefined,
+              })
+              setIsDirty(false)
+              setLastSaved(new Date())
+              toast.success(kept?.revisionNo
+                ? `AI draft saved — the previous text is kept as r${kept.revisionNo} in History`
+                : 'AI draft saved')
+            } catch (e) {
+              setIsDirty(true)
+              toast.error(e?.response?.data?.message || 'The draft is in the editor but was not saved — click Save draft')
+            }
+            qc.invalidateQueries({ queryKey: ['policy-editor', id] })
+            qc.invalidateQueries({ queryKey: ['policy-revisions', id] })
           }}
         />
       )}

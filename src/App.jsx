@@ -66,6 +66,7 @@ const WorkflowCataloguePage = lazyPage(() => import('./pages/workflow/WorkflowCa
 // Platform Admin: every module and workflow walkthrough and guide in one place.
 const GuidesAdminPage = lazyPage(() => import('./pages/admin/guides/GuidesAdminPage'))
 const SettingsPage      = lazyPage(() => import('./pages/settings/SettingsPage'))
+const AiAgentPage       = lazyPage(() => import('./pages/ai/AiAgentPage'))
 const WorkflowInboxPage = lazyPage(() => import('./pages/workflow/WorkflowInboxPage'))
 const AllTasksPage      = lazyPage(() => import('./pages/workflow/AllTasksPage'))
 const TaskDetailPage    = lazyPage(() => import('./pages/workflow/TaskDetailPage'))
@@ -291,6 +292,8 @@ export default function App() {
             <Route path="/chat"                         element={<ChatPage />} />
             <Route path="/chat/:id"                     element={<ChatPage />} />
             <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
+            <Route path="/settings/ai-profile"    element={<Navigate to="/settings?tab=ai-profile" replace />} />
+            <Route path="/ai"                   element={<AiAgentPage />} />
             <Route path="/workflow/inbox"         element={<WorkflowInboxPage />} />
             <Route path="/workflow/tasks"          element={<AllTasksPage />} />
             <Route path="/workflow/tasks/:taskId"  element={<TaskDetailPage />} />

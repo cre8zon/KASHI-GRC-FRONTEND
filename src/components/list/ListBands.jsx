@@ -129,14 +129,20 @@ function GuideBandShell({ icon: Icon, title, subtitle, links, strip, collapsed, 
         <div className="flex gap-1.5 flex-wrap items-center">{links}</div>
       </div>
       <div className="grid gap-1.5 flex-[3_1_620px] min-w-0"
-        style={{ gridTemplateColumns: `repeat(${cardCount}, minmax(0, 1fr))` }}>
+        // At least three slots: one or two cards keep the width they have in
+        // a full band instead of stretching across it (a single workflow
+        // card used to fill the whole band and read as a banner).
+        style={{ gridTemplateColumns: `repeat(${Math.max(cardCount, 3)}, minmax(0, 1fr))` }}>
         {cards}
       </div>
     </section>
   )
 }
 
-const bandCard = 'flex flex-col justify-center gap-1.5 px-2.5 py-1.5 rounded-ctl bg-surface-raised text-text-primary hover:brightness-[0.98] min-w-0'
+// Frosted glass on the dark band (.band-glass), not solid white — the same
+// glass family as the rest of the app. Its text colours are lifted for the
+// dark ground in index.css, so the card markup below is unchanged.
+const bandCard = 'band-glass flex flex-col justify-center gap-1.5 px-2.5 py-1.5 rounded-ctl min-w-0'
 
 // ─── Workflow band ───────────────────────────────────────────────────────────
 
@@ -144,9 +150,13 @@ export function WorkflowBand({ entityType, moduleLabel }) {
   const { data: workflows = [], isLoading } = useWorkflowCatalogue(entityType)
   // Collapsed to one line once someone has closed it. Opens expanded the first time.
   const [collapsed, toggle] = useBandCollapse(`kashi:wf-band:${entityType}`)
+  // The module's guide — for the Walkthrough card, so it shows the demo
+  // exactly as the module guide band does. Shared query, cached.
+  const { data: guide } = useModuleGuide(entityType)
   // A workflow-capable module with no workflow yet still gets its guide.
   if (!workflows.length) return isLoading ? null : <ModuleGuideBand entityType={entityType} moduleLabel={moduleLabel} />
-  const shown = workflows.slice(0, 4)
+  // Three workflows at most, plus the walkthrough card — four slots, as before.
+  const shown = workflows.slice(0, 3)
   const noun = (moduleLabel || 'records').toLowerCase()
   const title = `${moduleLabel || 'This module'} run${moduleLabel ? '' : 's'} on ${workflows.length} workflow${workflows.length === 1 ? '' : 's'}`
   return (
@@ -156,11 +166,10 @@ export function WorkflowBand({ entityType, moduleLabel }) {
       links={<>
         <BandCta to={catalogueRoute(entityType)}>Explore workflows →</BandCta>
         <BandGhost to={catalogueRoute(entityType, '?request=1')}>Request a custom one</BandGhost>
-        <BandLink to={guideRoute(entityType)}>How this module works</BandLink>
       </>}
       strip={shown.map(w => <span key={w.id} className="w-14 shrink-0"><StepBar steps={w.steps} height={4} /></span>)}
-      cardCount={shown.length}
-      cards={shown.map(w => (
+      cardCount={shown.length + 1}
+      cards={[...shown.map(w => (
         <Link key={w.id} to={catalogueRoute(entityType, `?workflow=${w.id}`)} className={bandCard}>
           <div className="flex items-center justify-between gap-1.5">
             <strong className="text-xs truncate" title={w.name}>{w.name}</strong>
@@ -175,7 +184,25 @@ export function WorkflowBand({ entityType, moduleLabel }) {
             {w.hasDemo && <span className="text-brand-ink font-semibold"> · <Play size={8} className="inline -mt-0.5" fill="currentColor" /> demo</span>}
           </div>
         </Link>
-      ))}
+      )),
+      // "How this module works" as a card, like the module guide band's
+      // Walkthrough — as a third link it wrapped onto its own line and made
+      // this band taller than every other module's.
+      // Identical to the module guide band's Walkthrough card: Video badge
+      // and play icon when the module has a demo, Guide otherwise.
+      <Link key="guide" to={guideRoute(entityType)} className={bandCard}>
+        <div className="flex items-center justify-between gap-1.5">
+          <strong className="text-xs truncate">Walkthrough</strong>
+          {guide?.hasDemo
+            ? <span className="text-[10px] font-semibold px-1.5 rounded-badge bg-status-pass-bg text-status-pass-fg shrink-0">Video</span>
+            : <span className="text-[10px] font-semibold px-1.5 rounded-badge bg-surface-overlay text-text-muted shrink-0">Guide</span>}
+        </div>
+        <div className="text-[10.5px] text-text-secondary leading-snug line-clamp-2">
+          {guide?.hasDemo
+            ? <><Play size={8} className="inline -mt-0.5 text-brand-ink" fill="currentColor" /> {(guide.chapters || []).length ? `${guide.chapters.length} chapters` : 'Watch it end to end'}</>
+            : 'How this module works — stages, actions and how records connect'}
+        </div>
+      </Link>]}
     />
   )
 }
@@ -203,7 +230,7 @@ export function YourPartBand({ entityType, viewerSides = [] }) {
       <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
         {mine.map(({ w, steps }) => (
           <Link key={w.id} to={catalogueRoute(entityType, `?workflow=${w.id}`)}
-            className="rounded-ctl bg-surface-raised border border-border px-3 py-2 flex flex-col gap-1.5 hover:border-brand-500/40 min-w-0">
+            className="rounded-ctl glass-card border border-border px-3 py-2 flex flex-col gap-1.5 hover:border-brand-500/40 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <strong className="text-[12.5px] text-text-primary truncate">{w.name}</strong>
               {w.hasDemo && <span className="text-[11px] font-semibold text-brand-ink shrink-0"><Play size={9} className="inline -mt-0.5" fill="currentColor" /> demo</span>}

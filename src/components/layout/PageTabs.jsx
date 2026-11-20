@@ -28,7 +28,7 @@ export function PageTabs() {
   if (!info || !info.listLevel) return null
   return (
     <div role="tablist" aria-label={info.parent.label}
-      className="shrink-0 mt-1 px-4 flex items-end gap-0.5 overflow-x-auto detail-band"
+      className="shrink-0 mt-0.5 px-4 flex items-end gap-0.5 overflow-x-auto detail-band"
       style={{ scrollbarWidth: 'none' }}>
       {info.tabs.map(t => {
         const on = t.navKey === info.activeKey
@@ -41,7 +41,7 @@ export function PageTabs() {
                 dispatch(openTab({ route: t.route, title: t.label, icon: t.icon }))
               }
             }}
-            className={cn('relative shrink-0 flex items-center gap-1.5 px-3 h-10 text-[13px] whitespace-nowrap transition-colors',
+            className={cn('relative shrink-0 flex items-center gap-1.5 px-3 h-9 text-[13px] whitespace-nowrap transition-colors',
               on ? 'text-brand-ink font-semibold' : 'text-text-muted font-medium hover:text-text-primary')}>
             {Icon && <Icon size={14} strokeWidth={1.9} />} {t.label}
             {on && <span className="absolute left-2 right-2 -bottom-px h-[2.5px] rounded-full bg-brand-500" />}

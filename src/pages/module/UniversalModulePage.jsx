@@ -108,6 +108,7 @@ import { Badge, DynamicBadge } from '../../components/ui/Badge'
 import { COLOR_MAP } from '../../config/constants'
 import { Modal, ConfirmDialog } from '../../components/ui/Modal'
 import { DataTable } from '../../components/ui/DataTable'
+import { SearchInput } from '../../components/ui/SearchInput'
 import { DynamicForm } from '../../components/forms/DynamicForm'
 import { CommentFeed } from '../../components/comments/CommentFeed'
 import { useComments } from '../../hooks/useComments'
@@ -252,6 +253,22 @@ function formatFrameworkRef(ref) {
 function stripFrameworkPrefix(title) {
   if (!title) return title
   return title.replace(/^(SOC ?2|ISO ?27001(?::2022)?|RBI|DPDPA|PCI ?DSS)\s+/i, '')
+}
+
+// Client-side order for lists that arrive whole. Blanks last either way;
+// numbers and numeric strings by value; text by locale with numeric runs
+// compared as numbers (POL-2 before POL-10). ISO dates sort correctly as text.
+const sortRows = (rows, key, dir) => {
+  const blank = v => v === null || v === undefined || v === '' || v === '—'
+  const val = v => (v && typeof v === 'object') ? (v.label ?? v.name ?? v.value ?? '') : v
+  const sign = dir === 'desc' ? -1 : 1
+  return [...rows].sort((a, b) => {
+    const x = val(a?.[key]), y = val(b?.[key])
+    if (blank(x) || blank(y)) return blank(x) === blank(y) ? 0 : blank(x) ? 1 : -1
+    if (typeof x === 'number' && typeof y === 'number') return (x - y) * sign
+    if (typeof x === 'boolean' || typeof y === 'boolean') return (Number(x) - Number(y)) * sign
+    return String(x).localeCompare(String(y), undefined, { numeric: true, sensitivity: 'base' }) * sign
+  })
 }
 
 const useEntityList = (basePath, params) => useQuery({
@@ -608,7 +625,7 @@ function ModuleListView({ bp }) {
   // { data: { items: [...] } }           — double-wrapped (shouldn't happen but guard for it)
   // { content: [...] }                   — Spring Page
   // [...]                                — raw array
-  const items = Array.isArray(listRes)
+  const rawItems = Array.isArray(listRes)
     ? listRes
     : Array.isArray(listRes?.items)
       ? listRes.items
@@ -619,6 +636,13 @@ function ModuleListView({ bp }) {
           : Array.isArray(listRes?.content)
             ? listRes.content
             : []
+  // Sorting is the server's job on paged lists (sortBy/sortDirection). A list
+  // returned whole — no pagination, e.g. the policy library — never sees
+  // those params, so clicking a header changed nothing. Those are sorted
+  // here; paged lists are left in the order the server chose.
+  const listIsPaged = !Array.isArray(listRes) && !!(listRes?.pagination
+    || listRes?.data?.pagination || listRes?.totalElements != null)
+  const items = (!sortBy || listIsPaged) ? rawItems : sortRows(rawItems, sortBy, sortDir)
   const total = listRes?.pagination?.totalItems
     ?? listRes?.data?.pagination?.totalItems
     ?? listRes?.totalElements
@@ -1267,14 +1291,9 @@ function ModuleListView({ bp }) {
               ))}
             </div>
           )}
-          <div className="relative">
-            {/* z-10: the field's backdrop blur paints it above an un-layered
-                icon, which hid the magnifier entirely. */}
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted z-10 pointer-events-none" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder={`Search ${entityPlural.toLowerCase()}…`}
-              className="w-52 pl-8 pr-3 h-8 text-xs glass-field border border-border rounded-ctl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
-          </div>
+          {/* The shared search box (icon, clear button, Esc to clear). */}
+          <SearchInput value={search} onChange={setSearch}
+            placeholder={`Search ${entityPlural.toLowerCase()}…`} />
           {/* FIX: Render screen designer actions for this list screen.
               This is the single source of truth for toolbar buttons — no more
               hardcoded "New entity" button. Each action's payloadTemplateJson
@@ -1317,9 +1336,9 @@ function ModuleListView({ bp }) {
         </div>
       </div>
       {/* SoD / access violations banner */}
-      {vc.sodViolations?.length > 0 && <SodBanner violations={vc.sodViolations} />}
+      {vc.sodViolations?.length > 0 && <div className="px-6 pt-2"><SodBanner violations={vc.sodViolations} /></div>}
 
-      <div className="px-6 pt-3 pb-6">
+      <div className="px-6 pt-3 pb-4">
         {/* Above the table: the module's workflows (organisation side — the
             people who choose how work runs), its KPI band and the filters a
             KPI tile set. Each renders nothing when it has nothing. */}
@@ -1412,6 +1431,9 @@ function ModuleListView({ bp }) {
                 sortBy={sortBy}
                 sortDir={sortDir}
                 onSort={handleSort}
+                // Per-user column layout (widths, hidden, order), saved on the
+                // server under the list's screen key.
+                prefsKey={`list.${bp.listScreenKey || bp.entityType}`}
                 // Same shapes the row extraction above already tolerates.
                 // It accepted four for `items` and four for `total`, but only
                 // two here — so an endpoint returning a Spring Page rendered its
@@ -2246,7 +2268,20 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
   const tab = urlTab
     || (actionItemId && bp?.supportsActionItems ? 'actions' : '')
     || (embedded ? '' : savedSubTab) || 'overview'
+  // The record page scrolls as one: the band (breadcrumb, task bar, hero)
+  // scrolls away and the tab strip sticks to the top. Switching tabs while
+  // scrolled down lands at the top of the new tab, tabs still in view,
+  // rather than mid-way down it or back above the hero.
+  const detailScrollRef = useRef(null)
+  const detailBandRef   = useRef(null)
   const setTab = (key) => {
+    const sc = detailScrollRef.current, band = detailBandRef.current
+    // The header's bottom edge in the scroller's coordinates (it is a card
+    // with a margin now, so its own offsetHeight is not where the tabs start).
+    if (sc && band) {
+      const end = band.getBoundingClientRect().bottom - sc.getBoundingClientRect().top + sc.scrollTop
+      if (sc.scrollTop > end) sc.scrollTop = end
+    }
     // replace, not push: one history entry per record, so Back leaves the
     // record instead of walking backwards through every tab the user clicked.
     setUrlTab(key)
@@ -3290,7 +3325,7 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
   ].filter(Boolean)
 
   const detailTitle = (
-    <div className="px-6 pt-3 flex flex-col gap-1">
+    <div className="px-6 pt-2 flex flex-col gap-1">
       <div className="flex items-center gap-2 min-w-0">
         <button onClick={handleBack} aria-label="Back"
           className="text-text-muted hover:text-text-primary transition-colors shrink-0">
@@ -3477,6 +3512,7 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
         return { ...t, onClick: () => setTab(t.key) }
       })}
       actions={headerActions}
+      afterTitle={actionBar}
     />
   )
   const detailBody = (
@@ -3484,28 +3520,37 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
       {/* Action bar, then the header zone — above the tabs, on every tab. The
           action bar replaces the old task banner: it says which task this is,
           whether it can be acted on, and carries the step's buttons. */}
-      {/* Fixed top: task bar, header zone and tabs never scroll — only the
-          tab body below does (it is the scroll container). */}
-      {/* The record's band: breadcrumb, task bar, hero and tab strip on one
-          brand-tinted ground (.detail-band), ending in the tab rule — so the
-          record's identity, its tabs and the tab content read as three
-          layers instead of three white cards. */}
-      <div className="shrink-0 detail-band">
+      {/* ONE scroll container for the whole record. The band (breadcrumb,
+          task bar, hero) scrolls away as you read; the tab strip is sticky,
+          so it stays at the top with the content below using the full
+          height. Previously the band and tabs were fixed and only the tab
+          body scrolled, which left ~350px for content at 1080p. */}
+      <div ref={detailScrollRef} className="flex-1 min-h-0 overflow-y-auto scroll-quiet">
+      {/* Breadcrumb on the page itself; the record's header — title, task
+          bar, summary tiles and any warnings — in ONE rounded glass card
+          (.detail-head) with the same outer edges as the tab strip below.
+          It replaces a full-width tinted band whose square ends and hard
+          bottom rule read as edgy next to the rounded cards around it. */}
+      <div ref={detailBandRef}>
       {!embedded && detailTitle}
-      <div className={cn('flex flex-col gap-3', embedded ? 'px-5 pt-3' : 'px-6 pt-3')}>
-        {actionBar}
+      <div className={cn('detail-head rounded-card mt-1.5 pt-2.5 pb-3 flex flex-col gap-2.5', embedded ? 'mx-5 px-3' : 'mx-6 px-4')}>
+        {/* The task bar now sits inside the hero, under the title and above
+            the summary tiles: identity first, then what to do about it. */}
         {headerZone}
         {/* Steps ahead whose roles nobody holds — and where their tasks will
             land instead. Gone as soon as every role has someone. */}
         {!embedded && (wfSummary?.instanceId || vc.workflowInstanceId) && (
           <RoleCoverageWarning instanceId={wfSummary?.instanceId || vc.workflowInstanceId} />
         )}
+        {/* SoD banner — inside the card with the other warnings, at the
+            card's own padding (it no longer carries a margin of its own). */}
+        {vc.sodViolations?.length > 0 && <SodBanner violations={vc.sodViolations} />}
+      </div>
       </div>
 
-      <div className={cn('z-10', embedded ? 'px-5 pt-2' : 'px-6 pt-2')}>
-
-      {/* SoD banner */}
-      {vc.sodViolations?.length > 0 && <SodBanner violations={vc.sodViolations} />}
+      {/* The strip floats as a rounded glass bar — at rest under the band and
+          when stuck to the top while the tab body scrolls beneath it. */}
+      <div className={cn('sticky top-0 z-20 pt-1.5 pb-1', embedded ? 'px-5' : 'px-6')}>
 
       {/* Tab bar */}
       {/* sticky: the tab strip stays put while the tab body scrolls.
@@ -3517,26 +3562,26 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
           bg-surface read as a hard band against everything around it. */}
       {/* Tabs: a soft rounded strip, like the cards around it; the active
           tab is a tinted pill rather than an underline on a hard band. */}
-      <div role="tablist" className="flex items-end gap-1 overflow-x-auto scrollbar-none"
+      <div role="tablist" className="detail-tabs rounded-card p-1 flex items-center gap-1 overflow-x-auto scrollbar-none"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        {/* Inside the rounded bar the active tab is a tinted pill; an underline
+            would run into the bar's own rounded edge. */}
         {visibleTabs.map(t => (
           <button key={t.key} role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}
             className={cn(
-              'relative shrink-0 flex items-center gap-1.5 px-3 h-10 text-[13px] transition-colors',
+              'relative shrink-0 flex items-center gap-1.5 px-3 h-8 rounded-ctl text-[13px] transition-colors',
               tab === t.key
-                ? 'text-brand-ink font-semibold'
-                : 'text-text-muted font-medium hover:text-text-primary'
+                ? 'bg-brand-500/12 text-brand-ink font-semibold'
+                : 'text-text-muted font-medium hover:text-text-primary hover:bg-surface-overlay/60'
             )}>
             <t.icon size={14} /> {t.label}
-            {tab === t.key && <span className="absolute left-2 right-2 -bottom-px h-[2.5px] rounded-full bg-brand-500" />}
           </button>
         ))}
       </div>
       </div>
-      </div>
 
-      {/* Tab content — the only part that scrolls */}
-      <div className={cn('flex-1 min-h-0 overflow-y-auto scroll-quiet', embedded ? 'px-5 py-3' : 'px-6 pt-3 pb-6')}>
+      {/* Tab content — scrolls with the page, under the sticky tab strip */}
+      <div className={cn(embedded ? 'px-5 py-2' : 'px-6 pt-2 pb-6')}>
         {tab === 'overview' && (() => {
           // Cards from the Overview form (Screen Designer), else the blueprint
           // schema. Fields already in the header zone are not repeated, and no
@@ -3608,6 +3653,7 @@ function ModuleDetailView({ bp, id, entityType, embedded = false, onClose, drawe
           />
         )}
       </div>
+      </div>{/* /scroll container */}
 
       {/* Edit modal */}
       {editFormKey && (
@@ -4777,7 +4823,9 @@ function SodBanner({ violations }) {
   const hasHard = violations.some(v => v.conflictType === 'HARD')
   return (
     <div className={cn(
-      'flex items-start gap-2 mx-6 mt-4 px-3 py-2.5 rounded-card text-xs border',
+      // No outer margin: each caller places it. Inside the record header it
+      // already sits in padded content, where mx-6 indented it twice.
+      'flex items-start gap-2 px-3 py-2 rounded-card text-xs border',
       hasHard
         ? 'bg-status-fail-bg border-status-fail-bd text-status-fail-fg'
         : 'bg-status-warn-bg border-status-warn-bd text-status-warn-fg'

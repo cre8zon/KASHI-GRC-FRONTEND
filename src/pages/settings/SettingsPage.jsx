@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -16,13 +17,14 @@ import { initials }      from '../../utils/format'
 import { cn }            from '../../lib/cn'
 import {
   User, Building2, Shield, Palette, Key, Eye, EyeOff,
-  Moon, Sun, Monitor, Bell
+  Moon, Sun, Monitor, Bell, Sparkles
 } from 'lucide-react'
 import { authApi }       from '../../api/auth.api'
 import { usersApi }      from '../../api/users.api'
 import toast             from 'react-hot-toast'
 import IntegrationsPage  from './IntegrationsPage'
 import { NotificationsTab } from './NotificationPreferencesPage'
+import { AiProfileTab }     from './AiProfileTab'
 import { PasswordField, PasswordStrength, PasswordChecklist, FormAlert } from '../../components/auth/AuthFields'
 import { newPasswordSchema, parseApiError } from '../../lib/passwordPolicy'
 
@@ -32,6 +34,9 @@ const TABS = [
   { id: 'security',     label: 'Security',      icon: Shield  },
   { id: 'notifications',label: 'Notifications',  icon: Bell    },
   { id: 'integrations', label: 'Integrations',   icon: Key     },
+  // Organisation-wide AI grounding, read by every AI feature. Shown to whoever
+  // may save it — the backend's rule (AUDIT_CREATE, or a platform operator).
+  { id: 'ai-profile',   label: 'AI profile',     icon: Sparkles, permission: ['AUDIT_CREATE', 'system:write'] },
 ]
 
 // The 12 pastel presets, single-sourced from brandPresets.js. These are DATA
@@ -48,10 +53,10 @@ const PRESET_PALETTES = BRAND_PRESETS.map((p, i, arr) => ({
 const DEFAULT_HEX = DEFAULT_BRAND_HEX
 
 // ── Shared tab bar ────────────────────────────────────────────────────────────
-function Tabs({ active, onChange }) {
+function Tabs({ tabs, active, onChange }) {
   return (
     <div className="flex items-center gap-1 px-6 border-b border-border">
-      {TABS.map(t => {
+      {tabs.map(t => {
         const Icon = t.icon
         return (
           <button key={t.id} onClick={() => onChange(t.id)}
@@ -570,19 +575,31 @@ function SecurityTab() {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
-  const [tab,  setTab]  = useState('profile')
   const branding        = useSelector(selectBranding)
   const auth            = useSelector(selectAuth)
 
+  const perms   = auth?.permissions || []
+  const visible = useMemo(() => TABS.filter(t => !t.permission || t.permission.some(p => perms.includes(p))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [perms.join(',')])
+
+  // The tab lives in the URL (?tab=ai-profile) so other screens can link to a
+  // tab directly; it was local state, so /settings?tab=display opened Profile.
+  const [params, setParams] = useSearchParams()
+  const requested = params.get('tab')
+  const tab = visible.some(t => t.id === requested) ? requested : 'profile'
+  const setTab = (id) => setParams(p => { const n = new URLSearchParams(p); n.set('tab', id); return n }, { replace: true })
+
   return (
     <PageLayout title="Settings" subtitle="Account preferences and display settings">
-      <Tabs active={tab} onChange={setTab} />
+      <Tabs tabs={visible} active={tab} onChange={setTab} />
       <div className="p-6">
         {tab === 'profile'  && <ProfileTab  auth={auth} branding={branding} userColor={(() => { try { return localStorage.getItem('kashi_sidebar_color') } catch { return null } })()} />}
         {tab === 'display'  && <DisplayTab  branding={branding} />}
         {tab === 'security'      && <SecurityTab />}
         {tab === 'notifications' && <NotificationsTab />}
         {tab === 'integrations'  && <IntegrationsPage />}
+        {tab === 'ai-profile'    && <AiProfileTab />}
       </div>
     </PageLayout>
   )
