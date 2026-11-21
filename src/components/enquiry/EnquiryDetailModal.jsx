@@ -19,6 +19,7 @@ import { enquiriesApi } from '../../api/enquiries.api'
 import { tenantsApi } from '../../api/tenants.api'
 import { cn } from '../../lib/cn'
 import { usePermission } from '../../hooks/usePermission'
+import { SiteChatPanel } from './SiteChatPanel'
 
 /** Platform permission codes — must match EnquiryService.PERM_* on the server. */
 export const ENQUIRY_PERMS = { VIEW: 'platform:enquiries:view', MANAGE: 'platform:enquiries:manage' }
@@ -68,6 +69,11 @@ export function EnquiryDetailModal({ id, onClose, config }) {
     onError: (err) => toast.error(errMsg(err)),
   })
 
+  // A chat handover's message is the AI summary (shown in the chat panel)
+  // plus, optionally, the visitor's own note — shown on its own here.
+  const isChat = e?.channel === 'CHAT'
+  const chatNote = isChat && e?.message?.includes('\n\nTheir note: ') ? e.message.split('\n\nTheir note: ').slice(1).join('') : null
+
   const convertible = e && (config?.convertibleTypes || ['DEMO', 'TRIAL', 'CONTACT_SALES', 'AUDIT_FIRM', 'PARTNERSHIP', 'GENERAL']).includes(e.type)
   const converted = e?.status === 'CONVERTED'
   const closeReasons = config?.closeReasons || ['RESOLVED', 'NOT_A_FIT', 'NO_RESPONSE', 'DUPLICATE', 'SPAM', 'LOST_TO_COMPETITOR', 'BUDGET', 'OTHER']
@@ -98,12 +104,25 @@ export function EnquiryDetailModal({ id, onClose, config }) {
                 </div>
               )}
 
+              {isChat ? (
+                <>
+                  {chatNote && (
+                    <div>
+                      <SectionTitle>Their note</SectionTitle>
+                      <div className="rounded-card border border-border glass-card p-4 text-sm text-text-primary whitespace-pre-wrap leading-relaxed">{chatNote}</div>
+                    </div>
+                  )}
+                  <SiteChatPanel enquiryId={e.id} visitorName={e.fullName} canManage={canManage}
+                    onReplied={() => qc.invalidateQueries({ queryKey: ['enquiry', id] })} />
+                </>
+              ) : (
               <div>
                 <SectionTitle>{e.subject || (e.type === 'SUPPORT' ? 'Request' : 'Message')}</SectionTitle>
                 <div className="rounded-card border border-border glass-card p-4 text-sm text-text-primary whitespace-pre-wrap leading-relaxed">
                   {e.message || <span className="text-text-muted">No message — they only filled in the form fields.</span>}
                 </div>
               </div>
+              )}
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 rounded-card border border-border glass-card p-4">
                 <Field label="Email"><a href={`mailto:${e.email}?subject=${encodeURIComponent(`Re: your ${TYPE_LABEL[e.type]?.toLowerCase() || 'enquiry'} (${e.reference})`)}`} className="text-brand-ink hover:underline inline-flex items-center gap-1"><Mail size={12} />{e.email}</a></Field>
@@ -257,7 +276,7 @@ function ActivityRow({ a }) {
     <li className="flex gap-3">
       <span className={cn('mt-1 w-6 h-6 rounded-full flex items-center justify-center shrink-0',
         isNote ? 'bg-brand-500/10 text-brand-ink' : a.kind === 'CONVERTED' ? 'bg-status-pass-bg text-status-pass-fg' : 'bg-surface-overlay text-text-muted')}>
-        {isNote ? <MessageSquare size={11} /> : a.kind === 'RECEIVED' ? <Globe2 size={11} /> : <Check size={11} />}
+        {isNote ? <MessageSquare size={11} /> : a.kind === 'RECEIVED' ? <Globe2 size={11} /> : a.kind === 'EMAIL' ? <Mail size={11} /> : <Check size={11} />}
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] text-text-muted">{a.authorName} · {fmtDate(a.createdAt)} {a.createdAt && new Date(a.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
