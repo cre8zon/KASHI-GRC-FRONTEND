@@ -9,6 +9,7 @@ import { useUnreadCount } from '../../hooks/useNotifications'
 import { useNavigation } from '../../hooks/useUIConfig'
 import { initials } from '../../utils/format'
 import { ThemeSwitcher } from '../ui/ThemeSwitcher'
+import { AiLauncherButton } from '../ai/AgentPanel'
 import { cn } from '../../lib/cn'
 
 // ── Breadcrumb — built from nav tree matching current route ──────────────────
@@ -158,7 +159,7 @@ export function TopNav({ onMenuToggle }) {
   const sideLabel    = { ORGANIZATION: 'Organization', VENDOR: 'Vendor', AUDITOR: 'Auditor', AUDITEE: 'Auditee', SYSTEM: 'System' }[primarySide] ?? 'Organization'
 
   return (
-    <header className="relative z-40 h-12 flex items-center justify-between px-4 glass-chrome rounded-card shadow-elevated mt-2 mx-2 shrink-0 gap-4">
+    <header className="relative z-40 h-11 flex items-center justify-between px-4 glass-chrome rounded-card shadow-elevated mt-2 mr-2 shrink-0 gap-4">
 
       {/* Left — org/vendor context where page title used to be */}
       <div className="flex items-center gap-2 min-w-0">
@@ -216,6 +217,9 @@ export function TopNav({ onMenuToggle }) {
             <span className="text-[11px] font-semibold text-text-secondary">{roleName}</span>
           </div>
         )}
+
+        {/* KashiGuard AI — opens the side panel; hidden when the user's menu lacks it */}
+        <AiLauncherButton />
 
         {/* Theme switcher */}
         <ThemeSwitcher />

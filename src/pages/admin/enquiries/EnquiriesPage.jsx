@@ -10,12 +10,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Search, Inbox, RefreshCw } from 'lucide-react'
+import { Search, Inbox, RefreshCw, MessagesSquare, HelpCircle } from 'lucide-react'
 import { PageLayout } from '../../../components/layout/PageLayout'
 import { Button } from '../../../components/ui/Button'
 import { enquiriesApi } from '../../../api/enquiries.api'
 import { Table, Td, StatusPill, Empty, Kpi, SelectIn, fmtDate } from '../../../components/billing/billingShared'
-import { EnquiryDetailModal, TYPE_LABEL, typeTone } from '../../../components/enquiry/EnquiryDetailModal'
+import { EnquiryDetailModal, TYPE_LABEL, typeTone, ENQUIRY_PERMS } from '../../../components/enquiry/EnquiryDetailModal'
+import { UnansweredQuestionsModal } from '../../../components/enquiry/UnansweredQuestionsModal'
+import { usePermission } from '../../../hooks/usePermission'
 import { cn } from '../../../lib/cn'
 
 const QUEUES = [
@@ -50,6 +52,8 @@ export default function EnquiriesPage() {
   const [q, setQ] = useState('')
   const [debouncedQ, setDebouncedQ] = useState('')
   const [page, setPage] = useState(1)
+  const [unansweredOpen, setUnansweredOpen] = useState(false)
+  const canManage = usePermission().hasPermission(ENQUIRY_PERMS.MANAGE)
   useEffect(() => { const t = setTimeout(() => { setDebouncedQ(q); setPage(1) }, 300); return () => clearTimeout(t) }, [q])
 
   const openId = params.get('open') ? Number(params.get('open')) : null
@@ -87,6 +91,8 @@ export default function EnquiriesPage() {
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Name, email, company, ref…"
               className="h-8 pl-8 pr-3 w-56 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
+          {/* What visitors asked the website assistant that the site could not answer. */}
+          <Button variant="secondary" size="sm" icon={HelpCircle} onClick={() => setUnansweredOpen(true)}>Unanswered questions</Button>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={() => refetch()} loading={isFetching} aria-label="Refresh" />
         </div>
       }>
@@ -141,7 +147,16 @@ export default function EnquiriesPage() {
                         </p>
                       </div>
                     </Td>
-                    <Td><StatusPill status={e.type} label={TYPE_LABEL[e.type] || e.type} tone={typeTone(e.type)} /></Td>
+                    <Td>
+                      <span className="inline-flex items-center gap-1.5">
+                        <StatusPill status={e.type} label={TYPE_LABEL[e.type] || e.type} tone={typeTone(e.type)} />
+                        {e.channel === 'CHAT' && (
+                          <span title="Handed over from the website chat" className="inline-flex items-center gap-0.5 text-[10px] text-brand-ink">
+                            <MessagesSquare size={11} /> chat
+                          </span>
+                        )}
+                      </span>
+                    </Td>
                     <Td mono>{e.planCode || '—'}</Td>
                     <Td className="text-xs text-text-secondary">{e.referralCode ? `ref ${e.referralCode}` : e.utmSource || 'Direct'}</Td>
                     <Td>
@@ -167,6 +182,8 @@ export default function EnquiriesPage() {
       </div>
 
       <EnquiryDetailModal id={openId} onClose={() => setOpen(null)} config={cfg} />
+      <UnansweredQuestionsModal open={unansweredOpen} onClose={() => setUnansweredOpen(false)} canManage={canManage}
+        onOpenEnquiry={(eid) => { setUnansweredOpen(false); setOpen(eid) }} />
     </PageLayout>
   )
 }

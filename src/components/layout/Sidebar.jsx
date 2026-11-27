@@ -285,7 +285,7 @@ function moduleOfActive(grouped, openKey, route) {
     || (item.children || []).some(hits)
 
   for (const [module, items] of Object.entries(grouped)) {
-    if (module === '_root') continue
+    if (isUngrouped(module)) continue
     if (items.some(hits)) return module
   }
   return null
@@ -595,7 +595,10 @@ function ModuleSection({ module, items, collapsed, t, searching, activeModule })
     </div>
   )
 
-  if (collapsed || module === '_root') return <div>{rows}</div>
+  // The standalone rows above the sections (KashiGuard AI): breathing room
+  // from the header divider above and from HOME below, no divider of their own.
+  if (module === '_top' && !collapsed) return <div className="pt-1.5 pb-1">{rows}</div>
+  if (collapsed || isUngrouped(module)) return <div>{rows}</div>
 
   return (
     <div>
@@ -852,7 +855,9 @@ export function Sidebar({ collapsed, onToggle }) {
 
       {/* Search — hidden while collapsed, where there is no room for results */}
       {!collapsed && !isLoading && !isError && (
-        <div className="shrink-0 px-2.5 pb-2">
+        // The workspace card and search form one header zone, closed by a
+        // divider, so the top nav row below reads as its own tier.
+        <div className={cn('shrink-0 mx-2.5 pb-3 border-b', t.divider)}>
           {/* glass-field rather than the flat t.searchBg. It is the token built
               for inputs — blur, a focus-within state, a solid @supports
               fallback and a solid print rule — and it makes this read as a
@@ -987,7 +992,7 @@ function filterNav(groups, query) {
   const out = {}
 
   for (const [module, items] of Object.entries(groups)) {
-    const moduleHit = module !== '_root' && hit(module)
+    const moduleHit = !isUngrouped(module) && hit(module)
     const kept = []
 
     for (const item of items) {
@@ -1003,15 +1008,26 @@ function filterNav(groups, query) {
   return out
 }
 
+/**
+ * Rows with no module have no section header. Where they sit depends on their
+ * sort order relative to the sections:
+ *   _top  — before the first section (e.g. KashiGuard AI, sort 90, above HOME)
+ *   _root — after it (Notifications 9000, Settings 9010 at the bottom)
+ * One shared group would put all of them wherever the first one sorts.
+ */
+const isUngrouped = (module) => module === '_root' || module === '_top'
+
 function groupByModule(items) {
   const groups = {}
+  let sectionSeen = false
   for (const item of items) {
     // Top level only — children are filtered where they render, in NavItem.
     if (!item.isActive) continue
     // Rows shown as tabs on another page (Navigation → "Show as tab of") are
     // not sidebar entries; PageTabs draws them on their page.
     if (item.tabParentKey) continue
-    const key = item.module || '_root'
+    if (item.module) sectionSeen = true
+    const key = item.module || (sectionSeen ? '_root' : '_top')
     if (!groups[key]) groups[key] = []
     groups[key].push(item)
   }

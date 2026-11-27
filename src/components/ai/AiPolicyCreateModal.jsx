@@ -36,8 +36,8 @@
  */
 
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Sparkles, ArrowRight, Check, Loader2, ChevronRight } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
+import { Sparkles, ArrowRight, Check, Loader2, ChevronRight, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
@@ -74,7 +74,9 @@ const REVIEW_CYCLES = [
   { value: 36, label: 'Every 3 years' },
 ]
 
-export default function AiPolicyCreateModal({ open, onClose, onCreated }) {
+// initialIntent / initialFrameworks: optional pre-fill, used when KashiGuard AI
+// proposes a draft from a conversation. Step 1 still shows them for editing.
+export default function AiPolicyCreateModal({ open, onClose, onCreated, initialIntent = '', initialFrameworks = [] }) {
   const navigate = useNavigate()
 
   const [step, setStep]       = useState(1)
@@ -88,13 +90,31 @@ export default function AiPolicyCreateModal({ open, onClose, onCreated }) {
   const [dropped, setDropped] = useState({})     // controlCode -> true when deselected
   const [extra, setExtra]     = useState('')
   const [quick, setQuick]     = useState(false)
+  const [profileScore, setProfileScore] = useState(null)
+  // Current policy roles, offered as the owner. The backend already maps the
+  // AI's suggested function onto a matching role where it can.
+  const [ownerRoles, setOwnerRoles] = useState([])
+  useEffect(() => {
+    if (!open) return
+    api.get('/v1/ai/org-profile/roles')
+      .then(r => {
+        const rows = r?.data?.data ?? r?.data ?? r
+        setOwnerRoles((Array.isArray(rows) ? rows : []).filter(x => x.current))
+      })
+      .catch(() => setOwnerRoles([]))
+  }, [open])
 
   // Reset on open. A modal that remembers the last run's suggestions shows one
   // policy's controls while the user describes a different one.
   useEffect(() => {
     if (!open) return
-    setStep(1); setIntent(''); setFw([]); setMeta(null)
+    setStep(1); setIntent(initialIntent || '')
+    setFw((initialFrameworks || []).filter(f => FRAMEWORKS.includes(f))); setMeta(null)
     setDropped({}); setExtra(''); setQuick(false); setBusy(false); setStage(0)
+    // How much the model will know about this organisation. Below 80% the
+    // generated text falls back to [[PLACEHOLDERS]], so say so up front.
+    aiApi.completeness().then(r => setProfileScore((r?.data?.data ?? r?.data ?? r)?.score ?? null))
+      .catch(() => setProfileScore(null))
   }, [open])
 
   const toggleFw = (f) => setFw(v => v.includes(f) ? v.filter(x => x !== f) : [...v, f])
@@ -105,7 +125,12 @@ export default function AiPolicyCreateModal({ open, onClose, onCreated }) {
     setBusy(true)
     try {
       const res = await aiApi.suggestMetadata({ intent: intent.trim(), frameworks })
-      const body = res.data?.data ?? res.data
+      const body = res?.data?.data ?? res?.data ?? res
+      // Never advance to an empty Review step: say so and stay on Describe.
+      if (!body || typeof body !== 'object' || !body.title) {
+        toast.error('The AI didn’t return any suggestions. Please try again.')
+        return
+      }
       setMeta(body)
       setDropped({})
       if (body?.warnings?.length) toast(body.warnings[0], { icon: '⚠️' })
@@ -135,7 +160,7 @@ export default function AiPolicyCreateModal({ open, onClose, onCreated }) {
         additionalInstructions: extra.trim() || undefined,
         quickMode: quick,
       })
-      const draft = draftRes.data?.data ?? draftRes.data
+      const draft = draftRes?.data?.data ?? draftRes?.data ?? draftRes
 
       // 2 — create the policy with the confirmed metadata and the generated body
       /*
@@ -167,7 +192,27 @@ export default function AiPolicyCreateModal({ open, onClose, onCreated }) {
         ownerTeam:             meta.ownerTeam || undefined,
         reviewFrequencyMonths: meta.reviewFrequencyMonths || 12,
       })
-      const created = createRes.data?.data ?? createRes.data
+      const created = createRes?.data?.data ?? createRes?.data ?? createRes
+
+      // 2b — link the controls the user kept on the review step. controlTags
+      //      only stores the codes; the Linked Controls tab (and engagement
+      //      snapshots) read real control links. Non-fatal: the policy exists
+      //      either way, and controls can be linked from its page.
+      if (created?.id && keptCodes.length) {
+        try {
+          const lr = await api.post(`/v1/audit/library/policies/${created.id}/controls/link-common`, {
+            codes: keptCodes,
+            frameworks: meta.frameworkRefs?.length ? meta.frameworkRefs : frameworks,
+          })
+          const res = lr?.data?.data ?? lr?.data ?? lr
+          if (res?.unmatched?.length) {
+            toast(`${res.unmatched.length} control(s) have no library control yet and were not linked: ${res.unmatched.join(', ')}`,
+              { duration: 7000 })
+          }
+        } catch {
+          toast.error('Policy created, but the controls could not be linked — link them from the policy page')
+        }
+      }
 
       // 3 — record acceptance. Without this the create path, likely the most
       //     used AI action in the product, contributes nothing to the flywheel.
@@ -260,6 +305,22 @@ export default function AiPolicyCreateModal({ open, onClose, onCreated }) {
         {/* ══ STEP 1 ══ */}
         {step === 1 && (
           <div className="space-y-5">
+            {profileScore != null && profileScore < 80 && (
+              <div className={cn('flex gap-2 rounded-ctl border p-2.5',
+                profileScore < 50 ? 'border-status-warn-bd bg-status-warn-bg' : 'border-status-info-bd bg-status-info-bg')}>
+                <AlertTriangle size={14} className={cn('mt-0.5 shrink-0',
+                  profileScore < 50 ? 'text-status-warn-fg' : 'text-status-info-fg')} />
+                <div className={cn('text-xs', profileScore < 50 ? 'text-status-warn-fg' : 'text-status-info-fg')}>
+                  Your AI organisation profile is {profileScore}% complete.{' '}
+                  {profileScore < 50
+                    ? 'Until it is filled in, the policy will say [[ORGANISATION NAME]] and [[SECURITY OFFICER]] instead of your company, your tools and the people who own security.'
+                    : 'A few more details will make the policy name your systems and owners instead of leaving placeholders.'}
+                  <Link to="/settings?tab=ai-profile" onClick={onClose} className="ml-1 font-medium underline">
+                    Complete the profile first
+                  </Link>
+                </div>
+              </div>
+            )}
             <label className="block">
               <span className="mb-1.5 block text-xs font-medium text-text-secondary">
                 What does this policy need to cover?
@@ -327,9 +388,26 @@ export default function AiPolicyCreateModal({ open, onClose, onCreated }) {
 
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-text-secondary">Owner team</span>
-                <input value={meta.ownerTeam || ''} onChange={e => setMeta(m => ({ ...m, ownerTeam: e.target.value }))}
-                  className="glass-field h-9 w-full rounded-ctl px-3 text-sm text-text-primary" />
+                <span className="mb-1 block text-xs font-medium text-text-secondary">Owner</span>
+                {ownerRoles.length > 0 ? (
+                  // A role, so the owner is accountable and its holder's name
+                  // follows the register. A non-role suggestion stays choosable.
+                  <GlassSelect value={meta.ownerTeam || ''}
+                    onChange={e => setMeta(m => ({ ...m, ownerTeam: e.target.value }))}
+                    className="glass-field h-9 w-full rounded-ctl px-2 text-sm text-text-primary">
+                    <option value="">Choose a role…</option>
+                    {meta.ownerTeam && !ownerRoles.some(r => r.roleTitle.toLowerCase() === meta.ownerTeam.toLowerCase()) && (
+                      <option value={meta.ownerTeam}>{meta.ownerTeam} (not a policy role)</option>
+                    )}
+                    {ownerRoles.map(r => (
+                      <option key={r.roleKey} value={r.roleTitle}>{r.roleTitle}{r.userName ? ` — ${r.userName}` : ''}</option>
+                    ))}
+                  </GlassSelect>
+                ) : (
+                  <input value={meta.ownerTeam || ''} onChange={e => setMeta(m => ({ ...m, ownerTeam: e.target.value }))}
+                    placeholder="Add policy roles in Settings → AI profile"
+                    className="glass-field h-9 w-full rounded-ctl px-3 text-sm text-text-primary" />
+                )}
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-text-secondary">Review cycle</span>

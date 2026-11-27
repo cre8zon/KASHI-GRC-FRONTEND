@@ -291,7 +291,7 @@ export function RoleCoverageWarning({ instanceId, className }) {
         <span className="ml-auto flex items-center gap-2">
           {hasPermission('USER_VIEW') && (
             <Link to={usersRoute}
-              className="inline-flex items-center gap-1 h-7 px-2.5 rounded-ctl text-xs font-semibold bg-surface-raised border border-border hover:bg-surface-overlay">
+              className="inline-flex items-center gap-1 h-7 px-2.5 rounded-ctl text-xs font-semibold glass-button border border-brand-500/25 text-brand-ink hover:bg-brand-500/10">
               <UserPlus size={12} /> Add users or roles
             </Link>
           )}

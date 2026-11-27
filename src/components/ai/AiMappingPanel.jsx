@@ -33,7 +33,7 @@ export default function AiMappingPanel({ policyId, templateId, frameworks = [], 
     setBusy(true); setDecided({})
     try {
       const res = await aiApi.suggestMappings({ policyId, templateId, frameworks, maxSuggestions: 12 })
-      setResult(res.data?.data ?? res.data)
+      setResult(res?.data?.data ?? res?.data ?? res)
     } catch (e) {
       toast.error(e?.response?.data?.error?.message || 'Could not suggest mappings')
     } finally { setBusy(false) }

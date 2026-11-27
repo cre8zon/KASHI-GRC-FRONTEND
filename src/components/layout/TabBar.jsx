@@ -115,7 +115,10 @@ export function TabBar() {
 
   return (
     <>
-      <div className="flex items-stretch h-9 shrink-0 select-none px-2 gap-1 mt-1">
+      {/* pl-3.5: the first tab starts just past the page surface's 12px
+          rounded corner, so an active first tab sits on the straight edge
+          instead of hanging over the curve. */}
+      <div className="flex items-stretch h-8 shrink-0 select-none pl-3.5 pr-2 gap-1 mt-1">
         {/* Scrollable tab list */}
         <div ref={scrollRef}
           className="flex items-stretch flex-1 min-w-0 overflow-x-auto overflow-y-hidden"

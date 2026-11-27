@@ -10,6 +10,7 @@ import { uiAdminApi } from '../../../api/uiConfig.api'
 import { rbacApi }     from '../../../api/rbac.api'
 import { PageLayout }  from '../../../components/layout/PageLayout'
 import { DataTable }   from '../../../components/ui/DataTable'
+import { SearchInput } from '../../../components/ui/SearchInput'
 import { Button }      from '../../../components/ui/Button'
 import { Modal, ConfirmDialog } from '../../../components/ui/Modal'
 import { Input }       from '../../../components/ui/Input'
@@ -1045,12 +1046,7 @@ export default function NavigationAdminPage() {
             {SIDES.map(s => <option key={s} value={s}>{s}</option>)}
           </GlassSelect>
 
-          <div className="relative">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
-              placeholder="Search label…"
-              className="h-8 pl-8 pr-3 w-44 rounded-ctl border border-border glass-field text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand-500" />
-          </div>
+          <SearchInput value={search} onChange={v => { setSearch(v); setPage(1) }} placeholder="Search label…" />
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch} />
           <Button size="sm" icon={Plus} onClick={() => setEditTarget(true)}>Add Item</Button>
         </div>
